@@ -15,14 +15,17 @@ const serverSchema = z.object({
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   // Conexão direta (porta 5432), usada por migrations e introspecção.
   DIRECT_URL: z.url({ protocol: /^postgres(ql)?$/ }),
-  // Ignora RLS. Só no servidor, nunca em código enviado ao navegador.
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  // Chave secreta do Supabase (antiga service_role): ignora o Row Level
+  // Security. Só no servidor, nunca em código enviado ao navegador.
+  SUPABASE_SECRET_KEY: z.string().min(1),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 
 const clientSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  // Chave publicável do Supabase (antiga anon). Pública por definição: o RLS
+  // é que protege os dados de quem a usa.
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
@@ -72,7 +75,7 @@ export function serverEnv(): ServerEnv {
 export function clientEnv(): ClientEnv {
   clientCache ??= parseClientEnv({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   });
   return clientCache;
 }

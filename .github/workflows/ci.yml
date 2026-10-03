@@ -20,9 +20,9 @@ jobs:
       # validação Zod de lib/env.ts roda no build e exige que existam.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
-      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+      SUPABASE_SECRET_KEY: ci-service-role-key
       NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-anon-key
 
     steps:
       - uses: actions/checkout@v5
