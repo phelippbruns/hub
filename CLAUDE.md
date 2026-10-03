@@ -36,7 +36,12 @@ features/<nome>/     componentes, actions, regras e testes de cada feature
 lib/env.ts           validação Zod das variáveis de ambiente
 lib/data/            ÚNICA camada que fala com o Prisma e confere permissão
 lib/supabase/        clientes @supabase/ssr (server, client, session)
-design/              tokens e componentes base (F01)
+design/tokens.ts     tokens GERADOS de docs/design-system/tokens.json
+design/tokens.css    os mesmos tokens como tema do Tailwind
+design/sizes.css     medidas de controle que faltam no tokens.json
+design/icons/        ícones em SVG, 2 px numa grade de 24
+design/components/   componentes base
+design/gallery.tsx   a galeria servida em /design
 prisma/              schema e migrations
 supabase/            config local, políticas RLS e funções SQL
 e2e/                 jornadas no Playwright
@@ -68,7 +73,13 @@ Onde cada uma está implementada hoje: 1 em `lib/data/` + regra de lint em `esli
 
 ## Regras de código
 
-**Nunca use cor ou tamanho fora dos tokens.** Nenhum hex, nenhum `px` solto, nenhuma classe arbitrária do Tailwind (`text-[#1E1A33]`, `p-[13px]`). Cor, tipografia, espaçamento e raio vêm de `design/tokens.ts`, gerado a partir de [docs/design-system/tokens.json](docs/design-system/tokens.json). Precisa de um valor que não existe? Discuta o token antes de escrever a classe.
+**Nunca use cor ou tamanho fora dos tokens.** Nenhum hex, nenhum `px` solto, nenhuma classe arbitrária do Tailwind (`text-[#1E1A33]`, `p-[13px]`). Cor, tipografia, espaçamento e raio vêm de [design/tokens.ts](design/tokens.ts), gerado a partir de [docs/design-system/tokens.json](docs/design-system/tokens.json).
+
+Duas defesas sustentam a regra. A primeira é estrutural: [design/tokens.css](design/tokens.css) zera as escalas padrão do Tailwind com `--color-*: initial`, então `bg-red-500` e `p-7` **não existem**. A segunda é [design/tokens.test.ts](design/tokens.test.ts), que falha se aparecer hex, `rgb()` ou valor arbitrário em px/rem no código.
+
+Para mudar um valor, mude o JSON e rode `npm run tokens`. Nunca edite `design/tokens.ts` ou `design/tokens.css` à mão — a CI confere com `npm run tokens:check`.
+
+As medidas de controle (botão de ícone, marca, avatar, interruptor) ficam em [design/sizes.css](design/sizes.css), porque o tokens.json ainda não as tem. É o único lugar onde pixel é escrito à mão.
 
 **Cite o código da RN em comentários e testes.** Toda regra de negócio implementada leva o código da regra no comentário, e o teste que a cobre leva o código no nome:
 
@@ -78,6 +89,10 @@ it("RN07: recusa o segundo tópico do dia na mesma comunidade", async () => { �
 ```
 
 As regras RN01 a RN34 estão em [docs/escopo.md](docs/escopo.md).
+
+**A tela /design mostra o sistema inteiro.** Antes de criar um componente, olhe [design/components/](design/components/) e a galeria em `/design`. Componente novo entra na galeria junto.
+
+**Rota com JavaScript precisa renderizar por requisição.** A CSP exige nonce nos scripts, e o Next só injeta o nonce quando a rota não é estática — numa rota prerenderizada o navegador bloqueia todos os scripts, sem erro no build. Rota com componente de cliente leva `export const dynamic = "force-dynamic"`, e o teste `todo script da página leva nonce` ([e2e/design-system.spec.ts](e2e/design-system.spec.ts)) guarda isso.
 
 **Só layout de computador até a F21.** Da F00 à F20, implemente apenas o layout acima de 768 px, seguindo a versão web de cada tela em [docs/telas.html](docs/telas.html). Não crie estilos de celular nem breakpoints.
 
@@ -97,7 +112,8 @@ npm run typecheck    # tsc --noEmit
 ### Testes
 
 ```bash
-npm run test         # Vitest: regras de negócio
+npm run tokens       # regerar design/tokens.ts e tokens.css do JSON
+npm run test         # Vitest: regras de negócio, contraste e snapshots
 npm run test:watch   # Vitest em modo contínuo
 npm run test:e2e     # Playwright: jornadas (sobe o build sozinho)
 ```

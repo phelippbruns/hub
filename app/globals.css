@@ -1,1 +1,27 @@
 @import "tailwindcss";
+@import "../design/tokens.css";
+@import "../design/sizes.css";
+
+/*
+ * Base do Hub. Tudo que for valor visual vem de design/tokens.css, gerado a
+ * partir de docs/design-system/tokens.json.
+ */
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--color-surfacePage);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  /* Foco sempre visível, em ink, que passa em todos os fundos da paleta. */
+  :focus-visible {
+    outline: 3px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+}

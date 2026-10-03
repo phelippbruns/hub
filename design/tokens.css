@@ -1,0 +1,65 @@
+/*
+ * GERADO POR scripts/generate-tokens.mts — NÃO EDITE À MÃO.
+ * Fonte: docs/design-system/tokens.json. Para mudar um valor, mude o JSON e rode `npm run tokens`.
+ */
+
+@theme {
+  /* `initial` apaga a escala padrão do Tailwind. Sobram só os tokens do Hub,
+     então `bg-red-500` ou `p-7` simplesmente não existem: a regra "nenhuma cor
+     ou tamanho fora dos tokens" passa a ser impossível de quebrar por descuido. */
+  --color-*: initial;
+  --text-*: initial;
+  --spacing-*: initial;
+  --radius-*: initial;
+  --font-*: initial;
+
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --color-ink: #1e1a33;
+  --color-inkMuted: #565170;
+  --color-paper: #ffffff;
+  --color-surfacePage: #f1eeff;
+  --color-lavender: #a69cfb;
+  --color-sun: #ffd95e;
+  --color-line: #d4cef2;
+  --color-error: #b42318;
+  --color-success: #146c43;
+
+  --text-title: 28px;
+  --text-title--line-height: 32px;
+  --text-title--font-weight: 800;
+  --text-title--letter-spacing: -0.02em;
+  --text-question: 22px;
+  --text-question--line-height: 26px;
+  --text-question--font-weight: 800;
+  --text-question--letter-spacing: -0.02em;
+  --text-subtitle: 20px;
+  --text-subtitle--line-height: 26px;
+  --text-subtitle--font-weight: 700;
+  --text-subtitle--letter-spacing: -0.01em;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
+  --text-body--font-weight: 400;
+  --text-bodyStrong: 15px;
+  --text-bodyStrong--line-height: 22px;
+  --text-bodyStrong--font-weight: 600;
+  --text-label: 13px;
+  --text-label--line-height: 18px;
+  --text-label--font-weight: 600;
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-caption--font-weight: 500;
+
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 16px;
+  --spacing-4: 24px;
+
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-pill: 999px;
+
+  --font-sans:
+    var(--hub-font-sans), "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+}

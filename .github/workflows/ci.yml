@@ -38,6 +38,10 @@ jobs:
       - name: Gerar cliente Prisma
         run: npm run db:generate
 
+      # Os tokens são gerados do JSON: se o gerado divergir, a CI acusa.
+      - name: Tokens em dia com o design system
+        run: npm run tokens:check
+
       - name: Lint
         run: npm run lint
 

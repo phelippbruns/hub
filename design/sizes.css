@@ -1,0 +1,51 @@
+/*
+ * Tamanhos de controle, escritos à mão.
+ *
+ * docs/design-system/tokens.json define cor, tipografia, espaçamento (4/8/16/24)
+ * e raio, mas não as medidas dos controles. O protótipo (docs/telas.html,
+ * tela 29) usa um punhado delas, e sem um lugar central cada componente acabaria
+ * inventando um valor solto — exatamente o que a regra dos tokens proíbe.
+ *
+ * Então ficam aqui, no mesmo namespace --spacing-* do Tailwind, viram utilitário
+ * (`size-mark`, `h-toggleH`) e nenhum componente escreve pixel.
+ *
+ * PENDÊNCIA: estes valores deveriam subir para tokens.json, para o design system
+ * continuar tendo uma fonte só. Enquanto não sobem, mudança aqui é mudança de
+ * design e pede revisão.
+ */
+
+@theme {
+  /* Ícones. 24 é a grade do desenho; 22 é o tamanho padrão em texto. */
+  --spacing-iconSm: 16px;
+  --spacing-icon: 22px;
+  --spacing-iconNav: 24px;
+  --spacing-iconLg: 34px;
+
+  /* Marca de nível e o botão # de entrar/sair da comunidade. */
+  --spacing-mark: 32px;
+
+  /* Botão de ícone. */
+  --spacing-control: 42px;
+  --spacing-controlSm: 36px;
+
+  /* Foto de perfil. */
+  --spacing-avatar: 30px;
+  --spacing-avatarMd: 40px;
+  --spacing-avatarLg: 72px;
+
+  /* Miniatura da capa de comunidade. */
+  --spacing-thumb: 36px;
+
+  /* Interruptor. */
+  --spacing-toggleW: 40px;
+  --spacing-toggleH: 24px;
+  --spacing-toggleKnob: 18px;
+
+  /* Caixa de seleção. O raio dos tokens começa em 12 px, que num quadrado de
+     20 px vira círculo — e caixa redonda se confunde com botão de opção. */
+  --spacing-checkbox: 20px;
+  --radius-control: 6px;
+
+  /* Coluna de conteúdo na web: 720 px, centralizada (design system, Ritmo). */
+  --spacing-contentColumn: 720px;
+}
