@@ -38,7 +38,6 @@ lib/data/            ÚNICA camada que fala com o Prisma e confere permissão
 lib/supabase/        clientes @supabase/ssr (server, client, session)
 design/tokens.ts     tokens GERADOS de docs/design-system/tokens.json
 design/tokens.css    os mesmos tokens como tema do Tailwind
-design/sizes.css     medidas de controle que faltam no tokens.json
 design/icons/        ícones em SVG, 2 px numa grade de 24
 design/components/   componentes base
 design/gallery.tsx   a galeria servida em /design
@@ -79,7 +78,7 @@ Duas defesas sustentam a regra. A primeira é estrutural: [design/tokens.css](de
 
 Para mudar um valor, mude o JSON e rode `npm run tokens`. Nunca edite `design/tokens.ts` ou `design/tokens.css` à mão — a CI confere com `npm run tokens:check`.
 
-As medidas de controle (botão de ícone, marca, avatar, interruptor) ficam em [design/sizes.css](design/sizes.css), porque o tokens.json ainda não as tem. É o único lugar onde pixel é escrito à mão.
+As medidas de controle (ícone, marca, avatar, miniatura, interruptor, coluna de conteúdo) também são tokens, na seção `size` do JSON, e viram utilitário do Tailwind: `size-mark`, `h-toggleH`, `max-w-contentColumn`. Não existe pixel escrito à mão no código.
 
 **Cite o código da RN em comentários e testes.** Toda regra de negócio implementada leva o código da regra no comentário, e o teste que a cobre leva o código no nome:
 

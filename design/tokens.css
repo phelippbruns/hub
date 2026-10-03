@@ -56,9 +56,27 @@
   --spacing-3: 16px;
   --spacing-4: 24px;
 
+  --spacing-iconSm: 16px;
+  --spacing-icon: 22px;
+  --spacing-iconNav: 24px;
+  --spacing-iconLg: 34px;
+  --spacing-mark: 32px;
+  --spacing-control: 42px;
+  --spacing-controlSm: 36px;
+  --spacing-avatar: 30px;
+  --spacing-avatarMd: 40px;
+  --spacing-avatarLg: 72px;
+  --spacing-thumb: 36px;
+  --spacing-toggleW: 40px;
+  --spacing-toggleH: 24px;
+  --spacing-toggleKnob: 18px;
+  --spacing-checkbox: 20px;
+  --spacing-contentColumn: 720px;
+
   --radius-sm: 12px;
   --radius-md: 18px;
   --radius-pill: 999px;
+  --radius-control: 6px;
 
   --font-sans:
     var(--hub-font-sans), "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;

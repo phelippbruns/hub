@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { color, radius, spacing, typography } from "./tokens";
+import { color, radius, size, spacing, typography } from "./tokens";
 
 /**
  * A regra "nenhuma cor ou tamanho fora dos tokens" tem duas defesas.
@@ -55,10 +55,7 @@ describe("nenhuma cor fora dos tokens", () => {
 });
 
 describe("nenhum tamanho fora dos tokens", () => {
-  // design/sizes.css concentra as medidas de controle que faltam no tokens.json.
-  const checked = files.filter((f) => f !== "design/sizes.css");
-
-  it.each(checked)("%s não usa valor arbitrário em px ou rem", (file) => {
+  it.each(files)("%s não usa valor arbitrário em px ou rem", (file) => {
     const source = readFileSync(file, "utf8");
 
     // Valor arbitrário do Tailwind: classe-[...]. Relativo (em, %, calc com var)
@@ -76,6 +73,7 @@ describe("os tokens vieram do JSON", () => {
     color: { tokens: { name: string; value: string }[] };
     spacing: { tokens: { name: string; value: string }[] };
     radius: { tokens: { name: string; value: string }[] };
+    size: { tokens: { name: string; value: string }[] };
     type: { groups: { styles: { name: string; fontSize: string }[] }[] };
   };
 
@@ -92,8 +90,14 @@ describe("os tokens vieram do JSON", () => {
     expect(Object.keys(typography)).toEqual(expected);
   });
 
-  it("tem os espaçamentos e os raios", () => {
+  it("tem os espaçamentos, os raios e as medidas de controle", () => {
     expect(Object.keys(spacing)).toEqual(json.spacing.tokens.map((t) => t.name));
     expect(Object.keys(radius)).toEqual(json.radius.tokens.map((t) => t.name));
+    expect(Object.keys(size)).toEqual(json.size.tokens.map((t) => t.name));
+  });
+
+  it("não sobrou nenhum arquivo de medida fora do gerado", () => {
+    // As medidas de controle moravam em design/sizes.css até virarem token.
+    expect(files).not.toContain("design/sizes.css");
   });
 });

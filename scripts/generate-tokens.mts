@@ -3,8 +3,11 @@
  * docs/design-system/tokens.json.
  *
  * O JSON é a fonte da verdade: nenhum valor de cor, tamanho, espaçamento ou
- * raio é escrito à mão no código. Rode `npm run tokens` depois de mexer no
- * JSON; a CI confere que o gerado está em dia (`npm run tokens:check`).
+ * raio é escrito à mão no código. Rode `npm run tokens` depois de mexer no JSON.
+ *
+ * Com `--check` nada é gravado: o script compara o que geraria com o que está
+ * em disco e falha se divergir. É o que a CI roda. A comparação é com o arquivo,
+ * não com o último commit, então o resultado não depende do estado do git.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { format, resolveConfig } from "prettier";
@@ -25,6 +28,8 @@ type TokensFile = {
   type: { families: Record<string, string>; groups: { styles: TypeStyle[] }[] };
   spacing: { tokens: SizeToken[] };
   radius: { tokens: SizeToken[] };
+  /** Medidas de controle: ícone, marca, avatar, miniatura, interruptor. */
+  size: { tokens: SizeToken[] };
 };
 
 const SOURCE = "docs/design-system/tokens.json";
@@ -34,6 +39,7 @@ const colors = tokens.color.tokens;
 const styles = tokens.type.groups.flatMap((group) => group.styles);
 const spacing = tokens.spacing.tokens;
 const radii = tokens.radius.tokens;
+const sizes = tokens.size.tokens;
 const sans = tokens.type.families.sans;
 
 const header = (extension: string) => {
@@ -83,6 +89,14 @@ export const radius = {
 ${radii.map((r) => `  /** ${r.usage} */\n  ${r.name}: "${r.value}",`).join("\n")}
 } as const;
 
+/**
+ * Medidas dos controles. Ficam no mesmo namespace de espaçamento do Tailwind,
+ * então viram utilitário: \`size-mark\`, \`h-toggleH\`, \`max-w-contentColumn\`.
+ */
+export const size = {
+${sizes.map((s) => `  /** ${s.usage} */\n  ${s.name}: "${s.value}",`).join("\n")}
+} as const;
+
 export const fontFamily = ${JSON.stringify(sans)} as const;
 `;
 
@@ -120,25 +134,46 @@ ${styles
 
 ${spacing.map((s) => `  --spacing-${shortName(s.name)}: ${s.value};`).join("\n")}
 
+${sizes.map((s) => `  --spacing-${s.name}: ${s.value};`).join("\n")}
+
 ${radii.map((r) => `  --radius-${shortName(r.name)}: ${r.value};`).join("\n")}
 
   --font-sans: var(--hub-font-sans), ${sans};
 }
 `;
 
+const checkOnly = process.argv.includes("--check");
+const stale: string[] = [];
+
 /*
  * Formata com o Prettier do projeto antes de gravar. Sem isso o arquivo gerado
- * sairia diferente do arquivo formatado que está no repositório, e
- * `npm run tokens:check` acusaria diferença a cada rodada.
+ * sairia diferente do arquivo formatado que está no repositório, e a conferência
+ * acusaria diferença a cada rodada.
  */
-async function write(path: string, contents: string, parser: "typescript" | "css") {
+async function emit(path: string, contents: string, parser: "typescript" | "css") {
   const options = await resolveConfig(path);
-  writeFileSync(path, await format(contents, { ...options, parser }));
+  const formatted = await format(contents, { ...options, parser });
+
+  if (!checkOnly) {
+    writeFileSync(path, formatted);
+    return;
+  }
+
+  const current = readFileSync(path, "utf8");
+  if (current !== formatted) stale.push(path);
 }
 
-await write("design/tokens.ts", ts, "typescript");
-await write("design/tokens.css", css, "css");
+await emit("design/tokens.ts", ts, "typescript");
+await emit("design/tokens.css", css, "css");
+
+if (checkOnly && stale.length > 0) {
+  console.error(
+    `Os tokens gerados estão desatualizados:\n${stale.map((f) => `  - ${f}`).join("\n")}\n` +
+      "Rode `npm run tokens` e inclua o resultado no commit.",
+  );
+  process.exit(1);
+}
 console.log(
-  `tokens: ${colors.length} cores, ${styles.length} estilos de texto, ` +
-    `${spacing.length} espaçamentos, ${radii.length} raios.`,
+  `tokens${checkOnly ? " em dia" : ""}: ${colors.length} cores, ${styles.length} estilos de texto, ` +
+    `${spacing.length} espaçamentos, ${radii.length} raios, ${sizes.length} medidas.`,
 );

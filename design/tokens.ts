@@ -97,6 +97,47 @@ export const radius = {
   radiusMd: "18px",
   /** Botões, busca, abas da Cabine. */
   radiusPill: "999px",
+  /** Caixa de seleção. radiusSm (12px) num quadrado de 20px vira círculo, e caixa redonda se confunde com botão de opção. */
+  radiusControl: "6px",
+} as const;
+
+/**
+ * Medidas dos controles. Ficam no mesmo namespace de espaçamento do Tailwind,
+ * então viram utilitário: `size-mark`, `h-toggleH`, `max-w-contentColumn`.
+ */
+export const size = {
+  /** Ícone dentro de mensagem de erro, sucesso ou caixa de seleção. */
+  iconSm: "16px",
+  /** Ícone padrão, ao lado de texto. */
+  icon: "22px",
+  /** Ícone da barra de navegação. É também a grade em que todos os ícones são desenhados. */
+  iconNav: "24px",
+  /** Ícone grande, em estado vazio e cabeçalho. */
+  iconLg: "34px",
+  /** Marca de nível ({, #, asterisco) e o botão # de entrar e sair da comunidade. */
+  mark: "32px",
+  /** Botão só de ícone. */
+  control: "42px",
+  /** Botão de ícone redondo, em cabeçalho e barra. */
+  controlSm: "36px",
+  /** Foto de perfil em linha de lista. */
+  avatar: "30px",
+  /** Foto de perfil em cartão de resposta e mensagem. */
+  avatarMd: "40px",
+  /** Foto de perfil na página de perfil. */
+  avatarLg: "72px",
+  /** Miniatura da capa da comunidade, no lugar da marca # nas listas. */
+  thumb: "36px",
+  /** Largura do interruptor. */
+  toggleW: "40px",
+  /** Altura do interruptor. */
+  toggleH: "24px",
+  /** Botão que desliza dentro do interruptor. */
+  toggleKnob: "18px",
+  /** Caixa de seleção. */
+  checkbox: "20px",
+  /** Largura da coluna de conteúdo na web. Tópico e página da comunidade usam a largura total. */
+  contentColumn: "720px",
 } as const;
 
 export const fontFamily =

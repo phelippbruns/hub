@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "../design/tokens.css";
-@import "../design/sizes.css";
 
 /*
  * Base do Hub. Tudo que for valor visual vem de design/tokens.css, gerado a

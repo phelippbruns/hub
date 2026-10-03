@@ -13,9 +13,10 @@ npm run tokens
 Isso regera `tokens.ts` (para o código TypeScript) e `tokens.css` (o tema do
 Tailwind). **Nunca edite esses dois à mão** — a CI confere com `npm run tokens:check`.
 
-`sizes.css` é a exceção: concentra as medidas de controle que o tokens.json
-ainda não tem (botão de ícone, marca, avatar, miniatura, interruptor). É o único
-arquivo onde pixel é escrito à mão, e mexer nele é mudança de design.
+O JSON tem cinco seções: `color`, `type`, `spacing`, `radius` e `size`. A
+`size` guarda as medidas dos controles (ícone, marca, avatar, miniatura,
+interruptor, coluna de conteúdo) e sai no mesmo namespace de espaçamento do
+Tailwind, então vira utilitário: `size-mark`, `h-toggleH`, `max-w-contentColumn`.
 
 ## A regra dos tokens
 

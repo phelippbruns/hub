@@ -21,7 +21,7 @@
     "supabase:stop": "supabase stop",
     "typegen": "next typegen",
     "tokens": "node scripts/generate-tokens.mts",
-    "tokens:check": "npm run tokens && git diff --exit-code design/tokens.ts design/tokens.css"
+    "tokens:check": "node scripts/generate-tokens.mts --check"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
