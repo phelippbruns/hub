@@ -50,6 +50,18 @@ const eslintConfig = defineConfig([
   },
 
   {
+    name: "hub/scripts",
+    files: ["scripts/**"],
+    rules: {
+      /*
+       * Scripts de build gravam em caminhos fixos do repositório, em tempo de
+       * desenvolvimento. Nenhuma entrada de usuário chega aqui.
+       */
+      "security/detect-non-literal-fs-filename": "off",
+    },
+  },
+
+  {
     name: "hub/design-system",
     files: ["design/**"],
     rules: {

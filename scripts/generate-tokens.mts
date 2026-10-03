@@ -7,6 +7,7 @@
  * JSON; a CI confere que o gerado está em dia (`npm run tokens:check`).
  */
 import { readFileSync, writeFileSync } from "node:fs";
+import { format, resolveConfig } from "prettier";
 
 type ColorToken = { name: string; value: string; usage: string };
 type TypeStyle = {
@@ -125,8 +126,18 @@ ${radii.map((r) => `  --radius-${shortName(r.name)}: ${r.value};`).join("\n")}
 }
 `;
 
-writeFileSync("design/tokens.ts", ts);
-writeFileSync("design/tokens.css", css);
+/*
+ * Formata com o Prettier do projeto antes de gravar. Sem isso o arquivo gerado
+ * sairia diferente do arquivo formatado que está no repositório, e
+ * `npm run tokens:check` acusaria diferença a cada rodada.
+ */
+async function write(path: string, contents: string, parser: "typescript" | "css") {
+  const options = await resolveConfig(path);
+  writeFileSync(path, await format(contents, { ...options, parser }));
+}
+
+await write("design/tokens.ts", ts, "typescript");
+await write("design/tokens.css", css, "css");
 console.log(
   `tokens: ${colors.length} cores, ${styles.length} estilos de texto, ` +
     `${spacing.length} espaçamentos, ${radii.length} raios.`,
