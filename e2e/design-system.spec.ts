@@ -24,20 +24,22 @@ test("a galeria carrega sem violar a Content-Security-Policy", async ({ page }) 
  * renderiza por requisição. Numa rota estática os scripts saem sem nonce e o
  * navegador bloqueia tudo — sem erro no build, sem teste vermelho.
  *
- * Este teste torna essa falha barulhenta: toda tag <script> da página precisa
- * ter nonce.
+ * Por isso o layout raiz marca todas as rotas como dinâmicas. Este teste varre
+ * as rotas e falha se alguma voltar a sair sem nonce.
  */
-test("todo script da página leva nonce", async ({ page }) => {
-  await page.goto("/design");
+for (const rota of ["/", "/design"]) {
+  test(`todo script de ${rota} leva nonce`, async ({ page }) => {
+    await page.goto(rota);
 
-  const semNonce = await page.evaluate(() =>
-    [...document.querySelectorAll("script")]
-      .filter((script) => !script.hasAttribute("nonce"))
-      .map((script) => script.src || "(inline)"),
-  );
+    const semNonce = await page.evaluate(() =>
+      [...document.querySelectorAll("script")]
+        .filter((script) => !script.hasAttribute("nonce"))
+        .map((script) => script.src || "(inline)"),
+    );
 
-  expect(semNonce).toEqual([]);
-});
+    expect(semNonce).toEqual([]);
+  });
+}
 
 test("a galeria hidrata: o chip responde ao clique", async ({ page }) => {
   await page.goto("/design");

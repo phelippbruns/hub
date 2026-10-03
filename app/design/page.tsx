@@ -17,5 +17,3 @@ export const metadata: Metadata = {
 export default function DesignPage() {
   return <DesignGallery />;
 }
-
-export const dynamic = "force-dynamic";

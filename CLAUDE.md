@@ -92,7 +92,9 @@ As regras RN01 a RN34 estão em [docs/escopo.md](docs/escopo.md).
 
 **A tela /design mostra o sistema inteiro.** Antes de criar um componente, olhe [design/components/](design/components/) e a galeria em `/design`. Componente novo entra na galeria junto.
 
-**Rota com JavaScript precisa renderizar por requisição.** A CSP exige nonce nos scripts, e o Next só injeta o nonce quando a rota não é estática — numa rota prerenderizada o navegador bloqueia todos os scripts, sem erro no build. Rota com componente de cliente leva `export const dynamic = "force-dynamic"`, e o teste `todo script da página leva nonce` ([e2e/design-system.spec.ts](e2e/design-system.spec.ts)) guarda isso.
+**Toda rota renderiza por requisição.** [app/layout.tsx](app/layout.tsx) marca `export const dynamic = "force-dynamic"` para o app inteiro. Motivo: a CSP exige nonce nos scripts, e o Next só injeta o nonce fora do prerender estático — numa rota estática o navegador bloqueia todos os scripts, sem erro no build e sem teste vermelho. Como quase tudo no Hub é por usuário, o prerender valeria para pouca coisa. Vale só para o HTML: JavaScript, CSS, fontes e imagens continuam no cache da borda.
+
+Não remova essa linha, e não marque rota como estática. O teste `todo script de <rota> leva nonce` ([e2e/design-system.spec.ts](e2e/design-system.spec.ts)) guarda isso — acrescente cada rota nova à lista dele.
 
 **Só layout de computador até a F21.** Da F00 à F20, implemente apenas o layout acima de 768 px, seguindo a versão web de cada tela em [docs/telas.html](docs/telas.html). Não crie estilos de celular nem breakpoints.
 
