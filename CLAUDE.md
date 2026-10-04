@@ -10,7 +10,18 @@ O motivo para voltar é o ciclo diário — às 00h, o tópico com mais pessoas 
 
 Fonte completa: [docs/escopo.md](docs/escopo.md). Backlog e ordem das features: [docs/backlog.md](docs/backlog.md). O que falta: [docs/pendencias.md](docs/pendencias.md).
 
-**Leia [docs/faustao.md](docs/faustao.md) antes de dizer que algo está pronto.** São os erros já cometidos neste projeto e a regra que cada um deixou. Quase todos passaram por alguma verificação que parecia suficiente.
+**Leia [docs/faustao.md](docs/faustao.md) antes de dizer que algo está pronto.** É o registro dos erros já cometidos neste projeto: o que aconteceu, por que passou pelas verificações, como foi resolvido e se já existe barreira automática. Quase todos passaram por alguma conferência que parecia suficiente. Erro novo entra lá.
+
+## Para quem você escreve
+
+**Phelipp é pessoa de produto, não engenheiro.** Ele decide o que o Hub é; não decifra rastro de pilha.
+
+- Lidere pela **decisão e pela consequência**: o que muda para quem usa, o que custa, o que trava se nada for feito.
+- Detalhe técnico entra quando muda uma escolha dele — e vem explicado, não como jargão.
+- Quando algo depender dele, dê **o passo exato**: onde clicar, o que colar, como saber que deu certo.
+- Seja franco sobre o que quebrou e por quê. Ele quer saber dos erros; só não quer traduzi-los.
+
+Isso muda a **comunicação**, não o rigor: teste, verificação no ambiente publicado e Faustão seguem iguais.
 
 ## Stack
 
