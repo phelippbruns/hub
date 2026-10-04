@@ -8,7 +8,9 @@ Universo organiza, comunidade conecta, tópico provoca, resposta participa, cabi
 Não há curtidas, contador por resposta nem feed infinito: o Início termina em "Você está em dia".
 O motivo para voltar é o ciclo diário — às 00h, o tópico com mais pessoas diferentes respondendo vira o Hot Topic da comunidade.
 
-Fonte completa: [docs/escopo.md](docs/escopo.md). Backlog e ordem das features: [docs/backlog.md](docs/backlog.md).
+Fonte completa: [docs/escopo.md](docs/escopo.md). Backlog e ordem das features: [docs/backlog.md](docs/backlog.md). O que falta: [docs/pendencias.md](docs/pendencias.md).
+
+**Leia [docs/faustao.md](docs/faustao.md) antes de dizer que algo está pronto.** São os erros já cometidos neste projeto e a regra que cada um deixou. Quase todos passaram por alguma verificação que parecia suficiente.
 
 ## Stack
 
