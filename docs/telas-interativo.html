@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hub: telas finais, celular e web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1E1A33;--inkMuted:#565170;--paper:#FFFFFF;--surfacePage:#F1EEFF;--lavender:#A69CFB;--sun:#FFD95E;--line:#D4CEF2;
+  --error:#B42318;--success:#146C43;
+  --space1:4px;--space2:8px;--space3:16px;--space4:24px;--radiusSm:12px;--radiusMd:18px;--radiusPill:999px;
+  --font:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --c-bg:#F6F5F9;--c-line:#DDD9E6;--c-mute:#5B5768;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--c-bg);color:var(--ink);font-family:var(--font);line-height:1.4}
+button,textarea,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+/* ===== chrome ===== */
+.app{display:grid;grid-template-columns:270px 1fr;min-height:100%}
+@media (max-width:900px){.app{grid-template-columns:1fr}}
+.side{border-right:1px solid var(--c-line);padding:calc(16px + env(safe-area-inset-top,0px)) 14px 16px;position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--c-bg)}
+@media (max-width:900px){.side{position:static;height:auto;max-height:240px;border-right:0;border-bottom:1px solid var(--c-line)}}
+.side h1{font-size:18px;margin:0 0 4px;font-weight:800;letter-spacing:-.01em}
+.side .sub{font-size:13px;color:var(--c-mute);margin:0 0 14px}
+.grp{margin:14px 0 4px;font-size:13px;font-weight:700;color:var(--c-mute)}
+.side button.item{display:flex;width:100%;text-align:left;gap:8px;align-items:baseline;border:0;background:transparent;padding:6px 8px;border-radius:10px;cursor:pointer;font-size:14px}
+.side button.item .n{color:var(--c-mute);font-variant-numeric:tabular-nums;min-width:20px}
+.side button.item .cnt{margin-left:auto;font-size:12px;color:var(--c-mute)}
+.side button.item .cnt.full{color:var(--success);font-weight:700}
+.side button.item[aria-current="page"]{background:var(--ink);color:var(--paper)}
+.side button.item[aria-current="page"] .n,.side button.item[aria-current="page"] .cnt{color:#D8D4E6}
+.main{padding:calc(20px + env(safe-area-inset-top,0px)) clamp(16px,3vw,36px) calc(32px + env(safe-area-inset-bottom,0px));min-width:0}
+.head h2{margin:0;font-size:28px;font-weight:800;letter-spacing:-.02em}
+.head p{margin:4px 0 18px;color:var(--c-mute);max-width:72ch}
+.work{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:24px;align-items:start}
+@media (max-width:1180px){.work{grid-template-columns:1fr}}
+.stage{background:#E9E6F2;border-radius:20px;padding:24px 12px;display:flex;gap:24px;justify-content:center;flex-wrap:wrap;overflow-x:auto}
+.cap{font-size:12px;font-weight:700;color:var(--c-mute);text-align:center;margin-bottom:8px}
+.points{display:flex;flex-direction:column;gap:12px}
+.points h3{margin:0;font-size:16px}
+.pt{background:var(--paper);border:1.5px solid var(--c-line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.pt.done{border-color:var(--ink)}
+.pt p{margin:0;font-size:14px}
+.pt p b{font-weight:700}
+.acts{display:flex;gap:8px}
+.acts button{border:1.5px solid var(--ink);background:transparent;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.acts button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.pt textarea{width:100%;min-height:52px;border:1.5px solid var(--c-line);border-radius:10px;padding:8px;font-size:13px;resize:vertical;background:var(--paper)}
+.pager{display:flex;justify-content:space-between;margin-top:20px}
+.pager button,.copy{border:1.5px solid var(--ink);background:transparent;border-radius:12px;padding:10px 16px;font-weight:700;cursor:pointer}
+.pager button:disabled{opacity:.3;cursor:default}
+.copy{background:var(--ink);color:var(--paper)}
+.sum{background:var(--paper);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.sum h4{margin:0;font-size:15px}
+.sum ol{margin:4px 0 0;padding-left:20px;font-size:14px;display:flex;flex-direction:column;gap:6px}
+.tagv{font-weight:700}.tagv.a{color:var(--success)}.tagv.r{color:var(--error)}.tagv.p{color:var(--c-mute);font-weight:500}
+
+/* ===== telefone e componentes do Hub ===== */
+.ph{width:300px;height:620px;flex:none;background:var(--surfacePage);border:7px solid #15121F;border-radius:34px;overflow:hidden;display:flex;flex-direction:column;position:relative;font-size:14px}
+.hd{display:flex;align-items:center;gap:6px;padding:16px 14px 8px}
+.hd .t{flex:1;font-weight:800;font-size:21px;line-height:1.1;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hd .t.s{font-size:17px}
+.ib{width:36px;height:36px;border-radius:50%;display:inline-grid;place-items:center;position:relative;flex:none}
+.ib .dot{position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;background:var(--sun);box-shadow:0 0 0 2px var(--surfacePage)}
+.bd{flex:1;overflow:hidden;padding:4px 14px 14px;display:flex;flex-direction:column;gap:10px}
+.ico{width:22px;height:22px;display:block;flex:none}
+.ico.sm{width:16px;height:16px}
+.st{font-weight:700;font-size:15px;display:flex;justify-content:space-between;align-items:baseline}
+.st a{font-size:12px;font-weight:600;color:var(--ink);text-decoration:underline}
+.mu{color:var(--inkMuted)}
+.xs{font-size:12px;line-height:16px}
+.qc{background:var(--ink);color:var(--paper);border-radius:var(--radiusMd);padding:14px;display:flex;flex-direction:column;gap:10px}
+.qc .meta{font-size:12px;display:flex;justify-content:space-between;gap:8px;opacity:.9}
+.qc .q{font-weight:800;font-size:19px;line-height:1.15;letter-spacing:-.02em}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:var(--radiusPill);padding:10px 18px;font-weight:600;font-size:14px;background:var(--ink);color:var(--paper);cursor:pointer;align-self:flex-start}
+.btn.sec{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.btn.rit{background:var(--sun);color:var(--ink)}
+.btn.sm{padding:6px 12px;font-size:12px}
+.btn.full{align-self:stretch}
+.btn.off{background:#CFCBDB;color:var(--inkMuted)}
+.card{background:var(--paper);border-radius:var(--radiusSm);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.who{display:flex;gap:8px;align-items:center;font-size:12px}
+.who b{font-size:13px}
+.av{width:30px;height:30px;border-radius:50%;display:inline-grid;place-items:center;overflow:hidden;flex:none}
+.av svg{width:100%;height:100%}
+.av.lg{width:72px;height:72px}
+.av.md{width:40px;height:40px}
+.p1{background:#CFC7FF;color:#7E70E8}.p2{background:#FFE9A3;color:#C99A12}.p3{background:#BFE7D3;color:#3E8E68}.p4{background:#F8C9C2;color:#B5584A}
+.stack{display:flex}.stack .av{box-shadow:0 0 0 2px var(--surfacePage)}.stack .av+.av{margin-left:-8px}
+.acts2{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--inkMuted)}
+.acts2 span{display:inline-flex;gap:4px;align-items:center}
+.row{display:flex;gap:10px;align-items:center;background:var(--paper);border-radius:var(--radiusSm);padding:10px}
+.row .grow{flex:1;min-width:0}
+.row b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g{color:var(--inkMuted);font-weight:800}
+.mk{width:32px;height:32px;border-radius:var(--radiusSm);display:inline-grid;place-items:center;font-weight:800;font-size:16px;flex:none}
+.m1{background:var(--sun);color:var(--ink)}.m2{background:var(--lavender);color:var(--ink)}.m3{background:var(--ink);color:var(--paper)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border-radius:var(--radiusSm);padding:7px 11px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--inkMuted);font-size:13px;font-weight:600;display:inline-flex;gap:5px}
+.chip.on{background:var(--lavender);box-shadow:none}
+.chip.on::before{content:"✓";font-weight:800}
+.seg{display:flex;background:var(--paper);border-radius:var(--radiusPill);padding:3px;gap:3px}
+.seg span{flex:1;text-align:center;padding:6px 4px;border-radius:var(--radiusPill);font-size:12px;font-weight:600}
+.seg span.on{background:var(--ink);color:var(--paper)}
+.fld{background:var(--paper);border-radius:var(--radiusSm);box-shadow:inset 0 0 0 1px var(--inkMuted);padding:10px 12px;font-size:13px;color:var(--inkMuted);display:flex;gap:8px;align-items:center}
+.fld.tall{min-height:84px;align-items:flex-start}
+.fld.typed{color:var(--ink)}
+.fld.bad{box-shadow:inset 0 0 0 2px var(--error)}
+.lab{font-size:12px;font-weight:700;color:var(--inkMuted);margin-bottom:-4px}
+.cnt{font-size:11px;color:var(--inkMuted);text-align:right;margin-top:-6px}
+.msg{font-size:12px;display:flex;gap:6px;align-items:flex-start;border-radius:10px;padding:8px 10px}
+.msg.err{background:#FCE8E6;color:var(--error)}
+.msg.ok{background:#E3F3EA;color:var(--success)}
+.msg.info{background:var(--paper);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.ban{background:var(--sun);border-radius:var(--radiusMd);padding:12px;display:flex;flex-direction:column;gap:4px}
+.ban b{font-size:15px}
+.prov{display:inline-block;font-size:10px;font-weight:700;border-radius:999px;padding:1px 7px;box-shadow:inset 0 0 0 1px currentColor;vertical-align:middle;margin-left:4px}
+.pill{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;background:var(--sun);color:var(--ink)}
+.pill.l{background:var(--lavender)}
+.pill.o{background:transparent;box-shadow:inset 0 0 0 1px var(--inkMuted);color:var(--inkMuted)}
+.bub{max-width:80%;padding:8px 12px;border-radius:16px;font-size:13px}
+.bub.them{background:var(--paper);align-self:flex-start;border-bottom-left-radius:4px}
+.bub.me{background:var(--lavender);align-self:flex-end;border-bottom-right-radius:4px}
+.bub small{display:block;font-size:10px;font-weight:700;color:var(--inkMuted)}
+.compose{display:flex;gap:6px;align-items:center;padding:8px 10px 12px;background:var(--surfacePage)}
+.compose .fld{flex:1;border-radius:999px;padding:8px 12px}
+.nav{display:flex;justify-content:space-around;background:var(--paper);border-top:2px solid var(--ink);padding:7px 2px 9px}
+.nav span{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;color:var(--inkMuted);min-width:60px}
+.nav span.on{color:var(--ink);font-weight:700}
+.cover{height:96px;background:var(--lavender);border-radius:var(--radiusMd);position:relative;overflow:hidden}
+.cover::after{content:"#";position:absolute;right:-6px;bottom:-34px;font-size:150px;font-weight:800;color:var(--ink);opacity:.18}
+.ov{position:absolute;inset:0;background:rgba(30,26,51,.5);display:flex;align-items:flex-end}
+.sh{background:var(--paper);border-radius:22px 22px 0 0;padding:16px;width:100%;display:flex;flex-direction:column;gap:10px}
+.sh .grab{width:40px;height:4px;border-radius:2px;background:var(--line);align-self:center}
+.radio{display:flex;gap:10px;align-items:center;font-size:13px;padding:6px 0}
+.radio i{width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--inkMuted);flex:none}
+.radio.on i{box-shadow:inset 0 0 0 5px var(--ink)}
+.box{width:20px;height:20px;border-radius:6px;box-shadow:inset 0 0 0 2px var(--inkMuted);display:inline-grid;place-items:center;flex:none}
+.box.on{background:var(--ink);box-shadow:none;color:var(--paper)}
+.tg{width:40px;height:24px;border-radius:999px;background:#CFCBDB;position:relative;flex:none}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--paper)}
+.tg.on{background:var(--ink)}.tg.on::after{left:19px}
+.skel{background:#E2DCFF;border-radius:8px}
+.lines span{display:block;height:8px;border-radius:4px;background:var(--line);margin:7px 0}
+.steps{display:flex;gap:4px}.steps i{flex:1;height:4px;border-radius:2px;background:var(--line)}.steps i.on{background:var(--ink)}
+.excerpt{background:var(--paper);border-radius:var(--radiusSm);padding:12px;font-size:14px;line-height:1.45}
+.statesheet{width:min(100%,640px);display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;font-family:var(--font)}
+.statesheet .stc{background:var(--surfacePage);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.statesheet .stc h5{margin:0;font-size:12px;color:var(--inkMuted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.chn{font-weight:800;font-size:13px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row.col{flex-direction:column;align-items:flex-start;gap:2px}
+.row b.wrap{white-space:normal}
+.sorts{display:flex;gap:2px;background:var(--paper);border-radius:999px;padding:3px;flex:none}
+.sorts span{width:30px;height:26px;border-radius:999px;display:grid;place-items:center;color:var(--inkMuted)}
+.sorts span.on{background:var(--ink);color:var(--paper)}
+.btn.ic{width:42px;height:42px;padding:0;background:var(--lavender);color:var(--ink)}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs span{flex:1;text-align:center;padding:8px 4px;font-size:13px;font-weight:600;color:var(--inkMuted)}
+.tabs span.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--ink)}
+.end{text-align:center;font-size:12px;color:var(--inkMuted);padding:6px 0;border-top:1px dashed var(--line)}
+.dest{background:var(--ink);color:var(--paper);border-radius:var(--radiusMd);padding:14px;display:flex;flex-direction:column;gap:8px}
+.dest .q{font-weight:800;font-size:18px;line-height:1.15;letter-spacing:-.02em}
+.dest .meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;gap:8px}
+.ans{background:var(--paper);border-radius:var(--radiusSm);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.ans .foot{display:flex;gap:12px;font-size:12px;color:var(--inkMuted);align-items:center}
+.ans .foot span{display:inline-flex;gap:4px;align-items:center}
+.vt{display:inline-flex;background:var(--paper);border:1.5px solid var(--c-line);border-radius:999px;padding:3px;gap:3px;margin-bottom:10px}
+.vt button{border:0;background:transparent;border-radius:999px;padding:6px 14px;font-weight:600;font-size:13px;cursor:pointer}
+.vt button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.work.wide{grid-template-columns:1fr}
+.stage{justify-content:flex-start}
+@media (min-width:1px){.stage>div{margin:0 auto}}
+.web{width:940px;height:600px;flex:none;border:7px solid #15121F;border-radius:18px;overflow:hidden;background:var(--surfacePage);display:flex;flex-direction:column;font-size:14px}
+.wtop{height:30px;background:#15121F;display:flex;align-items:center;gap:6px;padding:0 10px;flex:none}
+.wtop i{width:9px;height:9px;border-radius:50%;background:#4A4560}
+.wtop span{margin-left:12px;background:#2A2640;color:#BDB8D0;font-size:11px;border-radius:6px;padding:3px 10px;flex:1;max-width:340px}
+.wgrid{flex:1;display:grid;grid-template-columns:200px minmax(0,1fr) 260px;min-height:0}
+.wgrid.noaside{grid-template-columns:200px minmax(0,1fr)}
+.wnav{background:var(--paper);border-right:2px solid var(--ink);padding:16px 10px;display:flex;flex-direction:column;gap:4px}
+.wnav .logo{font-weight:800;font-size:26px;letter-spacing:-.03em;padding:0 8px 12px}
+.wnav span{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:999px;color:var(--inkMuted);font-weight:600}
+.wnav span.on{background:var(--ink);color:var(--paper)}
+.wdot{width:8px;height:8px;border-radius:50%;background:var(--sun);margin-left:auto}
+.wmain{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative;overflow:hidden}
+.wmain .hd{padding:18px 24px 8px}
+.wmain .bd{padding:4px 24px 16px;width:100%;max-width:600px}
+.wmain .compose{padding:8px 24px 14px;max-width:600px}
+.waside{border-left:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.web .ov{align-items:center;justify-content:center}
+.web .sh{border-radius:18px;max-width:380px}
+.web .sh .grab{display:none}
+.web .wonly{display:none}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats div{background:var(--paper);border-radius:var(--radiusSm);height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.stats b{font-size:18px;line-height:1;font-weight:800}
+.stats span{font-size:11px;color:var(--inkMuted);white-space:nowrap}
+.ib.gif{font-size:11px;font-weight:800;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink);width:34px;height:26px;border-radius:8px}
+.opening{background:var(--ink);color:var(--paper);border-radius:var(--radiusMd);padding:14px;display:flex;flex-direction:column;gap:6px}
+.opening .q{font-weight:800;font-size:18px;line-height:1.15;letter-spacing:-.02em}
+.wgrid.bare{grid-template-columns:1fr}.wgrid.bare .wmain{background:var(--surfacePage)}
+.hero{height:190px;position:relative;flex:none;background:
+ radial-gradient(circle at 72% 30%,#FFD95E 0 18px,transparent 19px),
+ linear-gradient(170deg,transparent 58%,#2B2350 58.5%),
+ linear-gradient(195deg,transparent 64%,#3D3170 64.5%),
+ linear-gradient(180deg,#8E7CF5 0%,#C9B8FF 45%,#FFB38A 70%)}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(30,26,51,.35) 0%,transparent 35%,transparent 55%,rgba(30,26,51,.75) 100%)}
+.hero .hb{position:absolute;top:10px;z-index:2;background:rgba(255,255,255,.92);color:var(--ink)}
+.hero .htitle{position:absolute;left:14px;bottom:12px;z-index:2;color:var(--paper);font-weight:800;font-size:24px;letter-spacing:-.02em}
+.web .hero{height:200px}
+.pend{width:12px;height:12px;border-radius:50%;background:var(--sun);box-shadow:0 0 0 2px var(--ink);flex:none;margin-right:4px}
+.chip.u.on{background:var(--sun)}
+.chip.c.on{background:var(--lavender)}
+.people{display:flex;gap:12px;overflow:hidden}
+.people span{display:flex;flex-direction:column;align-items:center;gap:3px;flex:none}
+.people i{font-style:normal;font-size:10px;color:var(--inkMuted)}
+.ib.eye{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.ib.eye.on{background:var(--ink);color:var(--paper)}
+.ib.eye.on .ico circle{fill:var(--ink)}
+.tabs span .ico{display:inline-block;vertical-align:-3px}
+.nav span{min-width:48px;padding:4px 0}
+.ib.eye{box-shadow:inset 0 0 0 1.5px var(--inkMuted);color:var(--inkMuted)}
+.ib.eye.on{background:var(--lavender);color:var(--ink);box-shadow:none}
+.eyesm{color:var(--inkMuted)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pair .btn{align-self:stretch;width:100%}
+.btn.fol{background:var(--sun);color:var(--ink)}
+.pair{grid-template-columns:auto auto;justify-content:start;gap:6px}
+.pair .btn{width:auto;padding:5px 12px;font-size:12px}
+.pair .btn .ico{width:14px;height:14px}
+.stats{gap:6px}
+.stats div{height:44px;gap:1px}
+.stats b{font-size:15px}
+.stats span{font-size:10px}
+.common{display:flex;flex-direction:column;gap:4px}
+.chips.sm .chip{padding:3px 8px;font-size:11px}
+.hero .door{position:absolute;right:12px;bottom:12px;z-index:2;background:var(--paper);color:var(--ink)}
+.hero .door.in{background:var(--lavender)}
+.hero .htitle{right:120px}
+.hero .door{width:40px;height:40px;border-radius:50%;border:0;padding:0;display:grid;place-items:center;cursor:pointer}
+.thumb{width:36px;height:36px;border-radius:10px;flex:none;position:relative;overflow:hidden}
+.thumb.t1{background:radial-gradient(circle at 70% 30%,#FFD95E 0 4px,transparent 5px),linear-gradient(165deg,transparent 60%,#2B2350 61%),linear-gradient(180deg,#8E7CF5,#FFB38A)}
+.thumb.t2{background:linear-gradient(160deg,transparent 55%,#3E6B4F 56%),linear-gradient(200deg,transparent 62%,#5C8A6B 63%),linear-gradient(180deg,#9CC7E8,#E8F1D6)}
+.thumb.t3{background:radial-gradient(circle at 30% 30%,#F1EEFF 0 3px,transparent 4px),linear-gradient(180deg,#1E1A33,#6B1F2A)}
+.door{width:32px;height:32px;border-radius:var(--radiusSm);border:0;padding:0;display:inline-grid;place-items:center;cursor:pointer;flex:none;background:var(--paper);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--lavender)}
+.door.in{background:var(--lavender);box-shadow:none}
+.ib.eye.on .ico circle{fill:none}
+.door{font-weight:800;font-size:16px;font-family:var(--font)}
+.door.in{background:var(--lavender);color:var(--ink)}
+.pair.full{grid-template-columns:1fr 1fr;justify-content:stretch}
+.pair.full .btn{width:100%;padding:7px 12px}
+.btn.fbtn{background:transparent;color:var(--inkMuted);box-shadow:inset 0 0 0 1.5px var(--inkMuted)}
+.btn.fbtn.on{background:var(--lavender);color:var(--ink);box-shadow:none}
+.cnote{font-size:12px;border-left:3px solid var(--lavender);padding-left:8px;color:var(--ink)}
+.seg.mini span{padding:4px 10px;font-size:11px;flex:none}
+.ghead{display:flex;align-items:center;gap:8px;margin-top:4px}
+.ghead b{font-size:14px;flex:1}
+.ghead .mk{width:24px;height:24px;font-size:12px;border-radius:8px}
+.thumb.sm{width:24px;height:24px;border-radius:8px}
+.btn.pbtn{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink);font-weight:600}
+.btn.pbtn.on{background:var(--lavender);box-shadow:none}
+.csort{display:flex;gap:6px}
+.csort button{border:0;padding:0;background:transparent;border-radius:10px;cursor:pointer;opacity:.45;display:grid;place-items:center;width:32px;height:32px}
+.csort button.on{opacity:1;box-shadow:0 0 0 2px var(--ink)}
+.csort button .mk{width:28px;height:28px;font-size:14px;border-radius:8px}
+.cover.up{height:96px;display:grid;place-items:center;cursor:pointer;outline:2px dashed rgba(30,26,51,.35);outline-offset:-8px}
+.cover.up::after{display:none}
+.upin{display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink)}
+.upin b{font-size:14px}
+.mk.m3{font-size:24px;line-height:1;padding-top:7px}
+.ghead .mk.m3,.csort .mk.m3{font-size:18px;padding-top:5px}
+.csort button{width:30px;height:30px}
+.csort button .mk{width:24px;height:24px;font-size:13px;border-radius:7px}
+.mk.mclock{background:var(--paper);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.mk.mclock .ico{width:14px;height:14px}
+.dest .meta:empty{display:none}
+.ico.big{width:34px;height:34px}
+.upin span{font-size:12px}
+.mk.m3{font-size:20px;padding-top:0}
+.mk.m3 i{font-style:normal;display:block;line-height:1;transform:translateY(.24em)}
+.ghead .mk.m3,.csort .mk.m3{font-size:16px;padding-top:0}
+.cover.up{position:relative;overflow:hidden}
+.cover.up .wm{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink);opacity:.18}
+.cover.up .wm .ico{width:72px;height:72px}
+.cover.up .upin{position:relative;z-index:1}
+.cover.up .upin span{font-size:13px;font-weight:600}
+.aimg{height:110px;border-radius:10px}
+.aimg.photo{background:linear-gradient(170deg,transparent 55%,#2B2350 56%),radial-gradient(circle at 30% 35%,#FFD95E 0 10px,transparent 11px),linear-gradient(180deg,#6B4FD8,#FF8A5B)}
+.aimg.gifbox{background:repeating-linear-gradient(45deg,#E2DCFF 0 10px,#CFC7FF 10px 20px);display:grid;place-items:start;padding:6px}
+.aimg.gifbox span{background:var(--ink);color:var(--paper);font-size:10px;font-weight:800;border-radius:4px;padding:1px 5px}
+.sharecard{display:flex;gap:8px;align-items:center}
+.sharecard>span:last-child{display:flex;flex-direction:column}
+.code{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.code span{height:40px;border-radius:10px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--inkMuted)}
+.radio .av{margin-right:2px}
+.locked{position:relative;border-radius:var(--radiusSm);overflow:hidden}
+.locked .blurred{filter:blur(4px);opacity:.6;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.lockmsg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;background:rgba(241,238,255,.55)}
+.lockmsg b{font-size:15px}
+.radio span b{font-size:14px}
+.radio{align-items:flex-start}
+.radio i{margin-top:2px}
+.iconset{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+.iconset div{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--paper);border-radius:10px;padding:10px 4px;color:var(--ink)}
+
+.followlink{margin-left:8px;font-weight:600;cursor:pointer}
+.hero .hb.act{background:var(--sun)}
+.csort.right{justify-content:flex-end}
+.avedit{display:flex;flex-direction:column;align-items:center;gap:6px;margin:8px 0}
+.iconset .il{font-size:11px;color:var(--inkMuted);text-align:center}
+.iconset span:not(.il){font-size:inherit}
+.iconset .mk.m3{color:var(--paper)}
+.mk.m3{padding-top:0}
+.mk.m3 .star{width:68%;height:68%;display:block}
+.istar{width:.85em;height:.85em;display:inline-block;vertical-align:-.05em;margin-right:1px}
+.navtest{display:flex;gap:10px;flex-wrap:wrap;border-radius:12px;padding:12px}
+.navtest.light{background:var(--paper);color:var(--ink)}
+.navtest.dark{background:var(--ink);color:var(--paper)}
+.navtest>div{display:grid;grid-template-columns:auto auto;gap:6px 10px;justify-items:center;min-width:84px}
+.navtest i{grid-column:1/-1;font-style:normal;font-size:11px;opacity:.75}
+.navtest .ico{width:24px;height:24px}
+.ib.solid{background:rgba(255,255,255,.92);color:var(--ink)}
+.mk.m3 .star{width:46%;height:46%}
+.ib.lupa{width:32px;height:32px;background:var(--paper);color:var(--inkMuted)}
+.pair .btn .ico.cab{width:14px;height:14px;transform:scale(.9)}
+.pair .btn .ico{width:15px;height:15px}
+.agree{display:flex;gap:8px;align-items:flex-start}
+.agree .box{margin-top:1px}
+.wgrid{grid-template-columns:72px minmax(0,1fr) 260px}
+.wgrid.noaside{grid-template-columns:72px minmax(0,1fr)}
+.wnav.rail{align-items:center;padding:14px 8px;gap:6px}
+.wnav.rail .logo{font-size:24px;padding:0 0 10px}
+.wnav.rail span{width:44px;height:44px;padding:0;justify-content:center;border-radius:14px;position:relative}
+.wnav.rail .wdot{position:absolute;top:9px;right:9px;margin:0}
+.railbtns{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+.rb{border:0;padding:0;background:transparent;cursor:pointer;width:44px;height:44px;display:grid;place-items:center;border-radius:14px;box-shadow:inset 0 0 0 1.5px var(--line)}
+.wmain .center{max-width:420px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.splash{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:40px 0 28px;text-align:center}
+.splashmid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.splashbtns{width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px}
+.wgrid{grid-template-columns:72px minmax(0,1fr) 230px}
+.wnav.rail span{width:auto;height:auto}
+.wnav.rail>span{width:44px;height:44px}
+.wnav.rail>span:not(.on){color:var(--inkMuted)}
+.rb{width:44px;height:44px}
+.splash{justify-content:center;gap:40px}
+.splashmid{flex:0 0 auto}
+.web .bd.cprof>div:first-child{flex-direction:column!important;text-align:center}
+.web .bd.cprof>div:nth-child(2){text-align:center}
+.web .bd.cprof .pair{max-width:360px;margin:0 auto;width:100%}
+.wnav .rb .mk.m1,.wnav .rb .mk.m2{color:var(--ink)}
+.wnav 
+.wnav .rb .mk{padding:0;display:inline-grid;place-items:center;gap:0;flex:none;transform:scale(.75)}
+.wnav .rb .mk.m1,.wnav .rb .mk.m2{color:var(--ink)}
+.wnav .rb .mk{width:32px;height:32px;border-radius:var(--radiusSm);font-size:16px;font-weight:800;position:static}
+.wnav .rb .mk.m3{color:var(--paper)}
+.inv{display:flex;gap:10px;justify-content:center}.inv .btn{align-self:auto;min-width:120px}
+/* ===== ritmo de espaçamento da web (grade de 8 px) ===== */
+.web .wmain .hd{padding:32px 32px 8px;gap:12px}
+.web .wmain .bd{padding:16px 32px 40px;gap:16px}
+.web .wmain .bd .st{margin-top:16px}
+.web .wmain .bd>.st:first-child{margin-top:0}
+.web .row{padding:12px 16px;gap:12px}
+.web .fld{padding:12px 16px}
+.web .ans,.web .dest,.web .opening,.web .card{padding:16px 20px}
+.web .chips{gap:10px}
+.web .seg{margin:4px 0}
+.web .waside{padding:32px 20px;gap:14px}
+.web .wmain .compose{padding:12px 32px 24px}
+.web .inv{gap:12px;margin-top:8px}
+.web .inv .btn{min-width:140px}
+.asidehd{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--inkMuted)}
+.asidehd .ib{width:32px;height:32px}
+.ib.pin{width:32px;height:32px;color:var(--inkMuted)}
+.ib.pin.on{color:var(--ink)}
+.web .invweb{display:flex;flex-direction:column;align-items:stretch;gap:24px;padding-top:24px}
+.web .invweb>div:first-child{gap:12px!important}
+.web .invweb .xs{max-width:420px;margin:0 auto}
+.ph .webonly{display:none}
+.upbtn{background:var(--paper)!important}
+.grp2{display:flex;flex-direction:column;gap:6px}
+.grp2 .cnt{margin-top:0}
+.fld.tall{min-height:96px}
+/* ===== ritmo de espaçamento no celular (mesma grade de 8 px) ===== */
+.ph .bd{padding:8px 16px 16px;gap:12px}
+.ph .bd .st{margin-top:8px}
+.ph .bd>.st:first-child{margin-top:0}
+.ph .hd{padding:16px 16px 8px}
+.ph .row{padding:12px}
+.ph .compose{padding:8px 12px 12px}
+.bd.cprof>div:first-child{flex-direction:column!important;text-align:center}
+.bd.cprof>div:nth-child(2){text-align:center}
+.bd.cprof .pair{max-width:360px;margin:0 auto;width:100%}
+.splash.m{padding:0;gap:32px}
+.ph .bd>.hero:first-child{margin:-8px -16px 0!important}
+.web .wmain .bd>.hero:first-child{margin:-16px -32px 0!important}
+.ph .cover.up .upin{display:none}
+.ph .cover.up .wm{opacity:.35}
+.invmsg{max-width:100%;text-align:left;margin-top:6px}
+.ph .splash{flex:1;height:auto}
+.cover,.hero,.dest,.opening,.qc,.stats,.tabs,.seg,.fld,.chips{flex-shrink:0}
+.ph .bd,.web .wmain .bd{overflow-y:auto;scrollbar-width:none}
+.ph .bd::-webkit-scrollbar,.web .wmain .bd::-webkit-scrollbar{display:none}
+.web .wmain{overflow:hidden}
+.cover.up .upin{display:none}
+.web .cover.up .wm{opacity:.35}
+.web .wgrid.bare .wmain .bd{gap:12px;padding-top:8px}
+.web .wgrid.bare .wmain .hd{padding-top:24px}
+.bub.invmsg{text-align:center;border-radius:16px;align-self:center;max-width:92%}
+.locked,.inv,.ans,.row,.card,.msg,.bub{flex-shrink:0}
+.side button.item .cnt.ready{color:#1F8A4C;font-weight:800;font-family:ui-monospace,Menlo,monospace}.side button.item[aria-current="page"] .cnt.ready{color:#7DDBA0}
+.lockmsg{gap:8px;padding:16px}.locked{min-height:180px}
+.hero .htitle{right:14px}
+.web .locked{height:180px;min-height:0;overflow:hidden}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <h1>Hub: telas finais</h1>
+    <p class="sub" id="progress"></p>
+    <nav id="menu" aria-label="Telas"></nav>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+
+<script>
+/* ===== ícones ===== */
+const IC={
+ home:'<path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/>',
+ grid:'<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/>',
+ chat:'<path d="M5 5h14v10H10l-5 4z"/>',
+ book:'<path d="M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6z"/>',
+ users:'<circle cx="9" cy="9" r="3.5"/><path d="M3 20c.8-3.5 3.2-5 6-5s5.2 1.5 6 5"/><circle cx="17" cy="8" r="2.5"/><path d="M16 14c2.5 0 4.3 1.3 5 4"/>',
+ pulse:'<path d="M3 12h4l3-7 4 14 3-7h4"/>',
+ spark:'<path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>',
+ up:'<path d="M12 19V6M6 11l6-6 6 6"/>',
+ back:'<path d="M15 5l-7 7 7 7"/>',
+ fwd:'<path d="M9 5l7 7-7 7"/>',
+ search:'<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ heart:'<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
+ save:'<path d="M7 4h10v16l-5-4-5 4z"/>',
+ more:'<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>',
+ img:'<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 16l5-5 4 4 3-3 4 4"/>',
+ send:'<path d="M4 12l16-8-6 16-3-7z"/>',
+ bell:'<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/>',
+ flag:'<path d="M5 21V4h11l-2 4 2 4H5"/>',
+ lock:'<rect x="6" y="11" width="12" height="9" rx="2"/><path d="M9 11V8a3 3 0 0 1 6 0v3"/>',
+ check:'<path d="M5 12l5 5 9-10"/>',
+ gear:'<circle cx="12" cy="12" r="3.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
+ clock:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+ alert:'<circle cx="12" cy="12" r="8"/><path d="M12 8v5M12 16v.5"/>',
+ eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="none"/>',
+ eyeOn:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/>',
+ door:'<path d="M6 21V4h11v17M3 21h18"/><circle cx="14" cy="12.5" r="1" fill="currentColor"/>',
+ gif:'<rect x="4" y="5" width="16" height="14" rx="2"/><text x="12" y="14.6" font-size="6.6" font-weight="800" text-anchor="middle" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">GIF</text>',
+ share:'<path d="M12 15V4M7 9l5-5 5 5"/><path d="M5 13v6h14v-6"/>',
+ link:'<path d="M9 15l6-6"/><path d="M10.5 6.5l1.2-1.2a4 4 0 0 1 5.7 5.7l-1.2 1.2"/><path d="M13.5 17.5l-1.2 1.2a4 4 0 0 1-5.7-5.7l1.2-1.2"/>',
+ hash:'<path d="M10 4 8 20M16 4l-2 16M5 9h15M4 15h15"/>',
+ rings:'<circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/>',
+ bubbles:'<path d="M3 5h11v8H7l-4 3z"/><path d="M17 9h4v9l-3-2h-6v-3"/>',
+ booth:'<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M6 7h12M12 7v14"/><circle cx="10" cy="14" r=".8" fill="currentColor"/>',
+ postcard:'<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M13 8v8M5.5 10h4.5M5.5 13h4.5"/><rect x="15.5" y="8" width="3.5" height="4" rx=".5"/>',
+ bars:'<path d="M4 6h16M4 12h11M4 18h6"/>',
+ panel:'<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M14.5 4.5v15"/>',
+ exit:'<path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"/>'
+};
+const ic=(n,f,c)=>`<svg class="ico ${c||''}" viewBox="0 0 24 24" fill="${f?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${IC[n]}</svg>`;
+const av=(n,s)=>`<span class="av p${n} ${s||''}" role="img" aria-label="foto"><svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><circle cx="16" cy="13" r="6"/><path d="M4 32c2-8 6-11 12-11s10 3 12 11z"/></svg></span>`;
+const STAR='<svg class="star" viewBox="0 0 24 24" aria-hidden="true"><g fill=\"currentColor\"><rect x=\"9.7\" y=\"3.2\" width=\"4.6\" height=\"9.6\" transform=\"rotate(0 12 12.8)\"/><rect x=\"9.7\" y=\"3.2\" width=\"4.6\" height=\"9.6\" transform=\"rotate(72 12 12.8)\"/><rect x=\"9.7\" y=\"3.2\" width=\"4.6\" height=\"9.6\" transform=\"rotate(144 12 12.8)\"/><rect x=\"9.7\" y=\"3.2\" width=\"4.6\" height=\"9.6\" transform=\"rotate(216 12 12.8)\"/><rect x=\"9.7\" y=\"3.2\" width=\"4.6\" height=\"9.6\" transform=\"rotate(288 12 12.8)\"/><circle cx=\"12\" cy=\"12.8\" r=\"2.8\"/></g></svg>';
+const ISTAR='<svg class="istar" viewBox="0 0 24 24" aria-hidden="true"><g fill=\"currentColor\"><rect x=\"9.7\" y=\"3.2\" width=\"4.6\" height=\"9.6\" transform=\"rotate(0 12 12.8)\"/><rect x=\"9.7\" y=\"3.2\" width=\"4.6\" height=\"9.6\" transform=\"rotate(72 12 12.8)\"/><rect x=\"9.7\" y=\"3.2\" width=\"4.6\" height=\"9.6\" transform=\"rotate(144 12 12.8)\"/><rect x=\"9.7\" y=\"3.2\" width=\"4.6\" height=\"9.6\" transform=\"rotate(216 12 12.8)\"/><rect x=\"9.7\" y=\"3.2\" width=\"4.6\" height=\"9.6\" transform=\"rotate(288 12 12.8)\"/><circle cx=\"12\" cy=\"12.8\" r=\"2.8\"/></g></svg>';
+const starify=html=>html.split(/(<[^>]+>)/).map(p=>p.startsWith('<')?p:p.replace(/\*(?=[a-zà-ú])/gi,ISTAR)).join('');
+const mk=(c,g)=>{g=g||'{';const k=g==='{'?1:g==='#'?2:3;return `<span class="mk m${k}" aria-hidden="true">${k===3?STAR:g}</span>`;};
+const tmk=(t)=>`<span class="mk ${t==='h'?'m1':'m2'}" aria-hidden="true">${ic(t==='h'?'book':'chat',false,'sm')}</span>`;
+
+const NI={
+ home:{o:'<path d="M3.5 11 12 3.8l8.5 7.2v9.5h-6v-6h-5v6h-6z"/>',i:''},
+ hash:{o:'<rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/>',i:'<path d="M10.3 7.6 9.4 16.4M14.6 7.6l-.9 8.8M7.6 10.5h9.3M7.1 13.5h9.3"/>'},
+ envelope:{o:'<path d="M6.5 4h11a3 3 0 0 1 3 3v6.5a3 3 0 0 1-3 3h-6.8l-4.7 4v-4a3 3 0 0 1-2.5-3V7a3 3 0 0 1 3-3z"/>',i:'',f:'<circle cx="8" cy="10.25" r="1.3"/><circle cx="12" cy="10.25" r="1.3"/><circle cx="16" cy="10.25" r="1.3"/>',k:'<circle cx="8" cy="10.25" r="1.4"/><circle cx="12" cy="10.25" r="1.4"/><circle cx="16" cy="10.25" r="1.4"/>'},
+ user:{o:'<circle cx="12" cy="8.2" r="4.2"/><path d="M3.5 20.5c1-4.2 4.3-6.3 8.5-6.3s7.5 2.1 8.5 6.3z"/>',i:''},
+ search:{o:'<circle cx="10.5" cy="10.5" r="6.5"/>',i:'',ka:'<circle cx="10.5" cy="10.5" r="4.3"/>',x:'<path d="M15.5 15.5 20.5 20.5"/>'},
+ bell:{o:'<path d="M6 16.5v-5a6 6 0 0 1 12 0v5l2.5 2.5h-17z"/>',i:'',x:'<path d="M10 21.5h4"/>'}
+};
+let NID=0;
+const nicon=(n,on,c)=>{const d=NI[n];const base=`class="ico ${c||''}" viewBox="0 0 24 24" aria-hidden="true" stroke-linejoin="round" stroke-linecap="round"`;
+ if(!on) return `<svg ${base} fill="none" stroke="currentColor" stroke-width="2">${d.o}${d.i}${d.f?`<g fill="currentColor" stroke="none">${d.f}</g>`:''}${d.x||''}</svg>`;
+ const id='nm'+(++NID);
+ return `<svg ${base}><defs><mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24"><rect width="24" height="24" fill="#fff"/><g fill="none" stroke="#000" stroke-width="2">${d.i}</g>${d.k?`<g fill="#000">${d.k}</g>`:''}${d.ka?`<g fill="none" stroke="#000" stroke-width="1.5">${d.ka}</g>`:''}</mask></defs><g mask="url(#${id})" fill="currentColor" stroke="currentColor" stroke-width="2">${d.o}</g>${d.x?`<g fill="none" stroke="currentColor" stroke-width="2">${d.x}</g>`:''}</svg>`;};
+const NAV=[['inicio','Início','home'],['explorar','Explorar','search'],['canais','Comunidades','hash'],['cabine','Cabine','envelope'],['perfil','Perfil','user']];
+const nav=a=>'<nav class="nav">'+NAV.map(([k,l,i])=>`<span class="${k===a?'on':''}" role="link" aria-label="${l}">${nicon(i,k===a)}</span>`).join('')+'</nav>';
+const Q='Qual faixa abriu a sua noite mais memorável?';
+const INTRO='Techno de pista e de fone. Lançamentos, sets e histórias de festa.';
+const up=(n,on)=>`<span class="up ${on?'on':''}" role="button" aria-pressed="${!!on}">${ic('up',false,'sm')}${n}</span>`;
+const vote=(q,w,n,on)=>`<div class="row"><div class="grow"><b class="wrap">${q}</b><span class="xs mu">${w}</span></div>${up(n,on)}</div>`;
+const post=(n,name,where,text,likes,extra)=>`<div class="card"><div class="who">${av(n)}<span><b>${name}</b><br><span class="mu">${where}</span></span></div><div>${text}</div>${extra||''}<div class="acts2"><span>${ic('heart',false,'sm')}${likes}</span><span>${ic('chat',false,'sm')}Comentar</span><span style="margin-left:auto">${ic('save',false,'sm')}</span></div></div>`;
+const chanRow=(c,name,sub,btn)=>`<div class="row">${mk(c,'#')}<div class="grow"><b>${name}</b><span class="xs mu">${sub}</span></div>${btn||''}</div>`;
+const qcard=(btn,meta)=>`<div class="qc"><div class="meta"><span class="chn">#techno</span><span>${meta||'tópico de Caio, 84 votos'}</span></div><div class="q">${Q}</div>${btn||''}</div>`;
+
+/* ===== componentes do modelo final ===== */
+const comRow=(c,name,sub,btn)=>`<div class="row"><span class="thumb t${c}" role="img" aria-label="capa"></span><div class="grow"><b>${name}</b><span class="xs mu">${sub}</span></div>${btn||''}</div>`;
+const HANDLE={'Lia Souza':'@liasouza','Jo Ramos':'@joramos','Caio Mendes':'@caiomendes','Você':'@analima','Rafa Lima':'@rafalima','Bia Torres':'@biatorres'};
+const ans=(n,name,where,text,extra,edit)=>`<div class="ans"><div class="who">${av(n)}<span><b>${name}</b> <span class="mu">${HANDLE[name]||''}</span><br><span class="mu">${where}</span></span></div><div>${text}</div>${extra||''}<div class="foot"><span style="margin-left:auto">${ic('more',false,'sm')}</span></div></div>`;
+const T1='Como foi a primeira festa que te fez gostar de música eletrônica?';
+const dest=(com,q,n,btn)=>`<div class="dest">${com?`<div class="meta"><span class="chn">${com}</span></div>`:''}<div class="q">${q}</div><div class="xs" style="opacity:.85">${n}</div>${btn||''}</div>`;
+const profAns=(where,q,a)=>`<div class="ans"><span class="xs mu">${where}</span><b style="font-size:13px">${q}</b><span>${a}</span></div>`;
+const stats=(a,b,c)=>`<div class="stats"><div><b>${a}</b><span>respostas</span></div><div><b>${b}</b><span>comunidades</span></div><div><b>${c}</b><span>dias ativos</span></div></div>`;
+const GIF=`<span class="ib" aria-label="GIF">${ic('gif')}</span>`;
+const door=(mem)=>`<button class="door ${mem?'in':''}" aria-pressed="${mem}" aria-label="${mem?'Membro. Toque para sair da comunidade':'Entrar na comunidade'}">#</button>`;
+const topicRow=(name,sub,right)=>`<div class="row">${mk(3,'*')}<div class="grow"><b class="wrap">${name}</b><span class="xs mu">${sub}</span></div>${right||''}</div>`;
+
+/* ===== painéis laterais da web ===== */
+const ASIDE={
+ coms:`<div class="st">Minhas comunidades</div>
+  ${comRow(1,'Música Eletrônica','3.412 membros<br>12 tópicos<br>18 respostas novas','')}
+  ${comRow(2,'Fotografia de Paisagem','1.240 membros<br>7 tópicos<br>5 respostas novas','')}
+  ${comRow(3,'Terror','980 membros<br>5 tópicos<br>Sem respostas novas','')}
+  ${comRow(1,'Vinil','2.100 membros<br>9 tópicos<br>2 respostas novas','')}`,
+ com:`<div class="asidehd"><b>Sobre a comunidade</b></div><div class="st">Música Eletrônica</div><div class="xs">Pista, fone, lançamentos e histórias de festa.</div>
+  <div class="xs mu">3.412 membros em {Música.</div>
+  <div class="st">Como o Hot Topic funciona</div>
+  <div class="xs">O ciclo vira às 00h. O tópico com mais pessoas diferentes respondendo fica no topo no dia seguinte. O destaque não vence dois ciclos seguidos.</div>
+  <div class="st">Tópicos que você segue aqui</div>
+  ${topicRow('lançamentos','42 pessoas, 61 respostas. 5 novas')}`,
+ cab:`<div class="st">Participantes</div>
+  ${[[4,'Você'],[1,'Lia Souza'],[3,'Jo Ramos']].map(([n,a])=>`<div class="who">${av(n)}<b>${a}</b></div>`).join('')}`,
+ perfil:`<div class="st">Comunidades</div><div class="chips"><span class="chip">Música Eletrônica</span><span class="chip">Vinil</span><span class="chip">Terror</span></div>`
+};
+
+/* ===== molduras ===== */
+function ph(o){
+  const left=o.back?`<span class="ib">${ic('back')}</span>`:'';
+  return `<div><div class="cap">${o.cap||''}</div><div class="ph">
+    ${o.title!==undefined?`<div class="hd">${left}<span class="t ${o.small?'s':''}">${o.title}</span>${o.right||''}</div>`:''}
+    <div class="bd ${o.cprof?'cprof':''}">${o.body}</div>${o.after||''}${o.nav?nav(o.nav):''}${o.sheet||''}</div></div>`;
+}
+function web(o,s){
+  const act=o.webNav||s.webNav||o.nav||s.navKey;
+  const items=NAV.concat([['notif','Notificações','bell']]);
+  const left=o.back?`<span class="ib">${ic('back')}</span>`:'';
+  const aside=o.aside!==undefined?o.aside:(ASIDE[s.aside]||'');
+  const bare=s.area.startsWith('Entrada');
+  return `<div><div class="cap">${o.cap||''}</div><div class="web">
+   <div class="wtop"><i></i><i></i><i></i><span>hub.app/${s.slug}</span></div>
+   <div class="wgrid ${bare?'bare':aside?'':'noaside'}">
+    ${bare?'':`<nav class="wnav rail"><div class="logo">H</div>${items.map(([k,l,i])=>`<span class="${k===act?'on':''}" title="${l}" aria-label="${l}">${nicon(i,k===act)}${k==='notif'?'<i class="wdot"></i>':''}</span>`).join('')}
+     <div class="railbtns"><button class="rb" title="Criar tópico" aria-label="Criar tópico">${mk(3,'*')}</button><button class="rb" title="Criar comunidade" aria-label="Criar comunidade">${mk(2,'#')}</button></div></nav>`}
+    <div class="wmain">${o.title!==undefined?`<div class="hd" ${o.center||bare?`style="max-width:${bare?(s.title==='Tela inicial'?760:420):o.center}px;margin:0 auto;width:100%"`:''}>${left}<span class="t">${o.webTitle||o.title}</span>${o.webRight!==undefined?o.webRight:(o.right||'')}</div>`:''}
+     <div class="bd" ${bare&&!o.wide?`style="max-width:${s.title==='Tela inicial'?760:420}px;margin:0 auto;height:100%"`:bare&&o.wide?'style="max-width:none"':o.center?`class="${o.cprof?'cprof':''}" style="max-width:${o.center}px;margin:0 auto"`:o.wide?'style="max-width:none"':''}>${o.webBody||o.body}</div>${o.after||''}${o.sheet||''}</div>
+    ${aside&&!bare?`<aside class="waside">${aside}</aside>`:''}
+   </div></div></div>`;
+}
+
+/* ===== telas ===== */
+const S=[
+{area:'Início',navKey:'inicio',aside:'coms',slug:'inicio',title:'Início',desc:'Destaques das comunidades, suas últimas respostas e tópicos que você segue. Tem fim: não é um feed infinito.',
+ states:()=>[{title:'Hoje',nav:'inicio',right:`<span class="ib wonly">${ic('bell')}<i class="dot"></i></span>`,body:`
+  <div class="st">Hot Topics</div>
+  ${dest('Música Eletrônica',T1,'86 pessoas, 112 respostas','<button class="btn rit sm full">Responder</button>')}
+  ${topicRow('Qual lugar você fotografaria de novo?','Destaque em Fotografia de Paisagem. 41 pessoas, 58 respostas')}
+  <div class="st">Pessoas que você segue<a>Ver todas</a></div>
+  ${[[1,'@liasouza','respondeu em *primeira festa','Música Eletrônica, há 20 min'],[3,'@joramos','criou *sets ao vivo','Música Eletrônica, há 1 h'],[2,'@caiomendes','respondeu em *serra','Fotografia de Paisagem, há 3 h']].map(([n,h,a,w])=>`<div class="row">${av(n)}<div class="grow"><b class="wrap">${h} ${a}</b><span class="xs mu">${w}</span></div></div>`).join('')}
+  <div class="st">Suas últimas interações</div>
+  ${topicRow('lançamentos','Música Eletrônica. 42 pessoas, 61 respostas. 5 depois da sua')}
+  <div class="st">Tópicos que você segue</div>
+  ${topicRow('filmes que ninguém viu','Terror. 19 pessoas, 27 respostas. 3 novas')}
+  <div class="end">Você está em dia.</div>`,webBody:`
+  <div class="st">Hot Topics</div>
+  ${dest('Música Eletrônica',T1,'86 pessoas, 112 respostas','<button class="btn rit sm full">Responder</button>')}
+  ${topicRow('Qual lugar você fotografaria de novo?','Destaque em Fotografia de Paisagem. 41 pessoas, 58 respostas')}
+  <div class="st">Tópicos que você segue</div>
+  ${topicRow('filmes que ninguém viu','Terror. 19 pessoas, 27 respostas. 3 novas')}
+  ${topicRow('prensagens raras','Vinil. 8 pessoas, 11 respostas. 2 novas')}
+  ${topicRow('serra','Fotografia de Paisagem. 12 pessoas, 14 respostas. 1 nova')}
+  <div class="st">Pessoas que você segue<a>Ver todas</a></div>
+  ${[[1,'@liasouza','respondeu em *primeira festa','Música Eletrônica, há 20 min'],[3,'@joramos','criou *sets ao vivo','Música Eletrônica, há 1 h'],[2,'@caiomendes','respondeu em *serra','Fotografia de Paisagem, há 3 h']].map(([n,h,a,w])=>`<div class="row">${av(n)}<div class="grow"><b class="wrap">${h} ${a}</b><span class="xs mu">${w}</span></div></div>`).join('')}
+  <div class="st">Suas últimas interações</div>
+  ${topicRow('lançamentos','Música Eletrônica. 42 pessoas, 61 respostas. 5 depois da sua')}
+  <div class="end">Você está em dia.</div>`}],
+ points:['<b>Proposta:</b> o Início termina com "Você está em dia". É a forma visível de cumprir "não cria um feed infinito".',
+  '<b>Proposta:</b> só o primeiro destaque aparece como cartão grande. Os outros viram linhas, para o Início caber em uma tela com 3 ou mais comunidades.',
+  '<b>Proposta:</b> "Suas últimas respostas" mostra quantas respostas chegaram depois da sua. É o motivo para voltar à discussão.']},
+
+{area:'Início',navKey:'inicio',aside:'',slug:'inicio',title:'Início vazio',desc:'Quando a pessoa não segue nenhuma comunidade.',
+ states:()=>[{title:'Hoje',nav:'inicio',body:`
+  <div style="display:flex;gap:8px;margin-top:8px">${mk(1)}${mk(2,'#')}${mk(3,'*')}</div>
+  <div style="font-weight:800;font-size:20px;line-height:1.15">Suas comunidades aparecem aqui</div>
+  <div class="mu">Entre em comunidades para acompanhar as discussões em destaque.</div>
+  ${comRow(1,'Música Eletrônica','{Música, 3.412 membros',ic('fwd',false,'sm'))}
+  ${comRow(2,'Fotografia de Paisagem','{Fotografia, 1.240 membros',ic('fwd',false,'sm'))}
+  ${comRow(3,'Terror','{Cinema, 980 membros',ic('fwd',false,'sm'))}
+  <button class="btn sec full">Explorar</button>`}],points:[]},
+
+{area:'Comunidades',navKey:'canais',aside:'coms',slug:'comunidades',title:'Explorar comunidades',desc:'Busca por comunidades e pessoas, navegação por Universos.',
+ states:()=>[{title:'Explorar',nav:'explorar',body:`
+  <div class="fld">${ic('search',false,'sm')}Buscar</div>
+  <div class="seg"><span class="on">Tudo</span><span>Comunidades</span><span>Tópicos</span><span>Pessoas</span></div>
+  <div class="st">Universos</div>
+  <div class="g2"><div class="row">${mk(1)}<b>Música</b></div><div class="row">${mk(2)}<b>Fotografia</b></div><div class="row">${mk(3)}<b>Cinema</b></div><div class="row">${mk(1)}<b>Games</b></div></div>
+  <div class="st">Para você</div>
+  ${comRow(2,'Produção Musical','{Música, 640 membros',door(false))}
+  ${comRow(1,'Vinil','{Música, 2.100 membros',door(false))}`}],
+ points:['<b>Proposta:</b> a mesma busca encontra comunidades e pessoas. O documento cita "pesquisar um usuário" como forma de abrir Cabine, e não há outra tela de busca de pessoas.',
+  '<b>Grafia:</b> os nomes passam a ser naturais ("Música Eletrônica"). Os símbolos {, # e * viram ícones de tipo, não prefixo do nome. Nomes com espaço não funcionam como "#música eletrônica".']},
+
+{area:'Comunidades',navKey:'canais',aside:'coms',slug:'u/musica',title:'Página do Universo',desc:'Comunidades de um Universo, com ordenação por ícones.',
+ states:()=>[{title:`<span style="display:inline-flex;gap:8px;align-items:center">${mk(1,'{')}Música</span>`,back:1,nav:'canais',body:`
+  <div class="mu xs">Universo mantido pelo Hub. 38 comunidades. Toque no # para entrar em uma comunidade.</div>
+  <div style="display:flex;gap:8px;align-items:center"><div class="fld" style="flex:1">${ic('search',false,'sm')}Buscar em Música</div><span class="sorts"><span class="on" aria-label="Atividade">${ic('pulse',false,'sm')}</span><span aria-label="Mais recentes">${ic('clock',false,'sm')}</span></span></div>
+  ${comRow(1,'Música Eletrônica','3.412 membros<br>210 respostas hoje',door(false))}
+  ${comRow(2,'Vinil','2.100 membros<br>96 respostas hoje',door(false))}
+  ${comRow(3,'Produção Musical','640 membros<br>41 respostas hoje',door(false))}
+  ${comRow(1,'DJs','1.880 membros<br>33 respostas hoje',door(false))}`}],points:[]},
+
+{area:'Comunidades',navKey:'canais',aside:'',slug:'comunidades/minhas',title:'Minhas comunidades',desc:'Comunidades que a pessoa segue, com o estado do destaque.',
+ states:()=>[{title:'Comunidades',webTitle:'Minhas Comunidades',nav:'canais',right:`<span class="ib">${ic('plus')}</span>`,body:`
+  ${comRow(1,'Música Eletrônica','3.412 membros, 12 tópicos ativos')}
+  ${comRow(2,'Fotografia de Paisagem','1.240 membros, 7 tópicos ativos')}
+  ${comRow(3,'Terror','980 membros, 5 tópicos ativos')}
+  ${comRow(1,'Vinil','2.100 membros, 9 tópicos ativos<br>Seu tópico está em 2º no ciclo')}
+  ${comRow(2,'Produção Musical','640 membros, 3 tópicos ativos')}`,
+  webBody:`<div class="fld">${ic('search',false,'sm')}Buscar nas suas comunidades</div>
+  <div class="st">Fixadas</div>
+  ${comRow(1,'Música Eletrônica','3.412 membros, 12 tópicos ativos',`<span class="ib pin on" aria-label="Desafixar">${ic('pin',true,'sm')}</span>`)}
+  ${comRow(1,'Vinil','2.100 membros, 9 tópicos ativos<br>Seu tópico está em 2º no ciclo',`<span class="ib pin on" aria-label="Desafixar">${ic('pin',true,'sm')}</span>`)}
+  <div class="st">Todas, de A a Z</div>
+  ${comRow(2,'Fotografia de Paisagem','1.240 membros, 7 tópicos ativos',`<span class="ib pin" aria-label="Fixar">${ic('pin',false,'sm')}</span>`)}
+  ${comRow(2,'Produção Musical','640 membros, 3 tópicos ativos',`<span class="ib pin" aria-label="Fixar">${ic('pin',false,'sm')}</span>`)}
+  ${comRow(3,'Terror','980 membros, 5 tópicos ativos',`<span class="ib pin" aria-label="Fixar">${ic('pin',false,'sm')}</span>`)}`}],
+ points:['<b>Proposta:</b> mostrar a posição do seu tópico no ciclo ("está em 2º"). Isso dá à pessoa a sensação de influência que o documento busca.']},
+
+{area:'Comunidades',navKey:'canais',aside:'coms',slug:'comunidades/nova',title:'Criar comunidade',desc:'Nome, intro de 240 caracteres, capa padrão e Universo.',
+ states:()=>[{title:'Nova comunidade',back:1,small:1,body:`
+  <div class="cover up" role="button" aria-label="Enviar foto de capa"><span class="wm">${ic('img')}</span><span class="upin"><span class="btn sm sec upbtn">${ic('img',false,'sm')}Adicionar capa</span></span></div>
+  <div class="lab">Nome</div><div class="fld typed bad">Fotografias de Paisagem</div>
+  <div class="msg err">${ic('alert',false,'sm')}<span>Já existe <b>Fotografia de Paisagem</b>. Entre nela ou escolha outro nome.</span></div>
+  <div class="grp2"><div class="lab">Intro</div><div class="fld tall typed">Paisagem do celular à analógica.</div><div class="cnt">34 de 240</div></div>
+  <div class="lab" style="margin-top:-6px">Universo</div><div class="fld typed">${mk(2)}Fotografia</div>
+  <div class="xs mu">A comunidade fica disponível na aba Explorar ao atingir 20 membros. Enquanto isso, pode ser encontrada pela busca.</div>
+  <button class="btn full">Criar comunidade</button>`}],
+ points:['<b>Proposta:</b> uma comunidade nova só aparece em Explorar depois de um número mínimo de membros, como no escopo anterior. O documento novo não trata de comunidades fantasmas, e a criação livre continua sendo o maior risco de espalhar pouca gente em muitos lugares.']},
+
+{area:'Comunidades',navKey:'canais',aside:'com',slug:'c/musica-eletronica',title:'Página da comunidade',desc:'Capa com foto, botão de porta para entrar ou sair, membros, descrição e Hot Topics. Moderação no menu de três pontos.',
+ states:()=>{
+  const hero=(neg,mem,act)=>`<div class="hero" style="margin:-4px -${neg}px 0"><span class="ib hb" style="left:10px">${ic('back')}</span><span class="ib hb ${act==='share'?'act':''}" style="right:52px" aria-label="Compartilhar">${ic('share')}</span><span class="ib hb ${act==='more'?'act':''}" style="right:10px">${ic('more')}</span><div class="htitle">Música Eletrônica</div></div>`;
+  const info=(mem)=>`<div style="display:flex;align-items:center;gap:8px">${door(mem)}<span class="xs"><b>3.412 membros</b></span></div>
+  <div>Pista, fone, lançamentos e histórias de festa.</div>
+  <div class="st">Hot Topic</div>
+  ${dest('',T1,'86 pessoas, 112 respostas. Tópico de Caio Mendes.','<button class="btn rit sm full">Responder</button>')}
+  <div style="display:flex;justify-content:space-between;align-items:center"><span class="st">Tópicos</span><span style="display:flex;gap:6px"><span class="sorts"><span class="on" aria-label="Mais respostas">${ic('bars',false,'sm')}</span><span aria-label="Mais recentes">${ic('clock',false,'sm')}</span></span><span class="ib lupa" aria-label="Buscar tópicos">${ic('search',false,'sm')}</span></span></div>
+  ${topicRow('lançamentos','42 pessoas, 61 respostas')}`;
+  const page=(mem)=>({cap:mem?'Membro':'Visitante',nav:'canais',aside:ASIDE.com,wide:1,body:hero(14,mem)+info(mem),webBody:hero(24,mem)+info(mem).replace('<div>Pista, fone, lançamentos e histórias de festa.</div>','')+topicRow('qual pista você quer conhecer','17 pessoas, 20 respostas')});
+  return [page(false),page(true),Object.assign(page(true),{cap:'Painel lateral oculto (web)',webOnly:1,aside:'',webBody:page(true).webBody}),
+  {cap:'Buscar tópicos',nav:'canais',aside:'',body:hero(14,true)+`
+  <div style="display:flex;gap:8px;align-items:center"><div class="fld typed" style="flex:1">${ic('search',false,'sm')}festa</div><span class="xs" style="font-weight:600">Cancelar</span></div>
+  <div class="xs mu">2 tópicos em Música Eletrônica</div>
+  ${topicRow('primeira festa','86 pessoas, 112 respostas')}
+  ${topicRow('festas de rua','14 pessoas, 19 respostas')}`},
+  {cap:'Compartilhar',nav:'canais',aside:'',body:hero(14,true,'share'),sheet:`<div class="ov"><div class="sh"><i class="grab"></i><b style="font-size:17px">Compartilhar Música Eletrônica</b>
+   <div class="fld">${ic('search',false,'sm')}Buscar pessoas</div>
+   ${[[1,'Lia Souza','@liasouza',1],[3,'Jo Ramos','@joramos',1],[2,'Rafa Lima','@rafalima',0]].map(([n,a,h,on])=>`<div class="row">${av(n)}<div class="grow"><b>${a}</b><span class="xs mu">${h}</span></div><span class="box ${on?'on':''}">${on?ic('check',false,'sm'):''}</span></div>`).join('')}
+   <button class="btn full">Enviar para 2 pessoas</button>
+   <div class="g2"><button class="btn sm sec" style="align-self:stretch">${ic('link',false,'sm')}Copiar link</button><button class="btn sm sec" style="align-self:stretch">${ic('share',false,'sm')}Outros apps</button></div></div></div>`},
+  {cap:'Sair da comunidade',nav:'canais',aside:'',body:hero(14,true),
+   sheet:`<div class="ov"><div class="sh"><i class="grab"></i><b style="font-size:17px">Sair de Música Eletrônica?</b><div class="xs mu">Você deixa de ver os Hot Topics dela no Início. Seus tópicos e respostas continuam na comunidade. Se você modera, a moderação passa para o membro mais ativo.</div><button class="btn full" style="background:var(--error)">Sair</button><button class="btn full sec">Continuar membro</button></div></div>`},
+  {cap:'Menu de três pontos',nav:'canais',aside:'',body:hero(14,true,'more'),
+   sheet:`<div class="ov"><div class="sh"><i class="grab"></i>
+   <div class="row">${av(1)}<div class="grow"><b>Moderada por Lia Souza</b><span class="xs mu">e mais 2 moderadores</span></div></div>
+   <div class="row">${ic('lock')}<b class="grow">Moderar</b><span class="xs mu">só moderadores</span></div>
+   <div class="row">${ic('flag')}<b class="grow">Denunciar comunidade</b></div>
+   <div class="row webonly">${ic('panel')}<b class="grow">Ocultar painel lateral</b></div></div></div>`}];},
+ points:[]},
+
+{area:'Comunidades',navKey:'canais',aside:'com',slug:'c/musica-eletronica/novo',title:'Criar tópico',desc:'Nome e pergunta de abertura. O tópico entra no ciclo assim que é criado.',
+ states:()=>[{title:'Novo tópico',back:1,small:1,body:`
+  <div class="xs mu">na comunidade de Música Eletrônica</div>
+  <div class="lab">Nome</div><div class="fld typed">${ISTAR}primeira festa</div>
+  <div class="lab">Descrição</div><div class="fld tall typed">${T1}</div><div class="cnt">63 de 240</div>
+  <div style="display:flex;gap:4px"><span class="ib" aria-label="Imagem">${ic('img')}</span>${GIF}</div>
+  <div class="xs mu">Você pode criar 1 tópico por dia nesta comunidade. O tópico com mais pessoas respondendo até o fim do ciclo, às 00h, fica em destaque.</div>
+  <button class="btn full">Criar tópico</button>`}],
+ points:['<b>Proposta:</b> a abertura do tópico segue o limite da resposta, 240 caracteres, com GIF ou 1 imagem.',
+  '<b>Proposta:</b> limite de 1 tópico por pessoa por dia em cada comunidade. Sem limite, quem cria muitos tópicos dilui as respostas e o ciclo perde força.',
+  '<b>Atenção:</b> "mais respostas" como critério premia tópicos polêmicos. O documento critica redes que estimulam performance, e essa regra pode reproduzir isso. Proposta: medir a concentração de denúncias nos tópicos em destaque desde o primeiro mês.']},
+
+{area:'Comunidades',navKey:'canais',aside:'com',slug:'c/musica-eletronica/primeira-festa',title:'Tópico',desc:'Respostas diretas no tópico, sem comentários encadeados. 240 caracteres, GIF ou 1 imagem.',
+ states:()=>[{title:'*primeira festa',back:1,small:1,nav:'canais',right:`<span class="ib solid" aria-label="Compartilhar">${ic('share')}</span><span class="ib eye on" role="button" aria-pressed="true" aria-label="Seguir e salvar na coleção">${ic('eye')}</span>`,body:`
+  <div class="opening"><span class="xs" style="opacity:.85">Tópico de Caio Mendes</span><div class="q">${T1}</div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center"><span class="xs mu">86 pessoas, 112 respostas</span><span class="sorts"><span class="on">${ic('clock',false,'sm')}</span><span aria-label="Mais respostas">${ic('bars',false,'sm')}</span></span></div>
+  ${ans(1,'Lia Souza','há 5 min','Um galpão em Curitiba, 2019. O som chegava no peito antes da música.','<div class="aimg photo" role="img" aria-label="Foto da resposta"></div>')}
+  ${ans(3,'Jo Ramos','há 12 min','Acabou às 10h da manhã.','<div class="aimg gifbox" role="img" aria-label="GIF da resposta"><span>GIF</span></div>')}
+  ${ans(4,'Você','há 1 min','Um set de 6 horas num galpão em Curitiba, 2019.','',1)}`,
+  after:`<div class="compose"><span class="ib">${ic('img')}</span>${GIF}<span class="fld">Responder</span><span class="ib">${ic('send')}</span></div>`},
+ {cap:'Menu da sua resposta',title:'*primeira festa',back:1,small:1,nav:'canais',body:`${ans(4,'Você','há 1 min','Um set de 6 horas num galpão em Curitiba, 2019.')}`,
+  sheet:`<div class="ov"><div class="sh"><i class="grab"></i>
+   <div class="row" style="color:var(--error)">${ic('alert')}<div class="grow"><b>Apagar resposta</b><span class="xs mu">Para corrigir, apague e responda de novo.</span></div></div></div></div>`},
+ {cap:'Apagar seu tópico, menos de 5 respostas',title:'*primeira festa',back:1,small:1,nav:'canais',body:`<div class="opening"><div class="q">${T1}</div></div>`,
+  sheet:`<div class="ov"><div class="sh"><i class="grab"></i><b style="font-size:17px">Apagar este tópico?</b><div class="xs mu">Ele tem 3 respostas de outras pessoas, que também serão apagadas. Não dá para desfazer.</div><button class="btn full" style="background:var(--error)">Apagar tópico</button><button class="btn full sec">Cancelar</button></div></div>`},
+ {cap:'Tópico com 5 respostas ou mais',title:'*primeira festa',back:1,small:1,nav:'canais',body:`<div class="opening"><div class="q">${T1}</div></div>`,
+  sheet:`<div class="ov"><div class="sh"><i class="grab"></i>
+   <div class="row" style="opacity:.55">${ic('alert')}<div class="grow"><b>Apagar tópico</b><span class="xs mu">Indisponível</span></div></div>
+   <div class="xs mu">Tópicos com 5 respostas ou mais de outras pessoas não podem ser apagados, para preservar a participação de quem respondeu. Se houver um problema, denuncie para a moderação.</div></div></div>`},
+ {cap:'Menu da resposta',title:'*primeira festa',back:1,small:1,nav:'canais',body:`${ans(3,'Jo Ramos','há 12 min','Uma festa de rua que acabou às 10h da manhã.')}`,
+  sheet:`<div class="ov"><div class="sh"><i class="grab"></i>
+   <div class="row">${ic('flag')}<b class="grow">Denunciar</b></div>
+   <div class="row">${ic('lock')}<b class="grow">Bloquear Jo Ramos</b></div></div></div>`}],
+ points:['<b>Lacuna do documento:</b> as métricas de Conversa e Afinidade pedem uma ação que mostre interesse, mas não existe curtida nem comentário. Proposta: medir toques em "Perfil" e convites de Cabine feitos a partir de uma resposta, sem criar um botão novo.',
+  '<b>Proposta:</b> sem curtidas e sem contadores por resposta. É coerente com "participação em vez de popularidade".',
+  '<b>Proposta:</b> a resposta pode ser editada por 5 minutos, depois fica fixa.']},
+
+{area:'Cabine',navKey:'cabine',aside:'',slug:'cabines',title:'Lista de Cabines',desc:'Conversas privadas e convites pendentes.',
+ states:()=>[{title:'Cabines',nav:'cabine',right:`<span class="ib">${ic('plus')}</span>`,body:`
+  <div class="st">Convites</div>
+  <div class="row" style="background:var(--sun)">${av(2)}<div class="grow"><b>Caio Mendes</b><span class="xs">Vi sua resposta sobre o galpão. Eu estava nessa...</span></div><span class="pill o" style="color:var(--ink)">Ver</span></div>
+  <div class="st">Conversas</div>
+  <div class="row"><span class="stack">${av(1)}${av(3)}</span><div class="grow"><b>Lia e Jo</b><span class="xs mu">Lia: e aquele galpão, ainda existe?</span></div><span class="pill l">2</span></div>
+  <div class="row">${av(2)}<div class="grow"><b>Rafa Lima</b><span class="xs mu">Você: te mando o set amanhã</span></div></div>
+  <div class="row">${av(4)}<div class="grow"><b>Bia Torres</b><span class="xs mu">Bia: GIF</span></div></div>`}],points:[]},
+
+{area:'Cabine',navKey:'cabine',aside:'',slug:'cabines/nova',title:'Nova Cabine',desc:'Selecionar uma ou mais pessoas. Elas precisam aceitar.',
+ states:()=>[{title:'Nova Cabine',back:1,small:1,body:`
+  <div class="fld">${ic('search',false,'sm')}Buscar pessoas</div>
+  <div class="lab">Mensagem do convite</div><div class="fld typed">Bora conversar sobre o set de sábado?</div><div class="cnt">37 de 240</div>
+  <div class="lab">Sugestões com base nas suas comunidades</div>
+  ${[[1,'Lia Souza','Música Eletrônica, Vinil',1],[3,'Jo Ramos','Música Eletrônica',1],[2,'Rafa Lima','Produção Musical',0],[4,'Bia Torres','Terror',0]].map(([n,a,b,on])=>`<div class="row">${av(n)}<div class="grow"><b>${a}</b><span class="xs mu">${b}</span></div><span class="box ${on?'on':''}">${on?ic('check',false,'sm'):''}</span></div>`).join('')}
+  <div class="xs mu">2 pessoas. Cada uma recebe um convite e entra se aceitar.</div>
+  <button class="btn full">Enviar convites</button>`}],
+ points:['<b>Lacuna do documento:</b> "duas ou mais pessoas" não tem limite. Proposta: manter o limite de 5 do escopo anterior. Conversas maiores deixam de ser privadas na prática.',
+  '<b>Proposta de segurança:</b> só é possível convidar quem divide ao menos uma comunidade com você, e cada pessoa envia no máximo 10 convites por dia. Sem isso, a Cabine vira canal de spam e assédio.',
+  '<b>Proposta:</b> nas configurações de privacidade, a pessoa escolhe quem pode convidá-la: membros das suas comunidades ou ninguém.']},
+
+{area:'Cabine',navKey:'cabine',aside:'',slug:'cabines/convite',title:'Convite para Cabine',desc:'Tela nova: a Cabine só começa quando a pessoa aceita.',
+ states:()=>[{title:'Convite',back:1,small:1,body:`
+  <div style="flex:1"></div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">${av(2,'lg')}<b style="font-size:18px">Caio Mendes quer conversar com você</b><div class="bub them invmsg">Vi sua resposta sobre o galpão. Eu estava nessa festa! Bora trocar umas ideias?</div><span class="xs mu">Comunidades em comum</span><div class="chips sm" style="justify-content:center"><span class="chip on">Música Eletrônica</span><span class="chip on">Vinil</span></div></div>
+  <div class="inv"><button class="btn">Aceitar</button><button class="btn sec">Recusar</button></div>
+  <div class="xs mu" style="text-align:center">O convite fica aberto até você responder. Caio não é avisado se você recusar. <u>Bloquear</u></div>
+  <div style="height:56px;flex:none"></div>`}],
+ points:['<b>Proposta:</b> o convite mostra a resposta que originou a conversa. Liga a Cabine à afinidade, que é o caminho que o documento descreve.',
+  '<b>Proposta:</b> recusar é silencioso, e o convite expira em 7 dias.']},
+
+{area:'Cabine',navKey:'cabine',aside:'cab',slug:'cabines/lia-jo',title:'Cabine',desc:'Conversa privada. GIF e 1 imagem por mensagem. Menu com convidar, denunciar, bloquear e sair.',
+ states:()=>[{cap:'Conversa',title:'Lia e Jo',back:1,small:1,right:`<span class="ib">${ic('more')}</span>`,body:`
+  <div class="bub them"><small>Lia</small>E aquele galpão, ainda existe?</div>
+  <div class="bub me">Fechou em 2021. Virou mercado.</div>
+  <div class="bub them"><small>Jo</small>Tenho fotos de lá, vou procurar</div>
+  <div class="bub me sharecard"><span class="thumb t1"></span><span><b>Música Eletrônica</b><span class="xs">Comunidade, 3.412 membros</span><u class="xs">Ver comunidade</u></span></div>`,
+  after:`<div class="compose"><span class="ib">${ic('img')}</span>${GIF}<span class="fld">Mensagem</span><span class="ib">${ic('send')}</span></div>`},
+ {cap:'Menu',title:'Lia e Jo',back:1,small:1,body:`<div class="bub them"><small>Lia</small>E aquele galpão, ainda existe?</div>`,
+  sheet:`<div class="ov"><div class="sh"><i class="grab"></i>
+   <div class="row">${ic('plus')}<b class="grow">Convidar pessoas</b></div>
+   <div class="row">${ic('flag')}<b class="grow">Denunciar</b></div>
+   <div class="row">${ic('lock')}<b class="grow">Bloquear alguém</b></div>
+   <div class="row webonly">${ic('panel')}<b class="grow">Ocultar participantes</b></div>
+   <div class="row" style="color:var(--error)">${ic('exit')}<b class="grow">Sair da Cabine</b></div>
+   <div class="xs mu">Se só uma pessoa ficar, a Cabine se encerra.</div></div></div>`},
+ {cap:'Participantes ocultos (web)',webOnly:1,aside:'',center:720,title:'Lia e Jo',back:1,small:1,right:`<span class="ib">${ic('more')}</span>`,body:`
+  <div class="bub them"><small>Lia</small>E aquele galpão, ainda existe?</div>
+  <div class="bub me">Fechou em 2021. Virou mercado.</div>
+  <div class="bub them"><small>Jo</small>Tenho fotos de lá, vou procurar</div>
+  <div class="bub me sharecard"><span class="thumb t1"></span><span><b>Música Eletrônica</b><span class="xs">Comunidade, 3.412 membros</span><u class="xs">Ver comunidade</u></span></div>`,
+  after:`<div class="compose" style="max-width:720px;margin:0 auto;width:100%">${'<span class="ib">'+ic('img')+'</span>'}${GIF}<span class="fld">Mensagem</span><span class="ib">${ic('send')}</span></div>`}],
+ points:['<b>Mudança registrada:</b> o modo história saiu. A Cabine agora é só conversa. Os componentes de abas e de trecho saem do design system.']},
+
+{area:'Perfil',navKey:'perfil',aside:'perfil',slug:'perfil',title:'Perfil próprio',desc:'Abas Respostas, Comunidades e Coleção. A Coleção reúne todos os tópicos que você segue e só você vê.',
+ states:()=>{
+  const head=`<div style="display:flex;gap:14px;align-items:center">${av(4,'lg')}<div><div style="font-weight:800;font-size:20px">Ana Lima</div><div class="xs mu">@analima</div><div class="xs"><b>128</b> seguidores <span class="followlink"><b>45</b> seguindo</span></div></div></div>
+  <div class="xs">Techno de galpão, fotografia de rua e filmes de terror ruins. Coleciono vinil e escrevo sobre as festas que já acabaram.</div>
+  ${stats(86,5,41)}
+  <div class="tabs"><span>Respostas</span><span>Comunidades</span><span class="on">Coleção</span></div>`;
+  const t=(n,s)=>`<div class="row">${mk(3,'*')}<div class="grow"><b>${n}</b><span class="xs mu">${s}</span></div><span class="eyesm">${ic('eye',false,'sm')}</span></div>`;
+  const sortc=(k)=>`<div class="csort right" role="group" aria-label="Organizar coleção"><button class="${k==='u'?'on':''}" aria-label="Por Universo">${mk(1,'{')}</button><button class="${k==='c'?'on':''}" aria-label="Por comunidade">${mk(2,'#')}</button><button class="${k==='t'?'on':''}" aria-label="Cronológica"><span class="mk mclock">${ic('clock',false,'sm')}</span></button></div>`;
+  const ghead=(mark,name,count)=>`<div class="ghead">${mark}<b>${name}</b><span class="xs mu">${count}</span></div>`;
+  return [{cap:'Aba Respostas',title:'Perfil',nav:'perfil',right:`<span class="ib">${ic('more')}</span>`,aside:'',body:head.replace('<span class="on">Coleção</span>','<span>Coleção</span>').replace('<span>Respostas</span>','<span class="on">Respostas</span>')+`
+  ${profAns('*primeira festa, Música Eletrônica',T1,'Um set de 6 horas num galpão em Curitiba, 2019.')}
+  ${profAns('Criou o tópico *filmes que ninguém viu, Terror','Qual filme de terror quase ninguém viu e todo mundo deveria?','')}
+  ${profAns('*serra, Fotografia de Paisagem','Qual lugar você fotografaria de novo?','A serra numa manhã de neblina.')}`},
+  {cap:'Aba Comunidades',title:'Perfil',nav:'perfil',right:`<span class="ib">${ic('more')}</span>`,aside:'',body:head.replace('<span class="on">Coleção</span>','<span>Coleção</span>').replace('<span>Comunidades</span>','<span class="on">Comunidades</span>')+`
+  <div class="xs mu">5 comunidades</div>
+  ${comRow(1,'Música Eletrônica','3.412 membros')}
+  ${comRow(2,'Fotografia de Paisagem','1.240 membros')}
+  ${comRow(1,'Vinil','2.100 membros')}
+  ${comRow(3,'Terror','980 membros')}
+  ${comRow(2,'Produção Musical','640 membros')}`},
+  {cap:'Coleção por Universo',title:'Perfil',nav:'perfil',right:`<span class="ib">${ic('more')}</span>`,aside:'',body:`${head}
+  ${sortc('u')}
+  ${ghead(mk(1,'{'),'Música','7 tópicos')}
+  ${t('lançamentos','Música Eletrônica. 5 respostas novas')}
+  ${t('prensagens raras','Vinil. Sem novidade há 12 dias')}
+  ${ghead(mk(1,'{'),'Cinema','3 tópicos')}
+  ${t('filmes que ninguém viu','Terror. 3 respostas novas')}`},
+  {cap:'Coleção por Comunidade',title:'Perfil',nav:'perfil',right:`<span class="ib">${ic('more')}</span>`,aside:'',body:`${head}
+  ${sortc('c')}
+  ${ghead('<span class="thumb t1 sm"></span>','Música Eletrônica','4 tópicos')}
+  ${t('lançamentos','5 respostas novas')}
+  ${t('primeira festa','Hot Topic hoje')}
+  ${ghead('<span class="thumb t2 sm"></span>','Vinil','3 tópicos')}
+  ${t('prensagens raras','Sem novidade há 12 dias')}`},
+  {cap:'Coleção cronológica',title:'Perfil',nav:'perfil',right:`<span class="ib">${ic('more')}</span>`,aside:'',body:`${head}
+  ${sortc('t')}
+  ${t('primeira festa','Música Eletrônica. Atividade há 5 min')}
+  ${t('lançamentos','Música Eletrônica. Atividade há 20 min')}
+  ${t('filmes que ninguém viu','Terror. Atividade há 2 h')}
+  ${t('prensagens raras','Vinil. Atividade há 12 dias')}`},
+  {cap:'Menu de três pontos',title:'Perfil',nav:'perfil',right:`<span class="ib">${ic('more')}</span>`,aside:'',body:head,
+   sheet:`<div class="ov"><div class="sh"><i class="grab"></i>
+   <div class="row">${ic('user')}<b class="grow">Editar perfil</b></div>
+   <div class="row">${ic('gear')}<b class="grow">Configurações</b></div></div></div>`}];},
+ points:['<b>Proposta:</b> a terceira aba fica escondida até ter função. Uma aba vazia ou "Em breve" contraria o princípio de que cada tela precisa justificar sua existência.',
+  '<b>Definição necessária:</b> "dias ativos" conta dias com ao menos uma resposta ou tópico, não dias em que o app foi aberto. Assim o contador mede participação, como o documento pede.',
+  '<b>Mudança registrada:</b> as respostas agora são públicas no perfil. A decisão anterior, de histórico visível só para você, foi substituída.']},
+
+{area:'Perfil',navKey:'perfil',aside:'perfil',slug:'lia',title:'Perfil de outra pessoa',desc:'Seguir e Cabine. Abas Respostas e Comunidades.',
+ states:()=>{const P=([f,tab])=>({cap:tab==='c'?'Aba Comunidades':f?'Depois de seguir':'Antes de seguir',title:'',back:1,nav:'perfil',right:`<span class="ib">${ic('more')}</span>`,body:`
+  <div style="display:flex;gap:14px;align-items:center">${av(1,'lg')}<div><div style="font-weight:800;font-size:20px">Lia Souza</div><div class="xs mu">@liasouza</div><div class="xs"><b>214</b> seguidores</div></div></div>
+  <div class="xs">Vinil, serras e pista desde 2010.</div>
+  ${stats(141,9,88)}
+  <div class="pair full"><button class="btn sm pbtn ${f?'on':''}" aria-pressed="${f}">${ic('eye',false,'sm')}${f?'Seguindo':'Seguir'}</button><button class="btn sm pbtn">${nicon('envelope',false,'sm cab')}Cabine</button></div>
+  ${tab==='c'?`<div class="tabs"><span>Respostas</span><span class="on">Comunidades</span></div>
+  <div class="xs mu">9 comunidades. 2 em comum com você.</div>
+  ${comRow(1,'Música Eletrônica','3.412 membros','<span class="pill l">Em comum</span>')}
+  ${comRow(1,'Vinil','2.100 membros','<span class="pill l">Em comum</span>')}
+  ${comRow(2,'Fotografia de Paisagem','1.240 membros')}
+  ${comRow(3,'Produção Musical','640 membros')}`:`<div class="tabs"><span class="on">Respostas</span><span>Comunidades</span></div>
+  ${profAns('*primeira festa, Música Eletrônica',T1,'Um galpão em Curitiba, 2019. O som chegava no peito antes da música.')}
+  ${profAns('Criou o tópico *serra, Fotografia de Paisagem','Qual lugar você fotografaria de novo?','')}`}`});return [[false,'r'],[true,'r'],[true,'c']].map(P).concat([Object.assign(P([true,'r']),{cap:'Menu de três pontos',sheet:`<div class="ov"><div class="sh"><i class="grab"></i>
+   <div class="row">${ic('flag')}<b class="grow">Denunciar perfil</b></div>
+   <div class="row">${ic('lock')}<div class="grow"><b>Bloquear @liasouza</b><span class="xs mu">Ela não vê seu perfil nem pode convidar você para Cabine</span></div></div>
+   <div class="row">${ic('bell')}<b class="grow">Silenciar no Início</b></div></div></div>`})]);},
+ points:['<b>Mudança registrada:</b> não existe mais seguir pessoas. O perfil não tem botão Seguir nem contador de seguidores.',
+  '<b>Proposta:</b> mostrar as comunidades em comum logo abaixo do atalho de Cabine. É o contexto que justifica o convite.']},
+
+{area:'Conta e sistema',navKey:'',aside:'',slug:'cadastro',title:'Cadastro e verificação de idade',desc:'Foto pedida antes da primeira resposta ou tópico.',
+ states:()=>[{title:'Criar conta',body:`
+  <div class="steps"><i class="on"></i><i class="on"></i><i></i></div>
+  <div class="lab">Nome completo</div><div class="fld typed">Ana Lima</div>
+  <div class="lab">Email</div><div class="fld">seu@email.com</div>
+  <div class="row">${ic('lock')}<div class="grow"><b>Verificar idade</b><span class="xs mu">O Hub é para maiores de 16 anos.</span></div></div>
+  <div class="agree"><span class="box"></span><span class="xs">Li e concordo com os <u>Termos de uso</u> e a <u>Política de privacidade</u>.</span></div>
+  <button class="btn full">Continuar</button>
+  <div class="xs mu" style="text-align:center">ou</div>
+  <button class="btn full sec">${ic('user',false,'sm')}Continuar com Google</button>
+  <div class="xs mu" style="text-align:center">Já tenho conta. <u>Entrar</u></div>`},
+ {cap:'Google: escolher conta',title:'Criar conta',body:`<div class="steps"><i class="on"></i><i></i><i></i></div>`,
+  sheet:`<div class="ov"><div class="sh"><i class="grab"></i><b style="font-size:17px">Escolha uma conta</b><div class="xs mu">Janela do Google, aberta pelo navegador ou pelo sistema</div>
+   <div class="row">${av(4)}<div class="grow"><b>Ana Lima</b><span class="xs mu">ana@email.com</span></div></div>
+   <div class="row">${ic('plus')}<b class="grow">Usar outra conta</b></div></div></div>`},
+ {cap:'Google: completar cadastro',title:'Complete seu cadastro',small:1,body:`
+  <div class="steps"><i class="on"></i><i class="on"></i><i></i></div>
+  <div class="avedit">${av(4,'lg')}<span class="xs mu">Foto e nome vieram do Google. Você pode trocar.</span></div>
+  <div class="lab">Nome completo</div><div class="fld typed">Ana Lima</div>
+  <div class="lab">@</div><div class="fld typed">@analima</div>
+  <div class="row">${ic('lock')}<div class="grow"><b>Verificar idade</b><span class="xs mu">O Hub é para maiores de 16 anos.</span></div></div>
+  <div class="agree"><span class="box"></span><span class="xs">Li e concordo com os <u>Termos de uso</u> e a <u>Política de privacidade</u>.</span></div>
+  <button class="btn full">Continuar</button>`}],
+ points:['<b>Atenção:</b> o documento novo não menciona idade mínima nem identidade real. Mantive 16 anos e verificação sem autodeclaração, porque decorrem da lei e não do produto. Confirme se identidade real continua obrigatória.']},
+
+{area:'Conta e sistema',navKey:'',aside:'',slug:'boas-vindas',title:'Onboarding',desc:'Apresenta o conceito e leva a pelo menos 3 comunidades.',
+ states:()=>[{cap:'Conceito',title:'',body:`
+  <div style="margin-top:40px;display:flex;gap:8px">${mk(1)}${mk(2,'#')}${mk(3,'*')}</div>
+  <div style="font-weight:800;font-size:26px;line-height:1.1;letter-spacing:-.02em">Como o Hub funciona</div>
+  <div class="row">${mk(2,'#')}<span>Entre em comunidades do que você gosta.</span></div><div class="row">${mk(3,'*')}<span>Responda aos tópicos. O mais respondido vira Hot Topic no dia seguinte.</span></div><div class="row">${nicon('envelope',false)}<span>Encontre pessoas pelas respostas e converse em Cabines.</span></div>
+  <div style="flex:1"></div><button class="btn full">Começar</button>`},
+ {cap:'Escolha',title:'Do que você gosta?',small:1,body:`
+  <div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+  <div class="mu">Escolha ao menos 3 comunidades.</div>
+  <div class="lab">Universos</div><div class="chips"><span class="chip u on">Música</span><span class="chip u on">Fotografia</span><span class="chip u">Cinema</span><span class="chip u">Games</span></div>
+  <div class="lab">Comunidades</div><div class="chips"><span class="chip c on">Música Eletrônica</span><span class="chip c on">Fotografia de Paisagem</span><span class="chip">Vinil</span><span class="chip">Produção Musical</span><span class="chip">Retrato</span></div>
+  <div class="xs mu">2 de 3 escolhidas</div>
+  <button class="btn full off">Continuar</button>`,webBody:`<div class="lab">Comunidades</div><div class="chips"><span class="chip c on">Música Eletrônica</span><span class="chip c on">Fotografia de Paisagem</span><span class="chip">Vinil</span><span class="chip">Produção Musical</span><span class="chip">DJs</span><span class="chip">Retrato</span><span class="chip">Analógica</span><span class="chip">Fotografia de Rua</span></div>
+  <div class="lab">Cinema</div><div class="chips"><span class="chip">Terror</span><span class="chip">Ficção Científica</span><span class="chip">Documentários</span><span class="chip">Cinema Brasileiro</span><span class="chip">Animação</span></div>
+  <div class="lab">Games</div><div class="chips"><span class="chip">Indie</span><span class="chip">RPG</span><span class="chip">Speedrun</span><span class="chip">Retrô</span><span class="chip">Jogos de Tabuleiro</span></div>
+  <div class="xs mu">2 de 3 escolhidas</div>
+  <button class="btn full off">Continuar</button>`},
+ {cap:'Vindo de um convite',title:'Do que você gosta?',small:1,body:`
+  <div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+  <div class="mu">Escolha ao menos 3 comunidades. Depois, você volta para ${'*'}primeira festa.</div>
+  <div class="lab">Do seu convite</div><div class="chips"><span class="chip c on">Música Eletrônica</span></div>
+  <div class="lab">Comunidades</div><div class="chips"><span class="chip c">Vinil</span><span class="chip c on">Produção Musical</span><span class="chip">DJs</span><span class="chip">Fotografia de Paisagem</span></div>
+  <div class="xs mu">2 de 3 escolhidas</div>
+  <button class="btn full off">Continuar</button>`},
+ {cap:'Notificações',title:'',body:`
+  <div style="flex:1"></div>
+  <div style="display:flex;justify-content:center">${nicon('bell',true,'big')}</div>
+  <div style="font-weight:800;font-size:22px;line-height:1.15;text-align:center">Não perca nada</div>
+  <div class="mu" style="text-align:center">Avisamos sobre novidades nos seus tópicos, convites de Cabine e atualizações em comunidades que você segue.</div>
+  <div style="flex:1"></div>
+  <button class="btn full">Ativar notificações</button><button class="btn full sec">Agora não</button>`}],points:[]},
+
+{area:'Conta e sistema',navKey:'perfil',aside:'',slug:'configuracoes',title:'Configurações',desc:'Conta, privacidade, notificações, histórico de atividade e dados pessoais.',
+ states:()=>[{title:'Configurações',back:1,small:1,body:`
+  ${[['Conta','Nome, foto, email, descrição'],['Privacidade','Quem pode me convidar para Cabine'],['Ordem padrão','Mais respostas'],['Histórico de atividade','Respostas, tópicos e Cabines'],['Seus dados','Baixar uma cópia dos seus dados'],['Pessoas bloqueadas','2 pessoas']].map(([a,b])=>`<div class="row"><div class="grow"><b>${a}</b><span class="xs mu">${b}</span></div>${ic('fwd',false,'sm')}</div>`).join('')}
+  <div class="st">Notificações no celular</div>
+  ${[['Seu tópico ficou em destaque',1],['Convites e mensagens de Cabine',1],['Tópicos que você segue, em um aviso diário',1],['Novos tópicos nas suas comunidades',0]].map(([a,on])=>`<div class="row"><span class="grow xs" style="font-weight:600">${a}</span><span class="tg ${on?'on':''}"></span></div>`).join('')}
+  <div class="row"><b class="grow" style="color:var(--error)">Excluir conta</b></div>`},
+  {cap:'Pessoas bloqueadas',title:'Pessoas bloqueadas',back:1,small:1,body:`
+  <div class="xs mu">Pessoas bloqueadas não veem seu perfil, suas respostas nem podem convidar você para Cabine. Elas não são avisadas.</div>
+  ${[[2,'Rafa Lima','@rafalima'],[4,'Bia Torres','@biatorres']].map(([n,a,h])=>`<div class="row">${av(n)}<div class="grow"><b>${a}</b><span class="xs mu">${h}</span></div><button class="btn sm sec">Desbloquear</button></div>`).join('')}`},
+  {cap:'Excluir conta',title:'Excluir conta',back:1,small:1,body:`
+  <div class="mu">Escolha o que acontece com suas respostas e tópicos.</div>
+  <div class="radio on"><i></i><span><b>Manter sem meu nome</b><br><span class="xs mu">Ficam nas discussões como "Conta excluída". As conversas continuam fazendo sentido para quem participou.</span></span></div>
+  <div class="radio"><i></i><span><b>Apagar tudo</b><br><span class="xs mu">Respostas e tópicos somem. Discussões podem ficar com lacunas.</span></span></div>
+  <div class="msg info">${ic('alert',false,'sm')}<span>Suas Cabines, seu perfil e sua Coleção são apagados nos dois casos.</span></div>
+  <button class="btn full" style="background:var(--error)">Excluir minha conta</button>
+  <button class="btn full sec">Cancelar</button>`}],
+ points:['<b>Proposta de notificações:</b> ligadas por padrão: seu tópico em destaque, Cabine e um aviso diário com os tópicos que você segue. Desligada por padrão: novos tópicos nas comunidades, que seria o aviso mais frequente.',
+  '<b>LGPD:</b> "Seus dados" permite baixar uma cópia, e "Excluir conta" atende ao direito de eliminação (Lei 13.709/2018, art. 18).']},
+
+{area:'Conta e sistema',navKey:'notif',aside:'',slug:'notificacoes',title:'Central de notificações',desc:'Destaque, Cabine e tópicos seguidos.',
+ states:()=>[{title:'Notificações',back:1,small:1,body:`
+  <div class="st">Agora</div>
+  <div class="row" style="background:var(--sun)">${mk(1,'*')}<div class="grow"><b>Seu tópico está em destaque</b><span class="xs">*primeira festa em Música Eletrônica</span></div></div>
+  <div class="row">${av(2)}<div class="grow"><b>Caio quer conversar com você</b><span class="xs mu">Convite para Cabine</span></div></div>
+  <div class="row">${mk(2,'*')}<div class="grow"><b>5 respostas novas</b><span class="xs mu">em *lançamentos, que você segue</span></div></div>
+  <div class="row">${ic('alert')}<div class="grow"><b>Sua resposta foi removida</b><span class="xs mu">em *lançamentos, por spam. Toque para ver as regras</span></div></div>
+  <div class="st">Ontem</div>
+  <div class="row">${mk(3,'#')}<div class="grow"><b>Novo destaque em Terror</b><span class="xs mu">*filmes que ninguém viu</span></div></div>`}],points:[]},
+
+{area:'Conta e sistema',navKey:'canais',aside:'',slug:'c/musica-eletronica/moderar',title:'Moderação da comunidade',desc:'Tela nova: ferramentas para moderadores, citadas no documento.',
+ states:()=>[{title:'Moderar',back:1,small:1,body:`
+  <div class="xs mu">Música Eletrônica. Você é moderadora. Se sair, a moderação passa para o membro mais ativo.</div>
+  <div class="seg"><span class="on">Denúncias</span><span>Membros</span><span>Moderadores</span></div>
+  ${ans(2,'Rafa Lima','em *lançamentos. Denunciada 4 vezes por spam','Compre seguidores no meu perfil, desconto hoje').replace(/<div class="foot">.*?<\/div><\/div>$/s,'<div style="display:flex;gap:8px"><button class="btn sm" style="background:var(--error)">Remover</button><button class="btn sm sec">Manter</button><button class="btn sm sec">Banir</button></div></div>')}
+  ${ans(3,'Jo Ramos','em *primeira festa. Denunciada 1 vez','Essa festa era horrível, quem foi não entende nada.').replace(/<div class="foot">.*?<\/div><\/div>$/s,'<div style="display:flex;gap:8px"><button class="btn sm" style="background:var(--error)">Remover</button><button class="btn sm sec">Manter</button></div></div>')}`,cap:'Denúncias'},
+ {cap:'Membros',title:'Moderar',back:1,small:1,body:`
+  <div class="xs mu">Música Eletrônica. 3.412 membros.</div>
+  <div class="seg"><span>Denúncias</span><span class="on">Membros</span><span>Moderadores</span></div>
+  <div class="fld">${ic('search',false,'sm')}Buscar membros</div>
+  ${[[1,'Lia Souza','@liasouza, moderadora',0],[3,'Jo Ramos','@joramos, moderador',0],[2,'Rafa Lima','@rafalima, 4 denúncias',1],[4,'Bia Torres','@biatorres, membro desde 2026',1]].map(([n,a,b,r])=>`<div class="row">${av(n)}<div class="grow"><b>${a}</b><span class="xs mu">${b}</span></div>${r?'<button class="btn sm sec">Remover</button>':''}</div>`).join('')}`},
+ {cap:'Remover membro',title:'Moderar',back:1,small:1,body:`<div class="seg"><span>Denúncias</span><span class="on">Membros</span><span>Moderadores</span></div>`,
+  sheet:`<div class="ov"><div class="sh"><i class="grab"></i><b style="font-size:17px">Remover Rafa Lima da comunidade?</b><div class="xs mu">Rafa sai de Música Eletrônica e pode entrar de novo. Para impedir a volta, use Banir.</div><button class="btn full" style="background:var(--error)">Remover</button><button class="btn full sec">Banir da comunidade</button><button class="btn full sec">Cancelar</button></div></div>`},
+ {cap:'Moderadores',title:'Moderar',back:1,small:1,body:`
+  <div class="xs mu">Música Eletrônica. 3 moderadores.</div>
+  <div class="seg"><span>Denúncias</span><span>Membros</span><span class="on">Moderadores</span></div>
+  ${[[1,'Lia Souza','@liasouza, criadora',0],[4,'Você','@analima',0],[3,'Jo Ramos','@joramos',1]].map(([n,a,b,r])=>`<div class="row">${av(n)}<div class="grow"><b>${a}</b><span class="xs mu">${b}</span></div>${r?'<button class="btn sm sec">Remover</button>':''}</div>`).join('')}
+  <button class="btn sec full">${ic('plus',false,'sm')}Adicionar moderador</button>`},
+ {cap:'Remover moderador',title:'Moderar',back:1,small:1,body:`<div class="seg"><span>Denúncias</span><span>Membros</span><span class="on">Moderadores</span></div>`,
+  sheet:`<div class="ov"><div class="sh"><i class="grab"></i><b style="font-size:17px">Remover Jo Ramos da moderação?</b><div class="xs mu">Jo continua membro de Música Eletrônica, mas perde as ferramentas de moderação. Jo é avisado.</div><button class="btn full" style="background:var(--error)">Remover da moderação</button><button class="btn full sec">Cancelar</button></div></div>`},
+ {cap:'Adicionar moderador',title:'Moderar',back:1,small:1,body:`<div class="seg"><span>Denúncias</span><span>Membros</span><span class="on">Moderadores</span></div>`,
+  sheet:`<div class="ov"><div class="sh"><i class="grab"></i><b style="font-size:17px">Adicionar moderador</b>
+   <div class="fld typed">${ic('search',false,'sm')}caio</div>
+   <div class="row">${av(2)}<div class="grow"><b>Caio Mendes</b><span class="xs mu">@caiomendes, membro desde 2026</span></div><span class="box on">${ic('check',false,'sm')}</span></div>
+   <div class="xs mu">Caio recebe um convite e vira moderador ao aceitar.</div>
+   <button class="btn full">Enviar convite</button></div></div>`}],
+ points:['<b>Proposta:</b> o moderador pode remover respostas e tópicos e banir membros da comunidade. Banir da plataforma continua só com o Hub.',
+  '<b>Proposta:</b> quem cria a comunidade é o moderador. Se sair, assume o membro mais antigo, como no escopo anterior.']},
+
+{area:'Conta e sistema',navKey:'canais',aside:'',slug:'denuncia',title:'Denúncia e bloqueio',desc:'Motivos fixos e bloqueio no mesmo fluxo.',
+ states:()=>[{title:'*primeira festa',back:1,small:1,nav:'canais',right:`<span class="ib solid" aria-label="Compartilhar">${ic('share')}</span><span class="ib eye on" aria-label="Seguindo">${ic('eye')}</span>`,body:`<div class="opening"><span class="xs" style="opacity:.85">Tópico de Caio Mendes</span><div class="q">${T1}</div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center"><span class="xs mu">86 pessoas, 112 respostas</span></div>
+  ${ans(1,'Lia Souza','há 5 min','Um galpão em Curitiba, 2019. O som chegava no peito antes da música.')}
+  ${ans(2,'Caio Mendes','há 3 min','Quem não foi não entende nada.')}`,
+  after:`<div class="compose"><span class="ib">${ic('img')}</span>${GIF}<span class="fld">Responder</span><span class="ib">${ic('send')}</span></div>`,
+  sheet:`<div class="ov"><div class="sh"><i class="grab"></i><b style="font-size:17px">Denunciar resposta</b>
+   ${['Assédio ou ódio','Conteúdo sexual','Spam ou golpe','Informação falsa','Outro motivo'].map((m,i)=>`<div class="radio ${i===0?'on':''}"><i></i>${m}</div>`).join('')}
+   <button class="btn full">Enviar denúncia</button><button class="btn full sec" style="color:var(--error);box-shadow:inset 0 0 0 1.5px var(--error)">${ic('flag',false,'sm')}Bloquear Caio Mendes</button>
+   <div class="xs mu">Bloquear tira você das Cabines que tem com Caio e impede novos convites.</div></div></div>`}],points:[]},
+
+{area:'Conta e sistema',navKey:'',aside:'',slug:'termos',title:'Termos e privacidade',desc:'Resumo simples acima do texto legal.',
+ states:()=>[{title:'Termos e privacidade',back:1,small:1,body:`
+  <div class="ban"><b>Em resumo</b><span class="xs">Suas respostas aparecem nas comunidades e no seu perfil. Cabines são privadas e só começam quando todos aceitam. O Hub é para maiores de 16 anos. Você pode baixar seus dados e excluir sua conta quando quiser.</span></div>
+  <div class="seg"><span class="on">Termos de uso</span><span>Privacidade</span></div>
+  <div class="lines">${'<span></span>'.repeat(12)}</div>`}],points:[]},
+
+{area:'Conta e sistema',navKey:'',aside:'',slug:'estados',title:'Estados do sistema',desc:'Estados que valem para todas as telas.',
+ sheet:()=>`<div class="statesheet">
+  <div class="stc"><h5>Destaque</h5><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill">Hot</span><span class="pill l">2º</span><span class="pill o">Seguindo</span></div></div>
+  <div class="stc" style="grid-column:1/-1"><h5>Ícones de navegação: inativo e ativo, no claro e no escuro</h5>
+   ${['light','dark'].map(bg=>`<div class="navtest ${bg}">${[['home','Início'],['search','Explorar'],['hash','Comunidades'],['envelope','Cabine'],['user','Perfil'],['bell','Notificações']].map(([k,l])=>`<div><span>${nicon(k,false)}</span><span>${nicon(k,true)}</span><i>${l}</i></div>`).join('')}</div>`).join('')}
+   <div class="xs mu">Mesma regra para todos, a partir do ícone de Perfil: inativo em contorno de 2 px; ativo preenchido, com os detalhes internos vazados. O vazado mostra o fundo, então funciona no claro e no escuro.</div></div>
+  <div class="stc" style="grid-column:1/-1"><h5>Ícones</h5><div class="iconset">${[['bars','Mais respostas'],['search','Buscar'],['plus','Criar'],['back','Voltar'],['fwd','Avançar'],['more','Mais opções'],['eye','Seguir'],['share','Compartilhar'],['link','Copiar link'],['img','Imagem'],['gif','GIF'],['send','Enviar'],['clock','Cronológico'],['check','Confirmado'],['alert','Aviso'],['flag','Denunciar'],['lock','Bloquear'],['exit','Sair'],['gear','Configurações']].map(([k,l])=>`<div>${ic(k)}<span class="il">${l}</span></div>`).join('')}</div>
+   <h5>Marcas de nível</h5><div class="iconset">${[['{','Universo'],['#','Comunidade'],['*','Tópico']].map(([g,l])=>`<div>${mk(0,g)}<span class="il">${l}</span></div>`).join('')}<div>${door(false)}<span class="il">Entrar</span></div><div>${door(true)}<span class="il">Membro</span></div></div>
+</div>
+  <div class="stc"><h5>Carregando</h5><div class="skel" style="height:80px"></div><div class="skel" style="height:14px;width:60%"></div></div>
+  <div class="stc"><h5>Erro de conexão</h5><div class="msg err">${ic('alert',false,'sm')}<span>Não foi possível carregar os tópicos. Verifique sua conexão.</span></div><button class="btn sm sec">Tentar de novo</button></div>
+  <div class="stc"><h5>Sucesso</h5><div class="msg ok">${ic('check',false,'sm')}Tópico criado em Música Eletrônica</div></div>
+  <div class="stc"><h5>Vazio</h5><div style="font-weight:800">Nenhum tópico ainda</div><div class="xs mu">Crie o primeiro. O que mais gente responder fica em destaque amanhã.</div><button class="btn sm">Criar tópico</button></div>
+  <div class="stc"><h5>Perfil sem respostas</h5><div style="font-weight:800">Nenhuma resposta ainda</div><div class="xs mu">As respostas de @liasouza aparecem aqui.</div></div>
+  <div class="stc"><h5>Coleção vazia</h5><div style="font-weight:800">Sua coleção está vazia</div><div class="xs mu">Toque no olho de um tópico para guardá-lo aqui.</div></div>
+  <div class="stc"><h5>Nenhuma Cabine</h5><div style="font-weight:800">Nenhuma conversa ainda</div><div class="xs mu">Abra uma Cabine pelo perfil de alguém das suas comunidades.</div><button class="btn sm">Nova Cabine</button></div>
+  <div class="stc"><h5>Fim da lista</h5><div class="end">Você está em dia.</div></div>
+  <div class="stc"><h5>Convite pendente</h5><div class="row">${av(1)}<div class="grow"><b>Aguardando Lia</b><span class="xs mu">A Cabine começa quando ela aceitar</span></div><button class="btn sm sec">Cancelar</button></div><div class="xs mu">Convites pendentes contam no limite de 10 por dia.</div></div>
+  <div class="stc"><h5>Desativado</h5><button class="btn off">Criar comunidade</button><div class="xs mu">Preencha nome, intro, capa e Universo.</div></div>
+ </div>`,
+ points:[]}
+];
+
+S.push(
+{area:'Entrada',navKey:'',aside:'',slug:'senha',title:'Esqueci a senha',desc:'Recuperação por código enviado ao email.',
+ states:()=>[{cap:'Pedir código',title:'Recuperar senha',back:1,small:1,body:`
+  <div class="mu">Informe o email da sua conta. Enviaremos um código de 6 dígitos.</div>
+  <div class="lab">Email</div><div class="fld typed">ana@email.com</div>
+  <button class="btn full">Enviar código</button>`},
+ {cap:'Criar nova senha',title:'Recuperar senha',back:1,small:1,body:`
+  <div class="msg ok">${ic('check',false,'sm')}Código enviado para ana@email.com</div>
+  <div class="lab">Código</div><div class="code">${'<span></span>'.repeat(6)}</div>
+  <div class="lab">Nova senha</div><div class="fld">Mínimo de 8 caracteres</div>
+  <button class="btn full">Salvar e entrar</button>
+  <div class="xs mu" style="text-align:center">Não recebeu? <u>Enviar de novo</u></div>`}],points:[]},
+{area:'Descoberta',navKey:'canais',aside:'coms',slug:'busca?q=techno',title:'Resultado da busca',desc:'Comunidades, tópicos e pessoas. Única forma de achar comunidades com menos de 20 membros.',
+ states:()=>[{title:'Comunidades',nav:'canais',body:`
+  <div class="fld typed">${ic('search',false,'sm')}techno</div>
+  <div class="seg"><span class="on">Tudo</span><span>Comunidades</span><span>Tópicos</span><span>Pessoas</span></div>
+  <div class="st">Comunidades</div>
+  ${comRow(1,'Música Eletrônica','3.412 membros',door(true))}
+  ${comRow(3,'Techno Minimal','12 membros. Nova',door(false))}
+  <div class="st">Tópicos</div>
+  ${topicRow('techno de pista ou de fone?','Música Eletrônica. 31 pessoas, 44 respostas')}
+  ${topicRow('primeiro disco de techno','Vinil. 12 pessoas, 15 respostas')}
+  <div class="st">Pessoas</div>
+  ${[[1,'Lia Souza','@liasouza, 2 comunidades em comum',1],[2,'Caio Mendes','@caiomendes, 1 comunidade em comum',0]].map(([n,a,b,f])=>`<div class="row">${av(n)}<div class="grow"><b>${a}</b><span class="xs mu">${b}</span></div><span class="ib eye ${f?'on':''}" aria-label="${f?'Seguindo':'Seguir'}">${ic('eye',false,'sm')}</span></div>`).join('')}`}],points:[]},
+{area:'Minha área',navKey:'perfil',aside:'',slug:'perfil/editar',title:'Editar perfil',desc:'Foto, nome, @ e descrição em uma única tela. Acesso pelo menu de três pontos do perfil próprio.',
+ states:()=>[{title:'Editar perfil',back:1,small:1,body:`
+  <div class="avedit">${av(4,'lg')}<span class="xs mu">Toque na foto para trocar</span></div>
+  <div class="lab">Nome</div><div class="fld typed">Ana Lima</div>
+  <div class="lab">@</div><div class="fld typed">@analima</div><div class="xs mu" style="margin-top:-6px">Único no Hub.</div>
+  <div class="lab">Descrição</div><div class="fld tall typed">Techno, fotografia de rua e filmes de terror ruins.</div><div class="cnt">52 de 120</div>
+  <div style="flex:1"></div>
+  <button class="btn full">Salvar</button>`}],points:[]}
+);
+S.push(
+{area:'Entrada',navKey:'',aside:'',slug:'c/musica-eletronica/primeira-festa?convite',title:'Convite por link',desc:'Quem abre um link compartilhado sem conta vê a comunidade, os membros e o tópico. As respostas só aparecem depois do cadastro.',
+ states:()=>{
+  const body=(neg)=>`<div class="hero" style="margin:-4px -${neg}px 0;height:150px"><div class="htitle">Música Eletrônica</div></div>
+  <div class="xs mu">Compartilhado por @liasouza</div>
+  <div style="display:flex;align-items:center;gap:8px">${mk(2,'#')}<span class="xs"><b>3.412 membros</b></span></div>
+  <div class="opening"><span class="xs" style="opacity:.85">*primeira festa</span><div class="q">${T1}</div></div>
+  <div class="locked"><div class="blurred">${ans(1,'Lia Souza','há 5 min','Um galpão em Curitiba, 2019. O som chegava no peito antes da música.')}${ans(3,'Jo Ramos','há 12 min','Acabou às 10h da manhã.')}</div>
+   <div class="lockmsg">${ic('lock')}<b>112 respostas de 86 pessoas</b></div></div>
+  <button class="btn full">Criar conta para ver as respostas</button>
+  <div class="xs mu" style="text-align:center">Já tenho conta. <u>Entrar</u></div>`;
+  const webB=`<div class="hero" style="height:200px"><div class="htitle">Música Eletrônica</div></div>
+  <div style="display:flex;align-items:center;gap:8px">${mk(2,'#')}<span class="xs"><b>3.412 membros</b></span><span class="xs mu" style="margin-left:auto">Compartilhado por @liasouza</span></div>
+  <div>Pista, fone, lançamentos e histórias de festa.</div>
+  <div class="opening"><span class="xs" style="opacity:.85">${'*'}primeira festa</span><div class="q">${T1}</div></div>
+  <div class="locked"><div class="blurred">${ans(1,'Pessoa','há 5 min','Conteúdo disponível depois do cadastro, com texto de exemplo para o desfoque.')}${ans(3,'Pessoa','há 12 min','Conteúdo disponível depois do cadastro.')}</div>
+   <div class="lockmsg">${ic('lock')}<b>112 respostas de 86 pessoas</b><div class="inv"><button class="btn">Criar conta para ver as respostas</button><button class="btn sec">Entrar</button></div></div></div>`;
+  const mobB=`<div class="hero" style="height:150px"><div class="htitle">Música Eletrônica</div></div>
+  <div class="xs mu">Compartilhado por @liasouza</div>
+  <div style="display:flex;align-items:center;gap:8px">${mk(2,'#')}<span class="xs"><b>3.412 membros</b></span></div>
+  <div class="opening"><span class="xs" style="opacity:.85">${'*'}primeira festa</span><div class="q">${T1}</div></div>
+  <div class="locked" style="min-height:140px"><div class="blurred">${ans(1,'Pessoa','há 5 min','Conteúdo disponível depois do cadastro, com texto de exemplo.')}</div>
+   <div class="lockmsg">${ic('lock')}<b>112 respostas de 86 pessoas</b></div></div>
+  <button class="btn full">Criar conta para ver as respostas</button>
+  <div class="xs mu" style="text-align:center">Já tenho conta. <u>Entrar</u></div>`;
+  return [{body:mobB,webBody:webB,wide:1}];},
+ points:[]}
+);
+S.push(
+{area:'Minha área',navKey:'perfil',aside:'',slug:'perfil/seguindo',title:'Pessoas que você segue',desc:'Lista aberta pelo link Seguindo, no perfil próprio, e por Ver todas, no Início. Só o dono vê.',
+ states:()=>[{title:'Seguindo',back:1,small:1,nav:'perfil',body:`
+  <div class="fld">${ic('search',false,'sm')}Buscar pessoas que você segue</div>
+  <div class="xs mu">Só você vê esta lista.</div>
+  ${[[1,'Lia Souza','@liasouza'],[3,'Jo Ramos','@joramos'],[2,'Caio Mendes','@caiomendes'],[4,'Bia Torres','@biatorres']].map(([n,a,h])=>`<div class="row">${av(n)}<div class="grow"><b>${a}</b><span class="xs mu">${h}</span></div><span class="ib eye on" role="button" aria-pressed="true" aria-label="Deixar de seguir ${a}">${ic('eye',false,'sm')}</span></div>`).join('')}`}],points:[]}
+);
+(function(){
+  const wrap=(t,f)=>{const s=S.find(x=>x.title===t);const o=s.states;s.states=()=>o().map(f);};
+  wrap('Tópico',x=>Object.assign(x,{aside:'',wide:1}));
+  ['Perfil de outra pessoa','Perfil próprio'].forEach(t=>wrap(t,x=>Object.assign(x,{aside:'',center:720,cprof:1})));
+  ['Editar perfil','Pessoas que você segue','Central de notificações','Moderação da comunidade'].forEach(t=>wrap(t,x=>Object.assign(x,{aside:'',center:720})));
+  ['Início','Início vazio','Explorar comunidades','Resultado da busca','Página do Universo','Criar comunidade','Criar tópico'].forEach(t=>wrap(t,x=>Object.assign(x,{aside:'',center:720})));
+  wrap('Explorar comunidades',x=>Object.assign(x,{webRight:''}));
+  ['Minhas comunidades','Início'].forEach(t=>wrap(t,x=>{if(x.webBody){x.body=x.webBody;delete x.webBody;}return x;}));
+  wrap('Denúncia e bloqueio',x=>Object.assign(x,{aside:'',wide:1}));
+  wrap('Minhas comunidades',x=>Object.assign(x,{aside:'',center:720}));
+  ['Resultado da busca','Página do Universo'].forEach(t=>wrap(t,x=>Object.assign(x,{nav:'explorar'})));
+  wrap('Resultado da busca',x=>Object.assign(x,{title:'Explorar'}));
+  wrap('Página da comunidade',x=>Object.assign(x,{aside:x.aside===''&&x.webOnly?'':ASIDE.com,wide:1}));
+  ['Nova Cabine','Convite para Cabine','Lista de Cabines','Configurações','Termos e privacidade'].forEach(t=>wrap(t,x=>Object.assign(x,{aside:'',center:720})));
+  wrap('Convite para Cabine',x=>Object.assign(x,{webBody:'<div class="invweb">'+x.body.replace(/<div style="flex:1"><\/div>/g,'').replace('<div style="height:56px;flex:none"></div>','')+'</div>'}));
+})();
+/* ===== pontos em aberto da versão final ===== */
+const OPEN={
+ 'Criar comunidade':['<b>Valor provisório:</b> 20 membros para a comunidade aparecer em Explorar. Confirme ou defina outro número.'],
+ 'Tópico':['<b>Métrica registrada:</b> Afinidade passa a ser medida pelos acessos a perfis a partir de um tópico ou de uma resposta. O evento precisa registrar a origem do acesso. Isso precisa entrar na especificação técnica.'],
+ 'Convite para Cabine':['<b>Consequência:</b> sem prazo e com recusa silenciosa, quem convidou pode esperar para sempre. Proposta: quem convidou pode cancelar o convite, e convites pendentes contam no limite de 10 por dia.'],
+ 'Cadastro e verificação de idade':['<b>Atenção:</b> login com Google não substitui a verificação de idade. A data de nascimento da conta Google é informada pela própria pessoa, ou seja, é autodeclarada. A etapa de verificação continua obrigatória depois do login.','<b>Proposta:</b> o Google preenche nome e foto, e a pessoa pode trocar. A regra de identidade real continua valendo.'],
+ 'Moderação da comunidade':['<b>Regra de sucessão proposta:</b> quem cria a comunidade pode nomear outros moderadores. Se o criador sair, assume o moderador mais antigo. Sem moderadores, assume o membro mais antigo.']
+};
+S.forEach(s=>{s.points=[];});
+/* ===== ordem da jornada ===== */
+S.unshift({area:'',navKey:'',aside:'',slug:'',title:'Tela inicial',desc:'Primeira tela do app e da web, antes do login.',
+ states:()=>[{body:`<div class="splash m">
+   <div class="splashmid"><div style="display:flex;gap:8px;justify-content:center">${mk(1)}${mk(2,'#')}${mk(3,'*')}</div>
+   <div style="font-weight:800;font-size:64px;line-height:.9;letter-spacing:-.04em">Hub</div>
+   <div style="font-weight:700;font-size:18px;line-height:1.2">Conecte-se pelo que realmente importa.</div></div>
+   <div class="splashbtns"><button class="btn full">Criar conta</button><button class="btn full sec">Entrar</button><div class="xs mu" style="text-align:center"><u>Termos e privacidade</u></div></div></div>`,
+  webBody:`<div class="splash">
+   <div class="splashmid"><div style="display:flex;gap:8px;justify-content:center">${mk(1)}${mk(2,'#')}${mk(3,'*')}</div>
+   <div style="font-weight:800;font-size:88px;line-height:.9;letter-spacing:-.04em">Hub</div>
+   <div style="font-weight:700;font-size:20px;line-height:1.2">Conecte-se pelo que realmente importa.</div></div>
+   <div class="splashbtns"><button class="btn full">Criar conta</button><button class="btn full sec">Entrar</button><div class="xs mu" style="text-align:center"><u>Termos e privacidade</u></div></div></div>`,
+  aside:''}],points:[]});
+
+const ORDER=[
+ ['Entrada / Onboarding',['Tela inicial','Convite por link','Cadastro e verificação de idade','Esqueci a senha','Onboarding']],
+ ['Início / Feed',['Início','Início vazio','Central de notificações']],
+ ['Descoberta / Explorar',['Explorar comunidades','Resultado da busca','Página do Universo']],
+ ['Comunidades / Tópicos / Respostas',['Minhas comunidades','Criar comunidade','Página da comunidade','Tópico','Criar tópico']],
+ ['Cabine',['Lista de Cabines','Nova Cabine','Convite para Cabine','Cabine']],
+ ['Perfis',['Perfil próprio','Editar perfil','Pessoas que você segue','Perfil de outra pessoa','Configurações']],
+ ['Segurança',['Denúncia e bloqueio','Moderação da comunidade','Termos e privacidade']],
+ ['Sistema',['Estados do sistema']]
+];
+(function(){
+  const by={};S.forEach(s=>by[s.title]=s);
+  const out=[];
+  ORDER.forEach(([area,titles])=>titles.forEach(t=>{const s=by[t];if(!s)throw new Error('tela ausente: '+t);s.area=area;out.push(s);delete by[t];}));
+  if(Object.keys(by).length)throw new Error('telas fora da ordem: '+Object.keys(by).join(', '));
+  S.length=0;out.forEach(s=>S.push(s));
+  const c=S.find(s=>s.title==='Cadastro e verificação de idade');c.title='Login e cadastro';c.desc='Entrar com Google ou email. Na criação de conta, a verificação de idade continua obrigatória.';
+})();
+/* tela de login ganha o estado Entrar antes do cadastro */
+(function(){
+  const c=S.find(s=>s.title==='Login e cadastro');const orig=c.states;
+  c.states=()=>[{cap:'Entrar',title:'Entrar',back:1,body:`
+   <div class="lab">Email</div><div class="fld">seu@email.com</div>
+   <div class="lab">Senha</div><div class="fld">••••••••</div>
+   <div class="xs" style="text-align:right"><u>Esqueci a senha</u></div>
+   <button class="btn full">Entrar</button>
+   <div class="xs mu" style="text-align:center">ou</div>
+   <button class="btn full sec">${ic('user',false,'sm')}Continuar com Google</button>
+   <div class="xs mu" style="text-align:center">Não tem conta? <u>Criar conta</u></div>`}].concat(orig().map(o=>Object.assign(o,{cap:o.cap||'Criar conta'})));
+})();
+
+/* ===== telas aprovadas com ok ===== */
+const APPROVED=['Tela inicial','Esqueci a senha','Onboarding','Início','Início vazio','Central de notificações','Explorar comunidades','Resultado da busca','Página do Universo','Minhas comunidades','Criar comunidade','Página da comunidade','Tópico','Criar tópico','Lista de Cabines','Nova Cabine','Convite para Cabine','Cabine','Perfil próprio','Editar perfil','Pessoas que você segue','Perfil de outra pessoa','Configurações','Denúncia e bloqueio','Termos e privacidade','Estados do sistema','Login e cadastro','Convite por link'];
+/* ===== estado e render ===== */
+const st={page:0,view:'cel',req:{}};
+function menu(){
+  let html='',last='';
+  S.forEach((s,i)=>{
+    if(s.area!==last){html+=`<div class="grp">${s.area}</div>`;last=s.area;}
+    const txt=(st.req[i]||'').trim(),isOk=txt.toLowerCase()==='ok',pend=txt&&!isOk;
+    const ready=isOk||(!txt&&APPROVED.includes(s.title));
+    html+=`<button class="item" data-go="${i}" ${i===st.page?'aria-current="page"':''}><span class="n">${i+1}</span>${s.title}${pend?'<span class="cnt">pedido</span>':ready?'<span class="cnt ready" title="Aprovada">&lt;/&gt;</span>':''}</button>`;
+  });
+  html+=`<div class="grp">Fechamento</div><button class="item" data-go="${S.length}" ${st.page===S.length?'aria-current="page"':''}><span class="n">✓</span>Resumo dos pedidos</button>`;
+  document.getElementById('menu').innerHTML=html;
+  const n=Object.values(st.req).filter(v=>v&&v.trim()&&v.trim().toLowerCase()!=='ok').length;
+  document.getElementById('progress').textContent=`Organizado por feature. ${n} de ${S.length} telas com pedido de mudança. Verde: aprovada com ok.`;
+}
+function stage(s){
+  if(s.sheet) return starify(s.sheet());
+  return starify(s.states().filter(o=>st.view==='web'||!o.webOnly).map(o=>st.view==='cel'?ph(o):web(o,s)).join(''));
+}
+function page(){
+  const m=document.getElementById('main');
+  if(st.page===S.length){
+    const list=S.map((s,i)=>[i,s]).filter(([i])=>(st.req[i]||'').trim());
+    m.innerHTML=`<div class="head"><h2>Resumo dos pedidos</h2><p>Copie e cole na conversa.</p></div>
+     <div class="sum">${list.length?list.map(([i,s])=>`<div><h4>${i+1}. ${s.title}</h4><p style="margin:4px 0 0;white-space:pre-wrap;font-size:14px">${esc(st.req[i])}</p></div>`).join(''):'<p class="xs">Nenhum pedido ainda.</p>'}</div>
+     <p><button class="copy" id="copy">Copiar resumo</button> <span id="copied" class="xs" aria-live="polite"></span></p>
+     <div class="pager"><button data-go="${S.length-1}">Anterior</button><span></span></div>`;
+    return;
+  }
+  const s=S[st.page],i=st.page;
+  const toggle=s.sheet?'':`<div class="vt" role="group" aria-label="Versão"><button data-view="cel" aria-pressed="${st.view==='cel'}">Celular</button><button data-view="web" aria-pressed="${st.view==='web'}">Web</button></div>`;
+  m.innerHTML=`<div class="head"><h2>${i+1}. ${s.title}</h2><p>${s.area}. ${s.desc}</p></div>
+   <div class="work ${st.view==='web'&&!s.sheet?'wide':''}"><div><div class="stagebar">${toggle}</div><div class="stage">${stage(s)}</div></div>
+   <section class="points" aria-label="Pedidos de mudança"><h3>Mudanças nesta tela</h3>
+    <div class="pt"><textarea data-req="${i}" style="min-height:160px" placeholder="Descreva o que mudar nesta tela, no celular, na web ou nos dois" aria-label="Mudanças na tela ${esc(s.title)}">${esc(st.req[i]||'')}</textarea>
+    <p class="xs" style="color:var(--c-mute)">O texto fica guardado enquanto esta página estiver aberta. Use "Resumo dos pedidos" para copiar tudo.</p></div>
+   </section></div>
+   <div class="pager"><button data-go="${i-1}" ${i===0?'disabled':''}>Anterior</button><button data-go="${i+1}">${i===S.length-1?'Ver resumo':'Próxima'}</button></div>`;
+}
+function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function summary(){
+  const list=S.map((s,i)=>[i,s]).filter(([i])=>(st.req[i]||'').trim());
+  return ['Hub: pedidos de mudança nas telas',''].concat(list.map(([i,s])=>`${i+1}. ${s.title}\n  ${st.req[i].trim().replace(/\n/g,'\n  ')}`)).join('\n');
+}
+function render(){menu();page();}
+render();
+
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-go]');
+  if(g){st.page=Math.max(0,Math.min(S.length,+g.dataset.go));render();window.scrollTo(0,0);return;}
+  const v=e.target.closest('[data-view]');
+  if(v){st.view=v.dataset.view;page();return;}
+  if(e.target.id==='copy'){
+    const t=summary(),o=document.getElementById('copied'),ok=()=>o.textContent='Resumo copiado.';
+    if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(ok,()=>fb(t,ok));else fb(t,ok);
+  }
+});
+document.addEventListener('input',e=>{const k=e.target.dataset.req;if(k!==undefined){st.req[k]=e.target.value;menu();}});
+function fb(t,ok){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');ok();}catch(err){document.getElementById('copied').textContent='Não foi possível copiar.';}ta.remove();}
+
+</script>
+</body>
+</html>

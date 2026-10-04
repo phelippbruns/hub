@@ -1,0 +1,15 @@
+// Schema do Hub. Os modelos entram na F02 (Modelo de dados e regras de acesso).
+//
+// No Prisma 7 as URLs de conexão não ficam aqui:
+//   - DIRECT_URL (conexão direta) fica em prisma.config.ts, para as migrations.
+//   - DATABASE_URL (pooler do Supabase) é passada ao PrismaClient pelo adapter,
+//     em lib/data/prisma.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../prisma/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
