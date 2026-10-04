@@ -24,7 +24,8 @@
     "tokens": "node scripts/generate-tokens.mts",
     "tokens:check": "node scripts/generate-tokens.mts --check",
     "db:seed": "node --env-file-if-exists=.env.local prisma/seed.ts",
-    "test:db": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run --config vitest.db.config.ts"
+    "test:db": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run --config vitest.db.config.ts",
+    "verificar:deploy": "node scripts/verificar-deploy.mts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
