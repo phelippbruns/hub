@@ -113,6 +113,10 @@ it("RN07: recusa o segundo tópico do dia na mesma comunidade", async () => { �
 
 As regras RN01 a RN34 estão em [docs/escopo.md](docs/escopo.md).
 
+**As jornadas rodam em série.** Elas compartilham um banco, um servidor Next e um Supabase com limite de autenticação de verdade; em paralelo falham por 429 ou tempo esgotado, nunca pelo que queriam verificar. `playwright.config.ts` fixa `workers: 1`.
+
+**Componente de cliente não importa `lib/data/`.** Mesmo indiretamente: um reexport inocente arrasta o Prisma e o `pg` para o pacote do navegador, e o build quebra com _"Can't resolve 'dns'"_, que não diz nada sobre a causa. Constantes que a tela e a camada de dados compartilham moram em `features/<nome>/shared.ts`.
+
 **A tela /design mostra o sistema inteiro.** Antes de criar um componente, olhe [design/components/](design/components/) e a galeria em `/design`. Componente novo entra na galeria junto.
 
 **Toda rota renderiza por requisição.** [app/layout.tsx](app/layout.tsx) marca `export const dynamic = "force-dynamic"` para o app inteiro. Motivo: a CSP exige nonce nos scripts, e o Next só injeta o nonce fora do prerender estático — numa rota estática o navegador bloqueia todos os scripts, sem erro no build e sem teste vermelho. Como quase tudo no Hub é por usuário, o prerender valeria para pouca coisa. Vale só para o HTML: JavaScript, CSS, fontes e imagens continuam no cache da borda.
@@ -189,6 +193,16 @@ para dar para encontrar depois quem passou por autodeclaração.
 ```bash
 npm run verificar:deploy <url>   # confere que o site publicado responde
 ```
+
+**O deploy aplica as migrations sozinho.** `vercel-build` roda `prisma migrate deploy` antes do `next build`, e a Vercel prefere esse script ao `build`. Sem isso, mergear uma feature com migration deixava o banco remoto atrás do código, e o erro só aparecia quando alguém usava a tela — aconteceu duas vezes.
+
+Para aplicar à mão num banco remoto, `npm run db:deploy:remoto`.
+
+**Banco novo também precisa de conteúdo.** `npm run conteudo:inicial` acrescenta os Universos e as comunidades de partida. Diferente de `npm run db:seed`, que é de desenvolvimento e **trunca tudo**, este só acrescenta — roda quantas vezes quiser, em qualquer ambiente. Sem ele o onboarding é impossível de concluir, porque a RN31 exige escolher 3 comunidades.
+
+**`DIRECT_URL` é o pooler de sessão, não a conexão direta.** `db.PROJETO.supabase.co` só responde em IPv6, e ambientes de build como a Vercel são IPv4: de lá ela falha com `P1001: Can't reach database server`. Funciona da máquina de quem tem IPv6, que é como o erro passa despercebido.
+
+**`updated_at` não tem valor padrão no banco.** O `@updatedAt` do Prisma é preenchido pelo cliente, então todo `INSERT` em SQL cru precisa escrever a coluna.
 
 **Build verde não é app no ar.** A Vercel marca o deploy como bem-sucedido quando o código compila, não quando o app responde. Da F01 à F03 ela publicou a pasta `public/` como site estático enquanto o Next.js compilado era descartado: toda rota dava 404, com o sinal verde o tempo todo.
 

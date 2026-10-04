@@ -169,7 +169,7 @@ export async function criarConta(_state: ActionState, formData: FormData): Promi
   });
 
   await clearAttempts("signup", email);
-  redirect("/onboarding");
+  redirect("/boas-vindas");
 }
 
 // ------------------------------------------------- completar cadastro (Google)
@@ -226,7 +226,7 @@ export async function completarCadastro(
     termsVersion: TERMS_VERSION,
   });
 
-  redirect("/onboarding");
+  redirect("/boas-vindas");
 }
 
 // ------------------------------------------------------- recuperar a senha

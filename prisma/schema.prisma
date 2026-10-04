@@ -190,6 +190,12 @@ model Profile {
   notifyCabin               Boolean @default(true) @map("notify_cabin")
   notifyFollowedTopics      Boolean @default(true) @map("notify_followed_topics")
 
+  /// RN31: quando concluiu o onboarding. Nulo significa que ainda não passou.
+  ///
+  /// Guardado em vez de deduzido de "já segue 3 comunidades": quem saísse de
+  /// uma depois voltaria a cair no onboarding, como se nunca tivesse entrado.
+  onboardedAt DateTime? @map("onboarded_at") @db.Timestamptz(6)
+
   createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
   /// RN32: exclusão de conta.

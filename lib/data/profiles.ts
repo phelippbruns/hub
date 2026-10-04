@@ -5,7 +5,7 @@ import { prisma } from "./prisma";
 import { ForbiddenError, NotFoundError } from "./errors";
 import { updateProfileSchema } from "./validation";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
-import { generateUniqueHandle } from "@/lib/auth/handle";
+import { generateUniqueHandle, suggestHandle, withSuffix } from "@/lib/auth/handle";
 import type { AgeVerificationMethod } from "@/lib/auth/age-verifier";
 
 async function handleIsTaken(handle: string): Promise<boolean> {
@@ -55,41 +55,53 @@ export async function createProfile(input: {
 
   const handle = input.handle ?? (await suggestAvailableHandle(input.name));
 
-  try {
-    return await prisma.profile.create({
-      data: {
-        id: input.authUserId,
-        handle,
-        name: input.name,
-        avatarUrl: input.avatarUrl ?? null,
-        birthDate: input.birthDate,
-        ageVerificationStatus: "verified",
-        ageVerificationMethod: input.ageVerificationMethod,
-        ageVerifiedAt: input.ageVerifiedAt,
-        termsVersion: input.termsVersion,
-      },
-    });
-  } catch (error) {
-    // Duas pessoas podem gerar o mesmo @ no mesmo instante: a checagem prévia
-    // não cobre isso, só o índice único. Aqui a colisão vira uma nova tentativa
-    // em vez de erro na cara da pessoa.
-    if (String(error).includes("handle")) {
-      return prisma.profile.create({
-        data: {
-          id: input.authUserId,
-          handle: await generateUniqueHandle(`${input.name}`, handleIsTaken),
-          name: input.name,
-          avatarUrl: input.avatarUrl ?? null,
-          birthDate: input.birthDate,
-          ageVerificationStatus: "verified",
-          ageVerificationMethod: input.ageVerificationMethod,
-          ageVerifiedAt: input.ageVerifiedAt,
-          termsVersion: input.termsVersion,
-        },
-      });
+  const dados = {
+    id: input.authUserId,
+    name: input.name,
+    avatarUrl: input.avatarUrl ?? null,
+    birthDate: input.birthDate,
+    ageVerificationStatus: "verified",
+    ageVerificationMethod: input.ageVerificationMethod,
+    ageVerifiedAt: input.ageVerifiedAt,
+    termsVersion: input.termsVersion,
+  } as const;
+
+  /*
+   * O @ pode colidir mesmo depois da checagem prévia: duas pessoas com o
+   * mesmo nome cadastrando no mesmo instante geram o mesmo candidato, e só o
+   * índice único separa as duas. Daí o laço.
+   *
+   * Quando o @ veio escolhido à mão (fluxo do Google), não há retentativa:
+   * trocar em silêncio o @ que a pessoa digitou seria pior do que avisar.
+   */
+  const escolhidoPelaPessoa = input.handle !== undefined;
+  let candidato = handle;
+
+  for (let tentativa = 0; tentativa < 5; tentativa += 1) {
+    try {
+      return await prisma.profile.create({ data: { ...dados, handle: candidato } });
+    } catch (error) {
+      const ultimaChance = tentativa === 4;
+      if (escolhidoPelaPessoa || ultimaChance || !ehHandleDuplicado(error)) throw error;
+
+      // Depois da segunda colisão, sufixo aleatório: continuar contando a
+      // partir do nome levaria todo mundo ao mesmo próximo candidato.
+      candidato =
+        tentativa === 0
+          ? await generateUniqueHandle(input.name, handleIsTaken)
+          : withSuffix(suggestHandle(input.name), Math.floor(Math.random() * 100_000));
     }
-    throw error;
   }
+
+  // Inalcançável: o laço devolve ou lança.
+  throw new Error("Não foi possível gerar um @ livre");
+}
+
+/** Violação do índice único de `handle` — P2002 é o código do Prisma. */
+function ehHandleDuplicado(error: unknown): boolean {
+  const e = error as { code?: string; meta?: { target?: unknown } };
+  if (e?.code !== "P2002") return false;
+  return JSON.stringify(e.meta?.target ?? "").includes("handle");
 }
 
 /** RN27/RN30: nome, descrição de até 120 caracteres sem links, foto opcional. */
