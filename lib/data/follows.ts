@@ -63,6 +63,17 @@ export async function followProfile(viewer: Viewer, profileId: string) {
  * pediu — em vez de simplesmente filtrar pelo visitante, que esconderia o erro
  * de quem chamar errado.
  */
+/** O olho desliga também: sem isto, seguir seria irreversível. */
+export async function unfollowProfile(viewer: Viewer, profileId: string) {
+  const me = requireProfileId(viewer);
+  await prisma.follow.deleteMany({ where: { followerId: me, followedProfileId: profileId } });
+}
+
+export async function unfollowCommunity(viewer: Viewer, communityId: string) {
+  const me = requireProfileId(viewer);
+  await prisma.follow.deleteMany({ where: { followerId: me, communityId } });
+}
+
 export async function getCollection(
   viewer: Viewer,
   ownerId: string,

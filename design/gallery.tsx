@@ -22,12 +22,16 @@ import {
   EmptyState,
   EndOfList,
   ErrorState,
+  FollowButton,
   HotTopicCard,
   Input,
   LevelMark,
   LoadingBlock,
   PasswordInput,
   Skeleton,
+  SectionTitle,
+  Segmented,
+  SortToggle,
   Steps,
   SuccessMessage,
   Switch,
@@ -154,6 +158,9 @@ export function DesignGallery() {
   const [notify, setNotify] = useState(true);
   const [agree, setAgree] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(true);
+  const [filtro, setFiltro] = useState("tudo");
+  const [seguindo, setSeguindo] = useState(false);
+  const [ordem, setOrdem] = useState<"atividade" | "recentes">("atividade");
   const [codigo, setCodigo] = useState("12");
 
   return (
@@ -371,6 +378,53 @@ export function DesignGallery() {
 
       {/* ------------------------------------------------------- componentes */}
       <Section title="Componentes">
+        <Card title="Filtro segmentado" wide>
+          {/* O filtro de Explorar e da busca (F06): Tudo / Comunidades / … */}
+          <Segmented
+            label="Filtrar resultados"
+            atual={filtro}
+            onSelect={setFiltro}
+            opcoes={[
+              { id: "tudo", label: "Tudo" },
+              { id: "comunidades", label: "Comunidades" },
+              { id: "topicos", label: "Tópicos" },
+              { id: "pessoas", label: "Pessoas" },
+            ]}
+          />
+        </Card>
+
+        <Card title="Seguir" wide>
+          {/* O olho: ligado quer dizer que você já segue. */}
+          <div className="flex items-center gap-2">
+            <FollowButton seguindo={false} oQue="Lia Souza" onToggle={() => setSeguindo(true)} />
+            <FollowButton seguindo oQue="Lia Souza" onToggle={() => setSeguindo(false)} />
+            <FollowButton
+              seguindo={seguindo}
+              oQue="Lia Souza"
+              onToggle={() => setSeguindo((v) => !v)}
+            />
+          </div>
+        </Card>
+
+        <Card title="Ordem" wide>
+          <SortToggle ordem={ordem} onChange={setOrdem} />
+        </Card>
+
+        <Card title="Título de seção" wide>
+          <div className="flex w-full flex-col gap-3">
+            <SectionTitle>Universos</SectionTitle>
+            <SectionTitle
+              acao={
+                <a className="text-caption text-inkMuted" href="#">
+                  Ver todas
+                </a>
+              }
+            >
+              Para você
+            </SectionTitle>
+          </div>
+        </Card>
+
         <Card title="Botão" wide>
           <div className="flex flex-wrap items-center gap-2">
             <Button>Responder</Button>

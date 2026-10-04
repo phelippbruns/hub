@@ -22,22 +22,69 @@ import { cn } from "../cn";
  * A área atual leva `aria-current="page"` **e** o ícone preenchido: cor
  * sozinha não pode ser o único sinal de estado.
  */
+/**
+ * Qual ícone acende em cada tela, conferido no protótipo.
+ *
+ * Prefixo de URL não serve aqui: `/comunidades` é Explorar e
+ * `/comunidades/minhas` é Comunidades. Uma regra por prefixo acenderia os
+ * dois — foi o que eu tinha feito, e estava errado nos dois sentidos.
+ */
 const AREAS = [
-  { href: "/inicio", nome: "Início", Icone: HomeNavIcon },
-  { href: "/busca", nome: "Explorar", Icone: ExploreNavIcon },
-  { href: "/comunidades", nome: "Comunidades", Icone: CommunitiesNavIcon },
-  { href: "/cabines", nome: "Cabine", Icone: CabinNavIcon },
-  { href: "/perfil", nome: "Perfil", Icone: ProfileNavIcon },
-  { href: "/notificacoes", nome: "Notificações", Icone: NotificationsNavIcon },
+  {
+    href: "/inicio",
+    nome: "Início",
+    Icone: HomeNavIcon,
+    telas: ["/inicio"],
+  },
+  {
+    // A lupa abre Explorar, que lista Universos e sugestões.
+    href: "/comunidades",
+    nome: "Explorar",
+    Icone: ExploreNavIcon,
+    telas: ["/comunidades", "/busca", "/u"],
+  },
+  {
+    // O item Comunidades mostra só as minhas.
+    href: "/comunidades/minhas",
+    nome: "Comunidades",
+    Icone: CommunitiesNavIcon,
+    telas: ["/comunidades/minhas", "/comunidades/nova", "/c"],
+  },
+  { href: "/cabines", nome: "Cabine", Icone: CabinNavIcon, telas: ["/cabines"] },
+  { href: "/perfil", nome: "Perfil", Icone: ProfileNavIcon, telas: ["/perfil"] },
+  {
+    href: "/notificacoes",
+    nome: "Notificações",
+    Icone: NotificationsNavIcon,
+    telas: ["/notificacoes"],
+  },
 ] as const;
 
-/** `/comunidades/minhas` também acende Comunidades. */
-function estaNaArea(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+function cobre(pathname: string, tela: string) {
+  return pathname === tela || pathname.startsWith(`${tela}/`);
+}
+
+/**
+ * A tela mais específica ganha: `/comunidades/minhas` casa com Explorar
+ * (`/comunidades`) e com Comunidades, e só o segundo deve acender.
+ */
+function areaAtual(pathname: string): string | null {
+  let escolhida: { href: string; tamanho: number } | null = null;
+
+  for (const area of AREAS) {
+    for (const tela of area.telas) {
+      if (cobre(pathname, tela) && (!escolhida || tela.length > escolhida.tamanho)) {
+        escolhida = { href: area.href, tamanho: tela.length };
+      }
+    }
+  }
+
+  return escolhida?.href ?? null;
 }
 
 export function NavRail({ naoLidas = 0 }: { naoLidas?: number }) {
   const pathname = usePathname();
+  const atualHref = areaAtual(pathname);
 
   return (
     <nav
@@ -55,7 +102,7 @@ export function NavRail({ naoLidas = 0 }: { naoLidas?: number }) {
       </Link>
 
       {AREAS.map(({ href, nome, Icone }) => {
-        const atual = estaNaArea(pathname, href);
+        const atual = href === atualHref;
         return (
           <Link
             key={href}

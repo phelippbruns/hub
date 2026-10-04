@@ -192,6 +192,26 @@ lugar errado é pior do que comentário nenhum.
 
 👁 **Atenção** — nada confere comentário.
 
+### Ler o protótipo pelo texto do prompt
+
+Na F05 liguei os ícones da navegação pelo que o prompt descrevia, sem conferir
+no protótipo qual item acende em cada tela. A lupa abria `/busca` em vez de
+Explorar, e Comunidades abria Explorar em vez de "minhas". Pior: a regra de
+"qual ícone está aceso" comparava prefixo de URL, então `/comunidades/minhas`
+acendia **dois** ícones ao mesmo tempo.
+
+*Por que passou:* o teste da F05 conferia que o ícone certo estava aceso, e
+estava. Nunca conferiu que os outros estavam apagados.
+
+*Como resolvi:* troquei o prefixo por um mapa explícito de telas, com a mais
+específica ganhando. O teste agora **conta** quantos ícones estão acesos e
+exige exatamente um, em seis telas diferentes.
+
+**Regra:** quando o protótipo mostra o estado, o protótipo decide — não a
+descrição. E afirmação sobre destaque se testa contando, não conferindo um.
+
+🔒 **Barrado** — `e2e/navegacao.spec.ts` falha se dois acenderem.
+
 ---
 
 ## 4. Ambiente e operação
@@ -317,8 +337,8 @@ se presume.
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
 barreira: migrations no deploy, jornadas em série, plural do português,
-segredo no repositório, corrida entre testes, e os dois limites de camada que
-o build recusa.
+segredo no repositório, corrida entre testes, um ícone aceso por tela, e os
+dois limites de camada que o build recusa.
 
 O resto é 👁 — protegido só por esta página. **Cada um desses é uma dívida**, e
 a pergunta a fazer em cada revisão é: dá para virar teste?

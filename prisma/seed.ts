@@ -133,6 +133,64 @@ async function main() {
     });
   }
 
+  /*
+   * RN05: comunidade só aparece em Explorar a partir de 20 membros. Com as 6
+   * pessoas do protótipo, nenhuma chegaria lá e a tela ficaria vazia — não
+   * daria para ver a regra funcionando nem para testar a descoberta.
+   *
+   * Então entram pessoas de enchimento, com @ marcado para serem fáceis de
+   * distinguir de quem veio do protótipo.
+   */
+  console.log("enchendo comunidades para passar do corte da RN05…");
+  const MEMBROS_PARA_APARECER = 20;
+  const enchimento: string[] = [];
+  for (let i = 0; i < MEMBROS_PARA_APARECER; i += 1) {
+    const id = `aaaaaaaa-0000-4000-8000-${String(i).padStart(12, "0")}`;
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password,
+                               email_confirmed_at, created_at, updated_at)
+       VALUES ($1::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated',
+               'authenticated', $2, '', now(), now(), now())
+       ON CONFLICT (id) DO NOTHING`,
+      id,
+      `enchimento${i}@hub.test`,
+    );
+    enchimento.push(id);
+  }
+
+  await prisma.profile.createMany({
+    data: enchimento.map((id, i) => ({
+      id,
+      handle: `membro_${i}`,
+      name: `Membro ${i + 1}`,
+      birthDate: new Date(Date.UTC(1995, 4, 20)),
+      ageVerificationStatus: "verified" as const,
+      ageVerificationMethod: "self_declared" as const,
+      ageVerifiedAt: new Date(),
+      termsVersion: "2026-10-01",
+      onboardedAt: new Date(),
+    })),
+  });
+
+  // Nem todas passam do corte: assim dá para ver a RN05 agindo na tela.
+  const passamDoCorte = [
+    "Música Eletrônica",
+    "Vinil",
+    "Produção Musical",
+    "Fotografia de Paisagem",
+    "Terror",
+    "Indie",
+    "RPG",
+  ];
+  for (const nome of passamDoCorte) {
+    const communityId = communities.get(nome);
+    if (!communityId) continue;
+    await prisma.membership.createMany({
+      data: enchimento.map((profileId) => ({ communityId, profileId })),
+      skipDuplicates: true,
+    });
+  }
+
   console.log("criando tópicos e respostas…");
   const eletronica = communities.get("Música Eletrônica")!;
 
@@ -189,6 +247,9 @@ async function main() {
 
   const counts = {
     pessoas: await prisma.profile.count(),
+    "comunidades em Explorar": await prisma.community.count({
+      where: { membersCount: { gte: 20 } },
+    }),
     universos: await prisma.universe.count(),
     comunidades: await prisma.community.count(),
     tópicos: await prisma.topic.count(),
