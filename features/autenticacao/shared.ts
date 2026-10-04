@@ -6,7 +6,7 @@
  * módulo inteiro, e o erro que aparece não diz isso.
  */
 
-/** Versão dos Termos aceita hoje. A F19 passa a servir o texto desta versão. */
+/** Versão dos Termos aceita hoje. A F18 passa a servir o texto desta versão. */
 export const TERMS_VERSION = "2026-10-01";
 
 export type ActionState = { error?: string; fieldErrors?: Record<string, string> };
