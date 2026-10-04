@@ -20,9 +20,9 @@ jobs:
       # validação Zod de lib/env.ts roda no build e exige que existam.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
-      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+      SUPABASE_SECRET_KEY: ci-service-role-key
       NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-anon-key
 
     steps:
       - uses: actions/checkout@v5
@@ -32,11 +32,14 @@ jobs:
           node-version: 24
           cache: npm
 
+      # O postinstall roda `prisma generate`: sem isso não há cliente, porque
+      # prisma/generated não vai para o repositório.
       - name: Instalar dependências
         run: npm ci
 
-      - name: Gerar cliente Prisma
-        run: npm run db:generate
+      # Os tokens são gerados do JSON: se o gerado divergir, a CI acusa.
+      - name: Tokens em dia com o design system
+        run: npm run tokens:check
 
       - name: Lint
         run: npm run lint

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { color } from "@/design/tokens";
 
 // Rota de metadata do Next: serve /manifest.webmanifest.
 export default function manifest(): MetadataRoute.Manifest {
@@ -8,9 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Conecte-se pelo que realmente importa.",
     start_url: "/",
     display: "standalone",
-    // Cores de docs/design-system/tokens.json: surfacePage e ink.
-    background_color: "#F1EEFF",
-    theme_color: "#F1EEFF",
+    background_color: color.surfacePage,
+    theme_color: color.surfacePage,
     lang: "pt-BR",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

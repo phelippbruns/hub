@@ -50,12 +50,41 @@ const eslintConfig = defineConfig([
   },
 
   {
+    name: "hub/scripts",
+    files: ["scripts/**"],
+    rules: {
+      /*
+       * Scripts de build gravam em caminhos fixos do repositório, em tempo de
+       * desenvolvimento. Nenhuma entrada de usuário chega aqui.
+       */
+      "security/detect-non-literal-fs-filename": "off",
+    },
+  },
+
+  {
+    name: "hub/design-system",
+    files: ["design/**"],
+    rules: {
+      /*
+       * Em design/ toda busca em objeto é num Record local, com a chave vindo
+       * de uma união de literais que o TypeScript já prova exaustiva
+       * (`tones[level]`, `variants[variant]`). Não há entrada de usuário aqui:
+       * são componentes de apresentação. A regra só geraria ruído.
+       */
+      "security/detect-object-injection": "off",
+    },
+  },
+
+  {
     name: "hub/testes",
     files: ["**/*.test.ts", "**/*.test.tsx", "e2e/**"],
     rules: {
       // Caminhos de teste são literais do próprio repositório, não entrada de usuário.
       "security/detect-non-literal-fs-filename": "off",
       "security/detect-object-injection": "off",
+      // Elementos JSX guardados num array de casos de teste, nunca renderizados
+      // como lista: a chave não teria função.
+      "react/jsx-key": "off",
     },
   },
 

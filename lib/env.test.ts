@@ -4,7 +4,7 @@ import { parseClientEnv, parseServerEnv } from "./env";
 const serverOk = {
   DATABASE_URL: "postgresql://user:pass@localhost:6543/postgres?pgbouncer=true",
   DIRECT_URL: "postgresql://user:pass@localhost:5432/postgres",
-  SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+  SUPABASE_SECRET_KEY: "service-role-key",
   NODE_ENV: "test",
 };
 
@@ -29,7 +29,7 @@ describe("parseServerEnv", () => {
 describe("parseClientEnv", () => {
   it("falha sem a chave anônima", () => {
     expect(() => parseClientEnv({ NEXT_PUBLIC_SUPABASE_URL: "https://x.supabase.co" })).toThrow(
-      /NEXT_PUBLIC_SUPABASE_ANON_KEY/,
+      /NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/,
     );
   });
 });

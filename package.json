@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -19,7 +20,9 @@
     "db:studio": "prisma studio",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
-    "typegen": "next typegen"
+    "typegen": "next typegen",
+    "tokens": "node scripts/generate-tokens.mts",
+    "tokens:check": "node scripts/generate-tokens.mts --check"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
