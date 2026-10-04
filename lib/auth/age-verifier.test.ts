@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   FakeAgeVerifier,
   MINIMUM_AGE,
@@ -51,23 +51,30 @@ describe("cálculo de idade", () => {
 });
 
 describe("escolha do verificador", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   it("usa o falso só com AGE_VERIFIER=fake", () => {
     expect(resolveAgeVerifier("fake")).toBeInstanceOf(FakeAgeVerifier);
   });
 
-  it.each([undefined, "", "producao", "qualquer-coisa"])(
-    "nega quando a variável é %s",
-    async (choice) => {
-      const verifier = resolveAgeVerifier(choice);
-      expect(verifier).toBeInstanceOf(UnavailableAgeVerifier);
+  it("sem a variável definida, nega", () => {
+    // O argumento tem como padrão `process.env.AGE_VERIFIER`, então passar
+    // `undefined` ainda leria o ambiente. Para testar a ausência de verdade, a
+    // variável precisa sumir do ambiente.
+    vi.stubEnv("AGE_VERIFIER", undefined);
+    expect(resolveAgeVerifier()).toBeInstanceOf(UnavailableAgeVerifier);
+  });
 
-      // Negar é o lado seguro: esquecer de configurar não pode virar cadastro
-      // sem verificação de idade (RN29).
-      const result = await verifier.verify({
-        reference: "x",
-        declaredBirthDate: birthDateForAge(30),
-      });
-      expect(result.status).toBe("rejected");
-    },
-  );
+  it.each(["", "producao", "qualquer-coisa"])("nega quando a variável é %s", async (choice) => {
+    const verifier = resolveAgeVerifier(choice);
+    expect(verifier).toBeInstanceOf(UnavailableAgeVerifier);
+
+    // Negar é o lado seguro: esquecer de configurar não pode virar cadastro
+    // sem verificação de idade (RN29).
+    const result = await verifier.verify({
+      reference: "x",
+      declaredBirthDate: birthDateForAge(30),
+    });
+    expect(result.status).toBe("rejected");
+  });
 });
