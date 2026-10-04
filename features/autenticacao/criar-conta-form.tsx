@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button, Checkbox, Input, PasswordInput, Steps } from "@/design/components";
-import { criarConta } from "./actions";
+import { criarConta, verificarHandle } from "./actions";
 import type { ActionState } from "./shared";
 import { GoogleButton } from "./google-button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * Tela 3, versão Criar conta.
@@ -17,6 +17,43 @@ import { useState } from "react";
 export function CriarContaForm({ googleEnabled }: { googleEnabled: boolean }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(criarConta, {});
   const [accepted, setAccepted] = useState(false);
+
+  const [handle, setHandle] = useState("");
+  const [emUso, setEmUso] = useState(false);
+
+  const valor = handle.trim();
+  // Derivado na renderização, não guardado em estado: é função pura do que
+  // está digitado, e mantê-lo em estado abriria espaço para os dois
+  // discordarem.
+  const formatoInvalido = valor.length > 0 && !/^[a-z0-9_]{2,20}$/.test(valor);
+
+  /*
+   * Avisa que o @ está em uso enquanto a pessoa digita, em vez de só ao
+   * enviar — descobrir no fim, depois de preencher tudo, é o pior momento.
+   *
+   * A espera evita uma consulta por tecla. Isto é conveniência: quem decide é
+   * o servidor, que confere de novo e tem o índice único por trás.
+   */
+  useEffect(() => {
+    if (!valor || formatoInvalido) return;
+
+    let cancelado = false;
+    const espera = setTimeout(async () => {
+      const { livre } = await verificarHandle(valor);
+      if (!cancelado) setEmUso(!livre);
+    }, 400);
+
+    return () => {
+      cancelado = true;
+      clearTimeout(espera);
+    };
+  }, [valor, formatoInvalido]);
+
+  const avisoDoHandle = formatoInvalido
+    ? "O @ aceita de 2 a 20 letras minúsculas, números e _"
+    : emUso
+      ? "Esse @ já está em uso"
+      : undefined;
 
   return (
     <div className="flex flex-col gap-3">
@@ -37,6 +74,18 @@ export function CriarContaForm({ googleEnabled }: { googleEnabled: boolean }) {
           autoComplete="email"
           required
           error={state.fieldErrors?.email}
+        />
+        <Input
+          label="@ (opcional)"
+          name="handle"
+          value={handle}
+          onChange={(evento) => {
+            setHandle(evento.target.value.toLowerCase());
+            setEmUso(false);
+          }}
+          autoComplete="username"
+          hint="Como as pessoas vão te encontrar. Em branco, criamos um a partir do seu nome."
+          error={state.fieldErrors?.handle ?? avisoDoHandle}
         />
         <PasswordInput
           label="Senha"

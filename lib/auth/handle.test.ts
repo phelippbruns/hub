@@ -69,3 +69,25 @@ describe("RN17: o @ é único", () => {
     expect(handle).toMatch(HANDLE_PATTERN);
   });
 });
+
+describe("RN17: formato do @ escolhido à mão", () => {
+  it.each(["phebruns", "ana", "jo", "a_b_c", "pessoa123", "a".repeat(20)])(
+    "aceita %s",
+    (handle) => {
+      expect(HANDLE_PATTERN.test(handle)).toBe(true);
+    },
+  );
+
+  it.each([
+    ["curto demais", "a"],
+    ["longo demais", "a".repeat(21)],
+    ["com maiúscula", "PheBruns"],
+    ["com espaço", "phe bruns"],
+    ["com ponto", "phe.bruns"],
+    ["com arroba", "@phebruns"],
+    ["com acento", "joão"],
+    ["vazio", ""],
+  ])("recusa %s", (_caso, handle) => {
+    expect(HANDLE_PATTERN.test(handle)).toBe(false);
+  });
+});

@@ -120,6 +120,34 @@ describe("RN17: o @ é único", () => {
     expect(primeira.handle).not.toBe(segunda.handle);
   });
 
+  it("respeita o @ escolhido pela pessoa", async () => {
+    const authId = await makeAuthUser("escolhido@teste.hub");
+    const perfil = await createProfile({
+      ...CADASTRO_BASE,
+      authUserId: authId,
+      name: "Phelipp Bruns",
+      handle: "phebruns",
+    });
+
+    // Sem escolha, o @ viria do nome ("phelippbruns").
+    expect(perfil.handle).toBe("phebruns");
+  });
+
+  it("não troca em silêncio um @ escolhido que já existe", async () => {
+    await makeProfile({ handle: "phebruns" });
+    const authId = await makeAuthUser("colide@teste.hub");
+
+    // Escolher um @ tomado precisa falhar, não virar "phebruns2" sem avisar.
+    await expect(
+      createProfile({
+        ...CADASTRO_BASE,
+        authUserId: authId,
+        name: "Outra Pessoa",
+        handle: "phebruns",
+      }),
+    ).rejects.toThrow();
+  });
+
   it("a sugestão pula os @ já tomados", async () => {
     await makeProfile({ handle: "analima" });
     expect(await suggestAvailableHandle("Ana Lima")).toBe("analima2");

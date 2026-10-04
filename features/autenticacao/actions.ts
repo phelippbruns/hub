@@ -28,6 +28,7 @@ import {
 import { resolveAgeVerifier } from "@/lib/auth/age-verifier";
 import { safeDestination } from "@/lib/auth/redirect";
 import { handleSchema } from "@/lib/data/validation";
+import { handleEmUso } from "@/lib/data/profiles";
 import { TERMS_VERSION, fieldErrorsFrom, type ActionState } from "./shared";
 
 /** Mesma resposta para credencial errada e email inexistente. */
@@ -106,6 +107,11 @@ const criarContaSchema = z.object({
   email: z.email("Informe um email válido"),
   password: z.string().min(8, "A senha precisa de ao menos 8 caracteres"),
   birthDate: z.string().min(1, "Informe sua data de nascimento"),
+  /**
+   * RN17: o @ é único na plataforma. Opcional no cadastro — em branco, é
+   * sugerido a partir do nome, que era o único caminho antes.
+   */
+  handle: z.union([handleSchema, z.literal("")]).optional(),
   // A caixa só chega no FormData quando marcada. Exigir "on" é o que torna o
   // aceite obrigatório **no servidor**, não só na tela (RN29).
   acceptedTerms: z.literal("on", { message: "É preciso aceitar os Termos para criar conta" }),
@@ -118,9 +124,22 @@ export async function criarConta(_state: ActionState, formData: FormData): Promi
   }
 
   const { name, email, password, birthDate } = parsed.data;
+  const handleEscolhido = parsed.data.handle?.trim() || undefined;
 
   const limited = await guardRate("signup", email);
   if (limited) return { error: limited };
+
+  /*
+   * RN17: confere o @ **antes** de criar o usuário no Supabase Auth.
+   *
+   * Sem isso, um @ já em uso só estouraria ao gravar o perfil — e aí já
+   * existiria uma conta de autenticação sem perfil, que deixa a pessoa num
+   * limbo. A corrida entre dois cadastros simultâneos ainda é resolvida pelo
+   * índice único; isto só evita o caso comum.
+   */
+  if (handleEscolhido && (await handleEmUso(handleEscolhido))) {
+    return { fieldErrors: { handle: "Esse @ já está em uso" } };
+  }
 
   // RN29: verificação de idade antes de criar qualquer coisa. Em produção, sem
   // provedor configurado, o verificador nega — negar é o lado seguro.
@@ -162,6 +181,7 @@ export async function criarConta(_state: ActionState, formData: FormData): Promi
   await createProfile({
     authUserId: data.user.id,
     name,
+    handle: handleEscolhido,
     birthDate: new Date(birthDate),
     ageVerifiedAt: verification.verifiedAt,
     ageVerificationMethod: verification.method,
@@ -308,4 +328,11 @@ export async function sair() {
 /** Usada pela tela de completar cadastro para pré-preencher o @. */
 export async function sugerirHandle(name: string) {
   return suggestAvailableHandle(name);
+}
+
+/** Consulta ao vivo da tela de cadastro, enquanto a pessoa digita o @. */
+export async function verificarHandle(handle: string): Promise<{ livre: boolean }> {
+  const parsed = handleSchema.safeParse(handle);
+  if (!parsed.success) return { livre: false };
+  return { livre: !(await handleEmUso(parsed.data)) };
 }
