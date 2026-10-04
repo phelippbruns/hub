@@ -1,15 +1,512 @@
-// Schema do Hub. Os modelos entram na F02 (Modelo de dados e regras de acesso).
+// Modelo de dados do Hub (F02).
 //
 // No Prisma 7 as URLs de conexão não ficam aqui:
 //   - DIRECT_URL (conexão direta) fica em prisma.config.ts, para as migrations.
 //   - DATABASE_URL (pooler do Supabase) é passada ao PrismaClient pelo adapter,
 //     em lib/data/prisma.ts.
+//
+// Convenções:
+//   - nomes de tabela e coluna em snake_case, via @map/@@map
+//   - exclusão lógica (deletedAt) em todo conteúdo, para moderação e RN32
+//   - as regras que o Prisma não expressa (RN04, RN07, RN08, RN20, RN21) ficam
+//     em gatilhos SQL, nas migrations — o banco é a última barreira
 
 generator client {
   provider = "prisma-client"
   output   = "../prisma/generated"
+
+  // O cliente gerado importa os próprios arquivos sem extensão, e o Node puro
+  // (ESM) recusa isso — o seed e os scripts quebrariam. Declarar o formato e a
+  // extensão deixa o código gerado utilizável fora do bundler do Next.
+  moduleFormat        = "esm"
+  importFileExtension = "ts"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ---------------------------------------------------------------- enums
+
+enum MembershipRole {
+  member
+  moderator
+
+  @@map("membership_role")
+}
+
+/// RN23: cada pessoa define quem pode convidá-la para uma Cabine.
+enum InvitePolicy {
+  community_members
+  nobody
+
+  @@map("invite_policy")
+}
+
+/// RN32: ao excluir a conta, escolhe manter o conteúdo como "Conta excluída"
+/// ou apagar tudo. Cabines, perfil e Coleção somem nos dois casos.
+enum DeletedContentPolicy {
+  keep_as_deleted_account
+  erase_everything
+
+  @@map("deleted_content_policy")
+}
+
+enum FollowTarget {
+  community
+  topic
+  profile
+
+  @@map("follow_target")
+}
+
+enum MediaKind {
+  image
+  gif
+
+  @@map("media_kind")
+}
+
+/// RN22: o convite fica aberto até ser aceito ou recusado. A recusa é
+/// silenciosa; quem convidou pode cancelar.
+enum InviteStatus {
+  pending
+  accepted
+  declined
+  cancelled
+
+  @@map("invite_status")
+}
+
+enum ReportTarget {
+  profile
+  community
+  topic
+  answer
+  message
+
+  @@map("report_target")
+}
+
+enum ReportStatus {
+  open
+  reviewed
+  dismissed
+
+  @@map("report_status")
+}
+
+/// RN33: o moderador remove conteúdo, remove membros (que podem voltar) e bane
+/// (que não podem). Banir da plataforma é ação exclusiva do Hub.
+enum ModerationAction {
+  remove_topic
+  remove_answer
+  remove_member
+  ban_member
+  add_moderator
+  remove_moderator
+
+  @@map("moderation_action_kind")
+}
+
+/// RN34: ligadas por padrão, menos new_topic_in_community.
+enum NotificationKind {
+  topic_became_hot
+  cabin_invite
+  cabin_message
+  followed_topics_digest
+  new_topic_in_community
+  content_removed
+
+  @@map("notification_kind")
+}
+
+// -------------------------------------------------------------- pessoas
+
+/// RN17: todo conteúdo mostra nome real, @ e foto. O @ é único na plataforma.
+model Profile {
+  /// Mesmo id de auth.users. A chave estrangeira é criada por migration SQL,
+  /// porque o schema auth não é gerenciado pelo Prisma.
+  id        String  @id @db.Uuid
+  handle    String  @unique @db.VarChar(20)
+  name      String  @db.VarChar(80)
+  /// RN30: foto opcional. Sem foto, a interface mostra o avatar padrão.
+  avatarUrl String? @map("avatar_url")
+  /// RN27: descrição de até 120 caracteres, sem links.
+  bio       String? @db.VarChar(120)
+
+  /// RN29: verificação de idade sem autodeclaração. Guardamos quando foi
+  /// verificada; o método depende de revisão jurídica e não entra aqui.
+  ageVerifiedAt DateTime? @map("age_verified_at") @db.Timestamptz(6)
+  /// Versão dos Termos aceita no cadastro (RN29).
+  termsVersion  String?   @map("terms_version") @db.VarChar(20)
+
+  /// RN23: quem pode me convidar para uma Cabine.
+  invitePolicy InvitePolicy @default(community_members) @map("invite_policy")
+
+  /// RN34: desligada por padrão, ao contrário das outras.
+  notifyNewTopicInCommunity Boolean @default(false) @map("notify_new_topic_in_community")
+  notifyTopicBecameHot      Boolean @default(true) @map("notify_topic_became_hot")
+  notifyCabin               Boolean @default(true) @map("notify_cabin")
+  notifyFollowedTopics      Boolean @default(true) @map("notify_followed_topics")
+
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  /// RN32: exclusão de conta.
+  deletedAt     DateTime?             @map("deleted_at") @db.Timestamptz(6)
+  deletedPolicy DeletedContentPolicy? @map("deleted_policy")
+
+  communitiesCreated Community[]       @relation("CommunityCreator")
+  memberships        Membership[]
+  topics             Topic[]
+  answers            Answer[]
+  follows            Follow[]          @relation("Follower")
+  followers          Follow[]          @relation("FollowedProfile")
+  cabinMemberships   CabinMember[]
+  invitesSent        CabinInvite[]     @relation("Inviter")
+  invitesReceived    CabinInvite[]     @relation("Invitee")
+  messages           Message[]
+  blocksMade         Block[]           @relation("Blocker")
+  blocksReceived     Block[]           @relation("Blocked")
+  reports            Report[]
+  moderationActions  ModerationEntry[]
+  notifications      Notification[]
+  analyticsEvents    AnalyticsEvent[]
+
+  @@map("profiles")
+}
+
+// ------------------------------------------------------------ hierarquia
+
+/// RN02: Universos são criados e moderados somente pela plataforma.
+model Universe {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @unique @db.VarChar(60)
+  slug            String   @unique @db.VarChar(60)
+  /// RN03: comunidade sem capa enviada usa a capa padrão do Universo.
+  defaultCoverUrl String?  @map("default_cover_url")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  communities Community[]
+
+  @@map("universes")
+}
+
+/// RN03: toda comunidade exige nome, intro, capa e Universo.
+model Community {
+  id             String  @id @default(uuid()) @db.Uuid
+  universeId     String  @map("universe_id") @db.Uuid
+  name           String  @db.VarChar(60)
+  /// RN04: nome normalizado (sem maiúsculas, acentos, espaços e plural
+  /// simples), preenchido por gatilho e com índice único. Duas comunidades não
+  /// podem ter o mesmo nome.
+  nameNormalized String  @map("name_normalized") @db.VarChar(60)
+  intro          String  @db.VarChar(240)
+  coverUrl       String? @map("cover_url")
+  createdById    String? @map("created_by_id") @db.Uuid
+
+  /// RN05: a comunidade entra no Explorar ao atingir 20 membros. Mantido por
+  /// gatilho em memberships, para não depender de contagem a cada leitura.
+  membersCount Int @default(0) @map("members_count")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  universe          Universe          @relation(fields: [universeId], references: [id], onDelete: Restrict)
+  createdBy         Profile?          @relation("CommunityCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  memberships       Membership[]
+  topics            Topic[]
+  hotTopics         HotTopic[]
+  follows           Follow[]
+  moderationActions ModerationEntry[]
+  sharedInMessages  Message[]
+
+  @@unique([nameNormalized])
+  @@index([universeId])
+  @@index([membersCount])
+  @@map("communities")
+}
+
+/// RN06: quem cria a comunidade é moderador e pode nomear outros.
+model Membership {
+  communityId String         @map("community_id") @db.Uuid
+  profileId   String         @map("profile_id") @db.Uuid
+  role        MembershipRole @default(member)
+  joinedAt    DateTime       @default(now()) @map("joined_at") @db.Timestamptz(6)
+  /// RN33: removido pode voltar (linha apagada); banido não (linha fica, com
+  /// bannedAt preenchido).
+  bannedAt    DateTime?      @map("banned_at") @db.Timestamptz(6)
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([communityId, profileId])
+  @@index([profileId])
+  @@index([communityId, role])
+  @@map("memberships")
+}
+
+/// RN08: nome e descrição de até 240 caracteres, com GIF ou 1 imagem.
+model Topic {
+  id          String     @id @default(uuid()) @db.Uuid
+  communityId String     @map("community_id") @db.Uuid
+  authorId    String?    @map("author_id") @db.Uuid
+  name        String     @db.VarChar(80)
+  description String     @db.VarChar(240)
+  mediaUrl    String?    @map("media_url")
+  mediaKind   MediaKind? @map("media_kind")
+
+  /// RN07: dia do ciclo em que o tópico foi criado, no fuso de Brasília.
+  /// Preenchido por gatilho e com índice único por (comunidade, autor, dia):
+  /// é o que garante 1 tópico por pessoa por dia mesmo com duas requisições
+  /// simultâneas.
+  cycleDate DateTime @map("cycle_date") @db.Date
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  community        Community  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author           Profile?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  answers          Answer[]
+  hotTopics        HotTopic[]
+  follows          Follow[]
+  sharedInMessages Message[]
+
+  @@index([communityId, createdAt])
+  @@index([authorId])
+  @@map("topics")
+}
+
+/// RN13: até 240 caracteres, com GIF ou 1 imagem. Não existem respostas dentro
+/// de respostas, e não há curtida nem contador por resposta (RN15).
+model Answer {
+  id        String     @id @default(uuid()) @db.Uuid
+  topicId   String     @map("topic_id") @db.Uuid
+  authorId  String?    @map("author_id") @db.Uuid
+  text      String     @db.VarChar(240)
+  mediaUrl  String?    @map("media_url")
+  mediaKind MediaKind? @map("media_kind")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// RN14: a resposta não pode ser editada, só apagada pelo autor.
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  topic  Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  author Profile? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([topicId, createdAt])
+  @@index([authorId, createdAt])
+  @@map("answers")
+}
+
+/// RN18: seguir comunidade, tópico ou pessoa. Seguir um tópico o salva na
+/// Coleção, que é privada — por isso o RLS desta tabela é crítico.
+model Follow {
+  id                String       @id @default(uuid()) @db.Uuid
+  followerId        String       @map("follower_id") @db.Uuid
+  target            FollowTarget
+  /// Exatamente um dos três é preenchido. Garantido por CHECK na migration.
+  communityId       String?      @map("community_id") @db.Uuid
+  topicId           String?      @map("topic_id") @db.Uuid
+  followedProfileId String?      @map("followed_profile_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  follower        Profile    @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  community       Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  topic           Topic?     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  followedProfile Profile?   @relation("FollowedProfile", fields: [followedProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, communityId])
+  @@unique([followerId, topicId])
+  @@unique([followerId, followedProfileId])
+  @@index([followerId, target])
+  @@map("follows")
+}
+
+/// RN09/RN10: o tópico com mais pessoas diferentes respondendo no ciclo
+/// anterior vira o Hot Topic do dia, e não pode vencer dois ciclos seguidos.
+/// A tarefa que preenche isto é da F17; aqui fica só a estrutura.
+model HotTopic {
+  communityId         String   @map("community_id") @db.Uuid
+  cycleDate           DateTime @map("cycle_date") @db.Date
+  topicId             String   @map("topic_id") @db.Uuid
+  /// Quantas pessoas diferentes responderam no ciclo que o elegeu.
+  distinctRespondents Int      @map("distinct_respondents")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  topic     Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([communityId, cycleDate])
+  @@index([topicId])
+  @@map("hot_topics")
+}
+
+// ---------------------------------------------------------------- cabine
+
+/// RN20: conversa privada de 2 a 5 pessoas, que só começa quando o convidado
+/// aceita. RN24: com uma pessoa restante, a Cabine se encerra.
+model Cabin {
+  id        String    @id @default(uuid()) @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  closedAt  DateTime? @map("closed_at") @db.Timestamptz(6)
+
+  members  CabinMember[]
+  invites  CabinInvite[]
+  messages Message[]
+
+  @@map("cabins")
+}
+
+model CabinMember {
+  cabinId   String    @map("cabin_id") @db.Uuid
+  profileId String    @map("profile_id") @db.Uuid
+  joinedAt  DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
+  /// RN24: quem sai volta só por novo convite.
+  leftAt    DateTime? @map("left_at") @db.Timestamptz(6)
+
+  cabin   Cabin   @relation(fields: [cabinId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([cabinId, profileId])
+  @@index([profileId])
+  @@map("cabin_members")
+}
+
+/// RN21: só convida quem divide ao menos uma comunidade com você, com limite
+/// de 10 convites por dia contando os pendentes. RN22: mensagem de até 240
+/// caracteres, sem links.
+model CabinInvite {
+  id        String       @id @default(uuid()) @db.Uuid
+  cabinId   String       @map("cabin_id") @db.Uuid
+  inviterId String       @map("inviter_id") @db.Uuid
+  inviteeId String       @map("invitee_id") @db.Uuid
+  message   String?      @db.VarChar(240)
+  status    InviteStatus @default(pending)
+
+  /// Dia do ciclo do convite, para o limite diário do RN21.
+  cycleDate   DateTime  @map("cycle_date") @db.Date
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  respondedAt DateTime? @map("responded_at") @db.Timestamptz(6)
+
+  cabin   Cabin   @relation(fields: [cabinId], references: [id], onDelete: Cascade)
+  inviter Profile @relation("Inviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee Profile @relation("Invitee", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@index([inviteeId, status])
+  @@index([inviterId, cycleDate])
+  @@map("cabin_invites")
+}
+
+/// RN25: cada mensagem aceita GIF ou 1 imagem, além de comunidades e tópicos
+/// compartilhados.
+model Message {
+  id        String     @id @default(uuid()) @db.Uuid
+  cabinId   String     @map("cabin_id") @db.Uuid
+  authorId  String?    @map("author_id") @db.Uuid
+  text      String?    @db.VarChar(1000)
+  mediaUrl  String?    @map("media_url")
+  mediaKind MediaKind? @map("media_kind")
+
+  sharedCommunityId String? @map("shared_community_id") @db.Uuid
+  sharedTopicId     String? @map("shared_topic_id") @db.Uuid
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  cabin           Cabin      @relation(fields: [cabinId], references: [id], onDelete: Cascade)
+  author          Profile?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  sharedCommunity Community? @relation(fields: [sharedCommunityId], references: [id], onDelete: SetNull)
+  sharedTopic     Topic?     @relation(fields: [sharedTopicId], references: [id], onDelete: SetNull)
+
+  @@index([cabinId, createdAt])
+  @@map("messages")
+}
+
+// -------------------------------------------------------------- segurança
+
+/// RN26: bloquear tira você das Cabines em comum, sem aviso, e impede novos
+/// convites.
+model Block {
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  blocker Profile @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked Profile @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("blocks")
+}
+
+model Report {
+  id         String       @id @default(uuid()) @db.Uuid
+  reporterId String?      @map("reporter_id") @db.Uuid
+  target     ReportTarget
+  targetId   String       @map("target_id") @db.Uuid
+  /// Motivo fixo, de uma lista; o texto livre fica em `details`.
+  reason     String       @db.VarChar(40)
+  details    String?      @db.VarChar(500)
+  status     ReportStatus @default(open)
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  reporter Profile? @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+
+  @@index([target, targetId])
+  @@index([status, createdAt])
+  @@map("reports")
+}
+
+/// RN33: registro de cada ação de moderação, para o autor ser notificado com o
+/// motivo e para a comunidade ter histórico.
+model ModerationEntry {
+  id          String           @id @default(uuid()) @db.Uuid
+  communityId String           @map("community_id") @db.Uuid
+  moderatorId String?          @map("moderator_id") @db.Uuid
+  action      ModerationAction
+  targetId    String           @map("target_id") @db.Uuid
+  reason      String?          @db.VarChar(500)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  moderator Profile?  @relation(fields: [moderatorId], references: [id], onDelete: SetNull)
+
+  @@index([communityId, createdAt])
+  @@map("moderation_actions")
+}
+
+// ---------------------------------------------------- notificações e dados
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  profileId String           @map("profile_id") @db.Uuid
+  kind      NotificationKind
+  /// Só ids internos, nunca nome ou conteúdo (regra de segurança 10).
+  payload   Json             @default("{}")
+  readAt    DateTime?        @map("read_at") @db.Timestamptz(6)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, readAt, createdAt])
+  @@map("notifications")
+}
+
+/// Regra de segurança 10: dados mínimos em logs e eventos — só ids internos,
+/// nunca email, nome ou conteúdo. Um teste confere que as propriedades não
+/// carregam texto livre do usuário.
+model AnalyticsEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  profileId  String?  @map("profile_id") @db.Uuid
+  name       String   @db.VarChar(60)
+  properties Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@index([name, createdAt])
+  @@map("analytics_events")
 }

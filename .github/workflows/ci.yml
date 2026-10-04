@@ -53,6 +53,30 @@ jobs:
       - name: Testes de unidade
         run: npm run test
 
+      # Índice único, gatilho e RLS não existem em dublê: estes testes precisam
+      # de um Postgres de verdade. O CLI do Supabase sobe o banco e o schema
+      # auth, de que as políticas dependem (auth.uid()).
+      - name: Subir o Supabase local
+        run: npx supabase start -x realtime,storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Migrations do zero
+        run: npm run db:deploy
+        env:
+          DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+      - name: Seed
+        run: npm run db:seed
+        env:
+          DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+      - name: Testes de banco, regras e RLS
+        run: npm run test:db
+        env:
+          DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
       - name: Instalar navegador do Playwright
         run: npx playwright install --with-deps chromium
 
