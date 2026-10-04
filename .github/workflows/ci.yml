@@ -29,7 +29,7 @@ jobs:
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: definido-depois
       # RN29: as jornadas precisam concluir um cadastro, e o verificador real
       # ainda não existe. `lib/env.ts` só aceita isto com Supabase local.
-      AGE_VERIFIER: fake
+      AGE_VERIFIER: self_declared
 
     steps:
       - uses: actions/checkout@v7

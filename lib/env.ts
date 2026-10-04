@@ -21,9 +21,12 @@ const serverSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   /**
    * Qual verificador de idade usar (RN29). Ausente significa **negar**, que é
-   * o lado seguro. "fake" só vale contra um Supabase local — ver assertEnv.
+   * o lado seguro.
+   *
+   * "self_declared" aceita a data informada pela pessoa. Não cumpre a RN29 e
+   * está ligado por decisão do PO, para permitir cadastros de teste.
    */
-  AGE_VERIFIER: z.enum(["fake"]).optional(),
+  AGE_VERIFIER: z.enum(["self_declared"]).optional(),
 });
 
 const clientSchema = z.object({
@@ -95,18 +98,21 @@ export function assertEnv(): void {
   const client = clientEnv();
 
   /*
-   * RN29: o verificador falso confia na data declarada, que é exatamente o que
-   * a regra proíbe. Ele existe para desenvolvimento e para os testes de
-   * jornada, que rodam contra um build de produção com Supabase local.
+   * RN29 exige verificação de idade **sem autodeclaração**. Com
+   * `self_declared`, o Hub aceita a data que a pessoa digita — o que a regra
+   * proíbe. Está assim por decisão registrada do PO, para permitir cadastros
+   * de teste enquanto o provedor real não é escolhido.
    *
-   * Aqui a trava: se alguém levar AGE_VERIFIER=fake para um ambiente de
-   * verdade, o build falha em vez de aceitar cadastros sem verificação.
+   * Num ambiente que não é local, isso vira um aviso alto no registro do
+   * deploy. Não derruba o build, porque é escolha consciente; mas também não
+   * passa calado, para o estado provisório não virar esquecimento.
    */
   const supabaseIsLocal = /localhost|127\.0\.0\.1/.test(client.NEXT_PUBLIC_SUPABASE_URL);
-  if (server.AGE_VERIFIER === "fake" && !supabaseIsLocal) {
-    throw new Error(
-      "AGE_VERIFIER=fake só vale com um Supabase local. Num ambiente de verdade " +
-        "isso liberaria cadastro sem verificação de idade (RN29).",
+  if (server.AGE_VERIFIER === "self_declared" && !supabaseIsLocal) {
+    console.warn(
+      "\n  ATENÇÃO: a verificação de idade está aceitando a data declarada.\n" +
+        "  Isso não cumpre a RN29 e não pode ir ao lançamento.\n" +
+        "  Remova AGE_VERIFIER quando o provedor real for escolhido.\n",
     );
   }
 }

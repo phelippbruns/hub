@@ -34,7 +34,7 @@ describe("parseClientEnv", () => {
   });
 });
 
-describe("RN29: a trava do verificador de idade falso", () => {
+describe("RN29: a opção do verificador de idade", () => {
   const clienteLocal = {
     NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "chave",
@@ -44,13 +44,17 @@ describe("RN29: a trava do verificador de idade falso", () => {
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "chave",
   };
 
-  it("aceita AGE_VERIFIER=fake com Supabase local", () => {
-    expect(parseServerEnv({ ...serverOk, AGE_VERIFIER: "fake" }).AGE_VERIFIER).toBe("fake");
+  it("aceita AGE_VERIFIER=self_declared", () => {
+    expect(parseServerEnv({ ...serverOk, AGE_VERIFIER: "self_declared" }).AGE_VERIFIER).toBe(
+      "self_declared",
+    );
     expect(parseClientEnv(clienteLocal).NEXT_PUBLIC_SUPABASE_URL).toContain("127.0.0.1");
   });
 
-  it("só aceita 'fake' como valor", () => {
-    expect(() => parseServerEnv({ ...serverOk, AGE_VERIFIER: "sim" })).toThrow(/AGE_VERIFIER/);
+  it.each(["fake", "sim", "true"])("recusa qualquer outro valor (%s)", (valor) => {
+    // Valor desconhecido seria lido como "não configurado" e negaria tudo em
+    // silêncio. Melhor falhar na partida.
+    expect(() => parseServerEnv({ ...serverOk, AGE_VERIFIER: valor })).toThrow(/AGE_VERIFIER/);
   });
 
   it("a variável é opcional, e ausente significa negar", () => {
