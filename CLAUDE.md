@@ -194,6 +194,10 @@ para dar para encontrar depois quem passou por autodeclaração.
 npm run verificar:deploy <url>   # confere que o site publicado responde
 ```
 
+**O deploy aplica as migrations sozinho.** `vercel-build` roda `prisma migrate deploy` antes do `next build`, e a Vercel prefere esse script ao `build`. Sem isso, mergear uma feature com migration deixava o banco remoto atrás do código, e o erro só aparecia quando alguém usava a tela — aconteceu duas vezes.
+
+Para aplicar à mão num banco remoto, `npm run db:deploy:remoto`.
+
 **Build verde não é app no ar.** A Vercel marca o deploy como bem-sucedido quando o código compila, não quando o app responde. Da F01 à F03 ela publicou a pasta `public/` como site estático enquanto o Next.js compilado era descartado: toda rota dava 404, com o sinal verde o tempo todo.
 
 [vercel.json](vercel.json) fixa `framework: nextjs` no repositório, para a configuração não depender do painel. E `npm run verificar:deploy` busca as rotas de verdade. **Rode-o, e abra a página, antes de dizer que uma feature está pronta.**
