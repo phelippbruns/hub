@@ -24,11 +24,13 @@ function novoEmail(prefixo: string) {
   return `${prefixo}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@teste.hub`;
 }
 
-/** Data de nascimento de quem tem 25 anos. */
-function nascimentoAdulto() {
+/** Data de nascimento de quem tem a idade indicada. */
+function nascimentoComIdade(anos: number) {
   const hoje = new Date();
-  return new Date(Date.UTC(hoje.getUTCFullYear() - 25, 0, 15)).toISOString().slice(0, 10);
+  return new Date(Date.UTC(hoje.getUTCFullYear() - anos, 0, 15)).toISOString().slice(0, 10);
 }
+
+const nascimentoAdulto = () => nascimentoComIdade(25);
 
 async function preencherCadastro(
   page: Page,
@@ -111,22 +113,37 @@ test.describe("RN29: criar conta", () => {
     await expect(page).toHaveURL(/\/criar-conta/);
   });
 
-  test("não cria conta para quem tem menos de 16 anos", async ({ page }) => {
-    const hoje = new Date();
-    const menor = new Date(Date.UTC(hoje.getUTCFullYear() - 12, 0, 15)).toISOString().slice(0, 10);
+  // 17 é o caso que importa: quem tem 12 qualquer regra barra. A fronteira é
+  // onde o erro mora, e ela mudou de 16 para 18.
+  for (const idade of [12, 17]) {
+    test(`não cria conta para quem tem ${idade} anos`, async ({ page }) => {
+      await page.goto("/criar-conta");
+      await preencherCadastro(page, {
+        nome: "Pessoa Jovem",
+        email: novoEmail("menor"),
+        senha: "senhaboa123",
+        nascimento: nascimentoComIdade(idade),
+      });
+      await page.getByRole("checkbox").click();
+      await page.getByRole("button", { name: "Continuar" }).click();
 
+      await expect(alerta(page)).toContainText("18 anos");
+      await expect(page).toHaveURL(/\/criar-conta/);
+    });
+  }
+
+  test("cria conta para quem acabou de fazer 18", async ({ page }) => {
     await page.goto("/criar-conta");
     await preencherCadastro(page, {
-      nome: "Pessoa Jovem",
-      email: novoEmail("menor"),
+      nome: "Pessoa de 18",
+      email: novoEmail("dezoito"),
       senha: "senhaboa123",
-      nascimento: menor,
+      nascimento: nascimentoComIdade(18),
     });
     await page.getByRole("checkbox").click();
     await page.getByRole("button", { name: "Continuar" }).click();
 
-    await expect(alerta(page)).toContainText("16 anos");
-    await expect(page).toHaveURL(/\/criar-conta/);
+    await expect(page).toHaveURL(/\/onboarding/);
   });
 
   test("cria conta com tudo preenchido", async ({ page }) => {

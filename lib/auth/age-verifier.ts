@@ -16,8 +16,16 @@
  * `resolveAgeVerifier`.
  */
 
-/** Idade mínima do Hub (RN29). Um lugar só, para a revisão jurídica mexer. */
-export const MINIMUM_AGE = 16;
+/**
+ * Idade mínima do Hub.
+ *
+ * A RN29 e o escopo falam em 16 anos; o PO definiu **18**. Mantido 18 por ser
+ * a decisão mais recente e a mais restritiva — errar para o lado de barrar
+ * alguém de 17 é menos grave do que aceitar quem a regra queria barrar.
+ *
+ * Vale alinhar docs/escopo.md com esta decisão.
+ */
+export const MINIMUM_AGE = 18;
 
 export type AgeVerificationRequest = {
   /** Identifica a tentativa nos registros do provedor. Nunca o email. */
@@ -29,8 +37,19 @@ export type AgeVerificationRequest = {
   readonly declaredBirthDate?: string;
 };
 
+/**
+ * Como a idade foi verificada. Espelha o tipo `age_verification_method` do
+ * banco: o resultado da verificação é gravado no perfil, e quando o provedor
+ * real entrar dá para encontrar quem passou só pela data declarada.
+ */
+export type AgeVerificationMethod = "self_declared" | "document" | "facial" | "external_provider";
+
 export type AgeVerificationResult =
-  | { readonly status: "verified"; readonly verifiedAt: Date; readonly provider: string }
+  | {
+      readonly status: "verified";
+      readonly verifiedAt: Date;
+      readonly method: AgeVerificationMethod;
+    }
   | { readonly status: "rejected"; readonly reason: string }
   /** O provedor precisa de uma etapa externa (redirecionar, enviar documento). */
   | { readonly status: "pending"; readonly continueUrl: string };
@@ -41,7 +60,7 @@ export interface AgeVerifier {
 }
 
 /**
- * Aprova quem **declara** 16 anos ou mais.
+ * Aprova quem **declara** ter a idade mínima ou mais.
  *
  * A RN29 exige verificação *sem* autodeclaração, e isto é exatamente
  * autodeclaração — o nome diz isso de propósito, para ninguém ligar achando
@@ -53,6 +72,7 @@ export interface AgeVerifier {
  */
 export class SelfDeclaredAgeVerifier implements AgeVerifier {
   readonly name = "self_declared";
+  readonly method: AgeVerificationMethod = "self_declared";
 
   async verify(input: AgeVerificationRequest): Promise<AgeVerificationResult> {
     if (!input.declaredBirthDate) {
@@ -71,7 +91,7 @@ export class SelfDeclaredAgeVerifier implements AgeVerifier {
       };
     }
 
-    return { status: "verified", verifiedAt: new Date(), provider: this.name };
+    return { status: "verified", verifiedAt: new Date(), method: this.method };
   }
 }
 

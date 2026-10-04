@@ -51,7 +51,7 @@ export function CriarContaForm({ googleEnabled }: { googleEnabled: boolean }) {
             o verificador, nunca a prova. */}
         <div className="bg-paper flex flex-col gap-1 rounded-sm p-2">
           <p className="text-bodyStrong text-ink">Verificar idade</p>
-          <p className="text-caption text-inkMuted">O Hub é para maiores de 16 anos.</p>
+          <p className="text-caption text-inkMuted">O Hub é para maiores de 18 anos.</p>
           <Input
             label="Data de nascimento"
             name="birthDate"

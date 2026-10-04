@@ -152,11 +152,34 @@ npm run test:e2e     # Playwright: jornadas (sobe o build sozinho)
 npm run supabase:start   # Supabase local (exige o Docker Desktop aberto)
 npm run supabase:stop
 npm run db:generate      # gerar o cliente Prisma
-npm run db:migrate       # criar e aplicar migration em desenvolvimento
+npm run db:migrate       # aplicar migrations em desenvolvimento
 npm run db:deploy        # aplicar migrations existentes
 npm run db:seed          # popular com os dados do protótipo (só banco local)
 npm run db:studio        # inspecionar os dados
 ```
+
+### Migrations são escritas à mão
+
+`prisma migrate dev` **não funciona neste projeto**: ele introspecta o banco e
+esbarra na chave estrangeira de `profiles` para `auth.users`, que é schema do
+Supabase e não do Prisma (erro P4002). Banco de sombra não resolve, porque a
+leitura que falha é a do banco de desenvolvimento.
+
+Para mudar o schema: edite `prisma/schema.prisma`, escreva o SQL em
+`prisma/migrations/<data>_<nome>/migration.sql` e rode `npm run db:deploy`
+seguido de `npm run db:generate`. É o mesmo caminho das funções, gatilhos e
+políticas desde a F02.
+
+### Idade mínima
+
+**18 anos**, definida pelo PO e fixada em `MINIMUM_AGE` ([lib/auth/age-verifier.ts](lib/auth/age-verifier.ts)).
+O escopo e a RN29 ainda falam em 16 — vale alinhar o documento.
+
+A verificação usa **só a data declarada** (`AGE_VERIFIER=self_declared`), o que
+a RN29 proíbe. É decisão registrada do PO para permitir cadastros de teste, e
+precisa sair antes do lançamento. O perfil guarda `birthDate`,
+`ageVerificationStatus`, `ageVerificationMethod` e `ageVerifiedAt` justamente
+para dar para encontrar depois quem passou por autodeclaração.
 
 ### Deploy
 

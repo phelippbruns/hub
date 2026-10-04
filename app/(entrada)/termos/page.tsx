@@ -19,7 +19,7 @@ export default function TermosPage() {
       </header>
 
       <p className="text-body text-ink">
-        O Hub é para maiores de 16 anos. Ao criar conta, você concorda com os Termos de uso e com a
+        O Hub é para maiores de 18 anos. Ao criar conta, você concorda com os Termos de uso e com a
         Política de privacidade.
       </p>
       <p className="text-caption text-inkMuted">

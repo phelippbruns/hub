@@ -16,6 +16,17 @@ import {
 } from "./auth-attempts";
 import { ForbiddenError } from "./errors";
 
+/** Alguém com 30 anos, para os casos em que a idade não é o assunto. */
+const NASCIMENTO_ADULTO = new Date(Date.UTC(new Date().getUTCFullYear() - 30, 0, 15));
+
+/** Campos de cadastro que não variam entre os testes. */
+const CADASTRO_BASE = {
+  birthDate: NASCIMENTO_ADULTO,
+  ageVerifiedAt: new Date(),
+  ageVerificationMethod: "self_declared",
+  termsVersion: "2026-10-01",
+} as const;
+
 beforeEach(resetDatabase);
 
 /** Cria o usuário do Auth, como o Supabase faria no signUp. */
@@ -35,26 +46,43 @@ async function makeAuthUser(email: string): Promise<string> {
 describe("RN29: cadastro exige verificação de idade e aceite dos Termos", () => {
   it("cria o perfil quando os dois estão presentes", async () => {
     const authId = await makeAuthUser("ana@teste.hub");
-    const profile = await createProfile({
-      authUserId: authId,
-      name: "Ana Lima",
-      ageVerifiedAt: new Date(),
-      termsVersion: "2026-10-01",
-    });
+    const profile = await createProfile({ ...CADASTRO_BASE, authUserId: authId, name: "Ana Lima" });
 
     expect(profile.handle).toBe("analima");
-    expect(profile.ageVerifiedAt).not.toBeNull();
     expect(profile.termsVersion).toBe("2026-10-01");
+
+    // Os três campos da verificação andam juntos: com eles dá para achar
+    // depois quem passou só pela data declarada.
+    expect(profile.ageVerifiedAt).not.toBeNull();
+    expect(profile.ageVerificationStatus).toBe("verified");
+    expect(profile.ageVerificationMethod).toBe("self_declared");
+    expect(profile.birthDate?.toISOString().slice(0, 10)).toBe(
+      NASCIMENTO_ADULTO.toISOString().slice(0, 10),
+    );
   });
 
   it("recusa sem verificação de idade", async () => {
     const authId = await makeAuthUser("sem-idade@teste.hub");
     await expect(
       createProfile({
+        ...CADASTRO_BASE,
         authUserId: authId,
         name: "Ana Lima",
         ageVerifiedAt: undefined as unknown as Date,
-        termsVersion: "2026-10-01",
+      }),
+    ).rejects.toThrow(ForbiddenError);
+
+    expect(await db.profile.count()).toBe(0);
+  });
+
+  it("recusa sem data de nascimento", async () => {
+    const authId = await makeAuthUser("sem-data@teste.hub");
+    await expect(
+      createProfile({
+        ...CADASTRO_BASE,
+        authUserId: authId,
+        name: "Ana Lima",
+        birthDate: undefined as unknown as Date,
       }),
     ).rejects.toThrow(ForbiddenError);
 
@@ -64,12 +92,7 @@ describe("RN29: cadastro exige verificação de idade e aceite dos Termos", () =
   it("recusa sem aceite dos Termos", async () => {
     const authId = await makeAuthUser("sem-termos@teste.hub");
     await expect(
-      createProfile({
-        authUserId: authId,
-        name: "Ana Lima",
-        ageVerifiedAt: new Date(),
-        termsVersion: "",
-      }),
+      createProfile({ ...CADASTRO_BASE, authUserId: authId, name: "Ana Lima", termsVersion: "" }),
     ).rejects.toThrow(ForbiddenError);
 
     expect(await db.profile.count()).toBe(0);
@@ -82,16 +105,14 @@ describe("RN17: o @ é único", () => {
     const segundaId = await makeAuthUser("ana2@teste.hub");
 
     const primeira = await createProfile({
+      ...CADASTRO_BASE,
       authUserId: primeiraId,
       name: "Ana Lima",
-      ageVerifiedAt: new Date(),
-      termsVersion: "v1",
     });
     const segunda = await createProfile({
+      ...CADASTRO_BASE,
       authUserId: segundaId,
       name: "Ana Lima",
-      ageVerifiedAt: new Date(),
-      termsVersion: "v1",
     });
 
     expect(primeira.handle).toBe("analima");
