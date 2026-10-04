@@ -95,6 +95,8 @@ export const spacing = {
   space3: "16px",
   /** Entre blocos de uma tela. */
   space4: "24px",
+  /** Margem lateral e de topo do conteúdo na web, e distância entre seções. Segue a grade de 8 px; faltava na escala. */
+  space5: "32px",
 } as const;
 
 export const radius = {
@@ -147,6 +149,12 @@ export const size = {
   contentColumn: "720px",
   /** Coluna das telas de entrada (login, cadastro, recuperação de senha), mais estreita que a de conteúdo. */
   authColumn: "420px",
+  /** Largura da barra de navegação lateral na web. */
+  navRail: "72px",
+  /** Alvo de toque de cada ícone da navegação e dos botões de criar. */
+  navItem: "44px",
+  /** Painel de contexto à direita, nas telas que têm um. */
+  contextPanel: "260px",
 } as const;
 
 export const fontFamily =

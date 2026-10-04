@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   description: "Conecte-se pelo que realmente importa.",
   applicationName: "Hub",
   appleWebApp: { capable: true, title: "Hub", statusBarStyle: "default" },
+  icons: {
+    // O iOS não lê o manifest para o ícone da tela inicial.
+    apple: [{ url: "/icons/icon-192.png", sizes: "192x192" }],
+  },
 };
 
 /**
@@ -27,6 +31,12 @@ export const dynamic = "force-dynamic";
 
 export const viewport: Viewport = {
   themeColor: color.surfacePage,
+  /*
+   * A PWA instalada ocupa a tela inteira, inclusive sob o recorte do iPhone e
+   * a barra de gestos. `cover` deixa o conteúdo ir até a borda, e as telas
+   * usam env(safe-area-inset-*) para nada importante ficar escondido.
+   */
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

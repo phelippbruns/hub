@@ -29,5 +29,7 @@ export async function updateSession(request: NextRequest, response: NextResponse
   // Não trocar por getSession(): só getUser() revalida o token no servidor.
   await supabase.auth.getUser();
 
-  return response;
+  // O cliente volta junto para o proxy decidir sobre a sessão sem abrir
+  // outra conexão e sem revalidar o token duas vezes.
+  return { response, supabase };
 }

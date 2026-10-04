@@ -39,12 +39,65 @@ export function userText(max: number, field: string) {
     });
 }
 
+/**
+ * @ que o Hub não pode entregar a ninguém.
+ *
+ * O perfil de uma pessoa mora na raiz: `hub.app/lia`. O Next casa rota
+ * estática antes de dinâmica, então `/inicio` continua sendo o Início — mas
+ * quem registrasse `@inicio` ficaria **inalcançável para sempre**, sem
+ * nenhum aviso.
+ *
+ * `design/rotas.test.ts` varre as rotas de primeiro nível e falha se alguma
+ * não estiver aqui: criar rota nova sem reservar o nome quebra a suíte, em
+ * vez de quebrar um perfil meses depois.
+ *
+ * Também ficam de fora alguns nomes que o Hub pode querer usar e os que
+ * confundiriam quem lê a URL.
+ */
+export const HANDLES_RESERVADOS = new Set([
+  // rotas que existem hoje
+  "auth",
+  "boas-vindas",
+  "busca",
+  "c",
+  "cabines",
+  "completar-cadastro",
+  "comunidades",
+  "configuracoes",
+  "criar-conta",
+  "criar-topico",
+  "denuncia",
+  "design",
+  "entrar",
+  "inicio",
+  "notificacoes",
+  "onboarding",
+  "perfil",
+  "senha",
+  "termos",
+  "topico",
+  "u",
+  // guardados para o Hub
+  "admin",
+  "ajuda",
+  "api",
+  "hub",
+  "moderacao",
+  "oficial",
+  "privacidade",
+  "sobre",
+  "suporte",
+]);
+
 /** RN17: o @ é único na plataforma. Formato conservador, conforme CLAUDE.md. */
 export const handleSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .regex(/^[a-z0-9_]{2,20}$/, "O @ aceita de 2 a 20 letras minúsculas, números e _");
+  .regex(/^[a-z0-9_]{2,20}$/, "O @ aceita de 2 a 20 letras minúsculas, números e _")
+  .refine((handle) => !HANDLES_RESERVADOS.has(handle), {
+    message: "Esse @ é reservado pelo Hub. Escolha outro.",
+  });
 
 export const uuidSchema = z.uuid();
 
