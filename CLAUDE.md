@@ -198,6 +198,12 @@ npm run verificar:deploy <url>   # confere que o site publicado responde
 
 Para aplicar à mão num banco remoto, `npm run db:deploy:remoto`.
 
+**Banco novo também precisa de conteúdo.** `npm run conteudo:inicial` acrescenta os Universos e as comunidades de partida. Diferente de `npm run db:seed`, que é de desenvolvimento e **trunca tudo**, este só acrescenta — roda quantas vezes quiser, em qualquer ambiente. Sem ele o onboarding é impossível de concluir, porque a RN31 exige escolher 3 comunidades.
+
+**`DIRECT_URL` é o pooler de sessão, não a conexão direta.** `db.PROJETO.supabase.co` só responde em IPv6, e ambientes de build como a Vercel são IPv4: de lá ela falha com `P1001: Can't reach database server`. Funciona da máquina de quem tem IPv6, que é como o erro passa despercebido.
+
+**`updated_at` não tem valor padrão no banco.** O `@updatedAt` do Prisma é preenchido pelo cliente, então todo `INSERT` em SQL cru precisa escrever a coluna.
+
 **Build verde não é app no ar.** A Vercel marca o deploy como bem-sucedido quando o código compila, não quando o app responde. Da F01 à F03 ela publicou a pasta `public/` como site estático enquanto o Next.js compilado era descartado: toda rota dava 404, com o sinal verde o tempo todo.
 
 [vercel.json](vercel.json) fixa `framework: nextjs` no repositório, para a configuração não depender do painel. E `npm run verificar:deploy` busca as rotas de verdade. **Rode-o, e abra a página, antes de dizer que uma feature está pronta.**

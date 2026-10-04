@@ -27,7 +27,8 @@
     "db:seed": "node --env-file-if-exists=.env.local prisma/seed.ts",
     "test:db": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run --config vitest.db.config.ts",
     "verificar:deploy": "node scripts/verificar-deploy.mts",
-    "db:deploy:remoto": "node scripts/migrar-producao.mts"
+    "db:deploy:remoto": "node scripts/migrar-producao.mts",
+    "conteudo:inicial": "node scripts/conteudo-inicial.mts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
