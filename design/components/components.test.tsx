@@ -11,9 +11,13 @@ import {
   EmptyState,
   EndOfList,
   ErrorState,
+  FollowButton,
   HotTopicCard,
   LevelMark,
+  SectionTitle,
+  Segmented,
   Skeleton,
+  SortToggle,
   SuccessMessage,
   Switch,
   Tabs,
@@ -91,6 +95,25 @@ const cases: Array<[string, React.ReactElement]> = [
   ["sucesso", <SuccessMessage>Tópico criado em Música Eletrônica</SuccessMessage>],
   ["vazio", <EmptyState title="Nenhum tópico ainda" description="Crie o primeiro." />],
   ["fim da lista", <EndOfList />],
+  // F06: descoberta.
+  [
+    "filtro segmentado",
+    <Segmented
+      label="Filtrar resultados"
+      atual="comunidades"
+      onSelect={() => undefined}
+      opcoes={[
+        { id: "tudo", label: "Tudo" },
+        { id: "comunidades", label: "Comunidades" },
+      ]}
+    />,
+  ],
+  ["seguir, desligado", <FollowButton seguindo={false} oQue="Lia Souza" />],
+  ["seguir, ligado", <FollowButton seguindo oQue="Lia Souza" />],
+  ["ordem por atividade", <SortToggle ordem="atividade" onChange={() => undefined} />],
+  ["título de seção", <SectionTitle>Universos</SectionTitle>],
+  // O # numa lista diz qual comunidade, não só "a comunidade".
+  ["porta da comunidade, com nome", <CommunityDoor member={false} oQue="Vinil" />],
 ];
 
 describe("snapshot dos componentes", () => {

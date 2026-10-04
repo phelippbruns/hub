@@ -12,8 +12,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 const AREAS = [
   { nome: "Início", url: /\/inicio/ },
-  { nome: "Explorar", url: /\/busca/ },
-  { nome: "Comunidades", url: /\/comunidades/ },
+  { nome: "Explorar", url: /\/comunidades$/ },
+  { nome: "Comunidades", url: /\/comunidades\/minhas$/ },
   { nome: "Cabine", url: /\/cabines/ },
   { nome: "Perfil", url: /\/perfil/ },
   { nome: "Notificações", url: /\/notificacoes/ },
@@ -78,15 +78,33 @@ test.describe("barra de navegação", () => {
     );
   });
 
-  test("uma subtela acende a área a que pertence", async ({ page }) => {
-    await entrarNoApp(page, "subtela");
-    await page.goto("/comunidades/minhas");
-
+  /*
+   * O erro da F05: a regra de "qual ícone está aceso" usava prefixo de URL,
+   * então /comunidades/minhas acendia Explorar e Comunidades ao mesmo tempo.
+   * Este teste conta os acesos em vez de conferir um por um — se dois
+   * acenderem de novo, ele falha.
+   *
+   * Tudo num teste só, com uma conta só: cada cadastro gasta cota do Supabase,
+   * e seis contas para seis telas já derrubou a suíte antes.
+   */
+  test("cada tela acende exatamente um ícone", async ({ page }) => {
+    await entrarNoApp(page, "aceso");
     const barra = page.getByRole("navigation", { name: "Navegação principal" });
-    await expect(barra.getByRole("link", { name: "Comunidades", exact: true })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+
+    for (const [tela, esperado] of [
+      ["/inicio", "Início"],
+      ["/comunidades", "Explorar"],
+      ["/busca?q=musica", "Explorar"],
+      ["/comunidades/minhas", "Comunidades"],
+      ["/cabines", "Cabine"],
+      ["/notificacoes", "Notificações"],
+    ] as const) {
+      await page.goto(tela);
+      const acesos = barra.locator('[aria-current="page"]');
+
+      await expect(acesos, `${tela} devia acender só ${esperado}`).toHaveCount(1);
+      await expect(acesos).toHaveAccessibleName(esperado);
+    }
   });
 
   test("os dois botões de criar estão na barra, com nome", async ({ page }) => {

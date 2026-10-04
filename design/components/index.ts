@@ -25,3 +25,7 @@ export {
 } from "./states";
 export { NavRail } from "./nav-rail";
 export { AppShell, ContentColumn, PageTitle } from "./app-shell";
+export { Segmented, type OpcaoSegmentada } from "./segmented";
+export { FollowButton } from "./follow-button";
+export { SortToggle } from "./sort-toggle";
+export { SectionTitle } from "./section-title";
