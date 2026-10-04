@@ -109,6 +109,29 @@ test.describe("RN31: três passos até o Hub", () => {
     await expect(page).toHaveURL(/\/inicio/);
   });
 
+  // Este caminho não era testado: todos os testes clicavam em "Agora não".
+  // O botão de ativar travava a tela, e nada acusou.
+  for (const permissao of ["concedida", "negada"] as const) {
+    test(`ativar notificações conclui com a permissão ${permissao}`, async ({ page, context }) => {
+      if (permissao === "concedida") {
+        await context.grantPermissions(["notifications"]);
+      } else {
+        await context.clearPermissions();
+      }
+
+      await criarContaEChegarNoOnboarding(page, `notif-${permissao}`);
+      await page.getByRole("link", { name: "Começar" }).click();
+      await escolher(page, 3);
+      await page.getByRole("button", { name: "Continuar" }).click();
+      await expect(page).toHaveURL(/\/boas-vindas\/notificacoes/);
+
+      await page.getByRole("button", { name: "Ativar notificações" }).click();
+
+      // RN34: aceitar ou não, o onboarding termina. Ficar preso aqui é o bug.
+      await expect(page).toHaveURL(/\/inicio/, { timeout: 15_000 });
+    });
+  }
+
   test("depois de concluído, o onboarding não volta a aparecer", async ({ page }) => {
     await criarContaEChegarNoOnboarding(page, "uma-vez");
     await page.getByRole("link", { name: "Começar" }).click();
