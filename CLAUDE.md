@@ -113,6 +113,10 @@ it("RN07: recusa o segundo tópico do dia na mesma comunidade", async () => { �
 
 As regras RN01 a RN34 estão em [docs/escopo.md](docs/escopo.md).
 
+**As rotas vêm do protótipo.** A barra de endereço de cada tela em [docs/telas.html](docs/telas.html) define a URL: `/c/<comunidade>/<topico>`, `/u/<universo>`, `/perfil`, e o perfil de outra pessoa **na raiz** (`/lia`).
+
+**Rota nova de primeiro nível exige @ reservado.** Como o perfil mora na raiz, quem registrasse `@inicio` ficaria inalcançável para sempre — o Next casa rota estática antes de dinâmica e nada avisaria. A lista está em [lib/data/validation.ts](lib/data/validation.ts) e [lib/data/rotas.test.ts](lib/data/rotas.test.ts) varre `app/` e falha se faltar alguma.
+
 **As jornadas rodam em série.** Elas compartilham um banco, um servidor Next e um Supabase com limite de autenticação de verdade; em paralelo falham por 429 ou tempo esgotado, nunca pelo que queriam verificar. `playwright.config.ts` fixa `workers: 1`.
 
 **Componente de cliente não importa `lib/data/`.** Mesmo indiretamente: um reexport inocente arrasta o Prisma e o `pg` para o pacote do navegador, e o build quebra com _"Can't resolve 'dns'"_, que não diz nada sobre a causa. Constantes que a tela e a camada de dados compartilham moram em `features/<nome>/shared.ts`.

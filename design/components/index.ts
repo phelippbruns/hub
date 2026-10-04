@@ -23,3 +23,5 @@ export {
   EmptyState,
   EndOfList,
 } from "./states";
+export { NavRail } from "./nav-rail";
+export { AppShell, ContentColumn, PageTitle } from "./app-shell";
