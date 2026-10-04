@@ -158,6 +158,16 @@ npm run db:seed          # popular com os dados do protótipo (só banco local)
 npm run db:studio        # inspecionar os dados
 ```
 
+### Deploy
+
+```bash
+npm run verificar:deploy <url>   # confere que o site publicado responde
+```
+
+**Build verde não é app no ar.** A Vercel marca o deploy como bem-sucedido quando o código compila, não quando o app responde. Da F01 à F03 ela publicou a pasta `public/` como site estático enquanto o Next.js compilado era descartado: toda rota dava 404, com o sinal verde o tempo todo.
+
+[vercel.json](vercel.json) fixa `framework: nextjs` no repositório, para a configuração não depender do painel. E `npm run verificar:deploy` busca as rotas de verdade. **Rode-o, e abra a página, antes de dizer que uma feature está pronta.**
+
 ### Ambiente
 
 Copie `.env.example` para `.env.local` e preencha com os valores do projeto Supabase. `DATABASE_URL` é o pooler (porta 6543); `DIRECT_URL` é a conexão direta (porta 5432), exigida pelas migrations. Nenhum valor real entra no repositório.
