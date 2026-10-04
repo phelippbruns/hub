@@ -173,6 +173,38 @@ test.describe("RN29: criar conta", () => {
     await expect(page).toHaveURL(/\/boas-vindas/);
   });
 
+  test("dá para escolher o @ no cadastro", async ({ page }) => {
+    const escolhido = `eu${Date.now()}`.slice(0, 20);
+
+    await page.goto("/criar-conta");
+    await preencherCadastro(page, {
+      nome: "Pessoa Com Arroba",
+      email: novoEmail("arroba"),
+      senha: "senhaboa123",
+      nascimento: nascimentoAdulto(),
+    });
+    await page.getByLabel("@ (opcional)").fill(escolhido);
+    await aceitarTermos(page);
+    await page.getByRole("button", { name: "Continuar" }).click();
+
+    await expect(page).toHaveURL(/\/boas-vindas/);
+  });
+
+  test("avisa quando o @ já está em uso, antes de enviar", async ({ page }) => {
+    // @liasouza vem do seed.
+    await page.goto("/criar-conta");
+    await page.getByLabel("@ (opcional)").fill("liasouza");
+
+    await expect(page.locator("main").getByText("Esse @ já está em uso")).toBeVisible();
+  });
+
+  test("avisa quando o @ tem formato inválido", async ({ page }) => {
+    await page.goto("/criar-conta");
+    await page.getByLabel("@ (opcional)").fill("Phe Bruns!");
+
+    await expect(page.locator("main").getByText(/de 2 a 20 letras minúsculas/)).toBeVisible();
+  });
+
   test("cria conta com tudo preenchido", async ({ page }) => {
     await page.goto("/criar-conta");
     await preencherCadastro(page, {

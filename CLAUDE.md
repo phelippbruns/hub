@@ -198,6 +198,8 @@ npm run verificar:deploy <url>   # confere que o site publicado responde
 
 Para aplicar à mão num banco remoto, `npm run db:deploy:remoto`.
 
+**Comunidade sem moderador é um buraco.** A RN06 liga a moderação a quem criou, e as comunidades da plataforma nascem sem criador — ou seja, sem ninguém para atender denúncia. `npm run moderacao:atribuir` dá um dono às que estão órfãs, e só a elas. É a ponte até a plataforma ter um dono de moderação próprio.
+
 **Banco novo também precisa de conteúdo.** `npm run conteudo:inicial` acrescenta os Universos e as comunidades de partida. Diferente de `npm run db:seed`, que é de desenvolvimento e **trunca tudo**, este só acrescenta — roda quantas vezes quiser, em qualquer ambiente. Sem ele o onboarding é impossível de concluir, porque a RN31 exige escolher 3 comunidades.
 
 **`DIRECT_URL` é o pooler de sessão, não a conexão direta.** `db.PROJETO.supabase.co` só responde em IPv6, e ambientes de build como a Vercel são IPv4: de lá ela falha com `P1001: Can't reach database server`. Funciona da máquina de quem tem IPv6, que é como o erro passa despercebido.

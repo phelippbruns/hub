@@ -8,6 +8,11 @@ import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { generateUniqueHandle, suggestHandle, withSuffix } from "@/lib/auth/handle";
 import type { AgeVerificationMethod } from "@/lib/auth/age-verifier";
 
+/** RN17: o @ é único. Exportado para a tela avisar antes de enviar. */
+export async function handleEmUso(handle: string): Promise<boolean> {
+  return handleIsTaken(handle);
+}
+
 async function handleIsTaken(handle: string): Promise<boolean> {
   const found = await prisma.profile.findUnique({ where: { handle }, select: { id: true } });
   return found !== null;
