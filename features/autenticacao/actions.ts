@@ -86,6 +86,12 @@ export async function entrar(_state: ActionState, formData: FormData): Promise<A
 
   if (error) {
     await noteFailure("login", email);
+    // Mesma razão do cadastro: a pessoa vê uma resposta só, o operador vê o
+    // motivo. Sem email nem senha no registro.
+    console.error("[entrar] recusado pelo Supabase Auth", {
+      code: error.code,
+      status: error.status,
+    });
     return { error: CREDENCIAL_INVALIDA };
   }
 
@@ -134,8 +140,22 @@ export async function criarConta(_state: ActionState, formData: FormData): Promi
 
   if (error || !data.user) {
     await noteFailure("signup", email);
-    // Não revela que o email já tem conta: quem já tem recebe a mesma resposta
-    // e descobre pelo fluxo de entrar.
+
+    /*
+     * A mensagem para a pessoa é vaga de propósito: dizer "este email já tem
+     * conta" transformaria o formulário em ferramenta de descobrir cadastros.
+     *
+     * Mas vaga para quem opera o sistema é cegueira: sem isto, um cadastro
+     * que para de funcionar em produção não deixa rastro nenhum. Então o
+     * motivo vai para o registro do servidor — com código e mensagem do
+     * Supabase, sem o email nem qualquer dado da pessoa (regra de segurança 10).
+     */
+    console.error("[cadastro] recusado pelo Supabase Auth", {
+      code: error?.code,
+      status: error?.status,
+      message: error?.message,
+    });
+
     return { error: "Não foi possível criar a conta. Confira os dados e tente de novo." };
   }
 
