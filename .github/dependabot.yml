@@ -9,6 +9,12 @@ updates:
     groups:
       patches-e-minors:
         update-types: [minor, patch]
+    ignore:
+      # Os tipos do Node acompanham a versão do Node que roda de verdade (24 na
+      # CI e na Vercel). Tipos à frente do runtime deixam o TypeScript aprovar
+      # chamadas a APIs que não existem lá. Subir junto com o runtime.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
