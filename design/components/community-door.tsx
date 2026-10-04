@@ -24,7 +24,6 @@ export function CommunityDoor({
   oQue?: string;
   className?: string;
 }) {
-
   return (
     <button
       type="button"
