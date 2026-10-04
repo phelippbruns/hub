@@ -29,6 +29,13 @@ export type ColorName = keyof typeof color;
 
 /** Escala tipográfica. Uma família só: Bricolage Grotesque. */
 export const typography = {
+  /** A marca na tela de abertura. Só ali. */
+  brand: {
+    fontSize: "88px",
+    lineHeight: "80px",
+    fontWeight: 800,
+    letterSpacing: "-0.04em",
+  },
   /** Título de tela. */
   title: {
     fontSize: "28px",
@@ -138,6 +145,8 @@ export const size = {
   checkbox: "20px",
   /** Largura da coluna de conteúdo na web. Tópico e página da comunidade usam a largura total. */
   contentColumn: "720px",
+  /** Coluna das telas de entrada (login, cadastro, recuperação de senha), mais estreita que a de conteúdo. */
+  authColumn: "420px",
 } as const;
 
 export const fontFamily =
