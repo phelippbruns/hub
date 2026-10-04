@@ -153,7 +153,10 @@ npm run supabase:start   # Supabase local (exige o Docker Desktop aberto)
 npm run supabase:stop
 npm run db:generate      # gerar o cliente Prisma
 npm run db:migrate       # aplicar migrations em desenvolvimento
-npm run db:deploy        # aplicar migrations existentes
+npm run db:deploy        # aplicar migrations no banco local
+npm run db:deploy:remoto # aplicar migrations num banco remoto, pedindo a
+                         # conexão e a senha (que não aparece na tela nem
+                         # entra no histórico do terminal)
 npm run db:seed          # popular com os dados do protótipo (só banco local)
 npm run db:studio        # inspecionar os dados
 ```
