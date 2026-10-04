@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  FakeAgeVerifier,
+  SelfDeclaredAgeVerifier,
   MINIMUM_AGE,
   UnavailableAgeVerifier,
   ageOn,
@@ -14,7 +14,7 @@ function birthDateForAge(age: number): string {
 }
 
 describe("RN29: idade mínima de 16 anos", () => {
-  const verifier = new FakeAgeVerifier();
+  const verifier = new SelfDeclaredAgeVerifier();
 
   it("aprova quem tem exatamente a idade mínima", async () => {
     const result = await verifier.verify({
@@ -53,8 +53,8 @@ describe("cálculo de idade", () => {
 describe("escolha do verificador", () => {
   afterEach(() => vi.unstubAllEnvs());
 
-  it("usa o falso só com AGE_VERIFIER=fake", () => {
-    expect(resolveAgeVerifier("fake")).toBeInstanceOf(FakeAgeVerifier);
+  it("aceita a data declarada só com AGE_VERIFIER=self_declared", () => {
+    expect(resolveAgeVerifier("self_declared")).toBeInstanceOf(SelfDeclaredAgeVerifier);
   });
 
   it("sem a variável definida, nega", () => {
@@ -65,16 +65,19 @@ describe("escolha do verificador", () => {
     expect(resolveAgeVerifier()).toBeInstanceOf(UnavailableAgeVerifier);
   });
 
-  it.each(["", "producao", "qualquer-coisa"])("nega quando a variável é %s", async (choice) => {
-    const verifier = resolveAgeVerifier(choice);
-    expect(verifier).toBeInstanceOf(UnavailableAgeVerifier);
+  it.each(["", "fake", "producao", "qualquer-coisa"])(
+    "nega quando a variável é %s",
+    async (choice) => {
+      const verifier = resolveAgeVerifier(choice);
+      expect(verifier).toBeInstanceOf(UnavailableAgeVerifier);
 
-    // Negar é o lado seguro: esquecer de configurar não pode virar cadastro
-    // sem verificação de idade (RN29).
-    const result = await verifier.verify({
-      reference: "x",
-      declaredBirthDate: birthDateForAge(30),
-    });
-    expect(result.status).toBe("rejected");
-  });
+      // Negar é o lado seguro: esquecer de configurar não pode virar cadastro
+      // sem verificação de idade (RN29).
+      const result = await verifier.verify({
+        reference: "x",
+        declaredBirthDate: birthDateForAge(30),
+      });
+      expect(result.status).toBe("rejected");
+    },
+  );
 });

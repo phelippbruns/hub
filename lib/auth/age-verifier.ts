@@ -41,14 +41,18 @@ export interface AgeVerifier {
 }
 
 /**
- * Verificador de desenvolvimento. Aprova quem declara 16 anos ou mais.
+ * Aprova quem **declara** 16 anos ou mais.
  *
- * **Não serve para produção**: ele confia na data declarada, que é exatamente
- * o que a RN29 proíbe. Existe para o fluxo poder ser construído e testado
- * antes da decisão jurídica, e `resolveAgeVerifier` impede que vaze.
+ * A RN29 exige verificação *sem* autodeclaração, e isto é exatamente
+ * autodeclaração — o nome diz isso de propósito, para ninguém ligar achando
+ * que é outra coisa.
+ *
+ * Está em uso por decisão registrada do PO, para permitir cadastros de teste
+ * enquanto o provedor real não é escolhido. **Precisa sair antes do
+ * lançamento**: é um dos bloqueadores que docs/escopo.md lista.
  */
-export class FakeAgeVerifier implements AgeVerifier {
-  readonly name = "fake";
+export class SelfDeclaredAgeVerifier implements AgeVerifier {
+  readonly name = "self_declared";
 
   async verify(input: AgeVerificationRequest): Promise<AgeVerificationResult> {
     if (!input.declaredBirthDate) {
@@ -95,21 +99,17 @@ export function ageOn(birth: Date, reference: Date): number {
 /**
  * Escolhe o verificador.
  *
- * O padrão é **negar**: sem `AGE_VERIFIER=fake` explícito, devolve o
- * verificador que nunca aprova. Liberar cadastro sem verificação seria
- * descumprir a RN29 calado, e esquecer de configurar é o erro mais provável.
+ * O padrão continua sendo **negar**: sem `AGE_VERIFIER` escrito à mão, devolve
+ * o que nunca aprova. Esquecer de configurar não pode virar cadastro sem
+ * verificação nenhuma.
  *
- * O interruptor é uma variável própria, e não `NODE_ENV`, porque os testes de
- * jornada rodam contra um build de produção — amarrar ao NODE_ENV obrigaria a
- * escolher entre testar o fluxo e manter produção segura.
- *
- * Duas travas impedem que o falso escape:
- *   1. a variável precisa ser escrita à mão em `AGE_VERIFIER`;
- *   2. `lib/env.ts` derruba o build se ela vier junto com um Supabase que não
- *      é local — ou seja, num ambiente de verdade.
+ * `self_declared` é a opção que o PO ligou para permitir cadastros de teste.
+ * Ela não cumpre a RN29, e `lib/env.ts` avisa alto quando está ativa fora do
+ * ambiente local — o aviso aparece no registro do deploy, para o estado não
+ * virar esquecimento.
  */
 export function resolveAgeVerifier(
   choice: string | undefined = process.env.AGE_VERIFIER,
 ): AgeVerifier {
-  return choice === "fake" ? new FakeAgeVerifier() : new UnavailableAgeVerifier();
+  return choice === "self_declared" ? new SelfDeclaredAgeVerifier() : new UnavailableAgeVerifier();
 }
