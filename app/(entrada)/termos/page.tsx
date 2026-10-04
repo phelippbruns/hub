@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Termos e privacidade · Hub" };
 
 /**
  * Página curta, para o link da tela inicial não morrer. O texto completo, com
- * o resumo em linguagem simples, é da F19 (tela 28).
+ * o resumo em linguagem simples, é da F18 (tela 28).
  */
 export default function TermosPage() {
   return (

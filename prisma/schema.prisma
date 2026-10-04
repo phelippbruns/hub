@@ -373,7 +373,7 @@ model Follow {
 
 /// RN09/RN10: o tópico com mais pessoas diferentes respondendo no ciclo
 /// anterior vira o Hot Topic do dia, e não pode vencer dois ciclos seguidos.
-/// A tarefa que preenche isto é da F17; aqui fica só a estrutura.
+/// A tarefa que preenche isto é da F10; aqui fica só a estrutura.
 model HotTopic {
   communityId         String   @map("community_id") @db.Uuid
   cycleDate           DateTime @map("cycle_date") @db.Date

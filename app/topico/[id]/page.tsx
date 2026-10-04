@@ -4,7 +4,7 @@ import { getTopicForViewer } from "@/lib/data/topics";
 
 /**
  * Destino de quem volta de um convite (RN31). A página do tópico de verdade é
- * da F09; aqui fica o mínimo para o link do convite não cair num 404.
+ * da F08; aqui fica o mínimo para o link do convite não cair num 404.
  */
 export default async function TopicoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,7 +22,7 @@ export default async function TopicoPage({ params }: { params: Promise<{ id: str
         {topico.peopleCount} {topico.peopleCount === 1 ? "pessoa" : "pessoas"} ·{" "}
         {topico.answerCount} {topico.answerCount === 1 ? "resposta" : "respostas"}
       </p>
-      <p className="text-caption text-inkMuted">A página do tópico chega na F09.</p>
+      <p className="text-caption text-inkMuted">A página do tópico chega na F08.</p>
     </main>
   );
 }
