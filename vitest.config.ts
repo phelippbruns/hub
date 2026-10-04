@@ -6,5 +6,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["{lib,features,design,app}/**/*.test.{ts,tsx}"],
+    // Os testes de banco precisam do Supabase local e rodam em `npm run test:db`.
+    exclude: ["**/node_modules/**", "**/*.db.test.ts"],
   },
 });

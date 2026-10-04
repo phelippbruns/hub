@@ -35,6 +35,10 @@ app/                 rotas, layouts e rotas de metadata (manifest)
 features/<nome>/     componentes, actions, regras e testes de cada feature
 lib/env.ts           validação Zod das variáveis de ambiente
 lib/data/            ÚNICA camada que fala com o Prisma e confere permissão
+lib/data/viewer.ts   quem está pedindo: anônimo ou pessoa com sessão
+lib/data/errors.ts   erros tipados, e a tradução do erro do banco em RN
+lib/data/validation.ts  schemas Zod, inclusive o bloqueio de links (RN16)
+lib/data/access.ts   conferências reaproveitadas: bloqueio, membro, comunidade em comum
 lib/supabase/        clientes @supabase/ssr (server, client, session)
 design/tokens.ts     tokens GERADOS de docs/design-system/tokens.json
 design/tokens.css    os mesmos tokens como tema do Tailwind
@@ -80,6 +84,19 @@ Para mudar um valor, mude o JSON e rode `npm run tokens`. Nunca edite `design/to
 
 As medidas de controle (ícone, marca, avatar, miniatura, interruptor, coluna de conteúdo) também são tokens, na seção `size` do JSON, e viram utilitário do Tailwind: `size-mark`, `h-toggleH`, `max-w-contentColumn`. Não existe pixel escrito à mão no código.
 
+**Toda função de `lib/data/` recebe o `Viewer` como primeiro argumento.** É o que torna a conferência de permissão obrigatória por construção, em vez de depender de lembrar. A forma é sempre: valida com Zod → confere sessão, permissão e bloqueio → só então chama o Prisma.
+
+```ts
+export async function createAnswer(viewer: Viewer, input: unknown) {
+  const me = requireProfileId(viewer);           // RN: exige sessão
+  const data = createAnswerSchema.parse(input);  // regra de segurança 4
+  await requireActiveMembership(me, communityId); // regras 1 e 5
+  return prisma.answer.create({ ... });
+}
+```
+
+**Regra que tem gatilho no banco também tem checagem no app** — mas por motivos diferentes. A checagem no app dá a mensagem boa; o gatilho é quem garante a regra quando duas requisições chegam ao mesmo tempo. Quando o gatilho dispara, `translateDatabaseError` converte o erro do Postgres na RN certa. Nunca remova um dos dois.
+
 **Cite o código da RN em comentários e testes.** Toda regra de negócio implementada leva o código da regra no comentário, e o teste que a cobre leva o código no nome:
 
 ```ts
@@ -114,7 +131,8 @@ npm run typecheck    # tsc --noEmit
 
 ```bash
 npm run tokens       # regerar design/tokens.ts e tokens.css do JSON
-npm run test         # Vitest: regras de negócio, contraste e snapshots
+npm run test         # Vitest: regras, contraste, snapshots (sem banco)
+npm run test:db      # regras no banco e RLS (exige `npm run supabase:start`)
 npm run test:watch   # Vitest em modo contínuo
 npm run test:e2e     # Playwright: jornadas (sobe o build sozinho)
 ```
@@ -122,11 +140,12 @@ npm run test:e2e     # Playwright: jornadas (sobe o build sozinho)
 ### Banco
 
 ```bash
-npm run supabase:start   # Supabase local (exige Docker rodando)
+npm run supabase:start   # Supabase local (exige o Docker Desktop aberto)
 npm run supabase:stop
 npm run db:generate      # gerar o cliente Prisma
 npm run db:migrate       # criar e aplicar migration em desenvolvimento
 npm run db:deploy        # aplicar migrations existentes
+npm run db:seed          # popular com os dados do protótipo (só banco local)
 npm run db:studio        # inspecionar os dados
 ```
 
