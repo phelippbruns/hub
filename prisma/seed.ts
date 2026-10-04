@@ -46,7 +46,19 @@ const COMMUNITIES = [
   { universe: "musica", name: "Techno Minimal", intro: "Menos elementos, mais hipnose." },
   { universe: "musica", name: "DJs", intro: "Transições, leitura de pista e seleção." },
   { universe: "fotografia", name: "Fotografia de Paisagem", intro: "Luz, espera e horizonte." },
+  { universe: "fotografia", name: "Retrato", intro: "Quem olha de volta." },
+  { universe: "fotografia", name: "Analógica", intro: "Filme, revelação e paciência." },
+  { universe: "fotografia", name: "Fotografia de Rua", intro: "O instante que não se repete." },
   { universe: "cinema", name: "Terror", intro: "O que assusta e por que a gente volta." },
+  { universe: "cinema", name: "Ficção Científica", intro: "Futuros possíveis e improváveis." },
+  { universe: "cinema", name: "Documentários", intro: "O real, recortado por alguém." },
+  { universe: "cinema", name: "Cinema Brasileiro", intro: "Do Cinema Novo ao que estreia agora." },
+  { universe: "cinema", name: "Animação", intro: "Desenho, stop motion e o que mais vier." },
+  { universe: "games", name: "Indie", intro: "Jogos pequenos com ideias grandes." },
+  { universe: "games", name: "RPG", intro: "Fichas, mesas e campanhas que não acabam." },
+  { universe: "games", name: "Speedrun", intro: "O jogo inteiro, o mais rápido possível." },
+  { universe: "games", name: "Retrô", intro: "Cartucho, fliperama e emulador." },
+  { universe: "games", name: "Jogos de Tabuleiro", intro: "Da mesa da cozinha ao campeonato." },
 ] as const;
 
 async function main() {

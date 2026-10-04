@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getViewer } from "@/lib/auth/session";
+import { jaFezOnboarding } from "@/lib/data/onboarding";
 import { sair } from "@/features/autenticacao/actions";
 
 /**
@@ -9,6 +10,8 @@ import { sair } from "@/features/autenticacao/actions";
 export default async function InicioPage() {
   const viewer = await getViewer();
   if (viewer.kind !== "member") redirect("/entrar");
+  // RN31: sem onboarding, o Início não tem comunidade de onde tirar conteúdo.
+  if (!(await jaFezOnboarding(viewer.profileId))) redirect("/boas-vindas");
 
   return (
     <main className="max-w-contentColumn mx-auto flex flex-col gap-3 px-4 py-4">

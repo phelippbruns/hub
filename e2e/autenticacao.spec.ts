@@ -67,14 +67,41 @@ async function codigoNoEmail(page: Page, email: string): Promise<string> {
 async function criarContaESair(page: Page, dados: { nome: string; email: string; senha: string }) {
   await page.goto("/criar-conta");
   await preencherCadastro(page, { ...dados, nascimento: nascimentoAdulto() });
-  await page.getByRole("checkbox").click();
+  await aceitarTermos(page);
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  await expect(page).toHaveURL(/\/onboarding/);
-  await page.getByRole("link", { name: "Ir para o Início" }).click();
+  await expect(page).toHaveURL(/\/boas-vindas/);
+
+  // RN31: sem concluir o onboarding a pessoa não chega ao Início, então o
+  // caminho para sair passa por ele.
+  await page.getByRole("link", { name: "Começar" }).click();
+  for (let i = 0; i < 3; i += 1) {
+    await page
+      .getByRole("group", { name: /^Comunidades de / })
+      .getByRole("button", { pressed: false })
+      .first()
+      .click();
+  }
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByRole("button", { name: "Agora não" }).click();
   await expect(page).toHaveURL(/\/inicio/);
   await page.getByRole("button", { name: "Sair" }).click();
   await expect(page).toHaveURL(/\/$/);
+}
+
+/**
+ * Marca o aceite dos Termos e **confirma** que marcou.
+ *
+ * Clicar logo depois de abrir a página às vezes acontece antes da hidratação:
+ * o clique não vira estado, o campo escondido do aceite não é enviado e o
+ * cadastro falha por um motivo que não tem nada a ver com o que o teste quer
+ * verificar. Conferir o estado antes de enviar remove essa corrida.
+ */
+async function aceitarTermos(page: Page) {
+  const caixa = page.getByRole("checkbox");
+  await expect(caixa).toHaveAttribute("aria-checked", "false");
+  await caixa.click();
+  await expect(caixa).toHaveAttribute("aria-checked", "true");
 }
 
 test.describe("tela inicial", () => {
@@ -124,7 +151,7 @@ test.describe("RN29: criar conta", () => {
         senha: "senhaboa123",
         nascimento: nascimentoComIdade(idade),
       });
-      await page.getByRole("checkbox").click();
+      await aceitarTermos(page);
       await page.getByRole("button", { name: "Continuar" }).click();
 
       await expect(alerta(page)).toContainText("18 anos");
@@ -140,10 +167,10 @@ test.describe("RN29: criar conta", () => {
       senha: "senhaboa123",
       nascimento: nascimentoComIdade(18),
     });
-    await page.getByRole("checkbox").click();
+    await aceitarTermos(page);
     await page.getByRole("button", { name: "Continuar" }).click();
 
-    await expect(page).toHaveURL(/\/onboarding/);
+    await expect(page).toHaveURL(/\/boas-vindas/);
   });
 
   test("cria conta com tudo preenchido", async ({ page }) => {
@@ -154,10 +181,10 @@ test.describe("RN29: criar conta", () => {
       senha: "senhaboa123",
       nascimento: nascimentoAdulto(),
     });
-    await page.getByRole("checkbox").click();
+    await aceitarTermos(page);
     await page.getByRole("button", { name: "Continuar" }).click();
 
-    await expect(page).toHaveURL(/\/onboarding/);
+    await expect(page).toHaveURL(/\/boas-vindas/);
   });
 });
 

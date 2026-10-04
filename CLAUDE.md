@@ -113,6 +113,10 @@ it("RN07: recusa o segundo tópico do dia na mesma comunidade", async () => { �
 
 As regras RN01 a RN34 estão em [docs/escopo.md](docs/escopo.md).
 
+**As jornadas rodam em série.** Elas compartilham um banco, um servidor Next e um Supabase com limite de autenticação de verdade; em paralelo falham por 429 ou tempo esgotado, nunca pelo que queriam verificar. `playwright.config.ts` fixa `workers: 1`.
+
+**Componente de cliente não importa `lib/data/`.** Mesmo indiretamente: um reexport inocente arrasta o Prisma e o `pg` para o pacote do navegador, e o build quebra com _"Can't resolve 'dns'"_, que não diz nada sobre a causa. Constantes que a tela e a camada de dados compartilham moram em `features/<nome>/shared.ts`.
+
 **A tela /design mostra o sistema inteiro.** Antes de criar um componente, olhe [design/components/](design/components/) e a galeria em `/design`. Componente novo entra na galeria junto.
 
 **Toda rota renderiza por requisição.** [app/layout.tsx](app/layout.tsx) marca `export const dynamic = "force-dynamic"` para o app inteiro. Motivo: a CSP exige nonce nos scripts, e o Next só injeta o nonce fora do prerender estático — numa rota estática o navegador bloqueia todos os scripts, sem erro no build e sem teste vermelho. Como quase tudo no Hub é por usuário, o prerender valeria para pouca coisa. Vale só para o HTML: JavaScript, CSS, fontes e imagens continuam no cache da borda.
