@@ -61,7 +61,11 @@ function montar(linha: LinhaCrua): ComunidadeNaLista {
  * melhor do que uma caixa-preta agora — dá para explicar a quem pergunta por
  * que viu aquilo.
  */
-export async function paraVoce(viewer: Viewer, limite = 10): Promise<ComunidadeNaLista[]> {
+export async function paraVoce(
+  viewer: Viewer,
+  limite = 10,
+  minimoDeMembros = EXPLORE_MIN_MEMBERS,
+): Promise<ComunidadeNaLista[]> {
   const me = viewerProfileId(viewer);
 
   const linhas = await prisma.$queryRaw<LinhaCrua[]>`
@@ -77,8 +81,8 @@ export async function paraVoce(viewer: Viewer, limite = 10): Promise<ComunidadeN
       FROM communities c
       JOIN universes u ON u.id = c.universe_id
      WHERE c.deleted_at IS NULL
-       -- RN05: só a partir de 20 membros.
-       AND c.members_count >= ${EXPLORE_MIN_MEMBERS}
+       -- RN05: só a partir do corte de membros.
+       AND c.members_count >= ${minimoDeMembros}
        AND NOT EXISTS (
          SELECT 1 FROM memberships m
           WHERE m.community_id = c.id AND m.profile_id = ${me}::uuid
@@ -105,11 +109,12 @@ export type OrdemDoUniverso = "atividade" | "recentes";
 export async function comunidadesDoUniverso(
   viewer: Viewer,
   slug: string,
-  opcoes: { termo?: string; ordem?: OrdemDoUniverso } = {},
+  opcoes: { termo?: string; ordem?: OrdemDoUniverso; minimoDeMembros?: number } = {},
 ) {
   const me = viewerProfileId(viewer);
   const ordem = opcoes.ordem ?? "atividade";
   const termo = opcoes.termo?.trim() ?? "";
+  const minimoDeMembros = opcoes.minimoDeMembros ?? EXPLORE_MIN_MEMBERS;
 
   const universo = await prisma.universe.findUnique({ where: { slug } });
   if (!universo) throw new NotFoundError("Universo");
@@ -135,7 +140,7 @@ export async function comunidadesDoUniverso(
      WHERE c.deleted_at IS NULL
        AND c.universe_id = ${universo.id}::uuid
        -- RN05: o corte vale aqui também.
-       AND c.members_count >= ${EXPLORE_MIN_MEMBERS}
+       AND c.members_count >= ${minimoDeMembros}
        AND (${termo} = '' OR hub_busca(c.name) LIKE '%' || hub_busca(${termo}) || '%')
      ORDER BY
        CASE WHEN ${ordem} = 'recentes' THEN c.created_at END DESC,

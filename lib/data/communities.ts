@@ -6,8 +6,17 @@ import { ForbiddenError, NotFoundError, translateDatabaseError } from "./errors"
 import { createCommunitySchema } from "./validation";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 
-/** RN05: a comunidade entra no Explorar a partir de 20 membros. */
-export const EXPLORE_MIN_MEMBERS = 20;
+/**
+ * RN05: quantos membros a comunidade precisa ter para aparecer em Explorar e
+ * na página do Universo. Na busca não há corte: quem procura pelo nome acha.
+ *
+ * **Hoje vale 0**, por decisão do PO em 4 de outubro de 2026: o Hub acabou de
+ * nascer e nenhuma comunidade tem 20 membros, então o corte deixava Explorar
+ * vazio justamente para quem chega primeiro — o contrário do que a regra
+ * quer. A regra continua inteira no código e nos testes, que a exercem com um
+ * corte explícito; subir este número religa tudo sem mudar mais nada.
+ */
+export const EXPLORE_MIN_MEMBERS = 0;
 
 /**
  * RN03: toda comunidade exige nome, intro, capa e Universo. Sem capa enviada,
@@ -126,12 +135,16 @@ export async function leaveCommunity(viewer: Viewer, communityId: string) {
   });
 }
 
-/** RN05: no Explorar só entram as comunidades com 20 membros ou mais. */
-export async function listExploreCommunities(_viewer: Viewer, universeId?: string) {
+/** RN05: no Explorar só entram as comunidades que passam do corte de membros. */
+export async function listExploreCommunities(
+  _viewer: Viewer,
+  universeId?: string,
+  minimoDeMembros = EXPLORE_MIN_MEMBERS,
+) {
   return prisma.community.findMany({
     where: {
       deletedAt: null,
-      membersCount: { gte: EXPLORE_MIN_MEMBERS },
+      membersCount: { gte: minimoDeMembros },
       ...(universeId ? { universeId } : {}),
     },
     orderBy: { membersCount: "desc" },
@@ -139,7 +152,7 @@ export async function listExploreCommunities(_viewer: Viewer, universeId?: strin
   });
 }
 
-/** RN05: antes dos 20 membros, a comunidade só aparece na busca. */
+/** RN05: antes do corte, a comunidade só aparece na busca. */
 export async function searchCommunities(_viewer: Viewer, term: string) {
   return prisma.community.findMany({
     where: { deletedAt: null, name: { contains: term, mode: "insensitive" } },

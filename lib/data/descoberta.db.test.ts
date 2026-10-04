@@ -13,7 +13,7 @@ import {
   paraVoce,
   universosComContagem,
 } from "./descoberta";
-import { joinCommunity, listExploreCommunities } from "./communities";
+import { EXPLORE_MIN_MEMBERS, joinCommunity, listExploreCommunities } from "./communities";
 import { createTopic, createAnswer } from "./topics";
 import { viewerFor } from "./viewer";
 
@@ -37,13 +37,34 @@ async function comunidadeCom(
   return comunidade;
 }
 
-describe("RN05: o corte de 20 membros", () => {
-  it("com 19 membros não aparece em Explorar, mas aparece na busca", async () => {
+/*
+ * O corte vale 0 hoje (decisão do PO: o Hub nasceu e ninguém tem 20 membros).
+ * Os testes abaixo passam um corte explícito para continuar exercendo a regra
+ * — senão desligar o número apagaria junto a prova de que ele funciona.
+ */
+const CORTE = 20;
+
+describe("RN05: o corte de membros", () => {
+  it("hoje o corte está desligado, e isso é decisão de produto", () => {
+    // Se alguém mudar este número, que seja de propósito.
+    expect(EXPLORE_MIN_MEMBERS).toBe(0);
+  });
+
+  it("com o corte desligado, até a comunidade de 1 membro aparece", async () => {
     const eu = await makeProfile();
     const universo = await makeUniverse("Música");
-    await comunidadeCom(universo.id, "Quase Lá", 19);
+    await comunidadeCom(universo.id, "Recém-Nascida", 1);
 
     const explorar = await paraVoce(viewerFor(eu.id));
+    expect(explorar.map((c) => c.name)).toContain("Recém-Nascida");
+  });
+
+  it("abaixo do corte não aparece em Explorar, mas aparece na busca", async () => {
+    const eu = await makeProfile();
+    const universo = await makeUniverse("Música");
+    await comunidadeCom(universo.id, "Quase Lá", CORTE - 1);
+
+    const explorar = await paraVoce(viewerFor(eu.id), 10, CORTE);
     expect(explorar.map((c) => c.name)).not.toContain("Quase Lá");
 
     // O corte evita entulhar a descoberta; não serve para esconder.
@@ -51,46 +72,50 @@ describe("RN05: o corte de 20 membros", () => {
     expect(busca.map((c) => c.name)).toContain("Quase Lá");
   });
 
-  it("com 20 membros aparece em Explorar", async () => {
+  it("no corte exato aparece em Explorar", async () => {
     const eu = await makeProfile();
     const universo = await makeUniverse("Música");
-    await comunidadeCom(universo.id, "Chegou", 20);
+    await comunidadeCom(universo.id, "Chegou", CORTE);
 
-    const explorar = await paraVoce(viewerFor(eu.id));
+    const explorar = await paraVoce(viewerFor(eu.id), 10, CORTE);
     expect(explorar.map((c) => c.name)).toContain("Chegou");
   });
 
-  it("o vigésimo membro faz a comunidade aparecer", async () => {
+  it("o membro que completa o corte faz a comunidade aparecer", async () => {
     const eu = await makeProfile();
     const universo = await makeUniverse("Música");
-    const comunidade = await comunidadeCom(universo.id, "Na Fronteira", 19);
+    const comunidade = await comunidadeCom(universo.id, "Na Fronteira", CORTE - 1);
 
-    expect((await paraVoce(viewerFor(eu.id))).map((c) => c.name)).not.toContain("Na Fronteira");
+    const antes = await paraVoce(viewerFor(eu.id), 10, CORTE);
+    expect(antes.map((c) => c.name)).not.toContain("Na Fronteira");
 
-    const vigesimo = await makeProfile();
-    await joinCommunity(viewerFor(vigesimo.id), comunidade.id);
+    const ultimo = await makeProfile();
+    await joinCommunity(viewerFor(ultimo.id), comunidade.id);
 
-    expect((await paraVoce(viewerFor(eu.id))).map((c) => c.name)).toContain("Na Fronteira");
+    const depois = await paraVoce(viewerFor(eu.id), 10, CORTE);
+    expect(depois.map((c) => c.name)).toContain("Na Fronteira");
   });
 
   it("entrar pelo # muda a contagem de membros", async () => {
     const eu = await makeProfile();
     const universo = await makeUniverse("Música");
-    const comunidade = await comunidadeCom(universo.id, "Entrar Aqui", 20);
+    const comunidade = await comunidadeCom(universo.id, "Entrar Aqui", CORTE);
 
     await joinCommunity(viewerFor(eu.id), comunidade.id);
 
     const depois = await db.community.findUniqueOrThrow({ where: { id: comunidade.id } });
-    expect(depois.membersCount).toBe(21);
+    expect(depois.membersCount).toBe(CORTE + 1);
   });
 
   it("o corte vale também na página do Universo", async () => {
     const eu = await makeProfile();
     const universo = await makeUniverse("Música");
-    await comunidadeCom(universo.id, "Pequena Demais", 19);
-    await comunidadeCom(universo.id, "Grande o Bastante", 20);
+    await comunidadeCom(universo.id, "Pequena Demais", CORTE - 1);
+    await comunidadeCom(universo.id, "Grande o Bastante", CORTE);
 
-    const { comunidades } = await comunidadesDoUniverso(viewerFor(eu.id), universo.slug);
+    const { comunidades } = await comunidadesDoUniverso(viewerFor(eu.id), universo.slug, {
+      minimoDeMembros: CORTE,
+    });
     const nomes = comunidades.map((c) => c.name);
 
     expect(nomes).toContain("Grande o Bastante");
@@ -100,11 +125,11 @@ describe("RN05: o corte de 20 membros", () => {
   it("listExploreCommunities aplica o mesmo corte", async () => {
     const eu = await makeProfile();
     const universo = await makeUniverse("Música");
-    await comunidadeCom(universo.id, "Dezenove", 19);
-    await comunidadeCom(universo.id, "Vinte", 20);
+    await comunidadeCom(universo.id, "Abaixo", CORTE - 1);
+    await comunidadeCom(universo.id, "No Corte", CORTE);
 
-    const lista = await listExploreCommunities(viewerFor(eu.id));
-    expect(lista.map((c) => c.name)).toEqual(["Vinte"]);
+    const lista = await listExploreCommunities(viewerFor(eu.id), undefined, CORTE);
+    expect(lista.map((c) => c.name)).toEqual(["No Corte"]);
   });
 });
 
