@@ -1,0 +1,16 @@
+<!--
+  Email de recuperação de senha.
+
+  A tela 4 do protótipo pede um **código de 6 dígitos**, não um link. O modelo
+  padrão do Supabase envia `{{ .ConfirmationURL }}`; aqui usamos `{{ .Token }}`,
+  que é o código que a pessoa digita.
+
+  Voz do Hub: frases curtas, sentence case.
+-->
+<h2>Seu código para entrar</h2>
+
+<p>Use este código para criar uma nova senha no Hub:</p>
+
+<p style="font-size: 28px; font-weight: 800; letter-spacing: 4px">{{ .Token }}</p>
+
+<p>O código vale por uma hora. Se não foi você quem pediu, ignore este email.</p>

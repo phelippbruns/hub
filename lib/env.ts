@@ -19,6 +19,11 @@ const serverSchema = z.object({
   // Security. Só no servidor, nunca em código enviado ao navegador.
   SUPABASE_SECRET_KEY: z.string().min(1),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  /**
+   * Qual verificador de idade usar (RN29). Ausente significa **negar**, que é
+   * o lado seguro. "fake" só vale contra um Supabase local — ver assertEnv.
+   */
+  AGE_VERIFIER: z.enum(["fake"]).optional(),
 });
 
 const clientSchema = z.object({
@@ -86,6 +91,22 @@ export function clientEnv(): ClientEnv {
  * página, em vez de quebrar na primeira requisição em produção.
  */
 export function assertEnv(): void {
-  serverEnv();
-  clientEnv();
+  const server = serverEnv();
+  const client = clientEnv();
+
+  /*
+   * RN29: o verificador falso confia na data declarada, que é exatamente o que
+   * a regra proíbe. Ele existe para desenvolvimento e para os testes de
+   * jornada, que rodam contra um build de produção com Supabase local.
+   *
+   * Aqui a trava: se alguém levar AGE_VERIFIER=fake para um ambiente de
+   * verdade, o build falha em vez de aceitar cadastros sem verificação.
+   */
+  const supabaseIsLocal = /localhost|127\.0\.0\.1/.test(client.NEXT_PUBLIC_SUPABASE_URL);
+  if (server.AGE_VERIFIER === "fake" && !supabaseIsLocal) {
+    throw new Error(
+      "AGE_VERIFIER=fake só vale com um Supabase local. Num ambiente de verdade " +
+        "isso liberaria cadastro sem verificação de idade (RN29).",
+    );
+  }
 }

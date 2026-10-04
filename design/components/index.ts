@@ -1,6 +1,10 @@
 export { Button } from "./button";
 export { Chip } from "./chip";
 export { TextField } from "./text-field";
+export { Input } from "./input";
+export { PasswordInput } from "./password-input";
+export { CodeInput } from "./code-input";
+export { Steps } from "./steps";
 export { LevelMark, type Level } from "./level-mark";
 export { CommunityDoor } from "./community-door";
 export { HotTopicCard } from "./hot-topic-card";

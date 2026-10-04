@@ -495,6 +495,21 @@ model Notification {
   @@map("notifications")
 }
 
+/// Tentativas de autenticação, para limitar força bruta (F03).
+///
+/// Guarda o **hash** do email ou do IP, nunca o valor em claro: um registro de
+/// tentativas não pode virar lista de quem tem conta no Hub.
+model AuthAttempt {
+  id        String   @id @default(uuid()) @db.Uuid
+  action    String
+  keyHash   String   @map("key_hash")
+  succeeded Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([action, keyHash, createdAt])
+  @@map("auth_attempts")
+}
+
 /// Regra de segurança 10: dados mínimos em logs e eventos — só ids internos,
 /// nunca email, nome ou conteúdo. Um teste confere que as propriedades não
 /// carregam texto livre do usuário.

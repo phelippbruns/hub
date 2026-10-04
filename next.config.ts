@@ -24,6 +24,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  images: {
+    // Fotos de perfil vindas do Google (F03). Lista fechada: qualquer outro
+    // domínio é recusado, para o otimizador não virar proxy aberto de imagem.
+    remotePatterns: [{ protocol: "https", hostname: "lh3.googleusercontent.com" }],
+  },
+
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

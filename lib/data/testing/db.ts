@@ -20,6 +20,7 @@ if (!/localhost|127\.0\.0\.1/.test(url)) {
 export const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 
 const TABLES = [
+  "auth_attempts",
   "analytics_events",
   "notifications",
   "moderation_actions",

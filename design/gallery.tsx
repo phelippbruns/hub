@@ -16,15 +16,19 @@ import {
   Button,
   Checkbox,
   Chip,
+  CodeInput,
   CommunityDoor,
   CommunityRow,
   EmptyState,
   EndOfList,
   ErrorState,
   HotTopicCard,
+  Input,
   LevelMark,
   LoadingBlock,
+  PasswordInput,
   Skeleton,
+  Steps,
   SuccessMessage,
   Switch,
   Tabs,
@@ -150,6 +154,7 @@ export function DesignGallery() {
   const [notify, setNotify] = useState(true);
   const [agree, setAgree] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(true);
+  const [codigo, setCodigo] = useState("12");
 
   return (
     <main className="max-w-contentColumn mx-auto flex flex-col gap-4 px-4 py-4">
@@ -469,6 +474,34 @@ export function DesignGallery() {
               onToggle={() => setNotify((v) => !v)}
               label="Avisar quando seu tópico ficar em destaque"
             />
+          </div>
+        </Card>
+
+        <Card title="Campos de uma linha" wide>
+          <div className="flex w-full flex-col gap-2">
+            <Input label="Email" type="email" placeholder="seu@email.com" />
+            <Input label="Nome completo" defaultValue="Ana Lima" />
+            <Input
+              label="Email"
+              type="email"
+              defaultValue="invalido"
+              error="Informe um email válido"
+            />
+            <PasswordInput label="Senha" defaultValue="segredo" hint="Mínimo de 8 caracteres" />
+          </div>
+        </Card>
+
+        <Card title="Código de 6 dígitos" wide>
+          <div className="w-full">
+            <CodeInput label="Código" value={codigo} onChange={setCodigo} />
+          </div>
+        </Card>
+
+        <Card title="Etapas" wide>
+          <div className="flex w-full flex-col gap-2">
+            <Steps total={3} current={1} />
+            <Steps total={3} current={2} />
+            <Steps total={3} current={3} />
           </div>
         </Card>
 

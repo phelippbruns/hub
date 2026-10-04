@@ -26,6 +26,10 @@
   --color-error: #b42318;
   --color-success: #146c43;
 
+  --text-brand: 88px;
+  --text-brand--line-height: 80px;
+  --text-brand--font-weight: 800;
+  --text-brand--letter-spacing: -0.04em;
   --text-title: 28px;
   --text-title--line-height: 32px;
   --text-title--font-weight: 800;
@@ -72,6 +76,7 @@
   --spacing-toggleKnob: 18px;
   --spacing-checkbox: 20px;
   --spacing-contentColumn: 720px;
+  --spacing-authColumn: 420px;
 
   --radius-sm: 12px;
   --radius-md: 18px;

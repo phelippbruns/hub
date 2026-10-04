@@ -40,6 +40,7 @@ lib/data/errors.ts   erros tipados, e a tradução do erro do banco em RN
 lib/data/validation.ts  schemas Zod, inclusive o bloqueio de links (RN16)
 lib/data/access.ts   conferências reaproveitadas: bloqueio, membro, comunidade em comum
 lib/supabase/        clientes @supabase/ssr (server, client, session)
+lib/auth/            sessão, verificação de idade, geração do @ e destinos permitidos
 design/tokens.ts     tokens GERADOS de docs/design-system/tokens.json
 design/tokens.css    os mesmos tokens como tema do Tailwind
 design/icons/        ícones em SVG, 2 px numa grade de 24
@@ -83,6 +84,12 @@ Duas defesas sustentam a regra. A primeira é estrutural: [design/tokens.css](de
 Para mudar um valor, mude o JSON e rode `npm run tokens`. Nunca edite `design/tokens.ts` ou `design/tokens.css` à mão — a CI confere com `npm run tokens:check`.
 
 As medidas de controle (ícone, marca, avatar, miniatura, interruptor, coluna de conteúdo) também são tokens, na seção `size` do JSON, e viram utilitário do Tailwind: `size-mark`, `h-toggleH`, `max-w-contentColumn`. Não existe pixel escrito à mão no código.
+
+**O id de quem está pedindo vem da sessão, nunca do formulário.** `getViewer()` ([lib/auth/session.ts](lib/auth/session.ts)) é a única ponte entre o Supabase Auth e a camada de dados. Server Action que aceitasse um `profileId` do corpo da requisição deixaria qualquer pessoa agir como outra.
+
+**Verificação de idade é plugável e nega por padrão** (RN29). `resolveAgeVerifier()` só devolve o verificador falso com `AGE_VERIFIER=fake`, e [lib/env.ts](lib/env.ts) derruba o build se essa variável aparecer com um Supabase que não é local. Sem provedor configurado, produção **recusa o cadastro** — liberar sem verificar seria descumprir a regra calado.
+
+**Mensagem de erro de autenticação nunca diz se o email existe.** Senha errada e email desconhecido respondem igual; pedir código responde igual nos dois casos. Senão o formulário vira ferramenta de descobrir quem tem conta no Hub.
 
 **Toda função de `lib/data/` recebe o `Viewer` como primeiro argumento.** É o que torna a conferência de permissão obrigatória por construção, em vez de depender de lembrar. A forma é sempre: valida com Zod → confere sessão, permissão e bloqueio → só então chama o Prisma.
 
@@ -133,6 +140,8 @@ npm run typecheck    # tsc --noEmit
 npm run tokens       # regerar design/tokens.ts e tokens.css do JSON
 npm run test         # Vitest: regras, contraste, snapshots (sem banco)
 npm run test:db      # regras no banco e RLS (exige `npm run supabase:start`)
+npm run test:e2e     # jornadas; a recuperação de senha lê o email no Mailpit
+                     # (http://localhost:54324), então exige o Supabase local
 npm run test:watch   # Vitest em modo contínuo
 npm run test:e2e     # Playwright: jornadas (sobe o build sozinho)
 ```

@@ -21,6 +21,10 @@ function sourceFiles(dir: string): string[] {
     const path = join(dir, entry);
     if (statSync(path).isDirectory()) return sourceFiles(path);
     if (!/\.(ts|tsx|css)$/.test(path)) return [];
+    // Arquivo começando com ponto nunca é código de verdade. Pular evita uma
+    // corrida com o teste de fronteira, que escreve fixtures temporários em
+    // app/ e features/ enquanto esta varredura acontece.
+    if (entry.startsWith(".")) return [];
     if (GENERATED.includes(path)) return [];
     if (path.endsWith(".test.ts") || path.endsWith(".test.tsx")) return [];
     return [path];
