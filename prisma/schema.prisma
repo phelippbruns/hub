@@ -43,6 +43,32 @@ enum InvitePolicy {
   @@map("invite_policy")
 }
 
+/// Em que pé está a verificação de idade de um perfil.
+///
+/// `pending` existe para o caso de um provedor externo que responde depois —
+/// a pessoa fica cadastrada e sem acesso até a resposta chegar.
+enum AgeVerificationStatus {
+  pending
+  verified
+  rejected
+
+  @@map("age_verification_status")
+}
+
+/// Como a idade foi verificada.
+///
+/// Hoje só `self_declared`. Os outros já existem no tipo para que integrar um
+/// provedor externo depois não exija mexer no banco nem no cadastro de quem
+/// já se registrou.
+enum AgeVerificationMethod {
+  self_declared
+  document
+  facial
+  external_provider
+
+  @@map("age_verification_method")
+}
+
 /// RN32: ao excluir a conta, escolhe manter o conteúdo como "Conta excluída"
 /// ou apagar tudo. Cabines, perfil e Coleção somem nos dois casos.
 enum DeletedContentPolicy {
@@ -135,11 +161,25 @@ model Profile {
   /// RN27: descrição de até 120 caracteres, sem links.
   bio       String? @db.VarChar(120)
 
-  /// RN29: verificação de idade sem autodeclaração. Guardamos quando foi
-  /// verificada; o método depende de revisão jurídica e não entra aqui.
-  ageVerifiedAt DateTime? @map("age_verified_at") @db.Timestamptz(6)
+  /// Data de nascimento informada no cadastro.
+  ///
+  /// Guardada como `date`, sem hora nem fuso: nascimento é um dia do
+  /// calendário, e carregar fuso junto faria a idade mudar conforme o
+  /// servidor. Opcional no banco por causa dos perfis criados antes do campo
+  /// existir; o cadastro exige.
+  birthDate DateTime? @map("birth_date") @db.Date
+
+  /// Em que pé está a verificação, como foi feita e quando.
+  ///
+  /// Os três andam juntos: guardar só a data não diz se o método vale, e
+  /// guardar só o status não deixa reavaliar quando a regra mudar. Com os três,
+  /// dá para encontrar quem foi aprovado por autodeclaração e pedir a
+  /// verificação de verdade depois, sem refazer cadastro.
+  ageVerificationStatus AgeVerificationStatus  @default(pending) @map("age_verification_status")
+  ageVerificationMethod AgeVerificationMethod? @map("age_verification_method")
+  ageVerifiedAt         DateTime?              @map("age_verified_at") @db.Timestamptz(6)
   /// Versão dos Termos aceita no cadastro (RN29).
-  termsVersion  String?   @map("terms_version") @db.VarChar(20)
+  termsVersion          String?                @map("terms_version") @db.VarChar(20)
 
   /// RN23: quem pode me convidar para uma Cabine.
   invitePolicy InvitePolicy @default(community_members) @map("invite_policy")

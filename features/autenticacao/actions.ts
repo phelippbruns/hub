@@ -142,7 +142,9 @@ export async function criarConta(_state: ActionState, formData: FormData): Promi
   await createProfile({
     authUserId: data.user.id,
     name,
+    birthDate: new Date(birthDate),
     ageVerifiedAt: verification.verifiedAt,
+    ageVerificationMethod: verification.method,
     termsVersion: TERMS_VERSION,
   });
 
@@ -198,7 +200,9 @@ export async function completarCadastro(
     name: parsed.data.name,
     handle: parsed.data.handle,
     avatarUrl: parsed.data.avatarUrl || null,
+    birthDate: new Date(parsed.data.birthDate),
     ageVerifiedAt: verification.verifiedAt,
+    ageVerificationMethod: verification.method,
     termsVersion: TERMS_VERSION,
   });
 

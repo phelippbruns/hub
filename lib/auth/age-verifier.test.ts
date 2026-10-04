@@ -13,7 +13,7 @@ function birthDateForAge(age: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-describe("RN29: idade mínima de 16 anos", () => {
+describe(`idade mínima de ${MINIMUM_AGE} anos`, () => {
   const verifier = new SelfDeclaredAgeVerifier();
 
   it("aprova quem tem exatamente a idade mínima", async () => {
@@ -30,6 +30,21 @@ describe("RN29: idade mínima de 16 anos", () => {
       declaredBirthDate: birthDateForAge(MINIMUM_AGE - 1),
     });
     expect(result.status).toBe("rejected");
+    if (result.status === "rejected") expect(result.reason).toContain(String(MINIMUM_AGE));
+  });
+
+  it("a idade mínima é 18, como o PO definiu", () => {
+    // O escopo ainda fala em 16; vale alinhar o documento.
+    expect(MINIMUM_AGE).toBe(18);
+  });
+
+  it("registra o método usado, para dar para reavaliar depois", async () => {
+    const result = await verifier.verify({
+      reference: "x",
+      declaredBirthDate: birthDateForAge(MINIMUM_AGE + 5),
+    });
+    expect(result.status).toBe("verified");
+    if (result.status === "verified") expect(result.method).toBe("self_declared");
   });
 
   it.each([undefined, "", "não é data"])("recusa data ausente ou inválida (%s)", async (date) => {

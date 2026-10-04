@@ -6,6 +6,7 @@ import { ForbiddenError, NotFoundError } from "./errors";
 import { updateProfileSchema } from "./validation";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { generateUniqueHandle } from "@/lib/auth/handle";
+import type { AgeVerificationMethod } from "@/lib/auth/age-verifier";
 
 async function handleIsTaken(handle: string): Promise<boolean> {
   const found = await prisma.profile.findUnique({ where: { handle }, select: { id: true } });
@@ -34,13 +35,19 @@ export async function getProfileByAuthId(authUserId: string) {
 export async function createProfile(input: {
   authUserId: string;
   name: string;
+  /** Data informada no cadastro, guardada para reavaliar quando a regra mudar. */
+  birthDate: Date;
   ageVerifiedAt: Date;
+  ageVerificationMethod: AgeVerificationMethod;
   termsVersion: string;
   avatarUrl?: string | null;
   handle?: string;
 }) {
-  if (!input.ageVerifiedAt) {
-    throw new ForbiddenError("RN29: cadastro exige verificação de idade");
+  if (!input.ageVerifiedAt || !input.ageVerificationMethod) {
+    throw new ForbiddenError("Cadastro exige verificação de idade");
+  }
+  if (!input.birthDate) {
+    throw new ForbiddenError("Cadastro exige a data de nascimento");
   }
   if (!input.termsVersion) {
     throw new ForbiddenError("RN29: cadastro exige aceite dos Termos");
@@ -55,6 +62,9 @@ export async function createProfile(input: {
         handle,
         name: input.name,
         avatarUrl: input.avatarUrl ?? null,
+        birthDate: input.birthDate,
+        ageVerificationStatus: "verified",
+        ageVerificationMethod: input.ageVerificationMethod,
         ageVerifiedAt: input.ageVerifiedAt,
         termsVersion: input.termsVersion,
       },
@@ -70,6 +80,9 @@ export async function createProfile(input: {
           handle: await generateUniqueHandle(`${input.name}`, handleIsTaken),
           name: input.name,
           avatarUrl: input.avatarUrl ?? null,
+          birthDate: input.birthDate,
+          ageVerificationStatus: "verified",
+          ageVerificationMethod: input.ageVerificationMethod,
           ageVerifiedAt: input.ageVerifiedAt,
           termsVersion: input.termsVersion,
         },

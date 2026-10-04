@@ -79,7 +79,10 @@ async function main() {
       id: person.id,
       handle: person.handle,
       name: person.name,
-      // RN29: no seed as pessoas já passaram pela verificação de idade.
+      // No seed as pessoas já passaram pela verificação.
+      birthDate: new Date(Date.UTC(1995, 4, 20)),
+      ageVerificationStatus: "verified",
+      ageVerificationMethod: "self_declared",
       ageVerifiedAt: new Date(),
       termsVersion: "2026-10-01",
     })),
