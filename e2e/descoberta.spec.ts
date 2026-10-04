@@ -152,8 +152,14 @@ test.describe("Universo", () => {
     await expect(maisRecentes).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("RN05: comunidade com menos de 20 membros só aparece na busca", async ({ page }) => {
-    await entrarNoApp(page, "rn05");
+  /*
+   * O corte da RN05 vale 0 hoje: toda comunidade aparece, por menor que seja.
+   * Quem prova o mecanismo é `lib/data/descoberta.db.test.ts`, que o exercita
+   * com um corte explícito. Aqui o que importa é a consequência para quem usa
+   * — uma comunidade pequena está visível, e não só pela busca.
+   */
+  test("com o corte desligado, comunidade pequena aparece no Universo", async ({ page }) => {
+    await entrarNoApp(page, "cortezero");
 
     const [pequena] = await consultar<{ name: string; slug: string }>(
       `SELECT c.name, u.slug
@@ -161,13 +167,9 @@ test.describe("Universo", () => {
         WHERE c.members_count < 20 AND c.deleted_at IS NULL
         LIMIT 1`,
     );
-    expect(pequena, "o seed precisa de uma comunidade abaixo do corte").toBeTruthy();
+    expect(pequena, "o seed precisa de uma comunidade pequena").toBeTruthy();
 
     await page.goto(`/u/${pequena!.slug}`);
-    await expect(page.getByText(pequena!.name, { exact: true })).toHaveCount(0);
-
-    // Some da descoberta, mas quem procura pelo nome encontra.
-    await page.goto(`/busca?q=${encodeURIComponent(pequena!.name)}`);
     await expect(page.getByText(pequena!.name, { exact: true }).first()).toBeVisible();
   });
 });

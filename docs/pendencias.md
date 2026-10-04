@@ -1,6 +1,6 @@
 # Pendências do Hub
 
-Atualizado em 4 de outubro de 2026, depois da F04.
+Atualizado em 4 de outubro de 2026, depois da F06.
 
 O que falta para o Hub existir. Separado pelo que **impede o lançamento**, pelo
 que é **decisão sua**, pelo que é **dívida técnica** e pela **fila de features**.
@@ -12,7 +12,7 @@ Para as regras de negócio, [escopo.md](escopo.md).
 
 ## 1. Impede o lançamento
 
-Três coisas. Nenhuma é de código: todas dependem de decisão ou de contrato.
+Quatro coisas. Nenhuma é de código: todas dependem de decisão ou de contrato.
 
 ### 1.1 Verificação de idade de verdade
 
@@ -46,9 +46,89 @@ Ligado a isto: **quem modera as comunidades da plataforma.** Hoje a resposta é
 "a conta do Phelipp", o que é um remendo — toda denúncia nas 19 cai no seu
 colo. Precisa virar um papel de equipe.
 
+### 1.4 O corte de membros está desligado
+
+A RN05 diz que comunidade com menos de 20 membros não aparece em Explorar nem
+na página do Universo — só na busca. A regra existe para o Hub não parecer um
+cemitério de comunidades vazias.
+
+Em 4 de outubro de 2026 o PO baixou o corte de 20 para **0**: o Hub acabou de
+nascer, nenhuma comunidade chega perto de 20 membros, e o corte deixava
+Explorar vazio justamente para quem chega primeiro — o contrário do que a
+regra quer.
+
+A regra **continua inteira** no código e nos testes, que a exercem com um
+corte explícito. Religar é mudar um número em `EXPLORE_MIN_MEMBERS`
+([lib/data/communities.ts](../lib/data/communities.ts)), sem mexer em mais
+nada.
+
+**A decisão que fica em aberto:** quando religar, e em que número. Vinte foi
+escolhido antes de existir gente no Hub. Vale revisitar com dados reais — e
+vale decidir se o número volta de uma vez ou sobe aos poucos.
+
 ---
 
-## 2. Decisões suas, fora do código
+## 2. Cadastro: o que o PO pediu em 4 de outubro
+
+Quatro pedidos, com o custo de cada um medido no código de hoje.
+
+### Tornar o @ obrigatório — **custo baixo**
+
+Hoje o campo é "@ (opcional)": em branco, o Hub gera um a partir do nome.
+Tornar obrigatório é mudar o rótulo, exigir o campo e tirar o `.optional()`
+do schema em [features/autenticacao/actions.ts](../features/autenticacao/actions.ts).
+
+Uma consequência a decidir: o caminho do **Google** não tem como pedir o @ na
+mesma tela, porque a pessoa volta do Google já autenticada. Hoje existe uma
+tela de "completar cadastro" para isso, e ela continuaria sendo o lugar.
+
+### Avisar que o @ já existe — **já funciona**
+
+Já está pronto, em três camadas: a tela avisa enquanto a pessoa digita (sem
+esperar o envio), o servidor confere de novo antes de criar, e o banco tem
+índice único por trás. Nada a fazer.
+
+### Avisar que o email já existe — **custo baixo, mas é uma escolha de segurança**
+
+Tecnicamente é simples. O problema é que isso **contraria uma regra que o Hub
+segue de propósito**: nenhuma mensagem de autenticação revela se um email tem
+conta. Hoje "email já cadastrado" e "dados inválidos" respondem igual.
+
+O motivo: um formulário que responde "esse email já existe" vira ferramenta de
+descobrir **quem** está no Hub. Basta testar uma lista de endereços. Numa rede
+sobre interesses — alguns deles íntimos — saber que uma pessoa tem conta já é
+informação sobre ela.
+
+**O caminho que resolve os dois lados**, e é o que bancos e redes grandes
+fazem: a tela continua dizendo o mesmo para todo mundo, e o Hub **manda um
+email para o endereço que já tem conta**: "alguém tentou criar uma conta com
+este email; se foi você, entre por aqui; se não foi, ignore." Quem é dono do
+email recebe a ajuda. Quem está sondando não descobre nada.
+
+Custo do caminho seguro: médio — depende de ter envio de email configurado, o
+que hoje só existe em desenvolvimento (Mailpit).
+
+**Decisão sua:** avisar na tela (rápido, abre a porta de enumeração) ou avisar
+por email (seguro, depende de envio de email funcionando).
+
+### Termos de uso e Política de privacidade como link — **custo baixo**
+
+Hoje a frase do aceite é texto corrido, sem link. A página
+[/termos](../app/(entrada)/termos/page.tsx) já existe e já está na lista de @
+reservados, mas o conteúdo é um espaço reservado de 30 linhas.
+
+São duas coisas separadas:
+
+1. **Transformar a frase em link** — meia hora, incluindo o teste de que o
+   link abre e volta sem perder o que já foi preenchido.
+2. **Colocar o texto real** — depende de você mandar. Vale decidir se Termos e
+   Política ficam na mesma página ou em duas, porque o aceite cita as duas.
+
+Mande o texto quando tiver: o encaixe é direto.
+
+---
+
+## 3. Decisões suas, fora do código
 
 | O quê | Situação | Por que importa |
 |---|---|---|
@@ -64,11 +144,11 @@ continuar assim com gente de verdade no Hub.**
 
 ---
 
-## 3. Dívida técnica
+## 4. Dívida técnica
 
 Coisas que funcionam, mas que vão cobrar caro se ficarem como estão.
 
-### 3.1 Um banco só para tudo
+### 4.1 Um banco só para tudo
 
 Produção e os previews de cada PR usam **o mesmo banco**. Um teste num PR mexe
 no mesmo lugar que os dados de verdade. Enquanto só há contas de teste, tudo
@@ -76,7 +156,7 @@ bem; depois, não.
 
 O caminho é um projeto Supabase separado para homologação.
 
-### 3.2 `prisma migrate dev` não funciona
+### 4.2 `prisma migrate dev` não funciona
 
 Ele introspecta o banco e esbarra na chave de `profiles` para `auth.users`, que
 é schema do Supabase e não do Prisma (erro P4002). Banco de sombra não resolve.
@@ -84,7 +164,7 @@ Ele introspecta o banco e esbarra na chave de `profiles` para `auth.users`, que
 Por isso **toda migration é escrita à mão**. Funciona e está documentado, mas é
 um passo manual a mais e uma chance a mais de erro.
 
-### 3.3 Avisos de dependência sem correção
+### 4.3 Avisos de dependência sem correção
 
 O `eslint-config-next` depende de `braces`, que tem um aviso alto **sem versão
 corrigida publicada**. A CI bloqueia por vulnerabilidade só nas dependências de
@@ -92,12 +172,12 @@ produção; a árvore completa roda como aviso.
 
 Revisar quando o Next publicar correção.
 
-### 3.4 Ícones da PWA são provisórios
+### 4.4 Ícones da PWA são provisórios
 
 Quadrados sólidos gerados por script. Os definitivos dependem da identidade
 visual.
 
-### 3.5 Jornadas rodam em série
+### 4.5 Jornadas rodam em série
 
 As 30 jornadas rodam uma de cada vez, porque em paralelo disputam banco,
 servidor e o limite de autenticação do Supabase. Custa cerca de um minuto. Se a
@@ -105,7 +185,7 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 
 ---
 
-## 4. Fila de features
+## 5. Fila de features
 
 Feito: **F00 a F04**. Faltam 17.
 
@@ -135,7 +215,7 @@ substituídas pela F11, F08 e F18.
 
 ---
 
-## 5. Pontos em aberto do escopo
+## 6. Pontos em aberto do escopo
 
 Os 16 de [escopo.md](escopo.md) que ainda não foram decididos. Os três
 primeiros já estão na seção 1 deste documento.
@@ -159,11 +239,12 @@ fácil de trocar.
 
 ---
 
-## 6. O que fazer agora
+## 7. O que fazer agora
 
-1. **Criar sua conta** em `/criar-conta` com o @ `phebruns`
-2. Rodar `npm run moderacao:atribuir` para as 19 comunidades ganharem dono
-3. Seguir para a **F05**, que destrava toda a sequência de telas
+1. **Decidir sobre o aviso de email duplicado** (seção 2): na tela ou por
+   email. É a única das quatro que não é só execução.
+2. **Mandar o texto dos Termos e da Política**, se já tiver.
+3. Seguir para a **F07**, que traz as comunidades por dentro.
 
 Em paralelo, e sem pressa de código: começar a conversa jurídica sobre
 verificação de idade. É o item que mais demora e o que mais bloqueia.
