@@ -124,6 +124,43 @@ que hoje só existe em desenvolvimento (Mailpit).
 **Decisão sua:** avisar na tela (rápido, abre a porta de enumeração) ou avisar
 por email (seguro, depende de envio de email funcionando).
 
+### Editar a capa da comunidade — **junto com a F20**
+
+Pedido do PO em 10 de outubro: uma opção "Editar capa" no menu de três
+pontos da comunidade.
+
+Não é o ajuste pequeno que parece. Hoje **o Hub não envia arquivo nenhum** —
+a comunidade nasce com a capa do Universo, e a tela de criar diz isso. Fazer
+a edição de verdade é construir o caminho de upload inteiro, que a regra de
+segurança 7 define: tipos permitidos, tamanho máximo, URLs assinadas com
+validade curta e **remoção dos metadados de localização das fotos** (uma foto
+de celular carrega onde foi tirada; publicar isso sem querer é um problema
+sério numa rede social).
+
+Decisão do PO: fazer junto com a **F20**, que é onde os uploads moram. Nada a
+construir agora.
+
+Quando chegar lá, três pontos a decidir:
+
+- Quem pode trocar a capa — só a moderação, ou qualquer membro?
+- A capa antiga é apagada ou guardada?
+- Entra também a foto de perfil e a imagem de resposta, que dependem do mesmo
+  caminho?
+
+### Número único no endereço do tópico — **depois**
+
+Hoje, dois tópicos de mesmo nome **na mesma comunidade** ganham um número no
+fim do endereço: `primeira-festa` e `primeira-festa-2`. Funciona, mas o
+número depende de quem chegou primeiro, e o endereço muda de sentido se o
+primeiro for apagado.
+
+Ideia do PO em 10 de outubro: dar um número único a cada tópico e pôr no
+endereço, como fazem os fóruns. Fica mais previsível e nunca colide.
+
+Custo baixo, mas **muda endereços que já existem**, então vale fazer de uma
+vez com um redirecionamento do formato antigo — o mesmo cuidado que a F08
+teve com `/topico/<id>`.
+
 ### Termos de uso e Política de privacidade como link — **custo baixo**
 
 Hoje a frase do aceite é texto corrido, sem link. A página
@@ -200,12 +237,10 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 
 ## 5. Fila de features
 
-Feito: **F00 a F06**. Faltam 15.
+Feito: **F00 a F08**. Faltam 13.
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
-| F07 | Comunidades | F06 | Criar, entrar, sair, página da comunidade |
-| F08 | Tópicos | F07 | Criar e ver tópicos |
 | F09 | Respostas | F08 | O conteúdo principal do Hub |
 | F10 | Ciclo do Hot Topic | F09 | A virada das 00h, que é o motivo de voltar |
 | F11 | Início | F10 | A primeira tela de quem entra |
@@ -217,7 +252,7 @@ Feito: **F00 a F06**. Faltam 15.
 | F17 | Configurações e LGPD | F15 | Exportar e excluir conta |
 | F18 | Termos e privacidade | F03 | Texto completo — **já destravada**, só falta o texto |
 | F19 | Métricas e eventos | F14 | Saber se funciona |
-| F20 | Qualidade final da web | todas | Revisão geral |
+| F20 | Qualidade final da web | todas | Revisão geral, **mais os uploads**: capa da comunidade, foto de perfil e imagem de resposta |
 | F21 | Versão de celular | F20 | O mesmo código, acima e abaixo de 768 px |
 
 **Atalhos que precisam ser preenchidos:** `/inicio`, `/topico/[id]` e `/termos`
