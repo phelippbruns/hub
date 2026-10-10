@@ -8,6 +8,12 @@ import { cn } from "../cn";
  * o painel de contexto à direita. Das 23 telas autenticadas, apenas a página
  * da comunidade e a Cabine têm painel; reservar a coluna nas outras 21
  * deixaria o conteúdo torto e fora do centro.
+ *
+ * O painel chega por rota paralela, e uma rota paralela está **sempre**
+ * preenchida: as telas sem painel caem num `default` que devolve nada. Por
+ * isso quem decide se a coluna existe é o `empty:hidden` — se a tela não
+ * desenhou nada ali, a coluna some, em vez de ficar uma faixa de 260 px em
+ * branco com uma linha ao lado.
  */
 export function AppShell({
   nav,
@@ -22,16 +28,21 @@ export function AppShell({
     <div
       className={cn(
         "bg-surfacePage grid min-h-screen",
-        painel ? "grid-cols-[auto_minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)]",
+        painel === undefined
+          ? "grid-cols-[auto_minmax(0,1fr)]"
+          : "grid-cols-[auto_minmax(0,1fr)_auto]",
       )}
     >
       {nav}
       <main className="min-w-0">{children}</main>
-      {painel ? (
-        <aside aria-label="Painel de contexto" className="border-line w-contextPanel border-l p-4">
+      {painel === undefined ? null : (
+        <aside
+          aria-label="Painel de contexto"
+          className="border-line w-contextPanel border-l p-4 empty:hidden"
+        >
           {painel}
         </aside>
-      ) : null}
+      )}
     </div>
   );
 }

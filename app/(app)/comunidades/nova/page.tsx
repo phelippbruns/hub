@@ -1,8 +1,18 @@
 import type { Metadata } from "next";
-import { EmBreve } from "../../em-breve";
+import { ContentColumn, PageTitle } from "@/design/components";
+import { FormularioNovaComunidade } from "@/features/comunidades/formulario-nova";
+import { universosComContagem } from "@/lib/data/descoberta";
 
-export const metadata: Metadata = { title: "Criar comunidade · Hub" };
+export const metadata: Metadata = { title: "Nova comunidade · Hub" };
 
-export default function Page() {
-  return <EmBreve titulo="Criar comunidade" feature="F07" />;
+/** Tela 13: criar comunidade (RN03, RN04, RN06). */
+export default async function NovaComunidadePage() {
+  const universos = await universosComContagem();
+
+  return (
+    <ContentColumn>
+      <PageTitle>Nova comunidade</PageTitle>
+      <FormularioNovaComunidade universos={universos} />
+    </ContentColumn>
+  );
 }

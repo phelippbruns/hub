@@ -42,6 +42,7 @@ export async function createCommunity(viewer: Viewer, input: unknown) {
           universeId: universe.id,
           name: data.name,
           // Preenchido pelo gatilho do RN04; o Prisma exige um valor.
+          // O `slug` também vem de gatilho, e tem default no schema.
           nameNormalized: data.name,
           intro: data.intro,
           coverUrl: data.coverUrl ?? universe.defaultCoverUrl,
@@ -58,6 +59,28 @@ export async function createCommunity(viewer: Viewer, input: unknown) {
   } catch (error) {
     translateDatabaseError(error);
   }
+}
+
+/**
+ * RN04: a comunidade que já ocupa esse nome, se houver.
+ *
+ * A checagem acontece no envio, e o protótipo manda nomear a existente: "Já
+ * existe Fotografia de Paisagem. Entre nela ou escolha outro nome." Um erro
+ * genérico deixaria a pessoa adivinhando qual nome já foi usado — e a saída
+ * que o produto oferece é **entrar na que existe**, o que exige saber qual é.
+ *
+ * O índice único do banco continua sendo a garantia: isto é a mensagem boa,
+ * não a regra.
+ */
+export async function comunidadeComOMesmoNome(nome: string) {
+  const linhas = await prisma.$queryRaw<{ id: string; name: string; slug: string }[]>`
+    SELECT id, name, slug
+      FROM communities
+     WHERE deleted_at IS NULL
+       AND name_normalized = normalize_community_name(${nome})
+     LIMIT 1
+  `;
+  return linhas[0] ?? null;
 }
 
 export async function joinCommunity(viewer: Viewer, communityId: string) {
@@ -95,44 +118,58 @@ export async function leaveCommunity(viewer: Viewer, communityId: string) {
 
     if (membership.role !== "moderator") return;
 
-    const otherModerator = await tx.membership.findFirst({
+    const outro = await tx.membership.findFirst({
       where: { communityId, role: "moderator", bannedAt: null },
       select: { profileId: true },
     });
-    if (otherModerator) return;
+    if (outro) return;
 
-    // Proposta registrada no escopo: mais respostas nos últimos 30 dias.
-    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const ranking = await tx.answer.groupBy({
-      by: ["authorId"],
-      where: {
-        deletedAt: null,
-        createdAt: { gte: since },
-        topic: { communityId },
-        author: { memberships: { some: { communityId, bannedAt: null } } },
-      },
-      _count: { _all: true },
-      orderBy: { _count: { authorId: "desc" } },
-      take: 1,
-    });
-
-    const heir =
-      ranking[0]?.authorId ??
-      (
-        await tx.membership.findFirst({
-          where: { communityId, bannedAt: null },
-          orderBy: { joinedAt: "asc" },
-          select: { profileId: true },
-        })
-      )?.profileId;
-
-    if (heir) {
+    const herdeiro = await escolherHerdeiroDaModeracao(tx, communityId);
+    if (herdeiro) {
       await tx.membership.update({
-        where: { communityId_profileId: { communityId, profileId: heir } },
+        where: { communityId_profileId: { communityId, profileId: herdeiro } },
         data: { role: "moderator" },
       });
     }
   });
+}
+
+/**
+ * RN06: quem herda a moderação quando o último moderador sai.
+ *
+ * Fica numa função própria **porque o critério ainda está em aberto no
+ * escopo**. Hoje é "quem mais respondeu nos últimos 30 dias", e quem não tem
+ * ninguém ativo cai no membro mais antigo — assim a comunidade nunca fica sem
+ * dono, que é o que a regra realmente protege.
+ *
+ * Trocar o critério é mexer só aqui.
+ */
+export async function escolherHerdeiroDaModeracao(
+  tx: Pick<typeof prisma, "answer" | "membership">,
+  communityId: string,
+): Promise<string | null> {
+  const desde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const ranking = await tx.answer.groupBy({
+    by: ["authorId"],
+    where: {
+      deletedAt: null,
+      createdAt: { gte: desde },
+      topic: { communityId },
+      author: { memberships: { some: { communityId, bannedAt: null } } },
+    },
+    _count: { _all: true },
+    orderBy: { _count: { authorId: "desc" } },
+    take: 1,
+  });
+  if (ranking[0]?.authorId) return ranking[0].authorId;
+
+  const maisAntigo = await tx.membership.findFirst({
+    where: { communityId, bannedAt: null },
+    orderBy: { joinedAt: "asc" },
+    select: { profileId: true },
+  });
+  return maisAntigo?.profileId ?? null;
 }
 
 /** RN05: no Explorar só entram as comunidades que passam do corte de membros. */
