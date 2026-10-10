@@ -32,6 +32,13 @@ function rotasDePrimeiroNivel(): string[] {
         varrer(caminho);
         continue;
       }
+      /*
+       * @encaixe é rota paralela: preenche um espaço do layout e **nunca**
+       * vira caminho de URL. O que está dentro dele é uma segunda cópia das
+       * rotas que já foram contadas pelo caminho normal, então nem entra na
+       * lista nem é varrido.
+       */
+      if (entrada.startsWith("@")) continue;
       // [param] casa qualquer coisa — é justamente a rota do perfil.
       if (entrada.startsWith("[") || entrada.startsWith("_") || entrada.startsWith(".")) continue;
 

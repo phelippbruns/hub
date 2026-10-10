@@ -6,14 +6,17 @@ import {
   Button,
   Checkbox,
   Chip,
+  CommunityCover,
   CommunityDoor,
   CommunityRow,
+  ConfirmSheet,
   EmptyState,
   EndOfList,
   ErrorState,
   FollowButton,
   HotTopicCard,
   LevelMark,
+  PinButton,
   SectionTitle,
   Segmented,
   Skeleton,
@@ -114,6 +117,28 @@ const cases: Array<[string, React.ReactElement]> = [
   ["título de seção", <SectionTitle>Universos</SectionTitle>],
   // O # numa lista diz qual comunidade, não só "a comunidade".
   ["porta da comunidade, com nome", <CommunityDoor member={false} oQue="Vinil" />],
+  // F07: comunidades.
+  [
+    "capa da comunidade",
+    <CommunityCover name="Música Eletrônica" coverUrl={null}>
+      <CommunityDoor member oQue="Música Eletrônica" />
+    </CommunityCover>,
+  ],
+  ["fixar, desligado", <PinButton fixada={false} oQue="Vinil" />],
+  ["fixar, ligado", <PinButton fixada oQue="Vinil" />],
+  [
+    "confirmação de ação destrutiva",
+    <ConfirmSheet
+      open
+      titulo="Sair de Música Eletrônica?"
+      descricao="Seus tópicos e respostas continuam na comunidade."
+      confirmar="Sair"
+      cancelar="Continuar membro"
+      onConfirm={() => undefined}
+      onCancel={() => undefined}
+    />,
+  ],
+  ["botão destrutivo", <Button variant="danger">Sair da comunidade</Button>],
 ];
 
 describe("snapshot dos componentes", () => {

@@ -17,7 +17,10 @@ import {
   Checkbox,
   Chip,
   CodeInput,
+  ConfirmSheet,
+  CommunityCover,
   CommunityDoor,
+  CoverButton,
   CommunityRow,
   EmptyState,
   EndOfList,
@@ -28,6 +31,7 @@ import {
   LevelMark,
   LoadingBlock,
   PasswordInput,
+  PinButton,
   Skeleton,
   SectionTitle,
   Segmented,
@@ -63,6 +67,7 @@ import {
   SearchIcon,
   SendIcon,
   SettingsIcon,
+  PinIcon,
   ShareIcon,
   WarningIcon,
 } from "./icons";
@@ -117,6 +122,7 @@ const icons = [
   { Icon: MoreOptionsIcon, label: "Mais opções" },
   { Icon: FollowIcon, label: "Seguir" },
   { Icon: ShareIcon, label: "Compartilhar" },
+  { Icon: PinIcon, label: "Fixar" },
   { Icon: CopyLinkIcon, label: "Copiar link" },
   { Icon: ImageIcon, label: "Imagem" },
   { Icon: GifIcon, label: "GIF" },
@@ -161,6 +167,8 @@ export function DesignGallery() {
   const [filtro, setFiltro] = useState("tudo");
   const [seguindo, setSeguindo] = useState(false);
   const [ordem, setOrdem] = useState<"atividade" | "recentes">("atividade");
+  const [fixada, setFixada] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
   const [codigo, setCodigo] = useState("12");
 
   return (
@@ -402,6 +410,59 @@ export function DesignGallery() {
               seguindo={seguindo}
               oQue="Lia Souza"
               onToggle={() => setSeguindo((v) => !v)}
+            />
+          </div>
+        </Card>
+
+        <Card title="Capa da comunidade" wide>
+          <div className="w-full">
+            <CommunityCover
+              name="Música Eletrônica"
+              coverUrl={null}
+              esquerda={
+                <CoverButton label="Voltar">
+                  <BackIcon decorative className="size-icon" />
+                </CoverButton>
+              }
+              direita={
+                <>
+                  <CoverButton label="Compartilhar">
+                    <ShareIcon decorative className="size-icon" />
+                  </CoverButton>
+                  {/* Amarelo é o estado "a folha que eu abri está aberta". */}
+                  <CoverButton label="Mais opções" ativo controla="exemplo">
+                    <MoreOptionsIcon decorative className="size-icon" />
+                  </CoverButton>
+                </>
+              }
+            >
+              <CommunityDoor member oQue="Música Eletrônica" />
+              <span className="text-caption text-paper">3.412 membros</span>
+            </CommunityCover>
+          </div>
+        </Card>
+
+        <Card title="Fixar" wide>
+          <div className="flex items-center gap-2">
+            <PinButton fixada={false} oQue="Vinil" onToggle={() => setFixada(true)} />
+            <PinButton fixada oQue="Vinil" onToggle={() => setFixada(false)} />
+            <PinButton fixada={fixada} oQue="Vinil" onToggle={() => setFixada((v) => !v)} />
+          </div>
+        </Card>
+
+        <Card title="Confirmação" wide>
+          <Button size="sm" variant="secondary" onClick={() => setConfirmando((v) => !v)}>
+            {confirmando ? "Fechar" : "Abrir"}
+          </Button>
+          <div className="w-full">
+            <ConfirmSheet
+              open={confirmando}
+              titulo="Sair de Música Eletrônica?"
+              descricao="Você deixa de ver os Hot Topics dela no Início. Seus tópicos e respostas continuam na comunidade."
+              confirmar="Sair"
+              cancelar="Continuar membro"
+              onConfirm={() => setConfirmando(false)}
+              onCancel={() => setConfirmando(false)}
             />
           </div>
         </Card>

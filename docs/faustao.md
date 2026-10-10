@@ -212,6 +212,52 @@ descrição. E afirmação sobre destaque se testa contando, não conferindo um.
 
 🔒 **Barrado** — `e2e/navegacao.spec.ts` falha se dois acenderem.
 
+### Utilitário sem token some em silêncio
+
+Pus um véu escuro sobre a capa da comunidade com `absolute inset-0`, para o
+nome branco ter contraste sobre qualquer foto. O véu ficou com **0 × 0**: o
+`inset-0` não existe neste projeto. `design/tokens.css` apaga a escala padrão
+do Tailwind com `--spacing-*: initial` — é o que faz `p-7` não existir — e o
+`inset-0` se resolve a partir da mesma base que foi apagada. O navegador
+descarta a regra inválida e segue.
+
+Resultado: texto branco sobre lavanda pura, 2,4:1. O próprio design system
+diz que isso reprova.
+
+*Por que passou:* build verde, lint verde, 346 testes verdes, snapshot verde —
+o snapshot guarda o **HTML**, e o HTML estava certo. O que estava errado era o
+CSS que nunca chegou a existir. Nenhuma das barreiras olha pixel.
+
+*Como resolvi:* um token `space0`, porque o problema não era da capa — era de
+qualquer `inset-0`, `gap-0` ou `w-0` do projeto. E um teste de jornada que
+mede `getComputedStyle` de cinco utilitários de zero e exige `0px` em todos.
+
+**Regra:** quando o design system apaga uma escala, ele apaga mais do que
+pretendia. E classe de Tailwind é a única parte do código que erra sem avisar:
+nome errado não quebra nada, só não faz nada. Olhar a tela não é conferência
+extra — é a única conferência que existe para CSS.
+
+🔒 **Barrado** — `e2e/design-system.spec.ts` mede os zeros no navegador.
+
+---
+
+### Mostrar a mesma frase duas vezes
+
+A descrição da comunidade aparecia no painel da direita **e** no meio da tela.
+O protótipo manda, com todas as letras, que na web ela fica no painel.
+
+*Por que passou:* implementei o painel e o conteúdo em arquivos diferentes,
+em momentos diferentes, e nunca olhei os dois juntos. Nenhum teste reclama de
+informação repetida — ela não é erro para o computador.
+
+*Como resolvi:* tirei do conteúdo, com um comentário dizendo que no celular
+(F21) ela volta.
+
+**Regra:** quando a tela tem duas regiões, conferir as duas na mesma captura,
+não uma de cada vez.
+
+👁 **Atenção** — nada confere repetição.
+
 ---
 
 ## 4. Ambiente e operação
@@ -337,8 +383,8 @@ se presume.
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
 barreira: migrations no deploy, jornadas em série, plural do português,
-segredo no repositório, corrida entre testes, um ícone aceso por tela, e os
-dois limites de camada que o build recusa.
+segredo no repositório, corrida entre testes, um ícone aceso por tela, os
+utilitários de zero, e os dois limites de camada que o build recusa.
 
 O resto é 👁 — protegido só por esta página. **Cada um desses é uma dívida**, e
 a pergunta a fazer em cada revisão é: dá para virar teste?

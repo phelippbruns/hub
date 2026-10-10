@@ -14,10 +14,24 @@ import { jaFezOnboarding } from "@/lib/data/onboarding";
  * Aqui também vive o desvio para o onboarding: sem comunidade seguida, as
  * telas de dentro não teriam conteúdo nenhum (RN19, RN31).
  */
-export default async function AppLayout({ children }: { children: ReactNode }) {
+export default async function AppLayout({
+  children,
+  painel,
+}: {
+  children: ReactNode;
+  /**
+   * Rota paralela: a tela que tiver painel de contexto preenche este espaço.
+   * Quem não tem cai no `@painel/default.tsx`, que devolve nada.
+   */
+  painel: ReactNode;
+}) {
   const viewer = await getViewer();
   if (viewer.kind !== "member") redirect("/");
   if (!(await jaFezOnboarding(viewer.profileId))) redirect("/boas-vindas");
 
-  return <AppShell nav={<NavRail />}>{children}</AppShell>;
+  return (
+    <AppShell nav={<NavRail />} painel={painel}>
+      {children}
+    </AppShell>
+  );
 }

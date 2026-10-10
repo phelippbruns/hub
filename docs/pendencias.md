@@ -187,12 +187,10 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 
 ## 5. Fila de features
 
-Feito: **F00 a F04**. Faltam 17.
+Feito: **F00 a F06**. Faltam 15.
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
-| F05 | Navegação e layout | F01 | A casca do app: navegação lateral e painel de contexto |
-| F06 | Explorar, busca e Universos | F05 | Achar comunidades e pessoas |
 | F07 | Comunidades | F06 | Criar, entrar, sair, página da comunidade |
 | F08 | Tópicos | F07 | Criar e ver tópicos |
 | F09 | Respostas | F08 | O conteúdo principal do Hub |
@@ -204,7 +202,7 @@ Feito: **F00 a F04**. Faltam 17.
 | F15 | Notificações | F13 | Motivo de voltar |
 | F16 | Denúncia, bloqueio e moderação | F09, F13 | Segurança |
 | F17 | Configurações e LGPD | F15 | Exportar e excluir conta |
-| F18 | Termos e privacidade | F03 | Texto completo |
+| F18 | Termos e privacidade | F03 | Texto completo — **já destravada**, só falta o texto |
 | F19 | Métricas e eventos | F14 | Saber se funciona |
 | F20 | Qualidade final da web | todas | Revisão geral |
 | F21 | Versão de celular | F20 | O mesmo código, acima e abaixo de 768 px |

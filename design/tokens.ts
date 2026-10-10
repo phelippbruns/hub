@@ -87,6 +87,8 @@ export type TypographyName = keyof typeof typography;
 
 /** Grade de 8 px. */
 export const spacing = {
+  /** Zero. Existe para que `inset-0`, `gap-0` e companhia funcionem: como a escala padrão do Tailwind foi apagada, um utilitário sem token correspondente é descartado em silêncio. */
+  space0: "0px",
   /** Entre ícone e rótulo. */
   space1: "4px",
   /** Entre chips; entre itens de uma linha. */
@@ -155,6 +157,8 @@ export const size = {
   navItem: "44px",
   /** Painel de contexto à direita, nas telas que têm um. */
   contextPanel: "260px",
+  /** Altura da capa da comunidade, no topo da página dela. */
+  cover: "180px",
 } as const;
 
 export const fontFamily =

@@ -55,6 +55,7 @@
   --text-caption--line-height: 16px;
   --text-caption--font-weight: 500;
 
+  --spacing-0: 0px;
   --spacing-1: 4px;
   --spacing-2: 8px;
   --spacing-3: 16px;
@@ -81,6 +82,7 @@
   --spacing-navRail: 72px;
   --spacing-navItem: 44px;
   --spacing-contextPanel: 260px;
+  --spacing-cover: 180px;
 
   --radius-sm: 12px;
   --radius-md: 18px;

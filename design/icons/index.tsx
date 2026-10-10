@@ -69,6 +69,16 @@ export function FollowIcon(props: IconProps) {
   );
 }
 
+/** Alfinete, para fixar uma comunidade no topo da lista. */
+export function PinIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M9 4h6l-1 5 3 3v2H7v-2l3-3-1-5Z" />
+      <path d="M12 14v6" />
+    </IconBase>
+  );
+}
+
 export function ShareIcon(props: IconProps) {
   return (
     <IconBase {...props}>

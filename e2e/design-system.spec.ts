@@ -26,6 +26,10 @@ test("a galeria carrega sem violar a Content-Security-Policy", async ({ page }) 
  *
  * Por isso o layout raiz marca todas as rotas como dinâmicas. Este teste varre
  * as rotas e falha se alguma voltar a sair sem nonce.
+ *
+ * Aqui só entram as rotas abertas. As autenticadas são conferidas em
+ * `comunidades.spec.ts`, que já tem sessão — inclusive a página da
+ * comunidade, a primeira com rota paralela.
  */
 for (const rota of ["/", "/design"]) {
   test(`todo script de ${rota} leva nonce`, async ({ page }) => {
@@ -40,6 +44,51 @@ for (const rota of ["/", "/design"]) {
     expect(semNonce).toEqual([]);
   });
 }
+
+/**
+ * Utilitário sem token correspondente é **descartado em silêncio**.
+ *
+ * `design/tokens.css` apaga a escala padrão do Tailwind com `--spacing-*:
+ * initial` para que `p-7` não exista. O efeito colateral: `inset-0` também
+ * deixou de existir, porque ele se resolve a partir da mesma base. Um véu de
+ * contraste com `absolute inset-0` ficou com 0 × 0 e o texto branco foi parar
+ * sobre lavanda pura — sem erro de build, sem aviso do lint, sem teste
+ * vermelho. Só olhando a tela.
+ *
+ * Existe um token `space0` por causa disso. Este teste é a barreira.
+ */
+test("os utilitários de zero valem zero, e não nada", async ({ page }) => {
+  await page.goto("/design");
+
+  const medidas = await page.evaluate(() => {
+    const alvo = document.createElement("div");
+    document.body.append(alvo);
+
+    const ler = (classe: string, propriedade: string) => {
+      alvo.className = classe;
+      return getComputedStyle(alvo).getPropertyValue(propriedade);
+    };
+
+    const resultado = {
+      "inset-0": ler("absolute inset-0", "top"),
+      "gap-0": ler("flex gap-0", "gap"),
+      "w-0": ler("w-0", "width"),
+      "p-0": ler("p-0", "padding-top"),
+      "min-w-0": ler("min-w-0", "min-width"),
+    };
+
+    alvo.remove();
+    return resultado;
+  });
+
+  expect(medidas).toEqual({
+    "inset-0": "0px",
+    "gap-0": "0px",
+    "w-0": "0px",
+    "p-0": "0px",
+    "min-w-0": "0px",
+  });
+});
 
 test("a galeria hidrata: o chip responde ao clique", async ({ page }) => {
   await page.goto("/design");
