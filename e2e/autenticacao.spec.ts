@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { consultar } from "./apoio-banco";
 
 /**
  * Jornadas da entrada (F03).
@@ -32,12 +33,24 @@ function nascimentoComIdade(anos: number) {
 
 const nascimentoAdulto = () => nascimentoComIdade(25);
 
+/** Um @ livre: o cadastro passou a exigir um. */
+function novoHandle(prefixo = "p") {
+  return `${prefixo}${Date.now() % 100000}${Math.floor(Math.random() * 100)}`.slice(0, 20);
+}
+
 async function preencherCadastro(
   page: Page,
-  dados: { nome: string; email: string; senha: string; nascimento: string },
+  dados: {
+    nome: string;
+    email: string;
+    senha: string;
+    nascimento: string;
+    handle?: string;
+  },
 ) {
   await page.getByLabel("Nome completo").fill(dados.nome);
   await page.getByLabel("Email").fill(dados.email);
+  await page.getByLabel("@").fill(dados.handle ?? novoHandle());
   await page.getByLabel("Senha", { exact: true }).fill(dados.senha);
   await page.getByLabel("Data de nascimento").fill(dados.nascimento);
 }
@@ -64,7 +77,10 @@ async function codigoNoEmail(page: Page, email: string): Promise<string> {
  * Espera o cadastro **terminar** antes de navegar: ir direto para /inicio
  * corria com a Server Action, que ainda não tinha gravado o cookie de sessão.
  */
-async function criarContaESair(page: Page, dados: { nome: string; email: string; senha: string }) {
+async function criarContaESair(
+  page: Page,
+  dados: { nome: string; email: string; senha: string; handle?: string },
+) {
   await page.goto("/criar-conta");
   await preencherCadastro(page, { ...dados, nascimento: nascimentoAdulto() });
   await aceitarTermos(page);
@@ -183,7 +199,7 @@ test.describe("RN29: criar conta", () => {
       senha: "senhaboa123",
       nascimento: nascimentoAdulto(),
     });
-    await page.getByLabel("@ (opcional)").fill(escolhido);
+    await page.getByLabel("@").fill(escolhido);
     await aceitarTermos(page);
     await page.getByRole("button", { name: "Continuar" }).click();
 
@@ -193,14 +209,14 @@ test.describe("RN29: criar conta", () => {
   test("avisa quando o @ já está em uso, antes de enviar", async ({ page }) => {
     // @liasouza vem do seed.
     await page.goto("/criar-conta");
-    await page.getByLabel("@ (opcional)").fill("liasouza");
+    await page.getByLabel("@").fill("liasouza");
 
     await expect(page.locator("main").getByText("Esse @ já está em uso")).toBeVisible();
   });
 
   test("avisa quando o @ tem formato inválido", async ({ page }) => {
     await page.goto("/criar-conta");
-    await page.getByLabel("@ (opcional)").fill("Phe Bruns!");
+    await page.getByLabel("@").fill("Phe Bruns!");
 
     await expect(page.locator("main").getByText(/de 2 a 20 letras minúsculas/)).toBeVisible();
   });
@@ -220,11 +236,112 @@ test.describe("RN29: criar conta", () => {
   });
 });
 
+test.describe("entrar pelo @", () => {
+  test("entra com o @, com ou sem o arroba na frente, e com o email", async ({ page }) => {
+    const email = novoEmail("pelohandle");
+    const handle = novoHandle("ent");
+    const senha = "senhaboa123";
+
+    await criarContaESair(page, { nome: "Pessoa do Arroba", email, senha, handle });
+
+    // Os três caminhos levam à mesma conta.
+    for (const identificador of [handle, `@${handle}`, email]) {
+      await page.goto("/entrar");
+      await page.getByLabel("Email ou @").fill(identificador);
+      await page.getByLabel("Senha").fill(senha);
+      await page.getByRole("button", { name: "Entrar" }).click();
+
+      await expect(page, `entrar com "${identificador}"`).toHaveURL(/\/inicio/);
+
+      // O botão de sair fica no Início, como no resto da suíte.
+      await page.getByRole("button", { name: "Sair" }).click();
+      await expect(page).toHaveURL(/\/$/);
+    }
+  });
+
+  test("o @ não diferencia maiúsculas", async ({ page }) => {
+    const email = novoEmail("maiuscula");
+    const handle = novoHandle("mai");
+    await criarContaESair(page, { nome: "Pessoa Maiúscula", email, senha: "senhaboa123", handle });
+
+    await page.goto("/entrar");
+    await page.getByLabel("Email ou @").fill(handle.toUpperCase());
+    await page.getByLabel("Senha").fill("senhaboa123");
+    await page.getByRole("button", { name: "Entrar" }).click();
+
+    await expect(page).toHaveURL(/\/inicio/);
+  });
+
+  test("@ que não existe responde igual a senha errada", async ({ page }) => {
+    const email = novoEmail("mesmaresposta");
+    const handle = novoHandle("msm");
+    await criarContaESair(page, { nome: "Pessoa Real", email, senha: "senhaboa123", handle });
+
+    await page.goto("/entrar");
+    await page.getByLabel("Email ou @").fill("naoexisteesse");
+    await page.getByLabel("Senha").fill("qualquer-senha");
+    await page.getByRole("button", { name: "Entrar" }).click();
+    const inexistente = await alerta(page).textContent();
+
+    await page.goto("/entrar");
+    await page.getByLabel("Email ou @").fill(handle);
+    await page.getByLabel("Senha").fill("senha-errada-mesmo");
+    await page.getByRole("button", { name: "Entrar" }).click();
+    const senhaErrada = await alerta(page).textContent();
+
+    // O @ é público, mas dizer "esse @ não existe" entregaria de graça quais
+    // @ têm conta — e não ajudaria quem só errou a senha.
+    expect(senhaErrada).toBe(inexistente);
+  });
+});
+
+test.describe("o @ é obrigatório no cadastro", () => {
+  test("sem @, o cadastro não passa", async ({ page }) => {
+    await page.goto("/criar-conta");
+    await page.getByLabel("Nome completo").fill("Pessoa Sem Arroba");
+    await page.getByLabel("Email").fill(novoEmail("semarroba"));
+    await page.getByLabel("Senha", { exact: true }).fill("senhaboa123");
+    await page.getByLabel("Data de nascimento").fill(nascimentoAdulto());
+    await aceitarTermos(page);
+    await page.getByRole("button", { name: "Continuar" }).click();
+
+    // Continua na mesma tela: o navegador barra o campo obrigatório.
+    await expect(page).toHaveURL(/\/criar-conta/);
+  });
+
+  test("o @ escolhido é o que fica", async ({ page }) => {
+    const handle = novoHandle("esc");
+    await criarContaESair(page, {
+      nome: "Maria Aparecida dos Santos",
+      email: novoEmail("escolhido"),
+      senha: "senhaboa123",
+      handle,
+    });
+
+    await page.goto("/entrar");
+    await page.getByLabel("Email ou @").fill(handle);
+    await page.getByLabel("Senha").fill("senhaboa123");
+    await page.getByRole("button", { name: "Entrar" }).click();
+    await expect(page).toHaveURL(/\/inicio/);
+
+    /*
+     * Antes o @ vinha do nome — "Maria Aparecida dos Santos" viraria algo
+     * como "mariaaparecida". Agora vem de quem se cadastra.
+     *
+     * A conferência é no banco porque a tela de perfil só chega na F12.
+     */
+    const perfis = await consultar<{ handle: string }>(
+      `SELECT handle FROM profiles WHERE name = 'Maria Aparecida dos Santos'`,
+    );
+    expect(perfis.map((p) => p.handle)).toContain(handle);
+  });
+});
+
 test.describe("entrar", () => {
   test("mensagem igual para senha errada e email inexistente", async ({ page }) => {
     // Email que não existe.
     await page.goto("/entrar");
-    await page.getByLabel("Email").fill(novoEmail("fantasma"));
+    await page.getByLabel("Email ou @").fill(novoEmail("fantasma"));
     await page.getByLabel("Senha").fill("qualquer-senha");
     await page.getByRole("button", { name: "Entrar" }).click();
     const semConta = await alerta(page).textContent();
@@ -234,7 +351,7 @@ test.describe("entrar", () => {
     await criarContaESair(page, { nome: "Pessoa Real", email, senha: "senhaboa123" });
 
     await page.goto("/entrar");
-    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Email ou @").fill(email);
     await page.getByLabel("Senha").fill("senha-errada-mesmo");
     await page.getByRole("button", { name: "Entrar" }).click();
     const senhaErrada = await alerta(page).textContent();
@@ -291,7 +408,7 @@ test.describe("recuperar senha, de ponta a ponta", () => {
     await page.getByRole("button", { name: "Sair" }).click();
     await expect(page).toHaveURL(/\/$/);
     await page.goto("/entrar");
-    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Email ou @").fill(email);
     await page.getByLabel("Senha").fill(senhaNova);
     await page.getByRole("button", { name: "Entrar" }).click();
     await expect(page).toHaveURL(/\/inicio/);

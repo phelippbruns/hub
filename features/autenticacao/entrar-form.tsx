@@ -16,7 +16,22 @@ export function EntrarForm({ next, googleEnabled }: { next?: string; googleEnabl
       <form action={action} className="flex flex-col gap-3">
         {next ? <input type="hidden" name="next" value={next} /> : null}
 
-        <Input label="Email" name="email" type="email" autoComplete="email" required />
+        {/*
+          Um campo só para os dois. Dois campos obrigariam a pessoa a decidir
+          antes de digitar o que o servidor descobre sozinho olhando o texto.
+
+          `type="text"`, e não `email`: com `email` o navegador recusaria um @
+          do Hub antes mesmo de enviar.
+        */}
+        <Input
+          label="Email ou @"
+          name="identificador"
+          type="text"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          required
+        />
         <PasswordInput label="Senha" name="password" autoComplete="current-password" required />
 
         <Link href="/senha" className="text-caption text-ink self-end underline">
