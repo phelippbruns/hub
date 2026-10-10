@@ -12,12 +12,18 @@ function novoEmail(prefixo: string) {
   return `${prefixo}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@teste.hub`;
 }
 
+/** Um @ livre para o cadastro, que agora exige um. */
+function novoHandle(prefixo: string) {
+  return `${prefixo}${Date.now() % 100000}${Math.floor(Math.random() * 100)}`.slice(0, 20);
+}
+
 /** Cria conta e para na primeira tela do onboarding. */
 async function criarContaEChegarNoOnboarding(page: Page, prefixo: string) {
   const email = novoEmail(prefixo);
   await page.goto("/criar-conta");
   await page.getByLabel("Nome completo").fill("Pessoa Nova");
   await page.getByLabel("Email").fill(email);
+  await page.getByLabel("@").fill(novoHandle("onb"));
   await page.getByLabel("Senha", { exact: true }).fill("senhaboa123");
   await page.getByLabel("Data de nascimento").fill(`${new Date().getUTCFullYear() - 25}-03-10`);
   await aceitarTermos(page);

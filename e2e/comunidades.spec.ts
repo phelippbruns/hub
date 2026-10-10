@@ -18,10 +18,16 @@ function novoNome(prefixo: string) {
   return `${prefixo} ${Date.now()}${Math.floor(Math.random() * 1000)}`;
 }
 
+/** Um @ livre para o cadastro, que agora exige um. */
+function novoHandle(prefixo: string) {
+  return `${prefixo}${Date.now() % 100000}${Math.floor(Math.random() * 100)}`.slice(0, 20);
+}
+
 async function entrarNoApp(page: Page, prefixo: string) {
   await page.goto("/criar-conta");
   await page.getByLabel("Nome completo").fill("Pessoa das Comunidades");
   await page.getByLabel("Email").fill(novoEmail(prefixo));
+  await page.getByLabel("@").fill(novoHandle("com"));
   await page.getByLabel("Senha", { exact: true }).fill("senhaboa123");
   await page.getByLabel("Data de nascimento").fill(`${new Date().getUTCFullYear() - 25}-03-10`);
 

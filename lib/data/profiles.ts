@@ -23,6 +23,33 @@ export async function suggestAvailableHandle(name: string): Promise<string> {
   return generateUniqueHandle(name, handleIsTaken);
 }
 
+/**
+ * O email de quem tem este @, para a pessoa poder entrar pelo @ (F03+).
+ *
+ * O Supabase Auth só conhece email e senha; entrar pelo @ exige traduzir um
+ * no outro aqui dentro. O email **nunca** volta para a tela: ele serve só
+ * para a chamada de login, e a resposta é a mesma de sempre, dê certo ou não.
+ *
+ * `auth.users` é schema do Supabase e não está no schema do Prisma — por isso
+ * SQL cru. `profiles.id` é o id do usuário de autenticação, então o encontro
+ * entre os dois é direto.
+ *
+ * Por que isto não abre a porta de enumeração: o @ **já é público** no Hub,
+ * aparece na busca de pessoas e no endereço do perfil. O que precisa ficar
+ * escondido é quais **emails** têm conta, e isso continua escondido.
+ */
+export async function emailDeQuemTemOHandle(handle: string): Promise<string | null> {
+  const linhas = await prisma.$queryRaw<{ email: string | null }[]>`
+    SELECT u.email
+      FROM profiles p
+      JOIN auth.users u ON u.id = p.id
+     WHERE p.handle = ${handle.toLowerCase()}
+       AND p.deleted_at IS NULL
+     LIMIT 1
+  `;
+  return linhas[0]?.email ?? null;
+}
+
 export async function getProfileByAuthId(authUserId: string) {
   return prisma.profile.findUnique({ where: { id: authUserId } });
 }

@@ -76,15 +76,18 @@ export function CriarContaForm({ googleEnabled }: { googleEnabled: boolean }) {
           error={state.fieldErrors?.email}
         />
         <Input
-          label="@ (opcional)"
+          label="@"
           name="handle"
           value={handle}
           onChange={(evento) => {
             setHandle(evento.target.value.toLowerCase());
             setEmUso(false);
           }}
+          required
           autoComplete="username"
-          hint="Como as pessoas vão te encontrar. Em branco, criamos um a partir do seu nome."
+          autoCapitalize="none"
+          spellCheck={false}
+          hint="Como as pessoas vão te encontrar, e como você entra no Hub."
           error={state.fieldErrors?.handle ?? avisoDoHandle}
         />
         <PasswordInput

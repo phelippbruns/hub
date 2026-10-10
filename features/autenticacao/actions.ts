@@ -18,7 +18,12 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { createProfile, getProfileByAuthId, suggestAvailableHandle } from "@/lib/data/profiles";
+import {
+  createProfile,
+  emailDeQuemTemOHandle,
+  getProfileByAuthId,
+  suggestAvailableHandle,
+} from "@/lib/data/profiles";
 import {
   clearAttempts,
   isRateLimited,
@@ -31,8 +36,8 @@ import { handleSchema } from "@/lib/data/validation";
 import { handleEmUso } from "@/lib/data/profiles";
 import { TERMS_VERSION, fieldErrorsFrom, type ActionState } from "./shared";
 
-/** Mesma resposta para credencial errada e email inexistente. */
-const CREDENCIAL_INVALIDA = "Email ou senha incorretos";
+/** Mesma resposta para credencial errada e conta inexistente. */
+const CREDENCIAL_INVALIDA = "Email, @ ou senha incorretos";
 const MUITAS_TENTATIVAS = "Muitas tentativas. Espere alguns minutos e tente de novo.";
 
 async function clientKey(): Promise<string> {
@@ -68,19 +73,55 @@ async function noteFailure(action: AuthAction, email: string) {
 // ------------------------------------------------------------------ entrar
 
 const entrarSchema = z.object({
-  email: z.email("Informe um email válido"),
+  /** Email ou @: a tela aceita os dois no mesmo campo. */
+  identificador: z.string().trim().min(1, "Informe seu email ou @"),
   password: z.string().min(1, "Informe a senha"),
   next: z.string().optional(),
 });
+
+/**
+ * Traduz o que a pessoa digitou no email que o Supabase Auth espera.
+ *
+ * Tem `@` no meio e um ponto depois? É email. Senão, é um @ do Hub, com ou
+ * sem o arroba na frente — ninguém deveria precisar lembrar se digita o
+ * símbolo.
+ *
+ * Quando o @ não existe, devolve `null` e o login segue até falhar com a
+ * mensagem de sempre. Responder "esse @ não existe" seria inútil como defesa
+ * (o @ já é público) e cruel como produto, porque a pessoa não saberia se
+ * errou o @ ou a senha.
+ */
+async function emailParaLogin(identificador: string): Promise<string | null> {
+  const limpo = identificador.trim();
+  if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(limpo)) return limpo.toLowerCase();
+
+  return emailDeQuemTemOHandle(limpo.replace(/^@/, ""));
+}
 
 export async function entrar(_state: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = entrarSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: CREDENCIAL_INVALIDA };
 
-  const { email, password, next } = parsed.data;
+  const { identificador, password, next } = parsed.data;
+  const email = await emailParaLogin(identificador);
 
-  const limited = await guardRate("login", email);
+  /*
+   * A limitação de taxa é pelo **email**, mesmo quando a pessoa entrou pelo
+   * @: senão bastaria alternar entre o @ e o email da mesma conta para ter
+   * dois orçamentos de tentativa e dobrar o número de senhas testadas.
+   *
+   * @ que não existe não tem email para contar, então conta pelo que foi
+   * digitado — martelar um @ inexistente também precisa de freio.
+   */
+  const chave = email ?? identificador.trim().toLowerCase();
+
+  const limited = await guardRate("login", chave);
   if (limited) return { error: limited };
+
+  if (!email) {
+    await noteFailure("login", chave);
+    return { error: CREDENCIAL_INVALIDA };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -108,10 +149,16 @@ const criarContaSchema = z.object({
   password: z.string().min(8, "A senha precisa de ao menos 8 caracteres"),
   birthDate: z.string().min(1, "Informe sua data de nascimento"),
   /**
-   * RN17: o @ é único na plataforma. Opcional no cadastro — em branco, é
-   * sugerido a partir do nome, que era o único caminho antes.
+   * RN17: o @ é único na plataforma, e **obrigatório** no cadastro por email.
+   *
+   * Era opcional, gerado a partir do nome. Virou obrigatório porque o @ é
+   * como as pessoas se encontram no Hub e agora também como entram — um @
+   * que a pessoa não escolheu é um @ que ela não lembra.
+   *
+   * O caminho do Google continua sugerindo um, porque lá a pessoa volta já
+   * autenticada: quem pede o @ é a tela de completar cadastro.
    */
-  handle: z.union([handleSchema, z.literal("")]).optional(),
+  handle: handleSchema,
   // A caixa só chega no FormData quando marcada. Exigir "on" é o que torna o
   // aceite obrigatório **no servidor**, não só na tela (RN29).
   acceptedTerms: z.literal("on", { message: "É preciso aceitar os Termos para criar conta" }),
@@ -124,7 +171,7 @@ export async function criarConta(_state: ActionState, formData: FormData): Promi
   }
 
   const { name, email, password, birthDate } = parsed.data;
-  const handleEscolhido = parsed.data.handle?.trim() || undefined;
+  const handleEscolhido = parsed.data.handle.trim();
 
   const limited = await guardRate("signup", email);
   if (limited) return { error: limited };
@@ -137,7 +184,7 @@ export async function criarConta(_state: ActionState, formData: FormData): Promi
    * limbo. A corrida entre dois cadastros simultâneos ainda é resolvida pelo
    * índice único; isto só evita o caso comum.
    */
-  if (handleEscolhido && (await handleEmUso(handleEscolhido))) {
+  if (await handleEmUso(handleEscolhido)) {
     return { fieldErrors: { handle: "Esse @ já está em uso" } };
   }
 

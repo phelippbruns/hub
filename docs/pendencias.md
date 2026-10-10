@@ -72,21 +72,34 @@ vale decidir se o número volta de uma vez ou sobe aos poucos.
 
 Quatro pedidos, com o custo de cada um medido no código de hoje.
 
-### Tornar o @ obrigatório — **custo baixo**
+### Tornar o @ obrigatório — **feito em 10 de outubro**
 
-Hoje o campo é "@ (opcional)": em branco, o Hub gera um a partir do nome.
-Tornar obrigatório é mudar o rótulo, exigir o campo e tirar o `.optional()`
-do schema em [features/autenticacao/actions.ts](../features/autenticacao/actions.ts).
+O campo era "@ (opcional)" e o Hub gerava um a partir do nome. Agora é
+obrigatório: um @ que a pessoa não escolheu é um @ que ela não lembra — e
+desde a mesma data o @ também serve para entrar.
 
-Uma consequência a decidir: o caminho do **Google** não tem como pedir o @ na
-mesma tela, porque a pessoa volta do Google já autenticada. Hoje existe uma
-tela de "completar cadastro" para isso, e ela continuaria sendo o lugar.
+O caminho do **Google** continua sugerindo um, porque lá a pessoa volta já
+autenticada; quem pede o @ é a tela de completar cadastro.
 
-### Avisar que o @ já existe — **já funciona**
+### Avisar que o @ já existe — **já funcionava**
 
-Já está pronto, em três camadas: a tela avisa enquanto a pessoa digita (sem
-esperar o envio), o servidor confere de novo antes de criar, e o banco tem
-índice único por trás. Nada a fazer.
+Três camadas: a tela avisa enquanto a pessoa digita (sem esperar o envio), o
+servidor confere de novo antes de criar, e o banco tem índice único por trás.
+
+### Entrar pelo @ — **feito em 10 de outubro**
+
+Um campo só, "Email ou @", que aceita os dois; com ou sem o arroba na frente.
+O Supabase Auth só conhece email, então o servidor traduz o @ no email antes
+de chamar o login, e o email nunca chega à tela.
+
+Duas coisas que valem saber:
+
+- **Não abre a porta de enumeração.** O @ já é público no Hub: aparece na
+  busca de pessoas e no endereço do perfil. O que continua escondido é quais
+  **emails** têm conta.
+- **A limitação de taxa é pelo email**, mesmo quando se entra pelo @ — senão
+  bastaria alternar entre o @ e o email da mesma conta para dobrar o número
+  de senhas que dá para testar.
 
 ### Avisar que o email já existe — **custo baixo, mas é uma escolha de segurança**
 
