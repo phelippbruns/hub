@@ -11,6 +11,8 @@ import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 /** Um tópico como as listas da comunidade o mostram (RN15: nunca um placar). */
 export type TopicoNaComunidade = {
   id: string;
+  /** O endereço dentro da comunidade: /c/<comunidade>/<slug>. */
+  slug: string;
   name: string;
   description: string;
   autor: { id: string; name: string; handle: string } | null;
@@ -24,6 +26,7 @@ export type OrdemDosTopicos = "respostas" | "recentes";
 
 type LinhaDeTopico = {
   id: string;
+  slug: string;
   name: string;
   description: string;
   autor_id: string | null;
@@ -36,6 +39,7 @@ type LinhaDeTopico = {
 function montarTopico(linha: LinhaDeTopico): TopicoNaComunidade {
   return {
     id: linha.id,
+    slug: linha.slug,
     name: linha.name,
     description: linha.description,
     autor:
@@ -66,7 +70,7 @@ export async function topicosDaComunidade(
   const termo = opcoes.termo?.trim() ?? "";
 
   const linhas = await prisma.$queryRaw<LinhaDeTopico[]>`
-    SELECT t.id, t.name, t.description,
+    SELECT t.id, t.slug, t.name, t.description,
            p.id AS autor_id, p.name AS autor_nome, p.handle AS autor_handle,
            (SELECT count(DISTINCT a.author_id) FROM answers a
              WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS pessoas,
@@ -100,7 +104,7 @@ export async function topicosDaComunidade(
  */
 export async function emAltaAgora(communityId: string): Promise<TopicoNaComunidade | null> {
   const linhas = await prisma.$queryRaw<LinhaDeTopico[]>`
-    SELECT t.id, t.name, t.description,
+    SELECT t.id, t.slug, t.name, t.description,
            p.id AS autor_id, p.name AS autor_nome, p.handle AS autor_handle,
            count(DISTINCT a.author_id) AS pessoas,
            count(a.id) AS respostas
@@ -191,7 +195,7 @@ export async function topicosQueSigoAqui(
   const me = viewerProfileId(viewer);
 
   const linhas = await prisma.$queryRaw<LinhaDeTopico[]>`
-    SELECT t.id, t.name, t.description,
+    SELECT t.id, t.slug, t.name, t.description,
            p.id AS autor_id, p.name AS autor_nome, p.handle AS autor_handle,
            (SELECT count(DISTINCT a.author_id) FROM answers a
              WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS pessoas,
@@ -273,6 +277,14 @@ export async function minhasComunidades(
     topicosAtivos: Number(l.topicos_ativos),
     fixada: l.fixada,
   }));
+}
+
+/** O id de uma comunidade a partir do endereço dela. */
+export async function comunidadePorSlug(slug: string): Promise<{ id: string } | null> {
+  return prisma.community.findFirst({
+    where: { slug, deletedAt: null },
+    select: { id: true },
+  });
 }
 
 /** Fixar e desafixar, do topo de Minhas Comunidades. */

@@ -308,6 +308,10 @@ model Topic {
   communityId String     @map("community_id") @db.Uuid
   authorId    String?    @map("author_id") @db.Uuid
   name        String     @db.VarChar(80)
+  /// F08: o endereço em /c/<comunidade>/<slug>, único por comunidade.
+  /// Quem preenche é o gatilho `topics_slug`; o default existe só para o
+  /// Prisma não exigir o valor em cada create.
+  slug        String     @default("") @db.VarChar(100)
   description String     @db.VarChar(240)
   mediaUrl    String?    @map("media_url")
   mediaKind   MediaKind? @map("media_kind")
@@ -328,6 +332,7 @@ model Topic {
   follows          Follow[]
   sharedInMessages Message[]
 
+  @@unique([communityId, slug])
   @@index([communityId, createdAt])
   @@index([authorId])
   @@map("topics")

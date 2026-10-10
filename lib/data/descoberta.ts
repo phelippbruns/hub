@@ -185,8 +185,9 @@ export async function buscarComunidades(viewer: Viewer, termo: string, limite = 
 
 export type TopicoNaBusca = {
   id: string;
+  slug: string;
   name: string;
-  comunidade: { id: string; name: string };
+  comunidade: { id: string; name: string; slug: string };
   pessoas: number;
   respostas: number;
 };
@@ -199,14 +200,17 @@ export async function buscarTopicos(viewer: Viewer, termo: string, limite = 20) 
   const linhas = await prisma.$queryRaw<
     {
       id: string;
+      slug: string;
       name: string;
       community_id: string;
       community_name: string;
+      community_slug: string;
       pessoas: string;
       respostas: string;
     }[]
   >`
-    SELECT t.id, t.name, c.id AS community_id, c.name AS community_name,
+    SELECT t.id, t.slug, t.name,
+           c.id AS community_id, c.name AS community_name, c.slug AS community_slug,
            (SELECT count(DISTINCT a.author_id) FROM answers a
              WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS pessoas,
            (SELECT count(*) FROM answers a
@@ -221,8 +225,9 @@ export async function buscarTopicos(viewer: Viewer, termo: string, limite = 20) 
 
   return linhas.map((l): TopicoNaBusca => ({
     id: l.id,
+    slug: l.slug,
     name: l.name,
-    comunidade: { id: l.community_id, name: l.community_name },
+    comunidade: { id: l.community_id, name: l.community_name, slug: l.community_slug },
     pessoas: Number(l.pessoas),
     respostas: Number(l.respostas),
   }));

@@ -241,6 +241,28 @@ extra — é a única conferência que existe para CSS.
 
 ---
 
+### O mesmo seletor, o mesmo tropeço, duas features depois
+
+Na F07 escrevi `getByRole("alert")` e o teste casou com **dois** elementos: o
+meu aviso e o `role="alert"` vazio que o Next mantém na página para anunciar
+troca de rota. Corrigi escopando ao formulário, e escrevi o comentário
+explicando.
+
+Na F08 escrevi exatamente o mesmo seletor errado, no mesmo tipo de tela.
+
+*Por que passou:* a correção da F07 virou comentário no arquivo da F07.
+Quando escrevi um arquivo de teste novo, o comentário não estava lá para ser
+lido — e nada no caminho me lembrou.
+
+*Como resolvi:* escopei ao formulário de novo. **Não virou barreira**, e é
+disso que esta entrada serve de aviso: o Faustão só funciona se eu o
+consultar antes de escrever teste, que é o que a própria página manda fazer.
+
+👁 **Atenção** — e um lembrete de que esta página existe para ser lida, não
+para ser escrita.
+
+---
+
 ### Mostrar a mesma frase duas vezes
 
 A descrição da comunidade aparecia no painel da direita **e** no meio da tela.

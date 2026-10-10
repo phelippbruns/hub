@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CommunityDoor, FollowButton, LevelMark } from "@/design/components";
-import { TopicStarInline } from "@/design/icons";
+import { CommunityDoor, FollowButton, LevelMark, TopicName } from "@/design/components";
 import { alternarComunidade, alternarSeguirPessoa } from "./actions";
 import type { ComunidadeNaLista, PessoaNaBusca, TopicoNaBusca } from "@/lib/data/descoberta";
 
@@ -87,12 +86,14 @@ export function LinhaComunidade({
 /** RN15: tópico mostra pessoas e respostas, nunca um placar. */
 export function LinhaTopico({ topico }: { topico: TopicoNaBusca }) {
   return (
-    <a href={`/topico/${topico.id}`} className="bg-paper flex items-center gap-3 rounded-sm p-3">
+    <a
+      href={`/c/${topico.comunidade.slug}/${topico.slug}`}
+      className="bg-paper flex items-center gap-3 rounded-sm p-3"
+    >
       <LevelMark level="topic" />
       <span className="min-w-0 flex-1">
         <span className="text-bodyStrong text-ink block">
-          <TopicStarInline className="mr-1" />
-          {topico.name}
+          <TopicName>{topico.name}</TopicName>
         </span>
         <span className="text-caption text-inkMuted block">
           {topico.comunidade.name}. {numero(topico.pessoas)}{" "}

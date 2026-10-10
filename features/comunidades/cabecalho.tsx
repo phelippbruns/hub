@@ -9,7 +9,7 @@ import {
   CommunityCover,
   CommunityDoor,
   ConfirmSheet,
-  CoverButton,
+  RoundIconButton,
 } from "@/design/components";
 import { BackIcon, MoreOptionsIcon, ShareIcon } from "@/design/icons";
 import { alternarMembro, alternarPainel } from "./actions";
@@ -97,28 +97,28 @@ export function CabecalhoDaComunidade({
         name={comunidade.name}
         coverUrl={comunidade.coverUrl}
         esquerda={
-          <CoverButton label="Voltar" onClick={() => router.back()}>
+          <RoundIconButton label="Voltar" onClick={() => router.back()}>
             <BackIcon decorative className="size-icon" />
-          </CoverButton>
+          </RoundIconButton>
         }
         direita={
           <>
-            <CoverButton
+            <RoundIconButton
               label={`Compartilhar ${comunidade.name}`}
               ativo={aberto === "compartilhar"}
               controla={idDeCompartilhar}
               onClick={() => abrir("compartilhar")}
             >
               <ShareIcon decorative className="size-icon" />
-            </CoverButton>
-            <CoverButton
+            </RoundIconButton>
+            <RoundIconButton
               label="Mais opções"
               ativo={aberto === "menu"}
               controla={idDoMenu}
               onClick={() => abrir("menu")}
             >
               <MoreOptionsIcon decorative className="size-icon" />
-            </CoverButton>
+            </RoundIconButton>
           </>
         }
       >

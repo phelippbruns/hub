@@ -25,6 +25,8 @@ import {
   Switch,
   Tabs,
   TextField,
+  TopicName,
+  TopicOpening,
   TopicRow,
 } from "./index";
 
@@ -139,6 +141,21 @@ const cases: Array<[string, React.ReactElement]> = [
     />,
   ],
   ["botão destrutivo", <Button variant="danger">Sair da comunidade</Button>],
+  // F08: tópicos.
+  ["nome de tópico", <TopicName>primeira festa</TopicName>],
+  [
+    "abertura do tópico",
+    <TopicOpening
+      autor="Caio Mendes"
+      abertura="Como foi a primeira festa que te fez gostar de música eletrônica?"
+      pessoas={86}
+      respostas={112}
+    />,
+  ],
+  [
+    "abertura sem autor, com uma resposta só",
+    <TopicOpening abertura="Qual pista você quer conhecer?" pessoas={1} respostas={1} />,
+  ],
 ];
 
 describe("snapshot dos componentes", () => {

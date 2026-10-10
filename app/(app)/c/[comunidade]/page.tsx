@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ContentColumn, EmptyState, HotTopicCard, SectionTitle } from "@/design/components";
-import { TopicStarInline } from "@/design/icons";
+import {
+  ContentColumn,
+  EmptyState,
+  HotTopicCard,
+  SectionTitle,
+  TopicName,
+} from "@/design/components";
 import { CabecalhoDaComunidade } from "@/features/comunidades/cabecalho";
 import { ControlesDeTopicos } from "@/features/comunidades/controles-de-topicos";
 import { comunidadeDaRota } from "@/features/comunidades/dados";
@@ -76,7 +81,7 @@ export default async function ComunidadePage({
             people={destaque.pessoas}
             answers={destaque.respostas}
             autor={destaque.autor?.name}
-            href={`/topico/${destaque.id}`}
+            href={`/c/${dados.slug}/${destaque.slug}`}
           />
         </>
       ) : null}
@@ -101,12 +106,11 @@ export default async function ComunidadePage({
           {topicos.map((topico) => (
             <Link
               key={topico.id}
-              href={`/topico/${topico.id}`}
+              href={`/c/${dados.slug}/${topico.slug}`}
               className="bg-paper block rounded-sm p-3"
             >
               <span className="text-bodyStrong text-ink block">
-                <TopicStarInline className="mr-1" />
-                {topico.name}
+                <TopicName>{topico.name}</TopicName>
               </span>
               <span className="text-caption text-inkMuted block">
                 {topico.pessoas.toLocaleString("pt-BR")}{" "}

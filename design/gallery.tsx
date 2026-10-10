@@ -20,7 +20,7 @@ import {
   ConfirmSheet,
   CommunityCover,
   CommunityDoor,
-  CoverButton,
+  RoundIconButton,
   CommunityRow,
   EmptyState,
   EndOfList,
@@ -41,6 +41,8 @@ import {
   Switch,
   Tabs,
   TextField,
+  TopicName,
+  TopicOpening,
   TopicRow,
 } from "./components";
 import {
@@ -420,25 +422,44 @@ export function DesignGallery() {
               name="Música Eletrônica"
               coverUrl={null}
               esquerda={
-                <CoverButton label="Voltar">
+                <RoundIconButton label="Voltar">
                   <BackIcon decorative className="size-icon" />
-                </CoverButton>
+                </RoundIconButton>
               }
               direita={
                 <>
-                  <CoverButton label="Compartilhar">
+                  <RoundIconButton label="Compartilhar">
                     <ShareIcon decorative className="size-icon" />
-                  </CoverButton>
+                  </RoundIconButton>
                   {/* Amarelo é o estado "a folha que eu abri está aberta". */}
-                  <CoverButton label="Mais opções" ativo controla="exemplo">
+                  <RoundIconButton label="Mais opções" ativo controla="exemplo">
                     <MoreOptionsIcon decorative className="size-icon" />
-                  </CoverButton>
+                  </RoundIconButton>
                 </>
               }
             >
               <CommunityDoor member oQue="Música Eletrônica" />
               <span className="text-caption text-paper">3.412 membros</span>
             </CommunityCover>
+          </div>
+        </Card>
+
+        <Card title="Nome de tópico" wide>
+          {/* O asterisco é o mesmo em qualquer texto — é para isso que o
+              componente existe. */}
+          <p className="text-body text-ink">
+            Respondi em <TopicName>primeira festa</TopicName> hoje de manhã.
+          </p>
+        </Card>
+
+        <Card title="Abertura do tópico" wide>
+          <div className="w-full">
+            <TopicOpening
+              autor="Caio Mendes"
+              abertura="Como foi a primeira festa que te fez gostar de música eletrônica?"
+              pessoas={86}
+              respostas={112}
+            />
           </div>
         </Card>
 

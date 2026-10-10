@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SectionTitle } from "@/design/components";
+import { SectionTitle, TopicName } from "@/design/components";
 import type { PaginaDaComunidade, TopicoNaComunidade } from "@/lib/data/comunidades";
 
 function numero(valor: number) {
@@ -52,8 +52,10 @@ export function PainelDaComunidade({
           <SectionTitle>Tópicos que você segue aqui</SectionTitle>
           <div className="flex flex-col gap-2">
             {seguidos.map((topico) => (
-              <Link key={topico.id} href={`/topico/${topico.id}`} className="block">
-                <span className="text-bodyStrong text-ink block truncate">{topico.name}</span>
+              <Link key={topico.id} href={`/c/${comunidade.slug}/${topico.slug}`} className="block">
+                <span className="text-bodyStrong text-ink block truncate">
+                  <TopicName>{topico.name}</TopicName>
+                </span>
                 <Contagem topico={topico} />
               </Link>
             ))}
