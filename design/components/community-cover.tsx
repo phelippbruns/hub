@@ -50,13 +50,14 @@ export function CommunityCover({
 }
 
 /**
- * Botão de ícone sobre a capa.
+ * Botão redondo de ícone, em cabeçalho — sobre a capa da comunidade e no
+ * topo do tópico.
  *
  * `ativo` deixa o botão amarelo enquanto a folha que ele abriu está aberta —
  * é o que o protótipo mostra. Vai junto em `aria-expanded`, para quem usa
  * leitor de tela saber que algo abriu, e não só quem vê a cor.
  */
-export function CoverButton({
+export function RoundIconButton({
   label,
   ativo = false,
   controla,

@@ -16,6 +16,85 @@ import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { assertNotBlocked, requireActiveMembership } from "./access";
 
 /**
+ * RN08: a partir de quantas respostas de outras pessoas o autor não apaga.
+ *
+ * O mesmo número vive na função `hub_limite_para_apagar()` do banco, que é
+ * quem **garante** a regra. Este aqui é para a tela explicar o botão
+ * desativado. `topics.db.test.ts` falha se os dois discordarem — número em
+ * dois lugares sem alarme é só questão de tempo.
+ */
+export const LIMITE_RESPOSTAS_PARA_APAGAR = 5;
+
+/** Quantas respostas de **outras** pessoas o tópico tem (RN08). */
+export async function respostasDeOutros(topicId: string, authorId: string | null) {
+  return prisma.answer.count({
+    where: {
+      topicId,
+      deletedAt: null,
+      ...(authorId ? { authorId: { not: authorId } } : {}),
+    },
+  });
+}
+
+/**
+ * RN07: se a pessoa já gastou o tópico do dia nesta comunidade.
+ *
+ * A tela de criar usa isto para avisar **antes** de alguém escrever uma
+ * pergunta inteira e só então descobrir que não pode publicar hoje.
+ */
+export async function jaCrieiTopicoHoje(viewer: Viewer, communityId: string): Promise<boolean> {
+  const me = viewerProfileId(viewer);
+  if (!me) return false;
+
+  const linhas = await prisma.$queryRaw<{ existe: boolean }[]>`
+    SELECT EXISTS (
+      SELECT 1 FROM topics
+       WHERE community_id = ${communityId}::uuid
+         AND author_id = ${me}::uuid
+         AND deleted_at IS NULL
+         AND cycle_date = hub_cycle_date(now())
+    ) AS existe
+  `;
+  return linhas[0]?.existe ?? false;
+}
+
+/**
+ * Para onde `/topico/<id>` deve redirecionar.
+ *
+ * Só o endereço: quem confere permissão é a página de destino. Por isso não
+ * recebe `Viewer` — não há nada a autorizar em traduzir um id público no
+ * endereço público equivalente.
+ */
+export async function enderecoDoTopico(topicId: string): Promise<string | null> {
+  const topico = await prisma.topic.findFirst({
+    where: { id: topicId, deletedAt: null, community: { deletedAt: null } },
+    select: { slug: true, community: { select: { slug: true } } },
+  });
+  return topico ? `/c/${topico.community.slug}/${topico.slug}` : null;
+}
+
+/**
+ * O tópico pelo endereço: `/c/<comunidade>/<topico>`.
+ *
+ * Devolve tudo que a tela 15 mostra, inclusive **por que** o botão de apagar
+ * está desativado — a tela precisa da razão, não só do booleano, porque o
+ * protótipo explica para a pessoa o motivo.
+ */
+export async function topicoPorEndereco(viewer: Viewer, comunidade: string, topico: string) {
+  const encontrado = await prisma.topic.findFirst({
+    where: {
+      slug: topico,
+      deletedAt: null,
+      community: { slug: comunidade, deletedAt: null },
+    },
+    select: { id: true },
+  });
+  if (!encontrado) throw new NotFoundError("Tópico");
+
+  return getTopicForViewer(viewer, encontrado.id);
+}
+
+/**
  * O tópico como quem está olhando pode vê-lo.
  *
  * RN16: visitante sem conta vê a comunidade e o tópico, mas **não as
@@ -29,7 +108,7 @@ export async function getTopicForViewer(viewer: Viewer, topicId: string) {
     where: { id: topicId, deletedAt: null, community: { deletedAt: null } },
     include: {
       author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
-      community: { select: { id: true, name: true, universeId: true } },
+      community: { select: { id: true, name: true, slug: true, universeId: true } },
     },
   });
 
@@ -50,11 +129,19 @@ export async function getTopicForViewer(viewer: Viewer, topicId: string) {
   const following =
     me !== null && (await prisma.follow.findFirst({ where: { followerId: me, topicId } })) !== null;
 
+  const deOutros = await respostasDeOutros(topicId, topic.authorId);
+  const souAutor = me !== null && topic.authorId === me;
+
   return {
     ...topic,
     peopleCount: people.length,
     answerCount,
     following,
+    souAutor,
+    /** RN08: respostas de outras pessoas — é o número que trava o apagar. */
+    respostasDeOutros: deOutros,
+    /** RN08: só o autor apaga, e só abaixo do limite. */
+    podeApagar: souAutor && deOutros < LIMITE_RESPOSTAS_PARA_APAGAR,
     // RN16: a lista de respostas só vem para quem tem conta.
     answers: me === null ? null : await listAnswers(me, topicId),
   };
