@@ -178,6 +178,9 @@ model Profile {
   ageVerificationStatus AgeVerificationStatus  @default(pending) @map("age_verification_status")
   ageVerificationMethod AgeVerificationMethod? @map("age_verification_method")
   ageVerifiedAt         DateTime?              @map("age_verified_at") @db.Timestamptz(6)
+
+  /// F07: painel de contexto oculto. Preferência da pessoa, não do aparelho.
+  hideContextPanel Boolean @default(false) @map("hide_context_panel")
   /// Versão dos Termos aceita no cadastro (RN29).
   termsVersion          String?                @map("terms_version") @db.VarChar(20)
 
@@ -247,6 +250,10 @@ model Community {
   /// simples), preenchido por gatilho e com índice único. Duas comunidades não
   /// podem ter o mesmo nome.
   nameNormalized String  @map("name_normalized") @db.VarChar(60)
+  /// F07: o endereço em /c/<slug>. Quem preenche é o gatilho
+  /// `communities_slug`; o default vazio existe só para o Prisma não exigir o
+  /// valor em cada create. Se o gatilho falhar, o índice único denuncia.
+  slug           String  @default("") @unique @db.VarChar(80)
   intro          String  @db.VarChar(240)
   coverUrl       String? @map("cover_url")
   createdById    String? @map("created_by_id") @db.Uuid
@@ -280,6 +287,8 @@ model Membership {
   profileId   String         @map("profile_id") @db.Uuid
   role        MembershipRole @default(member)
   joinedAt    DateTime       @default(now()) @map("joined_at") @db.Timestamptz(6)
+  /// F07: desde quando está fixada no topo de Minhas Comunidades.
+  pinnedAt    DateTime?      @map("pinned_at") @db.Timestamptz(6)
   /// RN33: removido pode voltar (linha apagada); banido não (linha fica, com
   /// bannedAt preenchido).
   bannedAt    DateTime?      @map("banned_at") @db.Timestamptz(6)

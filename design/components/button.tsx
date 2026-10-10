@@ -1,25 +1,31 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "../cn";
 
-type Variant = "primary" | "secondary" | "highlight" | "icon";
+type Variant = "primary" | "secondary" | "highlight" | "danger" | "icon";
 type Size = "md" | "sm";
 
 /**
  * O design system é plano, sem sombra: o contorno do secundário é borda, não
  * box-shadow. Com `box-border` a borda não muda o tamanho externo do botão.
  */
-const variants: Record<Variant, string> = {
+export const variants: Record<Variant, string> = {
   /** Ação principal. */
   primary: "bg-ink text-paper border-2 border-ink",
   /** Ação secundária. */
   secondary: "bg-transparent text-ink border-2 border-ink",
   /** Destaque do ciclo: o Responder do cartão de Hot Topic. Texto sempre em ink. */
   highlight: "bg-sun text-ink border-2 border-sun",
+  /**
+   * Ação destrutiva: sair da comunidade, excluir conta. Contorno e não
+   * preenchimento — a cor de erro nunca é fundo de botão no sistema, e o
+   * texto diz o que vai acontecer, então a cor não carrega o sentido sozinha.
+   */
+  danger: "bg-transparent text-error border-2 border-error",
   /** Botão só de ícone, em lavender. */
   icon: "bg-lavender text-ink border-2 border-lavender size-control p-0",
 };
 
-const sizes: Record<Size, string> = {
+export const sizes: Record<Size, string> = {
   md: "px-3 py-2 text-bodyStrong",
   sm: "px-2 py-1 text-caption",
 };

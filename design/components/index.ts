@@ -29,3 +29,6 @@ export { Segmented, type OpcaoSegmentada } from "./segmented";
 export { FollowButton } from "./follow-button";
 export { SortToggle } from "./sort-toggle";
 export { SectionTitle } from "./section-title";
+export { CommunityCover, CoverButton } from "./community-cover";
+export { PinButton } from "./pin-button";
+export { ConfirmSheet } from "./confirm-sheet";
