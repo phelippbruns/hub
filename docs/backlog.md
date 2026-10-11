@@ -107,7 +107,7 @@ São 22 features em 8 fases: a web primeiro (F00 a F20) e o celular depois (F21)
 | F12 | Perfil, seguir e Coleção | F09 | 21, 22, 23, 24 |
 | F13 | Cabine | F12 | 17, 18, 19, 20 |
 | F14 | Compartilhar e convite por link | F13 | 2, 14, 15 |
-| F15 | Notificações | F13 | 8, 25 |
+| F15 | Notificações e marcar com @ | F13 | 8, 25 |
 | F16 | Denúncia, bloqueio e moderação | F09, F13 | 26, 27 |
 | F17 | Configurações e LGPD | F15 | 25 |
 | F18 | Termos e privacidade | F03 | 28 |
@@ -497,11 +497,11 @@ Comece em modo de planejamento e só implemente depois da minha aprovação.
 
 ## Fase 6: notificações, segurança, configurações e termos
 
-### F15. Notificações
+### F15. Notificações e marcar com @
 
 ```text
-Feature: F15 Notificações
-Leia CLAUDE.md, docs/escopo.md (RN33, RN34) e as telas 8 e 25 em docs/telas.html.
+Feature: F15 Notificações e marcar com @
+Leia CLAUDE.md, docs/escopo.md (RN13, RN16, RN17, RN33, RN34) e as telas 8 e 25 em docs/telas.html.
 
 Objetivo: avisar sobre o que importa, sem excesso.
 
@@ -511,10 +511,12 @@ Escopo:
 3. Web Push com service worker na PWA instalada, com chaves VAPID só no servidor. Ligados por padrão: Hot Topic do seu tópico, Cabine e aviso diário de tópicos seguidos. Desligado por padrão: novos tópicos nas comunidades (RN34).
 4. Respeitar a escolha feita no onboarding e os ajustes em Configurações.
 5. Sem ajuste por comunidade no MVP.
+6. Marcar pessoas com @ em resposta e em tópico (pedido do PO em 11 de outubro). Entra aqui porque marcar sem avisar não serve para nada: a notificação é o que dá sentido à marcação. Quatro partes: achar o @ no texto e desenhar como link para o perfil, no mesmo cuidado de acento e pontuação que lib/texto/links.ts já tem para a RN16; sugerir o @ enquanto a pessoa digita, senão ela precisa decorar o @ exato; guardar quem foi marcado, para a notificação não depender de reler o texto depois; e notificar quem foi marcado, com o tipo ligado por padrão e desligável em Configurações.
+7. Marcar vale só para quem é membro da mesma comunidade, e respeita bloqueio e silenciamento nos dois sentidos (RN26). Numa rede sem curtida, ser arrastado para uma conversa por qualquer pessoa é vetor de incômodo — a marcação é convite, não intromissão.
 
-Fora do escopo: email de marketing.
-Critérios de aceite: push chega no dispositivo de teste; desligar um tipo para de enviar; aviso diário agrupa várias respostas em uma notificação.
-Testes: regras de padrão e agrupamento.
+Fora do escopo: email de marketing. Marcar comunidade ou tópico com @ (só pessoas).
+Critérios de aceite: push chega no dispositivo de teste; desligar um tipo para de enviar; aviso diário agrupa várias respostas em uma notificação; @ de pessoa que existe vira link para o perfil e @ que não existe fica texto comum; marcar quem não é da comunidade não notifica; quem bloqueou não é notificado.
+Testes: regras de padrão e agrupamento; detecção do @ nos mesmos casos difíceis da RN16 (acento, pontuação no fim, email que não é marcação); marcação com bloqueio e com não membro.
 
 Comece em modo de planejamento e só implemente depois da minha aprovação.
 ```
