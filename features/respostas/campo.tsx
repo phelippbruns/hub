@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState } from "react";
 import { Button, TextField } from "@/design/components";
 import { GifIcon, ImageIcon } from "@/design/icons";
+import { EscolherGif, type GifEscolhido } from "./escolher-gif";
 import { acharLink } from "@/lib/texto/links";
 import { responder, type EstadoDaResposta } from "./actions";
 
@@ -30,6 +31,8 @@ export function CampoDeResposta({
   const [estado, acao, pendente] = useActionState<EstadoDaResposta, FormData>(responder, {});
   const [texto, setTexto] = useState("");
   const [imagem, setImagem] = useState<File | null>(null);
+  const [gif, setGif] = useState<GifEscolhido | null>(null);
+  const [escolhendoGif, setEscolhendoGif] = useState(false);
   const arquivoRef = useRef<HTMLInputElement>(null);
 
   // Derivado na renderização: função pura do que está escrito.
@@ -53,6 +56,7 @@ export function CampoDeResposta({
     setUltimaEnviada(enviadas);
     setTexto("");
     setImagem(null);
+    setGif(null);
   }
 
   return (
@@ -94,6 +98,7 @@ export function CampoDeResposta({
           size="sm"
           onClick={() => arquivoRef.current?.click()}
           aria-label="Adicionar imagem"
+          disabled={gif !== null}
         >
           <ImageIcon decorative className="size-icon" />
         </Button>
@@ -101,15 +106,35 @@ export function CampoDeResposta({
         {/*
           O GIF só aparece com a chave do GIPHY configurada, do mesmo jeito
           que o botão do Google. Botão que não funciona é promessa quebrada.
+
+          Desativado quando já há imagem: RN13 aceita um ou outro, nunca os
+          dois, e desativar explica melhor do que recusar depois.
         */}
         {gifLigado ? (
-          <Button variant="secondary" size="sm" aria-label="Adicionar GIF">
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-label="Adicionar GIF"
+            disabled={imagem !== null}
+            onClick={() => setEscolhendoGif(true)}
+          >
             <GifIcon decorative className="size-icon" />
           </Button>
         ) : null}
 
         {imagem ? (
           <span className="text-caption text-inkMuted min-w-0 flex-1 truncate">{imagem.name}</span>
+        ) : null}
+
+        {gif ? (
+          <span className="flex min-w-0 flex-1 items-center gap-1">
+            {/* Mesmo motivo do `<img>` da resposta: o endereço é do GIPHY. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={gif.url} alt={gif.descricao} className="h-avatarMd w-auto rounded-sm" />
+            <Button variant="secondary" size="sm" onClick={() => setGif(null)}>
+              Tirar GIF
+            </Button>
+          </span>
         ) : null}
 
         <Button
@@ -121,6 +146,17 @@ export function CampoDeResposta({
           Responder
         </Button>
       </div>
+
+      {gif ? <input type="hidden" name="gif" value={gif.url} /> : null}
+
+      <EscolherGif
+        aberto={escolhendoGif}
+        onEscolher={(escolhido) => {
+          setGif(escolhido);
+          setEscolhendoGif(false);
+        }}
+        onFechar={() => setEscolhendoGif(false)}
+      />
 
       {estado.erro ? (
         <p role="alert" className="text-caption text-error">

@@ -18,6 +18,8 @@ export type RespostaNaTela = {
   quando: string;
   souAutor: boolean;
   imagem: string | null;
+  /** Imagem enviada ou GIF: muda só o texto alternativo. */
+  tipoDaMidia: "image" | "gif" | null;
   autor: { nome: string; handle: string; avatarUrl: string | null } | null;
 };
 
@@ -86,7 +88,11 @@ export function LinhaDeResposta({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={resposta.imagem}
-            alt={`Imagem enviada por ${nome}`}
+            alt={
+              resposta.tipoDaMidia === "gif"
+                ? `GIF enviado por ${nome}`
+                : `Imagem enviada por ${nome}`
+            }
             /*
              * Preso nos dois lados: imagem que não carrega não tem tamanho
              * próprio, e sem isto o espaço dela estica a página inteira.

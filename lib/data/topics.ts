@@ -14,7 +14,7 @@ import {
 import { createAnswerSchema, createTopicSchema } from "./validation";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { assertNotBlocked, requireActiveMembership } from "./access";
-import { enderecosAssinados } from "@/lib/midia/deposito";
+import { enderecosDeMidia } from "@/lib/midia/deposito";
 
 /**
  * RN08: a partir de quantas respostas de outras pessoas o autor não apaga.
@@ -174,7 +174,8 @@ async function listAnswers(me: string, topicId: string) {
     },
   });
 
-  const enderecos = await enderecosAssinados(respostas.map((r) => r.mediaUrl));
+  // GIF guarda a URL do GIPHY; imagem guarda o caminho no depósito.
+  const enderecos = await enderecosDeMidia(respostas.map((r) => r.mediaUrl));
 
   return respostas.map((resposta, i) => ({
     ...resposta,

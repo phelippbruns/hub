@@ -18,3 +18,18 @@ export function alerta(escopo: Page | Locator): Locator {
   // **dentro** do que casou, em vez de tirar um dos casamentos.
   return escopo.locator('[role="alert"]:not(#__next-route-announcer__)');
 }
+
+/**
+ * Uma resposta **publicada**, e não o que está na caixa de digitar.
+ *
+ * `getByText` casa com o conteúdo de um `<textarea>`. Então
+ * `getByText("minha resposta")` fica verde com o texto ainda no campo, antes
+ * de ser enviado — e um teste assim passa mesmo quando o envio falha. Foi
+ * exatamente o que escondeu uma falha de envio até a CI reclamar.
+ *
+ * O cartão de resposta é um `<article>`; procurar lá dentro só acha o que
+ * foi publicado de verdade.
+ */
+export function respostaPublicada(escopo: Page, texto: string): Locator {
+  return escopo.locator("article").filter({ hasText: texto });
+}

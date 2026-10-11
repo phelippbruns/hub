@@ -59,10 +59,35 @@ export async function responder(
     };
   }
 
-  let caminho: string | null = null;
+  /*
+   * GIF e imagem são excludentes (RN13): um ou outro, nunca os dois. A tela
+   * já impede, e aqui é a regra.
+   */
+  const gif = String(formulario.get("gif") ?? "").trim();
   const arquivo = formulario.get("imagem");
+  const temArquivo = arquivo instanceof File && arquivo.size > 0;
 
-  if (arquivo instanceof File && arquivo.size > 0) {
+  if (gif && temArquivo) return { erro: "Escolha uma imagem ou um GIF, não os dois." };
+
+  if (gif) {
+    // O endereço vem do GIPHY, público por natureza — nada a guardar.
+    if (!/^https:\/\/[a-z0-9.-]*giphy\.com\//i.test(gif)) {
+      return { erro: "Esse GIF não veio do GIPHY." };
+    }
+
+    await createAnswer(viewer, {
+      topicId,
+      text: texto,
+      media: { caminho: gif, kind: "gif" as const },
+    });
+
+    revalidatePath(endereco);
+    return { enviadas: (_anterior.enviadas ?? 0) + 1 };
+  }
+
+  let caminho: string | null = null;
+
+  if (temArquivo) {
     if (arquivo.size > TAMANHO_MAXIMO) return { erro: "A imagem passa de 5 MB." };
 
     try {

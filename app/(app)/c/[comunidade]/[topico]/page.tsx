@@ -102,6 +102,7 @@ export default async function TopicoPage({ params }: { params: Params }) {
                     quando: haQuantoTempo(resposta.createdAt),
                     souAutor: resposta.souAutor,
                     imagem: resposta.mediaHref,
+                    tipoDaMidia: resposta.mediaKind,
                     autor: resposta.author
                       ? {
                           nome: resposta.author.name,

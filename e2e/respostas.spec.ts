@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
-import { alerta } from "./apoio-tela";
+import { alerta, respostaPublicada } from "./apoio-tela";
 
 /**
  * Respostas (F09): responder, o aviso de link, a imagem e apagar.
@@ -67,7 +67,7 @@ test.describe("responder", () => {
     await page.getByRole("textbox", { name: "Sua resposta" }).fill("Um galpão em Curitiba, 2019.");
     await page.getByRole("button", { name: "Responder" }).click();
 
-    await expect(page.getByText("Um galpão em Curitiba, 2019.")).toBeVisible();
+    await expect(respostaPublicada(page, "Um galpão em Curitiba, 2019.")).toBeVisible();
     // RN15: pessoas e respostas, nunca curtida.
     await expect(page.getByText(/1 pessoa, 1 resposta/)).toBeVisible();
   });
@@ -106,7 +106,7 @@ test.describe("responder", () => {
 
     await page.getByRole("textbox", { name: "Sua resposta" }).fill("resposta que vou apagar");
     await page.getByRole("button", { name: "Responder" }).click();
-    await expect(page.getByText("resposta que vou apagar")).toBeVisible();
+    await expect(respostaPublicada(page, "resposta que vou apagar")).toBeVisible();
 
     await page.getByRole("button", { name: "Opções da sua resposta" }).click();
 
@@ -121,7 +121,7 @@ test.describe("responder", () => {
 
     await page.getByRole("textbox", { name: "Sua resposta" }).fill("some depois");
     await page.getByRole("button", { name: "Responder" }).click();
-    await expect(page.getByText("some depois")).toBeVisible();
+    await expect(respostaPublicada(page, "some depois")).toBeVisible();
 
     await page.getByRole("button", { name: "Opções da sua resposta" }).click();
     await page.getByRole("button", { name: "Apagar resposta", exact: true }).click();
@@ -139,7 +139,7 @@ test.describe("responder", () => {
       .toBe(0);
 
     await page.goto(topico);
-    await expect(page.getByText("some depois")).toHaveCount(0);
+    await expect(respostaPublicada(page, "some depois")).toHaveCount(0);
   });
 });
 
@@ -176,16 +176,23 @@ test.describe("imagem na resposta", () => {
     });
     await page.getByRole("button", { name: "Responder" }).click();
 
-    await expect(page.getByText("olha a foto")).toBeVisible();
-    await expect(page.getByRole("img", { name: /Imagem enviada por/ })).toBeVisible();
+    await expect(respostaPublicada(page, "olha a foto")).toBeVisible();
 
-    // O que ficou guardado é um caminho no depósito, não um endereço: é isso
-    // que permite o depósito ser privado.
+    /*
+     * O banco primeiro, a tela depois. Quando isto falhou na CI, a mensagem
+     * foi "não achei a imagem na tela" — e a causa era o serviço de arquivos
+     * nem estar de pé. Conferir o que foi guardado antes diz **onde** quebrou.
+     *
+     * O que fica guardado é o caminho no depósito, não um endereço: é isso
+     * que permite o depósito ser privado.
+     */
     const [linha] = await consultar<{ media_url: string; media_kind: string }>(
       `SELECT media_url, media_kind FROM answers WHERE text = 'olha a foto' AND deleted_at IS NULL`,
     );
-    expect(linha?.media_kind).toBe("image");
+    expect(linha?.media_kind, "a imagem não chegou ao depósito").toBe("image");
     expect(linha?.media_url).toMatch(/^respostas\/[0-9a-f-]+\.jpg$/);
+
+    await expect(page.getByRole("img", { name: /Imagem enviada por/ })).toBeVisible();
   });
 
   test("recusada pelo servidor, o texto continua no campo", async ({ page }) => {
@@ -239,6 +246,55 @@ test.describe("imagem na resposta", () => {
     expect(await consultar(`SELECT 1 FROM answers WHERE text = 'tentando enganar'`)).toHaveLength(
       0,
     );
+  });
+});
+
+test.describe("GIF na resposta", () => {
+  test("escolhe um GIF, responde, e ele aparece", async ({ page }) => {
+    await entrarNoApp(page, "gif");
+    await meuTopico(page, "Com GIF");
+
+    await page.getByRole("textbox", { name: "Sua resposta" }).fill("não tenho palavras");
+    await page.getByRole("button", { name: "Adicionar GIF" }).click();
+
+    // A grade vem da nossa rota, não do GIPHY: a chave fica no servidor.
+    const primeiro = page
+      .getByRole("button")
+      .filter({ has: page.locator("img") })
+      .first();
+    await expect(primeiro).toBeVisible({ timeout: 15_000 });
+    await primeiro.click();
+
+    await expect(page.getByRole("button", { name: "Tirar GIF" })).toBeVisible();
+    await page.getByRole("button", { name: "Responder" }).click();
+
+    await expect(respostaPublicada(page, "não tenho palavras")).toBeVisible();
+
+    const [linha] = await consultar<{ media_url: string; media_kind: string }>(
+      `SELECT media_url, media_kind FROM answers
+        WHERE text = 'não tenho palavras' AND deleted_at IS NULL`,
+    );
+    expect(linha?.media_kind, "o GIF não foi guardado").toBe("gif");
+    // GIF guarda a URL do GIPHY: ela é pública, não há o que depositar.
+    expect(linha?.media_url).toMatch(/^https:\/\/[a-z0-9.-]*giphy\.com\//);
+
+    await expect(page.getByRole("img", { name: /GIF enviado por/ })).toBeVisible();
+  });
+
+  test("RN13: imagem e GIF são excludentes", async ({ page }) => {
+    await entrarNoApp(page, "umoutro");
+    await meuTopico(page, "Um Ou Outro");
+
+    await page.getByRole("textbox", { name: "Sua resposta" }).fill("um de cada vez");
+    await page.getByLabel("Adicionar imagem à resposta").setInputFiles({
+      name: "foto.jpg",
+      mimeType: "image/jpeg",
+      buffer: jpegComLocalizacao(),
+    });
+
+    // Com imagem escolhida, o GIF fica desativado — desativar explica
+    // melhor do que recusar depois de enviar.
+    await expect(page.getByRole("button", { name: "Adicionar GIF" })).toBeDisabled();
   });
 });
 

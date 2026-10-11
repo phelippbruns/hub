@@ -78,20 +78,22 @@ export async function enderecoAssinado(caminho: string | null): Promise<string |
 }
 
 /**
- * O endereço de uma capa, que pode ser caminho no depósito **ou** uma URL.
+ * O endereço de uma mídia, que pode ser caminho no depósito **ou** uma URL.
  *
- * As capas enviadas viram caminho; a capa padrão de um Universo pode ser uma
- * URL externa. Quem lê a lista não deveria precisar saber qual é qual.
+ * O Hub guarda as duas coisas na mesma coluna: imagem enviada vira caminho,
+ * GIF do GIPHY e capa padrão de Universo são endereços prontos. Quem lê a
+ * lista não deveria precisar saber qual é qual — e tentar assinar uma URL
+ * externa daria erro em silêncio, deixando a mídia sumir da tela.
  */
-export async function enderecoDeCapa(valor: string | null): Promise<string | null> {
+export async function enderecoDeMidia(valor: string | null): Promise<string | null> {
   if (!valor) return null;
   if (/^https?:\/\//i.test(valor)) return valor;
   return enderecoAssinado(valor);
 }
 
 /** Vários de uma vez, para uma lista de respostas não fazer N chamadas em fila. */
-export async function enderecosAssinados(caminhos: (string | null)[]): Promise<(string | null)[]> {
-  return Promise.all(caminhos.map((caminho) => enderecoAssinado(caminho)));
+export async function enderecosDeMidia(valores: (string | null)[]): Promise<(string | null)[]> {
+  return Promise.all(valores.map((valor) => enderecoDeMidia(valor)));
 }
 
 /**

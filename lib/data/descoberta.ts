@@ -9,7 +9,7 @@ import { prisma } from "./prisma";
 import { NotFoundError } from "./errors";
 import { viewerProfileId, type Viewer } from "./viewer";
 import { EXPLORE_MIN_MEMBERS } from "./communities";
-import { enderecoDeCapa } from "@/lib/midia/deposito";
+import { enderecoDeMidia } from "@/lib/midia/deposito";
 
 /** Linha de comunidade, como as telas 9, 10 e 11 mostram. */
 export type ComunidadeNaLista = {
@@ -108,7 +108,7 @@ export async function paraVoce(
  * vinte chamadas em fila.
  */
 async function comCapas(linhas: ComunidadeNaLista[]): Promise<ComunidadeNaLista[]> {
-  const capas = await Promise.all(linhas.map((c) => enderecoDeCapa(c.coverUrl)));
+  const capas = await Promise.all(linhas.map((c) => enderecoDeMidia(c.coverUrl)));
   return linhas.map((c, i) => ({ ...c, coverUrl: capas.at(i) ?? null }));
 }
 

@@ -263,6 +263,56 @@ para ser escrita.
 
 ---
 
+### Teste que confere o que a pessoa digitou, não o que foi publicado
+
+Escrevi `getByText("minha resposta")` para conferir que a resposta apareceu
+na tela. **Isso casa com o conteúdo da caixa de digitar**, não só com a
+resposta publicada. O teste ficava verde com o texto ainda no campo, antes
+de qualquer envio.
+
+Resultado: quando o envio falhava, o teste passava assim mesmo. E, como o
+texto fica no campo depois de uma recusa — correção que eu tinha acabado de
+fazer, e que é certa —, o buraco ficou ainda maior.
+
+*Por que passou:* porque o teste é o que deveria pegar, e ele estava medindo
+a coisa errada. Só apareceu quando a CI rodou sem o serviço de arquivos: o
+envio falhou de verdade, o teste de texto continuou verde, e quem reprovou
+foi a asserção **seguinte**.
+
+*Como resolvi:* `respostaPublicada()` em `e2e/apoio-tela.ts`, que procura
+dentro do cartão de resposta. Só acha o que foi publicado.
+
+**Regra:** asserção de tela precisa olhar o lugar onde a coisa aparece, não o
+texto solto na página. "Está escrito em algum lugar" é fraco demais para
+servir de prova.
+
+🔒 **Barrado** — o jeito certo virou função, como o `alerta()`.
+
+---
+
+### A CI não tem o que a minha máquina tem
+
+A F09 passou a enviar imagem. Local, tudo verde. Na CI, o teste de imagem
+reprovou: o `supabase start` da CI subia com `-x storage-api`, ou seja,
+**sem o serviço de arquivos**.
+
+*Por que passou:* a exclusão estava lá desde o começo, para a CI subir mais
+rápido, e nunca tinha feito falta — nenhuma feature usava arquivo. Eu
+construí o envio inteiro sem olhar o que a CI liga.
+
+*Como resolvi:* `storage-api` saiu da lista de exclusão, com o comentário
+dizendo por que ele precisa subir. E o teste passou a conferir o banco
+**antes** da tela, para a mensagem de falha dizer onde quebrou em vez de
+"não achei a imagem".
+
+**Regra:** feature que depende de um serviço novo exige olhar o que a CI
+sobe. "Funciona na minha máquina" tem uma irmã mais discreta: "a minha
+máquina liga tudo".
+
+🔒 **Barrado** — a CI agora sobe o serviço, e o teste falha com motivo.
+
+---
+
 ### Limpar o campo antes de o servidor aceitar
 
 No campo de resposta, eu limpava o texto **no clique**. Parece mais rápido.

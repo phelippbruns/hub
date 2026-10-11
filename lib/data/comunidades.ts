@@ -7,7 +7,7 @@
 import { prisma } from "./prisma";
 import { ForbiddenError, NotFoundError } from "./errors";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
-import { enderecoDeCapa } from "@/lib/midia/deposito";
+import { enderecoDeMidia } from "@/lib/midia/deposito";
 
 /** Um tópico como as listas da comunidade o mostram (RN15: nunca um placar). */
 export type TopicoNaComunidade = {
@@ -180,7 +180,7 @@ export async function paginaDaComunidade(
     name: comunidade.name,
     intro: comunidade.intro,
     // O depósito é privado: o endereço é assinado na hora de desenhar.
-    coverUrl: await enderecoDeCapa(comunidade.coverUrl),
+    coverUrl: await enderecoDeMidia(comunidade.coverUrl),
     membersCount: comunidade.membersCount,
     universo: comunidade.universe,
     souMembro: Boolean(minha && !minha.bannedAt),
@@ -270,7 +270,7 @@ export async function minhasComunidades(
      ORDER BY (m.pinned_at IS NULL), m.pinned_at ASC, hub_busca(c.name) ASC
   `;
 
-  const capas = await Promise.all(linhas.map((l) => enderecoDeCapa(l.cover_url)));
+  const capas = await Promise.all(linhas.map((l) => enderecoDeMidia(l.cover_url)));
 
   return linhas.map((l, i) => ({
     id: l.id,

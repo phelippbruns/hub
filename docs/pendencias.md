@@ -209,6 +209,7 @@ Mande o texto quando tiver: o encaixe é direto.
 | **Confirmação de email desligada** | Desligada para permitir testes | Com ela desligada, dá para criar conta com o email de outra pessoa |
 | **Proteção de deploy desligada** | Desligada para o site ficar visível | Os previews de cada PR também ficaram públicos |
 | **Login com Google** | Fluxo escrito, botão escondido | Falta criar um OAuth Client no Google Cloud Console |
+| **Chave do GIPHY** | Configurada em 10 de outubro, em desenvolvimento e em produção | Sem ela o botão de GIF simplesmente não aparece |
 | **Domínio próprio** | Não há | Hoje o endereço é `hub-livid-omega.vercel.app` |
 
 Os quatro primeiros são aceitáveis enquanto é só teste. **Nenhum deles pode
