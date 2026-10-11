@@ -88,7 +88,7 @@ Comece em modo de planejamento. Liste arquivos que vai criar ou alterar e pergun
 
 ## Ordem de execução e dependências
 
-São 22 features em 8 fases: a web primeiro (F00 a F20) e o celular depois (F21). Dentro de uma fase, as features sem dependência entre si podem ser feitas em paralelo, por pessoas diferentes.
+São 23 features em 8 fases: a web primeiro (F00 a F20) e o celular depois (F21). Dentro de uma fase, as features sem dependência entre si podem ser feitas em paralelo, por pessoas diferentes.
 
 | Código | Feature | Depende de | Telas |
 | --- | --- | --- | --- |
@@ -105,6 +105,7 @@ São 22 features em 8 fases: a web primeiro (F00 a F20) e o celular depois (F21)
 | F10 | Ciclo do Hot Topic | F09 | 14 |
 | F11 | Início | F10 | 6, 7 |
 | F12 | Perfil, seguir e Coleção | F09 | 21, 22, 23, 24 |
+| F12.1 | Fim do Universo e marcas do nível | F12 | 9, 10, 11, 14, 23 |
 | F13 | Cabine | F12 | 17, 18, 19, 20 |
 | F14 | Compartilhar e convite por link | F13 | 2, 14, 15 |
 | F15 | Notificações e marcar com @ | F13 | 8, 25 |
@@ -442,6 +443,44 @@ Escopo:
 Fora do escopo: Cabine (F13).
 Critérios de aceite: visitante nunca vê Coleção nem número de pessoas seguidas; @ repetido é recusado; responder não segue o tópico.
 Testes: RN27, RN28 e privacidade da Coleção.
+
+Comece em modo de planejamento e só implemente depois da minha aprovação.
+```
+
+### F12.1. Fim do Universo e marcas do nível
+
+Decidido com o PO em 11 de outubro. Entra **antes da F13**, e o motivo é
+custo: a F20 (qualidade final da web) e a F21 (celular) passam por toda
+tela. Deixar o Universo morrer depois delas faria a F21 construir o layout
+de celular do Explorar-lista-de-Universos e da `/u/<universo>` — duas telas
+que seriam apagadas em seguida. E a F19 definiria eventos carregando
+Universo, que depois precisariam ser desfeitos.
+
+As marcas de nível que o PO pediu **são** esta mudança: `{` sai do Universo e
+vai para comunidade, `#` vai para tópico, `*` para resposta. É a hierarquia
+subindo um degrau. Trocar as marcas sem tirar o Universo o deixaria sem
+marca nenhuma, em tela, no Explorar.
+
+```text
+Feature: F12.1 Fim do Universo e marcas do nível
+Leia CLAUDE.md, docs/escopo.md (RN01, RN02, RN03, RN31), docs/vacilos.md e as telas 9, 10, 11, 14 e 23 em docs/telas.html.
+
+Objetivo: tirar o Universo do produto sem perder a descoberta, e subir as marcas de nível um degrau.
+
+Escopo:
+1. Hubverso: um único Universo no banco, criado por migration, para onde vai toda comunidade. A coluna universe_id continua existindo e NOT NULL — a comunidade continua tendo um pai, só que invisível. Arrancar a coluna seria semanas de risco por nenhum ganho de produto.
+2. O campo Universo sai da tela de criar comunidade. Quem cria escolhe nome, intro e capa; o Hubverso é automático.
+3. Explorar continua igual, sem a seção de Universos (decisão do PO). A lista abre por comunidades com mais atividade na plataforma; a busca segue global, ignorando Universo.
+4. A tela /u/<universo> é apagada, com o @ "u" continuando reservado em lib/data/validation.ts — endereço que já existiu nunca volta a ser livre.
+5. O onboarding escolhe comunidades de uma lista achatada, sem agrupamento por Universo, mantendo o mínimo de 3 (RN31).
+6. A Coleção perde o agrupamento por Universo e fica com comunidade e ordem cronológica (RN27 muda).
+7. Capa padrão: hoje a comunidade sem capa enviada herda a do Universo (RN03). O Hubverso precisa de uma capa padrão própria, que passa a ser a capa padrão do Hub.
+8. Marcas de nível: `{` em sun para comunidade, `#` em lavender para tópico, asterisco em paper sobre ink para resposta. O nível "universe" sai do tipo Level, e a galeria /design é atualizada junto.
+9. RN01, RN02, RN03, RN27 e RN31 reescritas no escopo. A hierarquia passa a ser comunidade, tópico e resposta.
+
+Fora do escopo: remover a coluna universe_id do banco; etiquetas no lugar de Universo; redesenhar a descoberta além de tirar a seção.
+Critérios de aceite: criar comunidade sem escolher Universo; comunidade nova cai no Hubverso; a palavra Universo não aparece em nenhuma tela; /u/<qualquer coisa> devolve 404 e o @ "u" segue recusado no cadastro; comunidade sem capa enviada mostra a capa padrão do Hub; onboarding ainda exige 3 comunidades; as marcas aparecem no nível novo em todas as telas e na galeria.
+Testes: o Explorar sem Universo; o Hubverso como destino de toda comunidade nova; a Coleção com dois agrupamentos; a capa padrão; as marcas na galeria; o @ reservado que sobrou de uma rota apagada.
 
 Comece em modo de planejamento e só implemente depois da minha aprovação.
 ```

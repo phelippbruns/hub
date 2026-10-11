@@ -12,6 +12,8 @@ Fonte completa: [docs/escopo.md](docs/escopo.md). Backlog e ordem das features: 
 
 **Leia [docs/faustao.md](docs/faustao.md) antes de dizer que algo está pronto.** É o registro dos erros já cometidos neste projeto: o que aconteceu, por que passou pelas verificações, como foi resolvido e se já existe barreira automática. Quase todos passaram por alguma conferência que parecia suficiente. Erro novo entra lá.
 
+**E [docs/vacilos.md](docs/vacilos.md) antes de decidir ordem de feature, mudar uma RN ou cortar escopo.** É o Faustão do produto: erros de decisão, não de código. Erro técnico quebra e avisa; erro de produto funciona perfeitamente e cobra depois. Decisão nova que contraria uma antiga entra lá.
+
 ## Para quem você escreve
 
 **Phelipp é pessoa de produto, não engenheiro.** Ele decide o que o Hub é; não decifra rastro de pilha.

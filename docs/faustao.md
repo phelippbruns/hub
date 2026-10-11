@@ -8,6 +8,10 @@ para eu não repetir — e para quem vier depois não tropeçar no mesmo lugar.
 **Como usar:** antes de dizer que algo está pronto, passe os olhos na seção 1.
 Ao escrever teste, na 2. Ao mexer em ambiente ou banco, na 4.
 
+Aqui são os erros **de código**. Os erros de **produto e de negócio** — ordem
+de feature errada, regra escrita de um jeito e implementada de outro, escopo
+pela metade — moram em [vacilos.md](vacilos.md).
+
 Cada entrada tem quatro partes:
 
 - **o que aconteceu**

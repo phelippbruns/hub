@@ -6,7 +6,8 @@ O que falta para o Hub existir. Separado pelo que **impede o lançamento**, pelo
 que é **decisão sua**, pelo que é **dívida técnica** e pela **fila de features**.
 
 Para o que já foi construído e como mexer nele, veja [CLAUDE.md](../CLAUDE.md).
-Para as regras de negócio, [escopo.md](escopo.md).
+Para as regras de negócio, [escopo.md](escopo.md). Para as decisões de produto
+que já custaram algo, [vacilos.md](vacilos.md).
 
 ---
 
