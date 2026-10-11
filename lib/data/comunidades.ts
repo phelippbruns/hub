@@ -5,8 +5,9 @@
  * que as telas 12 e 14 precisam ler.
  */
 import { prisma } from "./prisma";
-import { NotFoundError } from "./errors";
+import { ForbiddenError, NotFoundError } from "./errors";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
+import { enderecoDeMidia } from "@/lib/midia/deposito";
 
 /** Um tópico como as listas da comunidade o mostram (RN15: nunca um placar). */
 export type TopicoNaComunidade = {
@@ -178,7 +179,8 @@ export async function paginaDaComunidade(
     slug: comunidade.slug,
     name: comunidade.name,
     intro: comunidade.intro,
-    coverUrl: comunidade.coverUrl,
+    // O depósito é privado: o endereço é assinado na hora de desenhar.
+    coverUrl: await enderecoDeMidia(comunidade.coverUrl),
     membersCount: comunidade.membersCount,
     universo: comunidade.universe,
     souMembro: Boolean(minha && !minha.bannedAt),
@@ -268,11 +270,13 @@ export async function minhasComunidades(
      ORDER BY (m.pinned_at IS NULL), m.pinned_at ASC, hub_busca(c.name) ASC
   `;
 
-  return linhas.map((l) => ({
+  const capas = await Promise.all(linhas.map((l) => enderecoDeMidia(l.cover_url)));
+
+  return linhas.map((l, i) => ({
     id: l.id,
     slug: l.slug,
     name: l.name,
-    coverUrl: l.cover_url,
+    coverUrl: capas.at(i) ?? null,
     membersCount: l.members_count,
     topicosAtivos: Number(l.topicos_ativos),
     fixada: l.fixada,
@@ -302,6 +306,40 @@ export async function alternarFixada(viewer: Viewer, communityId: string, fixar:
     where: { communityId_profileId: { communityId, profileId: me } },
     data: { pinnedAt: fixar ? new Date() : null },
   });
+}
+
+/**
+ * Trocar a capa da comunidade (RN03, RN06).
+ *
+ * **Só quem modera.** A capa é a cara da comunidade inteira, não de uma
+ * pessoa; deixar qualquer membro trocar transformaria a identidade do grupo
+ * em disputa.
+ *
+ * A capa antiga sai do depósito: guardar imagem que ninguém mais vê custa
+ * espaço e aumenta o que vaza se algo der errado.
+ */
+export async function trocarCapa(viewer: Viewer, communityId: string, caminho: string) {
+  const me = requireProfileId(viewer);
+
+  const minha = await prisma.membership.findUnique({
+    where: { communityId_profileId: { communityId, profileId: me } },
+    select: { role: true, bannedAt: true },
+  });
+  if (minha?.role !== "moderator" || minha.bannedAt) {
+    throw new ForbiddenError("Só quem modera troca a capa da comunidade");
+  }
+
+  const antes = await prisma.community.findUnique({
+    where: { id: communityId },
+    select: { coverUrl: true, universe: { select: { defaultCoverUrl: true } } },
+  });
+
+  await prisma.community.update({ where: { id: communityId }, data: { coverUrl: caminho } });
+
+  // A capa do Universo é compartilhada: apagar seria tirar de todas as outras.
+  const anterior = antes?.coverUrl;
+  const ehDoUniverso = anterior === antes?.universe.defaultCoverUrl;
+  return { anteriorParaApagar: anterior && !ehDoUniverso ? anterior : null };
 }
 
 /** A preferência de painel oculto, guardada na pessoa e não no aparelho. */

@@ -19,6 +19,19 @@ describe("parseServerEnv", () => {
     expect(() => parseServerEnv(semBanco)).toThrow(/DATABASE_URL/);
   });
 
+  it.each([
+    ["ausente", {}, undefined],
+    ["vazia", { GIPHY_API_KEY: "" }, undefined],
+    ["preenchida", { GIPHY_API_KEY: "uma-chave" }, "uma-chave"],
+  ])("chave do GIPHY %s vira %s", (_caso, extra, esperado) => {
+    /*
+     * Vazio conta como ausente. `.env.example` traz `GIPHY_API_KEY=""`, e
+     * copiá-lo sem preencher derrubava o build com um erro que não
+     * explicava nada — quando a intenção óbvia é "ainda não tenho chave".
+     */
+    expect(parseServerEnv({ ...serverOk, ...extra }).GIPHY_API_KEY).toBe(esperado);
+  });
+
   it("recusa URL de banco que não é Postgres", () => {
     expect(() => parseServerEnv({ ...serverOk, DIRECT_URL: "https://exemplo.test" })).toThrow(
       /DIRECT_URL/,

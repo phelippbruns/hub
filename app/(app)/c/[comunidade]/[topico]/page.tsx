@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AnswerCard, ContentColumn, EmptyState, TopicOpening } from "@/design/components";
+import { ContentColumn, EmptyState, TopicOpening } from "@/design/components";
+import { CampoDeResposta } from "@/features/respostas/campo";
+import { LinhaDeResposta } from "@/features/respostas/linha";
 import { CabecalhoDoTopico } from "@/features/topicos/cabecalho";
 import { getViewer } from "@/lib/auth/session";
 import { LIMITE_RESPOSTAS_PARA_APAGAR, topicoPorEndereco } from "@/lib/data/topics";
 import { NotFoundError } from "@/lib/data/errors";
 import { haQuantoTempo } from "@/lib/tempo";
+import { serverEnv } from "@/lib/env";
 
 type Params = Promise<{ comunidade: string; topico: string }>;
 
@@ -74,35 +77,45 @@ export default async function TopicoPage({ params }: { params: Params }) {
           title="Entre para ver as respostas"
           description="As respostas aparecem para quem tem conta no Hub."
         />
-      ) : dados.answers.length === 0 ? (
-        <EmptyState
-          title="Nenhuma resposta ainda"
-          description="Responder a tópicos chega na próxima feature."
-        />
       ) : (
-        <div className="flex flex-col gap-2">
-          {dados.answers.map((resposta) => (
-            <AnswerCard
-              key={resposta.id}
-              author={resposta.author?.name ?? "Pessoa que saiu do Hub"}
-              handle={resposta.author?.handle ?? "removida"}
-              when={haQuantoTempo(resposta.createdAt)}
-              avatar={
-                <span
-                  aria-hidden="true"
-                  className="size-avatar rounded-pill bg-lavender shrink-0 bg-cover bg-center"
-                  style={
-                    resposta.author?.avatarUrl
-                      ? { backgroundImage: `url(${resposta.author.avatarUrl})` }
-                      : undefined
-                  }
+        <>
+          <CampoDeResposta
+            topicId={dados.id}
+            endereco={endereco}
+            gifLigado={Boolean(serverEnv().GIPHY_API_KEY)}
+          />
+
+          {dados.answers.length === 0 ? (
+            <EmptyState
+              title="Nenhuma resposta ainda"
+              description="Seja a primeira pessoa a responder."
+            />
+          ) : (
+            <div className="flex flex-col gap-2">
+              {dados.answers.map((resposta) => (
+                <LinhaDeResposta
+                  key={resposta.id}
+                  endereco={endereco}
+                  resposta={{
+                    id: resposta.id,
+                    texto: resposta.text,
+                    quando: haQuantoTempo(resposta.createdAt),
+                    souAutor: resposta.souAutor,
+                    imagem: resposta.mediaHref,
+                    tipoDaMidia: resposta.mediaKind,
+                    autor: resposta.author
+                      ? {
+                          nome: resposta.author.name,
+                          handle: resposta.author.handle,
+                          avatarUrl: resposta.author.avatarUrl,
+                        }
+                      : null,
+                  }}
                 />
-              }
-            >
-              {resposta.text}
-            </AnswerCard>
-          ))}
-        </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </ContentColumn>
   );

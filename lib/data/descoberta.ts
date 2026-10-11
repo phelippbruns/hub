@@ -9,6 +9,7 @@ import { prisma } from "./prisma";
 import { NotFoundError } from "./errors";
 import { viewerProfileId, type Viewer } from "./viewer";
 import { EXPLORE_MIN_MEMBERS } from "./communities";
+import { enderecoDeMidia } from "@/lib/midia/deposito";
 
 /** Linha de comunidade, como as telas 9, 10 e 11 mostram. */
 export type ComunidadeNaLista = {
@@ -42,6 +43,7 @@ function montar(linha: LinhaCrua): ComunidadeNaLista {
     id: linha.id,
     name: linha.name,
     intro: linha.intro,
+    // Preenchido depois por `comCapas`: assinar é assíncrono.
     coverUrl: linha.cover_url,
     membersCount: linha.members_count,
     universo: { id: linha.universe_id, name: linha.universe_name, slug: linha.universe_slug },
@@ -95,7 +97,19 @@ export async function paraVoce(
      LIMIT ${limite}
   `;
 
-  return linhas.map(montar);
+  return comCapas(linhas.map(montar));
+}
+
+/**
+ * Troca o caminho de cada capa pelo endereço assinado.
+ *
+ * O depósito é privado, então o endereço vale por pouco tempo e é gerado na
+ * hora de desenhar. Em lote, para uma lista de vinte comunidades não virar
+ * vinte chamadas em fila.
+ */
+async function comCapas(linhas: ComunidadeNaLista[]): Promise<ComunidadeNaLista[]> {
+  const capas = await Promise.all(linhas.map((c) => enderecoDeMidia(c.coverUrl)));
+  return linhas.map((c, i) => ({ ...c, coverUrl: capas.at(i) ?? null }));
 }
 
 export type OrdemDoUniverso = "atividade" | "recentes";
@@ -148,7 +162,7 @@ export async function comunidadesDoUniverso(
        c.name ASC
   `;
 
-  return { universo, comunidades: linhas.map(montar) };
+  return { universo, comunidades: await comCapas(linhas.map(montar)) };
 }
 
 /**
@@ -180,7 +194,7 @@ export async function buscarComunidades(viewer: Viewer, termo: string, limite = 
      LIMIT ${limite}
   `;
 
-  return linhas.map(montar);
+  return comCapas(linhas.map(montar));
 }
 
 export type TopicoNaBusca = {

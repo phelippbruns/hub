@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
+import { alerta } from "./apoio-tela";
 
 /**
  * Tópicos (F08): criar, abrir, seguir e apagar.
@@ -91,9 +92,7 @@ test.describe("criar tópico", () => {
 
     // O aviso aparece **antes** de escrever, não como recusa depois.
     await page.goto(`${comunidade}/novo`);
-    // Dentro do formulário: o Next mantém um role="alert" vazio na página
-    // para anunciar troca de rota, e ele casaria junto.
-    const aviso = page.locator("form").getByRole("alert");
+    const aviso = alerta(page.locator("form"));
     await expect(aviso).toContainText("já criou um tópico");
     await expect(page.getByRole("button", { name: "Criar tópico" })).toBeDisabled();
   });

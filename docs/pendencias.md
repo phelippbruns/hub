@@ -101,6 +101,20 @@ Duas coisas que valem saber:
   bastaria alternar entre o @ e o email da mesma conta para dobrar o número
   de senhas que dá para testar.
 
+### Moderação automática de imagem — **em aberto**
+
+Desde a F09 dá para enviar foto. O Hub confere o tipo pelos bytes e tira a
+localização, mas **não olha o conteúdo**: nada impede alguém de enviar uma
+imagem que não deveria estar numa rede com pessoas de 18 anos recém-feitos.
+
+Hoje a defesa é a denúncia, que chega na F16, e a moderação humana. Isso
+basta enquanto o Hub é pequeno e todo mundo se conhece; não basta depois.
+
+Três caminhos, em ordem de custo: serviço de classificação de imagem na hora
+do envio; fila de revisão para imagem de conta nova; ou nada automático e
+resposta rápida à denúncia. **É decisão sua**, e vale decidir antes de abrir
+o Hub para fora do seu círculo.
+
 ### Avisar que o email já existe — **custo baixo, mas é uma escolha de segurança**
 
 Tecnicamente é simples. O problema é que isso **contraria uma regra que o Hub
@@ -123,6 +137,51 @@ que hoje só existe em desenvolvimento (Mailpit).
 
 **Decisão sua:** avisar na tela (rápido, abre a porta de enumeração) ou avisar
 por email (seguro, depende de envio de email funcionando).
+
+### Editar a capa da comunidade — **feito em 10 de outubro**
+
+Entrou junto com a F09, porque a F09 construiu o caminho de upload inteiro e
+a capa passou a reusá-lo: a mesma conferência de bytes, a mesma remoção de
+localização, o mesmo depósito.
+
+Só quem modera troca. A capa antiga sai do depósito; a capa padrão do
+Universo nunca, porque é compartilhada.
+
+O texto abaixo fica como registro do que foi decidido antes.
+
+### Como era quando foi anotado — **junto com a F20**
+
+Pedido do PO em 10 de outubro: uma opção "Editar capa" no menu de três
+pontos da comunidade.
+
+Não é o ajuste pequeno que parece. Hoje **o Hub não envia arquivo nenhum** —
+a comunidade nasce com a capa do Universo, e a tela de criar diz isso. Fazer
+a edição de verdade é construir o caminho de upload inteiro, que a regra de
+segurança 7 define: tipos permitidos, tamanho máximo, URLs assinadas com
+validade curta e **remoção dos metadados de localização das fotos** (uma foto
+de celular carrega onde foi tirada; publicar isso sem querer é um problema
+sério numa rede social).
+
+Era para ser da F20. Virou F09 quando o PO escolheu construir o envio de
+imagem junto com as respostas, e as três perguntas em aberto foram
+respondidas: **só quem modera**, a capa antiga **é apagada**, e a imagem de
+resposta entrou junto.
+
+Fica para a F20 só a foto de perfil e a imagem da Cabine.
+
+### Número único no endereço do tópico — **depois**
+
+Hoje, dois tópicos de mesmo nome **na mesma comunidade** ganham um número no
+fim do endereço: `primeira-festa` e `primeira-festa-2`. Funciona, mas o
+número depende de quem chegou primeiro, e o endereço muda de sentido se o
+primeiro for apagado.
+
+Ideia do PO em 10 de outubro: dar um número único a cada tópico e pôr no
+endereço, como fazem os fóruns. Fica mais previsível e nunca colide.
+
+Custo baixo, mas **muda endereços que já existem**, então vale fazer de uma
+vez com um redirecionamento do formato antigo — o mesmo cuidado que a F08
+teve com `/topico/<id>`.
 
 ### Termos de uso e Política de privacidade como link — **custo baixo**
 
@@ -150,6 +209,7 @@ Mande o texto quando tiver: o encaixe é direto.
 | **Confirmação de email desligada** | Desligada para permitir testes | Com ela desligada, dá para criar conta com o email de outra pessoa |
 | **Proteção de deploy desligada** | Desligada para o site ficar visível | Os previews de cada PR também ficaram públicos |
 | **Login com Google** | Fluxo escrito, botão escondido | Falta criar um OAuth Client no Google Cloud Console |
+| **Chave do GIPHY** | Configurada em 10 de outubro, em desenvolvimento e em produção | Sem ela o botão de GIF simplesmente não aparece |
 | **Domínio próprio** | Não há | Hoje o endereço é `hub-livid-omega.vercel.app` |
 
 Os quatro primeiros são aceitáveis enquanto é só teste. **Nenhum deles pode
@@ -200,13 +260,10 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 
 ## 5. Fila de features
 
-Feito: **F00 a F06**. Faltam 15.
+Feito: **F00 a F09**. Faltam 12.
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
-| F07 | Comunidades | F06 | Criar, entrar, sair, página da comunidade |
-| F08 | Tópicos | F07 | Criar e ver tópicos |
-| F09 | Respostas | F08 | O conteúdo principal do Hub |
 | F10 | Ciclo do Hot Topic | F09 | A virada das 00h, que é o motivo de voltar |
 | F11 | Início | F10 | A primeira tela de quem entra |
 | F12 | Perfil, seguir e Coleção | F09 | Afinidade entre pessoas |
@@ -217,7 +274,7 @@ Feito: **F00 a F06**. Faltam 15.
 | F17 | Configurações e LGPD | F15 | Exportar e excluir conta |
 | F18 | Termos e privacidade | F03 | Texto completo — **já destravada**, só falta o texto |
 | F19 | Métricas e eventos | F14 | Saber se funciona |
-| F20 | Qualidade final da web | todas | Revisão geral |
+| F20 | Qualidade final da web | todas | Revisão geral, mais a foto de perfil e a imagem da Cabine (o resto do upload saiu na F09) |
 | F21 | Versão de celular | F20 | O mesmo código, acima e abaixo de 768 px |
 
 **Atalhos que precisam ser preenchidos:** `/inicio`, `/topico/[id]` e `/termos`

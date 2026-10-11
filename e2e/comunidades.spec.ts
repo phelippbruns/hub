@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
+import { alerta } from "./apoio-tela";
 
 /**
  * Comunidades (F07): criar, abrir, fixar e sair.
@@ -87,9 +88,7 @@ test.describe("criar comunidade", () => {
     // No plural: a RN04 apaga o "s" final antes de comparar.
     await preencherNova(page, `${existente!.name}s`);
 
-    // Dentro do formulário: o Next mantém um role="alert" vazio na página
-    // para anunciar troca de rota, e ele casaria junto.
-    const aviso = page.locator("form").getByRole("alert");
+    const aviso = alerta(page.locator("form"));
     await expect(aviso).toContainText("Já existe");
     await expect(aviso).toContainText("Entre nela ou escolha outro nome");
     // O nome precisa estar clicável: é a saída que a mensagem oferece.
