@@ -88,7 +88,7 @@ Comece em modo de planejamento. Liste arquivos que vai criar ou alterar e pergun
 
 ## Ordem de execução e dependências
 
-São 22 features em 8 fases: a web primeiro (F00 a F20) e o celular depois (F21). Dentro de uma fase, as features sem dependência entre si podem ser feitas em paralelo, por pessoas diferentes.
+São 23 features em 8 fases: a web primeiro (F00 a F20) e o celular depois (F21). Dentro de uma fase, as features sem dependência entre si podem ser feitas em paralelo, por pessoas diferentes.
 
 | Código | Feature | Depende de | Telas |
 | --- | --- | --- | --- |
@@ -105,9 +105,10 @@ São 22 features em 8 fases: a web primeiro (F00 a F20) e o celular depois (F21)
 | F10 | Ciclo do Hot Topic | F09 | 14 |
 | F11 | Início | F10 | 6, 7 |
 | F12 | Perfil, seguir e Coleção | F09 | 21, 22, 23, 24 |
+| F12.1 | Fim do Universo e marcas do nível | F12 | 9, 10, 11, 14, 23 |
 | F13 | Cabine | F12 | 17, 18, 19, 20 |
 | F14 | Compartilhar e convite por link | F13 | 2, 14, 15 |
-| F15 | Notificações | F13 | 8, 25 |
+| F15 | Notificações e marcar com @ | F13 | 8, 25 |
 | F16 | Denúncia, bloqueio e moderação | F09, F13 | 26, 27 |
 | F17 | Configurações e LGPD | F15 | 25 |
 | F18 | Termos e privacidade | F03 | 28 |
@@ -446,6 +447,60 @@ Testes: RN27, RN28 e privacidade da Coleção.
 Comece em modo de planejamento e só implemente depois da minha aprovação.
 ```
 
+### F12.1. Fim do Universo e marcas do nível
+
+Decidido com o PO em 11 de outubro. Entra **antes da F13**, e o motivo é
+custo: a F20 (qualidade final da web) e a F21 (celular) passam por toda
+tela. Deixar o Universo morrer depois delas faria a F21 construir o layout
+de celular do Explorar-lista-de-Universos e da `/u/<universo>` — duas telas
+que seriam apagadas em seguida. E a F19 definiria eventos carregando
+Universo, que depois precisariam ser desfeitos.
+
+As marcas de nível que o PO pediu **são** esta mudança: `{` sai do Universo e
+vai para comunidade, `#` vai para tópico, `*` para resposta. É a hierarquia
+subindo um degrau. Trocar as marcas sem tirar o Universo o deixaria sem
+marca nenhuma, em tela, no Explorar.
+
+**Tamanho: 2 a 3 horas.** Minha primeira estimativa foi de 6 a 9, e estava
+errada por eu não ter lido o código antes de orçar. O que a derrubou foi uma
+descoberta: `comunidadesDoUniverso()` em `lib/data/descoberta.ts` **já** lista
+comunidades por atividade, com busca dentro. Tirar dela a linha
+`AND c.universe_id = …` entrega o Explorar inteiro que o PO descreveu. Eu
+tinha orçado uma reescrita dessa camada; ela não existe.
+
+O único pedaço de verdade é o **onboarding**: ele escolhe comunidades
+*agrupadas por Universo*, e isso é a estrutura da tela, não um campo. Com um
+Universo só, a pessoa veria um grupo chamado "Comunidades de Hubverso". Tem de
+virar lista achatada.
+
+Nos testes, 69 das 144 menções a Universo são andaime (`makeUniverse`,
+`universeId` no setup). Mantendo o ajudante `makeUniverse()` devolvendo o
+Hubverso, essas 69 não são tocadas.
+
+```text
+Feature: F12.1 Fim do Universo e marcas do nível
+Leia CLAUDE.md, docs/escopo.md (RN01, RN02, RN03, RN31), docs/vacilos.md e as telas 9, 10, 11, 14 e 23 em docs/telas.html.
+
+Objetivo: tirar o Universo do produto sem perder a descoberta, e subir as marcas de nível um degrau.
+
+Escopo:
+1. Hubverso: um único Universo no banco, criado por migration, para onde vai toda comunidade. A coluna universe_id continua existindo e NOT NULL — a comunidade continua tendo um pai, só que invisível. Arrancar a coluna seria semanas de risco por nenhum ganho de produto.
+2. O campo Universo sai da tela de criar comunidade. Quem cria escolhe nome, intro e capa; o Hubverso é automático.
+3. Explorar continua igual, sem a seção de Universos (decisão do PO). A lista abre por comunidades com mais atividade na plataforma; a busca segue global, ignorando Universo.
+4. A tela /u/<universo> é apagada, junto com features/descoberta/universo.tsx e universosComContagem(), e o @ "u" continua reservado em lib/data/validation.ts — endereço que já existiu nunca volta a ser livre. Apagar leva uns 30 minutos e é o que evita a F21 construir o layout de celular de uma tela que ninguém alcança; deixar vivo só se o PO quiser a porta aberta para voltar atrás nos Universos.
+5. O onboarding escolhe comunidades de uma lista achatada, sem agrupamento por Universo, mantendo o mínimo de 3 (RN31).
+6. A Coleção perde o agrupamento por Universo e fica com comunidade e ordem cronológica (RN27 muda).
+7. Capa padrão: hoje a comunidade sem capa enviada herda a do Universo (RN03). O Hubverso precisa de uma capa padrão própria, que passa a ser a capa padrão do Hub.
+8. Marcas de nível: `{` em sun para comunidade, `#` em lavender para tópico, asterisco em paper sobre ink para resposta. O nível "universe" sai do tipo Level, e a galeria /design é atualizada junto.
+9. RN01, RN02, RN03, RN27 e RN31 reescritas no escopo. A hierarquia passa a ser comunidade, tópico e resposta.
+
+Fora do escopo: remover a coluna universe_id do banco; etiquetas no lugar de Universo; redesenhar a descoberta além de tirar a seção.
+Critérios de aceite: criar comunidade sem escolher Universo; comunidade nova cai no Hubverso; a palavra Universo não aparece em nenhuma tela; /u/<qualquer coisa> devolve 404 e o @ "u" segue recusado no cadastro; comunidade sem capa enviada mostra a capa padrão do Hub; onboarding ainda exige 3 comunidades; as marcas aparecem no nível novo em todas as telas e na galeria.
+Testes: o Explorar sem Universo; o Hubverso como destino de toda comunidade nova; a Coleção com dois agrupamentos; a capa padrão; as marcas na galeria; o @ reservado que sobrou de uma rota apagada.
+
+Comece em modo de planejamento e só implemente depois da minha aprovação.
+```
+
 ### F13. Cabine
 
 ```text
@@ -497,11 +552,11 @@ Comece em modo de planejamento e só implemente depois da minha aprovação.
 
 ## Fase 6: notificações, segurança, configurações e termos
 
-### F15. Notificações
+### F15. Notificações e marcar com @
 
 ```text
-Feature: F15 Notificações
-Leia CLAUDE.md, docs/escopo.md (RN33, RN34) e as telas 8 e 25 em docs/telas.html.
+Feature: F15 Notificações e marcar com @
+Leia CLAUDE.md, docs/escopo.md (RN13, RN16, RN17, RN33, RN34) e as telas 8 e 25 em docs/telas.html.
 
 Objetivo: avisar sobre o que importa, sem excesso.
 
@@ -511,10 +566,12 @@ Escopo:
 3. Web Push com service worker na PWA instalada, com chaves VAPID só no servidor. Ligados por padrão: Hot Topic do seu tópico, Cabine e aviso diário de tópicos seguidos. Desligado por padrão: novos tópicos nas comunidades (RN34).
 4. Respeitar a escolha feita no onboarding e os ajustes em Configurações.
 5. Sem ajuste por comunidade no MVP.
+6. Marcar pessoas com @ em resposta e em tópico (pedido do PO em 11 de outubro). Entra aqui porque marcar sem avisar não serve para nada: a notificação é o que dá sentido à marcação. Quatro partes: achar o @ no texto e desenhar como link para o perfil, no mesmo cuidado de acento e pontuação que lib/texto/links.ts já tem para a RN16; sugerir o @ enquanto a pessoa digita, senão ela precisa decorar o @ exato; guardar quem foi marcado, para a notificação não depender de reler o texto depois; e notificar quem foi marcado, com o tipo ligado por padrão e desligável em Configurações.
+7. Marcar vale só para quem é membro da mesma comunidade, e respeita bloqueio e silenciamento nos dois sentidos (RN26). Numa rede sem curtida, ser arrastado para uma conversa por qualquer pessoa é vetor de incômodo — a marcação é convite, não intromissão.
 
-Fora do escopo: email de marketing.
-Critérios de aceite: push chega no dispositivo de teste; desligar um tipo para de enviar; aviso diário agrupa várias respostas em uma notificação.
-Testes: regras de padrão e agrupamento.
+Fora do escopo: email de marketing. Marcar comunidade ou tópico com @ (só pessoas).
+Critérios de aceite: push chega no dispositivo de teste; desligar um tipo para de enviar; aviso diário agrupa várias respostas em uma notificação; @ de pessoa que existe vira link para o perfil e @ que não existe fica texto comum; marcar quem não é da comunidade não notifica; quem bloqueou não é notificado.
+Testes: regras de padrão e agrupamento; detecção do @ nos mesmos casos difíceis da RN16 (acento, pontuação no fim, email que não é marcação); marcação com bloqueio e com não membro.
 
 Comece em modo de planejamento e só implemente depois da minha aprovação.
 ```

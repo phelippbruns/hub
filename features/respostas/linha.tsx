@@ -91,10 +91,16 @@ export function LinhaDeResposta({
                     : `Imagem enviada por ${nome}`
                 }
                 /*
-                 * Preso nos dois lados: imagem que não carrega não tem tamanho
-                 * próprio, e sem isto o espaço dela estica a página inteira.
+                 * Tamanho original, por decisão do PO: nada de teto de altura
+                 * nem de largura esticando ou encolhendo a mídia. O único
+                 * limite é `max-w-full`, contra uma foto mais larga que o
+                 * cartão furar a página — e aí ela encolhe proporcional, com
+                 * `h-auto`, em vez de achatar.
+                 *
+                 * `block` tira o espaço que o navegador reserva embaixo de
+                 * elemento inline, que aparecia como uma faixa no cartão.
                  */
-                className="max-h-cover w-auto max-w-full rounded-sm"
+                className="block h-auto w-auto max-w-full rounded-sm"
               />
             ) : null
           }

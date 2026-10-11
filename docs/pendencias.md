@@ -6,7 +6,8 @@ O que falta para o Hub existir. Separado pelo que **impede o lançamento**, pelo
 que é **decisão sua**, pelo que é **dívida técnica** e pela **fila de features**.
 
 Para o que já foi construído e como mexer nele, veja [CLAUDE.md](../CLAUDE.md).
-Para as regras de negócio, [escopo.md](escopo.md).
+Para as regras de negócio, [escopo.md](escopo.md). Para as decisões de produto
+que já custaram algo, [vacilos.md](vacilos.md).
 
 ---
 
@@ -216,7 +217,7 @@ para evitar comparação entre perfis". A razão dela continua de pé — ningu�
 vê os seguidores de outra pessoa —, mas o texto precisa ser corrigido para
 dizer "só o dono abre".
 
-### Marcar pessoas com @ nas respostas — **médio, 3 a 4 dias**
+### Marcar pessoas com @ nas respostas — **médio, 3 a 4 dias; entrou na F15**
 
 Pedido do PO em 11 de outubro: escrever `@lia` numa resposta e isso virar um
 caminho para o perfil dela.
@@ -232,6 +233,12 @@ pesa:
    texto depois.
 4. **Notificar quem foi marcado** — e isto é a F15. Marcar sem avisar não
    serve para nada, então ou esta parte espera a F15, ou a F15 vem antes.
+
+**Decidido em 11 de outubro: vai junto com a F15**, que passou a se chamar
+"Notificações e marcar com @" no [backlog](backlog.md). Lá ficam o escopo
+inteiro, os critérios de aceite e a resposta à pergunta de produto abaixo:
+marcar vale só entre membros da mesma comunidade, e respeita bloqueio e
+silenciamento.
 
 Tem também uma pergunta de produto: **marcação é convite ou intromissão?**
 Numa rede sem curtida, ser arrastado para uma conversa por qualquer pessoa é

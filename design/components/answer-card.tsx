@@ -37,7 +37,17 @@ export function AnswerCard({
         </span>
       </div>
       {children ? <p className="text-body text-ink">{children}</p> : null}
-      {media}
+      {/*
+        O embrulho não é enfeite. O cartão é `flex flex-col`, e item de flex
+        em coluna **estica na largura** por padrão (`align-items: stretch`):
+        sem isto, uma imagem pequena ou um GIF de 200 px eram espichados até
+        a largura do cartão. Era o que acontecia quando a mídia passou para
+        dentro dele.
+
+        `self-start` devolve a largura própria; `max-w-full` é só a trava
+        contra uma foto mais larga que o cartão furar a página.
+      */}
+      {media ? <div className="max-w-full self-start">{media}</div> : null}
     </article>
   );
 }
