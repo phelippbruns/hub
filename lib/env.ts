@@ -26,7 +26,15 @@ const serverSchema = z.object({
    * A chave fica só no servidor; o navegador nunca a vê (regra de
    * segurança 3).
    */
-  GIPHY_API_KEY: z.string().min(1).optional(),
+  /*
+   * Vazio conta como ausente. `.env.example` traz `GIPHY_API_KEY=""`, e
+   * copiá-lo sem preencher derrubaria o build com um erro que não explica
+   * nada — quando a intenção óbvia é "ainda não tenho chave".
+   */
+  GIPHY_API_KEY: z.preprocess(
+    (valor) => (valor === "" ? undefined : valor),
+    z.string().min(1).optional(),
+  ),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   /**
    * Qual verificador de idade usar (RN29). Ausente significa **negar**, que é

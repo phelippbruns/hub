@@ -34,6 +34,16 @@ export default defineConfig({
 
   webServer: {
     command: "npm run build && npm run start",
+    /*
+     * O servidor recebe a chave do GIPHY **daqui**, e não do `.env.local`
+     * que ele leria sozinho.
+     *
+     * Sem isto, o processo de teste e o servidor discordavam: na máquina de
+     * quem desenvolve o servidor tinha a chave e o teste não, então a
+     * decisão de pular saía errada nos dois sentidos. Vazio conta como
+     * ausente (`lib/env.ts`), e é assim que a CI roda.
+     */
+    env: { GIPHY_API_KEY: process.env.GIPHY_API_KEY ?? "" },
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

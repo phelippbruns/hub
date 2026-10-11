@@ -314,8 +314,9 @@ test.describe("sem a chave do GIPHY", () => {
 
     // Botão que não funciona é promessa quebrada: melhor não existir.
     await expect(page.getByRole("button", { name: "Adicionar GIF" })).toHaveCount(0);
-    // E responder com texto continua funcionando.
-    await expect(page.getByRole("button", { name: "Adicionar imagem" })).toBeVisible();
+    // E responder com imagem continua funcionando. Exato, porque o campo de
+    // arquivo se chama "Adicionar imagem à resposta" e casaria por trecho.
+    await expect(page.getByRole("button", { name: "Adicionar imagem", exact: true })).toBeVisible();
   });
 });
 
