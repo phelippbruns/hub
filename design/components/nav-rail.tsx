@@ -82,7 +82,7 @@ function areaAtual(pathname: string): string | null {
   return escolhida?.href ?? null;
 }
 
-export function NavRail({ naoLidas = 0 }: { naoLidas?: number }) {
+export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
   const pathname = usePathname();
   const atualHref = areaAtual(pathname);
 
@@ -116,9 +116,14 @@ export function NavRail({ naoLidas = 0 }: { naoLidas?: number }) {
             )}
           >
             <Icone decorative active={atual} className="size-iconNav" />
-            {href === "/notificacoes" && naoLidas > 0 ? (
+            {href === "/notificacoes" && temNovidade ? (
               <span
-                aria-label={`${naoLidas} não lidas`}
+                /*
+                 * "Há novidade", e não um número: o Hub sabe que existe
+                 * algo não lido, não quantos. Dizer "1 não lidas" seria
+                 * errado em português e impreciso ao mesmo tempo.
+                 */
+                aria-label="Há novidade"
                 role="status"
                 className="bg-sun rounded-pill absolute top-1 right-1 size-2"
               />

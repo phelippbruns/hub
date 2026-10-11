@@ -11,6 +11,7 @@
  */
 import { useState, type ReactNode } from "react";
 import {
+  ActivityRow,
   AnswerCard,
   BottomSheet,
   Button,
@@ -26,6 +27,7 @@ import {
   EndOfList,
   ErrorState,
   FollowButton,
+  HomeRow,
   HotTopicCard,
   Input,
   LevelMark,
@@ -38,6 +40,7 @@ import {
   SortToggle,
   Steps,
   SuccessMessage,
+  SuggestionRow,
   Switch,
   Tabs,
   TextField,
@@ -490,6 +493,41 @@ export function DesignGallery() {
 
         <Card title="Ordem" wide>
           <SortToggle ordem={ordem} onChange={setOrdem} />
+        </Card>
+
+        <Card title="Linha do Início" wide>
+          <div className="flex w-full flex-col gap-2">
+            <HomeRow
+              nome="filmes que ninguém viu"
+              href="#"
+              detalhe="Terror. 19 pessoas, 27 respostas"
+              destaque="3 novas"
+            />
+            <HomeRow
+              nome="qual lugar você fotografaria de novo"
+              href="#"
+              detalhe="Destaque em Fotografia de Paisagem. 41 pessoas, 58 respostas"
+            />
+          </div>
+        </Card>
+
+        <Card title="O que quem você segue fez" wide>
+          <div className="w-full">
+            <ActivityRow
+              handle="liasouza"
+              oQueFez="respondeu"
+              topico="primeira festa"
+              href="#"
+              comunidade="Música Eletrônica"
+              quando="há 20 min"
+            />
+          </div>
+        </Card>
+
+        <Card title="Comunidade sugerida" wide>
+          <div className="w-full">
+            <SuggestionRow nome="Música Eletrônica" universo="Música" membros={3412} href="#" />
+          </div>
         </Card>
 
         <Card title="Título de seção" wide>

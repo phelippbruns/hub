@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AppShell, NavRail } from "@/design/components";
 import { getViewer } from "@/lib/auth/session";
 import { jaFezOnboarding } from "@/lib/data/onboarding";
+import { temNovidade } from "@/lib/data/inicio";
 
 /**
  * Layout das telas autenticadas.
@@ -29,8 +30,11 @@ export default async function AppLayout({
   if (viewer.kind !== "member") redirect("/");
   if (!(await jaFezOnboarding(viewer.profileId))) redirect("/boas-vindas");
 
+  // Item 7 da F11: o ponto amarelo no sino quando há notificação não lida.
+  const novidade = await temNovidade(viewer);
+
   return (
-    <AppShell nav={<NavRail />} painel={painel}>
+    <AppShell nav={<NavRail temNovidade={novidade} />} painel={painel}>
       {children}
     </AppShell>
   );

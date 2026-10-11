@@ -260,11 +260,10 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 
 ## 5. Fila de features
 
-Feito: **F00 a F10**. Faltam 11.
+Feito: **F00 a F11**. Faltam 10.
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
-| F11 | Início | F10 | A primeira tela de quem entra |
 | F12 | Perfil, seguir e Coleção | F09 | Afinidade entre pessoas |
 | F13 | Cabine | F12 | Conversa privada |
 | F14 | Compartilhar e convite por link | F13 | Crescimento |
@@ -277,8 +276,9 @@ Feito: **F00 a F10**. Faltam 11.
 | F21 | Versão de celular | F20 | O mesmo código, acima e abaixo de 768 px |
 
 **Atalhos que precisam ser preenchidos:** `/inicio`, `/topico/[id]` e `/termos`
-existem como páginas mínimas, só para os caminhos não caírem em 404. Serão
-substituídas pela F11, F08 e F18.
+existem como páginas mínimas, só para os caminhos não caírem em 404. O
+`/inicio` e o `/topico/[id]` já viraram telas de verdade (F11 e F08); o
+`/termos` espera o texto.
 
 ---
 

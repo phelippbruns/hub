@@ -372,6 +372,8 @@ model Follow {
   followedProfileId String?      @map("followed_profile_id") @db.Uuid
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// F11: última visita ao tópico seguido. Base do "n novas" do Início.
+  lastSeenAt DateTime? @map("last_seen_at") @db.Timestamptz(6)
 
   follower        Profile    @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
   community       Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { consultar } from "./apoio-banco";
+import { consultar, esperarNoBanco } from "./apoio-banco";
 import { alerta, respostaPublicada } from "./apoio-tela";
 
 /**
@@ -129,14 +129,9 @@ test.describe("responder", () => {
 
     // Esperar o banco antes de recarregar: recarregar na hora cancelaria a
     // requisição que ainda está indo.
-    await expect
-      .poll(async () => {
-        const linhas = await consultar<{ n: string }>(
-          `SELECT count(*) AS n FROM answers WHERE text = 'some depois' AND deleted_at IS NULL`,
-        );
-        return Number(linhas[0]?.n ?? 1);
-      })
-      .toBe(0);
+    await esperarNoBanco(
+      `SELECT 1 FROM answers WHERE text = 'some depois' AND deleted_at IS NOT NULL`,
+    );
 
     await page.goto(topico);
     await expect(respostaPublicada(page, "some depois")).toHaveCount(0);

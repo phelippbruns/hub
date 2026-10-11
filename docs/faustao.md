@@ -304,8 +304,33 @@ outras duas vezes.
 **Regra:** estado otimista e recarregar não convivem sem uma espera pelo
 servidor. E "passa sozinho, falha na suíte" é sempre corrida — nunca azar.
 
-👁 **Atenção** — ainda é disciplina, três vezes seguidas. Virar função é o
-próximo passo se acontecer de novo.
+*Aconteceu de novo na F11, a quarta vez.* Virou `esperarNoBanco()` em
+`e2e/apoio-banco.ts`, e os três lugares que repetiam o truque à mão passaram
+a usá-lo.
+
+🔒 **Barrado** — o jeito certo virou função, como o `alerta()`.
+
+---
+
+### Trocar o nome da tela e esquecer quem dependia dele
+
+O protótipo chama a tela inicial de **"Hoje"**; eu tinha posto "Início", que
+é o nome do item na barra de navegação. Corrigi na F11 — e o teste da F05
+que esperava o título antigo quebrou, junto com cinco lugares que clicavam
+no botão "Sair" que morava ali.
+
+*Por que passou:* nada disso é erro até alguém rodar a suíte. Eu procurei os
+usos com um padrão de busca e achei quatro dos cinco; o que escapou tinha o
+texto escrito de outro jeito.
+
+*Como resolvi:* a suíte achou o que faltou. É literalmente para isso que ela
+existe.
+
+**Regra:** mudar um texto que a tela mostra é mudar uma interface. Procurar
+os usos é obrigatório, e **rodar a suíte inteira é o que confere**, não a
+busca.
+
+🔒 **Barrado** — as jornadas quebram quando o texto muda.
 
 ---
 
