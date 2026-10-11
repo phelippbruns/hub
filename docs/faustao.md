@@ -263,6 +263,65 @@ para ser escrita.
 
 ---
 
+### Limpar o campo antes de o servidor aceitar
+
+No campo de resposta, eu limpava o texto **no clique**. Parece mais rápido.
+Só que quando o servidor recusa — uma imagem que não é imagem, por exemplo —
+a pessoa perde o que escreveu exatamente na hora em que precisa dele de volta
+para corrigir.
+
+*Por que passou:* nenhum teste tentava um envio que falha. Todos testavam o
+caminho feliz, de novo.
+
+*Como resolvi:* a ação devolve um contador de envios aceitos, e a tela limpa
+só quando esse número muda. E entrou um teste que recusa de propósito e exige
+o texto ainda no campo.
+
+**Regra:** estado otimista só vale para o que dá para desfazer. Limpar o que
+a pessoa escreveu não dá.
+
+🔒 **Barrado** — `e2e/respostas.spec.ts` recusa de propósito e confere o campo.
+
+---
+
+### Avatar invisível dentro de um link
+
+O avatar da resposta sumiu da tela. A causa: o `<span>` ficou **dentro de um
+`<a>`**, e elemento inline ignora largura e altura. Nenhum erro, nenhum
+aviso, só um buraco onde devia ter uma bolinha.
+
+*Por que passou:* o snapshot guarda o HTML, e o HTML estava certo. É o mesmo
+tipo de cegueira do véu invisível da F07 — as barreiras não olham pixel.
+
+*Como resolvi:* `block` no span, com o comentário dizendo por que ele não é
+enfeite.
+
+**Regra:** a mesma da F07, e ela continua valendo: só olhando a tela.
+
+👁 **Atenção** — nada confere layout.
+
+---
+
+### O mesmo erro de teste, três features seguidas
+
+`getByRole("alert")` casa também com o `<div role="alert">` vazio que o Next
+mantém para anunciar troca de rota. Caí nisso na F07, na F08 e na F09.
+
+*Por que passou:* nas duas primeiras vezes eu corrigi **com um comentário no
+arquivo**. Quando escrevi o arquivo de teste seguinte, o comentário não
+estava lá para ser lido.
+
+*Como resolvi:* virou `alerta()` em `e2e/apoio-tela.ts`, usado por todos os
+arquivos. Agora o jeito certo é o mais curto de escrever, que é a única forma
+de correção que sobrevive ao esquecimento.
+
+**Regra:** comentário conserta o arquivo; função conserta o hábito. Erro que
+se repete merece código, não prosa.
+
+🔒 **Barrado** — o jeito errado deixou de ser o caminho natural.
+
+---
+
 ### Mostrar a mesma frase duas vezes
 
 A descrição da comunidade aparecia no painel da direita **e** no meio da tela.

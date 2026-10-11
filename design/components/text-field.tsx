@@ -76,7 +76,12 @@ export function TextField({
           aria-live="polite"
           className={cn("text-caption", remaining < 0 ? "text-error" : "text-inkMuted")}
         >
-          {remaining} {remaining === 1 ? "caractere" : "caracteres"}
+          {/*
+            "63 de 240", como o protótipo escreve — e não quantos faltam.
+            Quem está escrevendo pensa no que já escreveu; "177 caracteres"
+            obriga a fazer a conta de cabeça para saber onde está.
+          */}
+          {text.length} de {maxLength}
         </span>
       </div>
     </div>

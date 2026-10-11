@@ -14,7 +14,14 @@ import {
   joinCommunity,
   leaveCommunity,
 } from "@/lib/data/communities";
-import { alternarFixada, definirPainelOculto } from "@/lib/data/comunidades";
+import {
+  alternarFixada,
+  comunidadePorSlug,
+  definirPainelOculto,
+  trocarCapa,
+} from "@/lib/data/comunidades";
+import { ImagemRecusada, TAMANHO_MAXIMO } from "@/lib/midia/imagem";
+import { apagarImagem, guardarImagem } from "@/lib/midia/deposito";
 import { getViewer } from "@/lib/auth/session";
 import { RuleViolationError, UnauthenticatedError } from "@/lib/data/errors";
 import { createCommunitySchema } from "@/lib/data/validation";
@@ -117,4 +124,46 @@ export async function alternarPainel(oculto: boolean) {
   const viewer = await quemPede();
   await definirPainelOculto(viewer, oculto);
   revalidatePath("/c/[comunidade]", "layout");
+}
+
+export type EstadoDaCapa = { erro?: string; trocada?: boolean };
+
+/**
+ * Trocar a capa da comunidade (RN03, RN06).
+ *
+ * A imagem passa pela conferência de tipo e pela remoção da localização
+ * antes de entrar no depósito. Quem confere se a pessoa pode é
+ * `trocarCapa`, na camada de dados.
+ */
+export async function trocarCapaDaComunidade(
+  _anterior: EstadoDaCapa,
+  formulario: FormData,
+): Promise<EstadoDaCapa> {
+  const viewer = await quemPede();
+
+  const slug = String(formulario.get("comunidade") ?? "");
+  const comunidade = await comunidadePorSlug(slug);
+  if (!comunidade) return { erro: "Comunidade não encontrada." };
+
+  const arquivo = formulario.get("imagem");
+  if (!(arquivo instanceof File) || arquivo.size === 0) {
+    return { erro: "Escolha uma imagem." };
+  }
+  if (arquivo.size > TAMANHO_MAXIMO) return { erro: "A imagem passa de 5 MB." };
+
+  let caminho: string;
+  try {
+    caminho = await guardarImagem(new Uint8Array(await arquivo.arrayBuffer()), "capas");
+  } catch (erro) {
+    if (erro instanceof ImagemRecusada) return { erro: erro.motivo };
+    throw erro;
+  }
+
+  const { anteriorParaApagar } = await trocarCapa(viewer, comunidade.id, caminho);
+  await apagarImagem(anteriorParaApagar);
+
+  for (const rota of [`/c/${slug}`, "/comunidades/minhas", "/comunidades"]) {
+    revalidatePath(rota);
+  }
+  return { trocada: true };
 }

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
+import { alerta } from "./apoio-tela";
 
 /**
  * Jornadas da entrada (F03).
@@ -16,9 +17,6 @@ const MAILPIT = "http://127.0.0.1:54324";
  * presente. Buscar por papel pegaria os dois, então a busca é restrita ao
  * conteúdo da página.
  */
-function alerta(page: Page) {
-  return page.locator("main").getByRole("alert");
-}
 
 /** Email único por execução, para um teste não herdar a conta do outro. */
 function novoEmail(prefixo: string) {

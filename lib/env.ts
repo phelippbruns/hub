@@ -18,6 +18,15 @@ const serverSchema = z.object({
   // Chave secreta do Supabase (antiga service_role): ignora o Row Level
   // Security. Só no servidor, nunca em código enviado ao navegador.
   SUPABASE_SECRET_KEY: z.string().min(1),
+  /**
+   * Chave do GIPHY. Ausente significa **sem GIF**: o botão não aparece, do
+   * mesmo jeito que o do Google sem credencial. Botão que não funciona é
+   * promessa quebrada.
+   *
+   * A chave fica só no servidor; o navegador nunca a vê (regra de
+   * segurança 3).
+   */
+  GIPHY_API_KEY: z.string().min(1).optional(),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   /**
    * Qual verificador de idade usar (RN29). Ausente significa **negar**, que é

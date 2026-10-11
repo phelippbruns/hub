@@ -150,11 +150,18 @@ export function CabecalhoDaComunidade({
 
           <div className="flex flex-col gap-1">
             {comunidade.souModerador ? (
-              <Link href={`/c/${comunidade.slug}/moderar`}>
-                <Button variant="secondary" className="w-full">
-                  Moderar
-                </Button>
-              </Link>
+              <>
+                <Link href={`/c/${comunidade.slug}/capa`}>
+                  <Button variant="secondary" className="w-full">
+                    Editar capa
+                  </Button>
+                </Link>
+                <Link href={`/c/${comunidade.slug}/moderar`}>
+                  <Button variant="secondary" className="w-full">
+                    Moderar
+                  </Button>
+                </Link>
+              </>
             ) : null}
 
             <Link href={`/denuncia?comunidade=${comunidade.slug}`}>

@@ -158,7 +158,8 @@ export async function sendMessage(
   input: {
     cabinId: string;
     text?: string | null;
-    media?: { url: string; kind: "image" | "gif" } | null;
+    /** `caminho` é a posição no depósito, não um endereço — ele é privado. */
+    media?: { caminho: string; kind: "image" | "gif" } | null;
     sharedCommunityId?: string | null;
     sharedTopicId?: string | null;
   },
@@ -177,7 +178,7 @@ export async function sendMessage(
       cabinId: input.cabinId,
       authorId: me,
       text: input.text ?? null,
-      mediaUrl: input.media?.url ?? null,
+      mediaUrl: input.media?.caminho ?? null,
       mediaKind: input.media?.kind ?? null,
       sharedCommunityId: input.sharedCommunityId ?? null,
       sharedTopicId: input.sharedTopicId ?? null,

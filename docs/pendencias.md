@@ -101,6 +101,20 @@ Duas coisas que valem saber:
   bastaria alternar entre o @ e o email da mesma conta para dobrar o número
   de senhas que dá para testar.
 
+### Moderação automática de imagem — **em aberto**
+
+Desde a F09 dá para enviar foto. O Hub confere o tipo pelos bytes e tira a
+localização, mas **não olha o conteúdo**: nada impede alguém de enviar uma
+imagem que não deveria estar numa rede com pessoas de 18 anos recém-feitos.
+
+Hoje a defesa é a denúncia, que chega na F16, e a moderação humana. Isso
+basta enquanto o Hub é pequeno e todo mundo se conhece; não basta depois.
+
+Três caminhos, em ordem de custo: serviço de classificação de imagem na hora
+do envio; fila de revisão para imagem de conta nova; ou nada automático e
+resposta rápida à denúncia. **É decisão sua**, e vale decidir antes de abrir
+o Hub para fora do seu círculo.
+
 ### Avisar que o email já existe — **custo baixo, mas é uma escolha de segurança**
 
 Tecnicamente é simples. O problema é que isso **contraria uma regra que o Hub
@@ -124,7 +138,18 @@ que hoje só existe em desenvolvimento (Mailpit).
 **Decisão sua:** avisar na tela (rápido, abre a porta de enumeração) ou avisar
 por email (seguro, depende de envio de email funcionando).
 
-### Editar a capa da comunidade — **junto com a F20**
+### Editar a capa da comunidade — **feito em 10 de outubro**
+
+Entrou junto com a F09, porque a F09 construiu o caminho de upload inteiro e
+a capa passou a reusá-lo: a mesma conferência de bytes, a mesma remoção de
+localização, o mesmo depósito.
+
+Só quem modera troca. A capa antiga sai do depósito; a capa padrão do
+Universo nunca, porque é compartilhada.
+
+O texto abaixo fica como registro do que foi decidido antes.
+
+### Como era quando foi anotado — **junto com a F20**
 
 Pedido do PO em 10 de outubro: uma opção "Editar capa" no menu de três
 pontos da comunidade.
@@ -137,15 +162,12 @@ validade curta e **remoção dos metadados de localização das fotos** (uma fot
 de celular carrega onde foi tirada; publicar isso sem querer é um problema
 sério numa rede social).
 
-Decisão do PO: fazer junto com a **F20**, que é onde os uploads moram. Nada a
-construir agora.
+Era para ser da F20. Virou F09 quando o PO escolheu construir o envio de
+imagem junto com as respostas, e as três perguntas em aberto foram
+respondidas: **só quem modera**, a capa antiga **é apagada**, e a imagem de
+resposta entrou junto.
 
-Quando chegar lá, três pontos a decidir:
-
-- Quem pode trocar a capa — só a moderação, ou qualquer membro?
-- A capa antiga é apagada ou guardada?
-- Entra também a foto de perfil e a imagem de resposta, que dependem do mesmo
-  caminho?
+Fica para a F20 só a foto de perfil e a imagem da Cabine.
 
 ### Número único no endereço do tópico — **depois**
 
@@ -237,11 +259,10 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 
 ## 5. Fila de features
 
-Feito: **F00 a F08**. Faltam 13.
+Feito: **F00 a F09**. Faltam 12.
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
-| F09 | Respostas | F08 | O conteúdo principal do Hub |
 | F10 | Ciclo do Hot Topic | F09 | A virada das 00h, que é o motivo de voltar |
 | F11 | Início | F10 | A primeira tela de quem entra |
 | F12 | Perfil, seguir e Coleção | F09 | Afinidade entre pessoas |
@@ -252,7 +273,7 @@ Feito: **F00 a F08**. Faltam 13.
 | F17 | Configurações e LGPD | F15 | Exportar e excluir conta |
 | F18 | Termos e privacidade | F03 | Texto completo — **já destravada**, só falta o texto |
 | F19 | Métricas e eventos | F14 | Saber se funciona |
-| F20 | Qualidade final da web | todas | Revisão geral, **mais os uploads**: capa da comunidade, foto de perfil e imagem de resposta |
+| F20 | Qualidade final da web | todas | Revisão geral, mais a foto de perfil e a imagem da Cabine (o resto do upload saiu na F09) |
 | F21 | Versão de celular | F20 | O mesmo código, acima e abaixo de 768 px |
 
 **Atalhos que precisam ser preenchidos:** `/inicio`, `/topico/[id]` e `/termos`

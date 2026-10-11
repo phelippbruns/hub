@@ -14,6 +14,7 @@ import {
 import { createAnswerSchema, createTopicSchema } from "./validation";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { assertNotBlocked, requireActiveMembership } from "./access";
+import { enderecosAssinados } from "@/lib/midia/deposito";
 
 /**
  * RN08: a partir de quantas respostas de outras pessoas o autor não apaga.
@@ -147,6 +148,12 @@ export async function getTopicForViewer(viewer: Viewer, topicId: string) {
   };
 }
 
+/**
+ * As respostas visíveis para quem está olhando.
+ *
+ * As imagens são assinadas aqui, no momento de montar a lista: o depósito é
+ * privado, então o endereço é temporário e não pode ser guardado no banco.
+ */
 async function listAnswers(me: string, topicId: string) {
   const blocked = await prisma.block.findMany({
     where: { OR: [{ blockerId: me }, { blockedId: me }] },
@@ -155,7 +162,7 @@ async function listAnswers(me: string, topicId: string) {
   const hidden = new Set(blocked.flatMap((b) => [b.blockerId, b.blockedId]));
   hidden.delete(me);
 
-  return prisma.answer.findMany({
+  const respostas = await prisma.answer.findMany({
     where: {
       topicId,
       deletedAt: null,
@@ -166,6 +173,15 @@ async function listAnswers(me: string, topicId: string) {
       author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
     },
   });
+
+  const enderecos = await enderecosAssinados(respostas.map((r) => r.mediaUrl));
+
+  return respostas.map((resposta, i) => ({
+    ...resposta,
+    /** Endereço temporário da imagem; `mediaUrl` guarda só o caminho. */
+    mediaHref: enderecos.at(i) ?? null,
+    souAutor: resposta.authorId === me,
+  }));
 }
 
 /**
@@ -189,7 +205,7 @@ export async function createTopic(viewer: Viewer, input: unknown) {
         authorId: me,
         name: data.name,
         description: data.description,
-        mediaUrl: data.media?.url ?? null,
+        mediaUrl: data.media?.caminho ?? null,
         mediaKind: data.media?.kind ?? null,
         // Preenchido pelo gatilho; o Prisma exige um valor no create.
         cycleDate: new Date(),
@@ -235,7 +251,12 @@ export async function deleteTopic(viewer: Viewer, topicId: string) {
   }
 }
 
-/** RN13: responder exige ser membro; não há resposta dentro de resposta. */
+/**
+ * RN13: responder exige ser membro; não há resposta dentro de resposta.
+ *
+ * `media.caminho` guarda a posição no depósito, não um endereço — o depósito
+ * é privado e o endereço é assinado na hora de exibir.
+ */
 export async function createAnswer(viewer: Viewer, input: unknown) {
   const me = requireProfileId(viewer);
   const data = createAnswerSchema.parse(input);
@@ -254,7 +275,7 @@ export async function createAnswer(viewer: Viewer, input: unknown) {
       topicId: data.topicId,
       authorId: me,
       text: data.text,
-      mediaUrl: data.media?.url ?? null,
+      mediaUrl: data.media?.caminho ?? null,
       mediaKind: data.media?.kind ?? null,
     },
   });

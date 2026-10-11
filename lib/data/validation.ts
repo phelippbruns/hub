@@ -5,27 +5,17 @@
  * é conveniência; isto é a regra.
  */
 import { z } from "zod";
+import { acharLink, contemLink } from "@/lib/texto/links";
 
 /**
- * RN16: links são bloqueados em todo texto, **inclusive endereços digitados
- * por extenso**. Por isso não basta procurar "http": `meusite.com` também é
- * link para a regra.
+ * RN16: compatibilidade com quem já importava este nome.
  *
- * A lista de domínios de topo é curta de propósito — pegar os casos comuns sem
- * transformar "etc.pode" em link. Palavra com ponto seguido de domínio
- * conhecido, ou qualquer esquema de URL, é recusada.
+ * A detecção mora em [links.ts](./links.ts), com os casos testados nas duas
+ * direções.
  */
-const URL_SCHEME = /\b[a-z][a-z0-9+.-]*:\/\//i;
-// Sem quantificador aninhado: `[a-z0-9][a-z0-9-]*` é linear. A versão com
-// `(?:[a-z0-9-]*[a-z0-9])?` retrocedia em tempo quadrático numa string longa
-// sem casamento — e isto roda em todo texto que a pessoa escreve.
-const BARE_DOMAIN =
-  /\b[a-z0-9][a-z0-9-]*\.(com|br|net|org|io|co|app|dev|me|gg|tv|xyz|link|site|info|st|ly)\b/i;
-const AT_DOMAIN = /\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/i;
+export const containsLink = contemLink;
 
-export function containsLink(value: string): boolean {
-  return URL_SCHEME.test(value) || BARE_DOMAIN.test(value) || AT_DOMAIN.test(value);
-}
+export { acharLink, contemLink };
 
 /** Texto de usuário: sem links, sem espaço sobrando, com limite de tamanho. */
 export function userText(max: number, field: string) {
@@ -34,7 +24,7 @@ export function userText(max: number, field: string) {
     .trim()
     .min(1, `${field} não pode ficar em branco`)
     .max(max, `${field} passa de ${max} caracteres`)
-    .refine((value) => !containsLink(value), {
+    .refine((value) => !contemLink(value), {
       message: "RN16: links não são aceitos",
     });
 }
@@ -101,10 +91,16 @@ export const handleSchema = z
 
 export const uuidSchema = z.uuid();
 
-/** RN08/RN13/RN25: GIF ou 1 imagem — nunca os dois, nunca mais de uma. */
+/**
+ * RN08/RN13/RN25: GIF ou 1 imagem — nunca os dois, nunca mais de uma.
+ *
+ * Para imagem, `caminho` é a posição no depósito (`respostas/<id>.jpg`), não
+ * um endereço: o depósito é privado e o endereço é assinado na hora de
+ * exibir. Para GIF, é a URL do GIPHY, que é pública por natureza.
+ */
 export const mediaSchema = z
   .object({
-    url: z.url(),
+    caminho: z.string().min(1).max(500),
     kind: z.enum(["image", "gif"]),
   })
   .nullable()
