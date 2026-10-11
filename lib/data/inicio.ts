@@ -191,6 +191,15 @@ export async function interacoesDeQuemSigo(viewer: Viewer): Promise<InteracaoDeQ
           WHERE (b.blocker_id = ${me}::uuid AND b.blocked_id = s.id)
              OR (b.blocker_id = s.id AND b.blocked_id = ${me}::uuid)
        )
+         /*
+          * F12: silenciar tira a pessoa **daqui**, e só daqui. Diferente de
+          * bloquear, ela continua sendo seguida e não perde nada — é a
+          * saída para quem posta demais, não para quem faz mal.
+          */
+         AND NOT EXISTS (
+           SELECT 1 FROM mutes mu
+            WHERE mu.muter_id = ${me}::uuid AND mu.muted_id = s.id
+         )
     ),
     acoes AS (
       SELECT a.id, a.author_id, 'respondeu'::text AS o_que_fez,

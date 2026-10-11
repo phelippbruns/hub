@@ -260,11 +260,10 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 
 ## 5. Fila de features
 
-Feito: **F00 a F11**. Faltam 10.
+Feito: **F00 a F12**. Faltam 9.
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
-| F12 | Perfil, seguir e Coleção | F09 | Afinidade entre pessoas |
 | F13 | Cabine | F12 | Conversa privada |
 | F14 | Compartilhar e convite por link | F13 | Crescimento |
 | F15 | Notificações | F13 | Motivo de voltar |
@@ -272,7 +271,7 @@ Feito: **F00 a F11**. Faltam 10.
 | F17 | Configurações e LGPD | F15 | Exportar e excluir conta |
 | F18 | Termos e privacidade | F03 | Texto completo — **já destravada**, só falta o texto |
 | F19 | Métricas e eventos | F14 | Saber se funciona |
-| F20 | Qualidade final da web | todas | Revisão geral, mais a foto de perfil e a imagem da Cabine (o resto do upload saiu na F09) |
+| F20 | Qualidade final da web | todas | Revisão geral, mais a imagem da Cabine (o resto do upload saiu na F09 e na F12) |
 | F21 | Versão de celular | F20 | O mesmo código, acima e abaixo de 768 px |
 
 **Atalhos que precisam ser preenchidos:** `/inicio`, `/topico/[id]` e `/termos`

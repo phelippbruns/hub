@@ -34,6 +34,8 @@ import {
   LoadingBlock,
   PasswordInput,
   PinButton,
+  ProfileCounters,
+  ProfileHeader,
   Skeleton,
   SectionTitle,
   Segmented,
@@ -493,6 +495,25 @@ export function DesignGallery() {
 
         <Card title="Ordem" wide>
           <SortToggle ordem={ordem} onChange={setOrdem} />
+        </Card>
+
+        <Card title="Topo do perfil" wide>
+          <div className="w-full">
+            <ProfileHeader
+              nome="Lia Souza"
+              handle="liasouza"
+              bio="Vinil, serras e pista desde 2010."
+              avatarUrl={null}
+              seguidores={214}
+            />
+          </div>
+        </Card>
+
+        <Card title="Contadores do perfil" wide>
+          {/* RN28: participação, não popularidade. Três caixas iguais. */}
+          <div className="w-full">
+            <ProfileCounters respostas={141} comunidades={9} diasAtivos={88} />
+          </div>
         </Card>
 
         <Card title="Linha do Início" wide>

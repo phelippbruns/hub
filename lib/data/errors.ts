@@ -57,7 +57,10 @@ export function translateDatabaseError(error: unknown): never {
   if (text.includes("communities_name_normalized_key") || text.includes("name_normalized")) {
     throw new RuleViolationError("RN04", "Já existe uma comunidade com esse nome");
   }
-  for (const rule of ["RN04", "RN07", "RN08", "RN20", "RN21"] as const) {
+  if (text.includes("profiles_handle_key")) {
+    throw new RuleViolationError("RN17", "Esse @ já está em uso");
+  }
+  for (const rule of ["RN04", "RN07", "RN08", "RN17", "RN20", "RN21"] as const) {
     if (text.includes(`${rule}:`)) {
       throw new RuleViolationError(rule, text.slice(text.indexOf(`${rule}:`)));
     }

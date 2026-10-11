@@ -19,6 +19,8 @@ import {
   HotTopicCard,
   LevelMark,
   PinButton,
+  ProfileCounters,
+  ProfileHeader,
   SectionTitle,
   Segmented,
   Skeleton,
@@ -146,6 +148,30 @@ const cases: Array<[string, React.ReactElement]> = [
   ["botão destrutivo", <Button variant="danger">Sair da comunidade</Button>],
   // F08: tópicos.
   ["nome de tópico", <TopicName>primeira festa</TopicName>],
+  // F12: perfil.
+  [
+    "topo do perfil, de outra pessoa",
+    <ProfileHeader
+      nome="Lia Souza"
+      handle="liasouza"
+      bio="Vinil, serras e pista desde 2010."
+      avatarUrl={null}
+      seguidores={214}
+    />,
+  ],
+  [
+    "topo do perfil, próprio",
+    <ProfileHeader
+      nome="Ana Lima"
+      handle="analima"
+      bio={null}
+      avatarUrl={null}
+      seguidores={128}
+      seguindo={<span>45 seguindo</span>}
+    />,
+  ],
+  ["contadores do perfil", <ProfileCounters respostas={86} comunidades={5} diasAtivos={41} />],
+  ["contadores no singular", <ProfileCounters respostas={1} comunidades={1} diasAtivos={1} />],
   // F11: as linhas do Início.
   [
     "linha do Início, com novas",

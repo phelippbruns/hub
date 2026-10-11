@@ -312,6 +312,31 @@ a usá-lo.
 
 ---
 
+### Campo ausente virando `null`
+
+`updateProfile` montava o update com `bio: data.bio ?? null` e
+`avatarUrl: data.avatarUrl ?? null`. Parece defensivo e é destrutivo: **campo
+que não veio virava apagado**. Como a foto é enviada por um caminho
+diferente do nome e da descrição, salvar o formulário de perfil apagaria a
+foto — em silêncio.
+
+Também descobri que o `@` simplesmente **não dava para editar**: não estava
+no schema de validação, embora a tela 22 o mostre como campo.
+
+*Por que passou:* a função existia desde a F02 e nunca tinha sido chamada
+por uma tela. Código sem uso não é código testado — é código suposto.
+
+*Como resolvi:* o update só toca no que veio; ausente quer dizer "não
+mexer". E dois testes: um que salva nome sem mandar foto e exige a foto
+intacta, outro que troca o `@`.
+
+**Regra:** `?? null` num update não é defesa, é apagamento. Ausente e nulo
+são coisas diferentes, e o código precisa dizer qual é qual.
+
+🔒 **Barrado** — o teste salva sem foto e confere que ela ficou.
+
+---
+
 ### Trocar o nome da tela e esquecer quem dependia dele
 
 O protótipo chama a tela inicial de **"Hoje"**; eu tinha posto "Início", que
