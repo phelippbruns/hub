@@ -12,6 +12,10 @@ next-env.d.ts
 # Ambiente: nenhum valor real no repositório. .env.example é a referência.
 .env
 .env.*
+# E qualquer coisa que termine em .env: `prod.env` escapou das duas linhas
+# acima e foi para o repositório em 11 de outubro. `.env.*` casa `.env.local`,
+# não `prod.env`.
+*.env
 !.env.example
 
 # Testes

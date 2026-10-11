@@ -592,6 +592,37 @@ a senha com digitação oculta e codificam sozinhos.
 
 🔒 **Barrado** no caminho das ferramentas. 👁 para SQL escrito à mão.
 
+### `prod.env` escapou do `.gitignore` e foi para o repositório
+
+Puxei as variáveis de produção da Vercel para um arquivo e o destino saiu
+errado: em vez da pasta temporária, `prod.env` foi criado na raiz do projeto.
+Um `git add -A` depois, ele entrou no commit do PR #39 e está no histórico de
+`main`.
+
+*Por que passou:* o `.gitignore` tinha `.env` e `.env.*`. Nenhum dos dois casa
+`prod.env` — o padrão cobre `.env.algo`, não `algo.env`. E a proteção de push
+do GitHub não barrou porque **não há segredo dentro**: a CLI da Vercel recusou
+exportar os 11 valores marcados como Secret e escreveu `[SENSITIVE]` no lugar.
+Sobraram as variáveis de configuração, que são as `NEXT_PUBLIC_*` — públicas
+por desenho, já servidas no pacote do navegador.
+
+Ou seja: duas barreiras existiam e as duas tinham razão de não disparar. O que
+falhou foi o padrão do `.gitignore` ser mais estreito do que a regra que ele
+pretende valer ("nenhum valor real no repositório").
+
+*Como resolvi:* `git rm --cached`, `*.env` acrescentado ao `.gitignore`, e
+conferido com `git check-ignore` que agora ele é barrado. **Não reescrevi o
+histórico**: sem segredo dentro, reescrever `main` custaria mais do que
+resolve. Se um valor sensível aparecer na conferência, a conta muda.
+
+**Regra:** padrão de `.gitignore` tem de cobrir a regra inteira, não o nome que
+a gente costuma usar. E arquivo gerado por ferramenta vai para a pasta
+temporária com **caminho absoluto** — caminho relativo depende do diretório
+atual, que muda sem avisar.
+
+🔒 **Barrado** — `*.env` cobre qualquer arquivo que termine em `.env`,
+conferido com `git check-ignore`.
+
 ### Chave parecida com segredo dentro do repositório
 
 Chumbei a chave do Supabase local no arquivo da CI. O GitHub bloqueou o push —
