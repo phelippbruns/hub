@@ -67,39 +67,40 @@ export function LinhaDeResposta({
           handle={handle}
           when={resposta.quando}
           avatar={autor ? <Link href={`/${handle}`}>{avatar}</Link> : avatar}
+          media={
+            resposta.imagem ? (
+              /*
+               * `<img>` e não `next/image`, e é a primeira vez no projeto que
+               * desligo uma regra de lint.
+               *
+               * O otimizador do Next guarda a imagem pela URL. Aqui a URL é
+               * assinada e **expira em dez minutos**: cada visita gera uma nova,
+               * então o cache nunca acerta, e sobra o otimizador baixando de novo
+               * a cada vez — custo sem ganho. Pior: uma URL que vencesse dentro
+               * do cache serviria um erro no lugar da imagem.
+               *
+               * Se um dia as imagens virarem públicas, isto volta a ser
+               * `next/image` e o comentário sai junto.
+               */
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={resposta.imagem}
+                alt={
+                  resposta.tipoDaMidia === "gif"
+                    ? `GIF enviado por ${nome}`
+                    : `Imagem enviada por ${nome}`
+                }
+                /*
+                 * Preso nos dois lados: imagem que não carrega não tem tamanho
+                 * próprio, e sem isto o espaço dela estica a página inteira.
+                 */
+                className="max-h-cover w-auto max-w-full rounded-sm"
+              />
+            ) : null
+          }
         >
           {resposta.texto}
         </AnswerCard>
-
-        {resposta.imagem ? (
-          /*
-           * `<img>` e não `next/image`, e é a primeira vez no projeto que
-           * desligo uma regra de lint.
-           *
-           * O otimizador do Next guarda a imagem pela URL. Aqui a URL é
-           * assinada e **expira em dez minutos**: cada visita gera uma nova,
-           * então o cache nunca acerta, e sobra o otimizador baixando de novo
-           * a cada vez — custo sem ganho. Pior: uma URL que vencesse dentro
-           * do cache serviria um erro no lugar da imagem.
-           *
-           * Se um dia as imagens virarem públicas, isto volta a ser
-           * `next/image` e o comentário sai junto.
-           */
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={resposta.imagem}
-            alt={
-              resposta.tipoDaMidia === "gif"
-                ? `GIF enviado por ${nome}`
-                : `Imagem enviada por ${nome}`
-            }
-            /*
-             * Preso nos dois lados: imagem que não carrega não tem tamanho
-             * próprio, e sem isto o espaço dela estica a página inteira.
-             */
-            className="max-h-cover max-w-contentColumn mt-1 w-auto rounded-sm"
-          />
-        ) : null}
       </div>
 
       <RoundIconButton

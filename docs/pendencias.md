@@ -39,11 +39,14 @@ ponto em aberto sobre 16 ou 17 por causa do ECA Digital.
 
 ### 1.3 Universos e comunidades curadas
 
-Hoje há 4 Universos e 19 comunidades que eu escolhi como ponto de partida
+Hoje há 5 Universos e 23 comunidades como ponto de partida
 (`npm run conteudo:inicial`). Quais entram no lançamento é decisão de produto.
+Cerâmica foi pedida por você em 11 de outubro, com Torno, Esmaltes, Queima e
+Modelagem Manual — Universo sem comunidade nenhuma aparece no Explorar e não
+leva a lugar nenhum.
 
 Ligado a isto: **quem modera as comunidades da plataforma.** Hoje a resposta é
-"a conta do Phelipp", o que é um remendo — toda denúncia nas 19 cai no seu
+"a conta do Phelipp", o que é um remendo — toda denúncia nas 23 cai no seu
 colo. Precisa virar um papel de equipe.
 
 ### 1.4 O corte de membros está desligado
@@ -197,6 +200,70 @@ São duas coisas separadas:
    Política ficam na mesma página ou em duas, porque o aceite cita as duas.
 
 Mande o texto quando tiver: o encaixe é direto.
+
+### Ver quem me segue — **custo baixo, 1 dia**
+
+Pedido do PO em 11 de outubro: a lista de quem me segue, igual à de quem eu
+sigo, só que ao contrário. **Só o dono vê.** O link fica no mesmo lugar: no
+número de "seguidores" do perfil próprio.
+
+É a menor das três. Quase tudo já existe: a tela de `/perfil/seguindo`, a
+busca dentro dela, a função que recusa quem não é o dono. Falta a consulta
+espelhada, uma rota e o número virar link.
+
+**Muda a RN28**, que hoje diz que o número de seguidores "não abre lista,
+para evitar comparação entre perfis". A razão dela continua de pé — ninguém
+vê os seguidores de outra pessoa —, mas o texto precisa ser corrigido para
+dizer "só o dono abre".
+
+### Marcar pessoas com @ nas respostas — **médio, 3 a 4 dias**
+
+Pedido do PO em 11 de outubro: escrever `@lia` numa resposta e isso virar um
+caminho para o perfil dela.
+
+Não é só pintar o texto de outra cor. São quatro partes, e a última é a que
+pesa:
+
+1. **Achar o @ no texto** e transformar em link ao desenhar — perto do que
+   `lib/texto/links.ts` já faz para a RN16, com os mesmos cuidados de
+   acento, pontuação e @ que não existe.
+2. **Sugerir enquanto digita**, senão a pessoa precisa decorar o @ exato.
+3. **Guardar quem foi marcado**, para a notificação não depender de reler o
+   texto depois.
+4. **Notificar quem foi marcado** — e isto é a F15. Marcar sem avisar não
+   serve para nada, então ou esta parte espera a F15, ou a F15 vem antes.
+
+Tem também uma pergunta de produto: **marcação é convite ou intromissão?**
+Numa rede sem curtida, ser arrastado para uma conversa por qualquer pessoa é
+um vetor de incômodo. Vale decidir se dá para desligar, e se marcar só vale
+para quem está na mesma comunidade.
+
+### Comunidade sem Universo, e o Hubverso — **médio no mínimo, grande se os Universos saírem**
+
+Pedido do PO em 11 de outubro: deixar criar comunidade sem escolher Universo;
+ela cai num Universo de banco chamado **Hubverso**. E a ideia maior por trás:
+**acabar com os Universos.**
+
+São duas coisas de tamanho muito diferente, e vale decidir qual é a de agora.
+
+**A pequena — 1 a 2 dias.** O Hubverso existe no banco, o campo Universo sai
+do formulário de criar (ou vira opcional), e quem não escolhe cai nele. O
+Universo continua existindo em todo lugar; só deixa de ser uma pergunta na
+hora de criar. Pontos a resolver: o Hubverso aparece no Explorar como os
+outros? E a **capa**, que hoje a comunidade herda do Universo quando não
+envia uma (RN03) — o Hubverso precisa de uma capa padrão própria.
+
+**A grande — 1 a 2 semanas, e é uma mudança de produto.** Universo é o
+primeiro degrau da hierarquia do Hub (RN01) e aparece em 25 arquivos: o
+Explorar é uma lista de Universos, o onboarding escolhe comunidades **por
+Universo** (RN31), a Coleção agrupa por Universo, a capa padrão vem dele, e
+existe a tela `/u/<universo>`. Tirar isso não é apagar uma coluna: é
+responder **como alguém descobre comunidade sem eles**, e hoje a resposta
+inteira do Explorar depende deles.
+
+Minha leitura, para você decidir: a pequena resolve o incômodo real — ter de
+escolher um Universo para criar uma comunidade — e não fecha nenhuma porta.
+A grande vale a pena se a descoberta for repensada junto, não antes.
 
 ---
 

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { cadastroConcluido } from "./apoio-tela";
 
 /**
  * Navegação e layout (F05).
@@ -42,7 +43,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
   await expect(caixa).toHaveAttribute("aria-checked", "true");
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  await expect(page).toHaveURL(/\/boas-vindas/);
+  await cadastroConcluido(page);
   await page.getByRole("link", { name: "Começar" }).click();
   for (let i = 0; i < 3; i += 1) {
     await page
@@ -119,6 +120,31 @@ test.describe("barra de navegação", () => {
 
     await expect(barra.getByRole("link", { name: "Criar comunidade" })).toBeVisible();
     await expect(barra.getByRole("link", { name: "Criar tópico" })).toBeVisible();
+  });
+
+  test("os botões de criar continuam na tela depois de descer a página", async ({ page }) => {
+    /*
+     * A barra é `sticky` com a altura da janela. Sem isso ela é só uma coluna
+     * do grid, do tamanho do conteúdo — e numa página comprida descer levava
+     * os botões de criar embora, porque eles ficam no fim da barra.
+     *
+     * Este teste também guarda contra `h-screen` ou `sticky` deixarem de
+     * existir: as escalas padrão do Tailwind estão zeradas neste projeto, e
+     * utilitário que não existe não avisa, só não faz nada.
+     */
+    await entrarNoApp(page, "fixos");
+    const barra = page.getByRole("navigation", { name: "Navegação principal" });
+    const criar = barra.getByRole("link", { name: "Criar tópico" });
+
+    await page.goto("/comunidades");
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+
+    const janela = page.viewportSize()!.height;
+    const caixa = await criar.boundingBox();
+
+    expect(caixa, "o botão de criar tópico desapareceu").not.toBeNull();
+    expect(caixa!.y, "o botão de criar tópico saiu da janela ao descer").toBeLessThan(janela);
+    expect(caixa!.y + caixa!.height).toBeGreaterThan(0);
   });
 });
 

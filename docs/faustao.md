@@ -120,6 +120,29 @@ algo de bug no ambiente publicado, desconfiar do teste primeiro.
 
 👁 **Atenção** — uma regra de lint contra `waitForTimeout` em `e2e/` viraria 🔒.
 
+### Os 5 s padrão do Playwright em cima de uma operação lenta
+
+Duas jornadas reprovaram com "esperava /boas-vindas, recebi /criar-conta".
+Parece defeito de redirecionamento. Era lentidão: criar conta gasta segundos
+no Supabase local, e a suíte inteira em série deixa o servidor pesado. O
+botão ainda dizia "Criando…" na captura da falha.
+
+*Por que passou:* o mesmo teste é verde quando roda sozinho. Só na suíte
+completa a soma passa dos 5 s padrão — então a falha aparece em arquivos
+diferentes a cada vez e parece aleatória.
+
+*Como resolvi:* `cadastroConcluido()` em `e2e/apoio-tela.ts`, com espera
+generosa, no lugar dos catorze `toHaveURL(/boas-vindas/)` espalhados. E no
+caminho de guardar imagem, esperar o banco antes de olhar a tela, como já
+fazia o teste vizinho.
+
+**Regra:** operação que é lenta por natureza — cadastro, upload — não se
+verifica com o tempo padrão. E a espera certa vira função, para o próximo
+arquivo não voltar aos 5 s.
+
+🔒 **Barrado** — o caminho curto agora é o certo; o padrão de 5 s saiu dos
+arquivos.
+
 ### Corrida entre testes
 
 As jornadas em paralelo falhavam, nunca as mesmas duas vezes. Persegui o
@@ -484,6 +507,32 @@ informação repetida — ela não é erro para o computador.
 não uma de cada vez.
 
 👁 **Atenção** — nada confere repetição.
+
+---
+
+### Testar o caminho da imagem com uma imagem de brinquedo
+
+Enviar **qualquer** foto em produção dava erro 500. A causa: Server Action no
+Next tem limite de corpo de **1 MB** por padrão, e o produto prometia 5 MB.
+Toda foto de celular era cortada no caminho, antes de chegar na conferência de
+bytes — e o erro que a pessoa via não dizia nada.
+
+*Por que passou:* os testes de imagem usam JPEGs montados à mão, de algumas
+dezenas de bytes. Eles provam que a localização sai da foto e que arquivo
+disfarçado é recusado — e **nenhum deles chega perto do limite**. Vinte e
+três testes verdes sobre um caminho que não funcionava para nenhum arquivo
+real.
+
+*Como resolvi:* `bodySizeLimit` de 4,5 MB no `next.config.ts` (o teto da
+plataforma onde o Hub roda), limite do produto baixado para 4 MB, conferência
+no navegador para dar mensagem clara em vez de 500, e um teste que trava o
+número em 4 MB ou menos.
+
+**Regra:** teste com arquivo de brinquedo prova a regra, não o caminho. Quando
+o que entra é arquivo de gente, o tamanho de verdade é parte do teste.
+
+🔒 **Barrado** — `lib/midia/imagem.test.ts` falha se o limite do produto
+subir acima do que a plataforma aceita receber.
 
 ---
 

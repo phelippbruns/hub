@@ -622,10 +622,22 @@ export function DesignGallery() {
         </Card>
 
         <Card title="Cartão de resposta" wide>
-          <div className="w-full">
+          <div className="flex w-full flex-col gap-2">
             <AnswerCard author="Lia Souza" handle="liasouza" when="há 2 h">
               Um set de 6 horas num galpão. Saí de lá sabendo que era isso.
             </AnswerCard>
+
+            {/*
+              A mídia entra **dentro** do cartão: imagem e GIF são parte da
+              mensagem. E a resposta pode ser só mídia — então o parágrafo
+              desaparece, em vez de virar um espaço branco vazio.
+            */}
+            <AnswerCard
+              author="Jo Ramos"
+              handle="joramos"
+              when="há 1 h"
+              media={<div className="bg-lavender h-cover w-full rounded-sm" />}
+            />
           </div>
         </Card>
 

@@ -14,7 +14,7 @@ import { followProfile, unfollowProfile } from "@/lib/data/follows";
 import { bloquear, desbloquear, dessilenciar, silenciar } from "@/lib/data/perfil";
 import { updateProfile } from "@/lib/data/profiles";
 import { acharLink } from "@/lib/texto/links";
-import { ImagemRecusada, TAMANHO_MAXIMO } from "@/lib/midia/imagem";
+import { ImagemRecusada, TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB } from "@/lib/midia/imagem";
 import { guardarImagem } from "@/lib/midia/deposito";
 
 async function quemPede() {
@@ -102,7 +102,8 @@ export async function salvarPerfil(
   const arquivo = formulario.get("foto");
 
   if (arquivo instanceof File && arquivo.size > 0) {
-    if (arquivo.size > TAMANHO_MAXIMO) return { erros: { name: "A imagem passa de 5 MB." } };
+    if (arquivo.size > TAMANHO_MAXIMO)
+      return { erros: { name: `A imagem passa de ${TAMANHO_MAXIMO_EM_MB} MB.` } };
 
     try {
       avatarCaminho = await guardarImagem(new Uint8Array(await arquivo.arrayBuffer()), "perfis");

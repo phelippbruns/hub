@@ -87,6 +87,53 @@ describe("RN13: responder", () => {
     expect(gravada.mediaUrl).toBe("respostas/abc.jpg");
     expect(gravada.mediaKind).toBe("image");
   });
+
+  it("RN13: só um GIF já é resposta, sem nada escrito", async () => {
+    const { jo, topico } = await cenario();
+
+    const resposta = await createAnswer(viewerFor(jo.id), {
+      topicId: topico.id,
+      text: "",
+      media: { caminho: "https://media.giphy.com/abc.gif", kind: "gif" },
+    });
+
+    const gravada = await db.answer.findUniqueOrThrow({ where: { id: resposta.id } });
+    expect(gravada.text).toBe("");
+    expect(gravada.mediaKind).toBe("gif");
+  });
+
+  it("RN13: só uma imagem já é resposta, sem nada escrito", async () => {
+    const { jo, topico } = await cenario();
+
+    const resposta = await createAnswer(viewerFor(jo.id), {
+      topicId: topico.id,
+      text: "   ",
+      media: { caminho: "respostas/abc.jpg", kind: "image" },
+    });
+
+    expect(resposta.text).toBe("");
+  });
+
+  it("RN13: sem texto e sem mídia não é resposta", async () => {
+    const { jo, topico } = await cenario();
+
+    await expect(
+      createAnswer(viewerFor(jo.id), { topicId: topico.id, text: "", media: null }),
+    ).rejects.toThrow(/texto|imagem|GIF/i);
+  });
+
+  it("RN13: o banco recusa a resposta em branco mesmo sem passar pelo app", async () => {
+    /*
+     * A conferência do app dá a mensagem boa; este CHECK é a garantia. Sem
+     * ele, qualquer escrita nova que esquecesse a regra publicaria um cartão
+     * vazio que ninguém consegue explicar.
+     */
+    const { jo, topico } = await cenario();
+
+    await expect(
+      db.answer.create({ data: { topicId: topico.id, authorId: jo.id, text: "" } }),
+    ).rejects.toThrow(/answers_texto_ou_midia/);
+  });
 });
 
 describe("RN14: apagar a própria resposta", () => {

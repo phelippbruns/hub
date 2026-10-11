@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
-import { alerta } from "./apoio-tela";
+import { alerta, cadastroConcluido } from "./apoio-tela";
 
 /**
  * Perfil (F12).
@@ -29,7 +29,7 @@ async function entrarNoApp(page: Page, prefixo: string): Promise<string> {
   await expect(caixa).toHaveAttribute("aria-checked", "true");
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  await expect(page).toHaveURL(/\/boas-vindas/);
+  await cadastroConcluido(page);
   await page.getByRole("link", { name: "Começar" }).click();
   for (let i = 0; i < 3; i += 1) {
     await page

@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState } from "react";
 import { Button, Input, TextField } from "@/design/components";
 import { acharLink } from "@/lib/texto/links";
+import { problemaNaImagem } from "@/lib/midia/limites";
 import { salvarPerfil, type EstadoDoPerfil } from "./actions";
 
 /**
@@ -25,6 +26,7 @@ export function FormularioDePerfil({
   const [estado, acao, pendente] = useActionState<EstadoDoPerfil, FormData>(salvarPerfil, {});
   const [descricao, setDescricao] = useState(bio ?? "");
   const [previa, setPrevia] = useState<string | null>(null);
+  const [problemaDaFoto, setProblemaDaFoto] = useState<string | null>(null);
   const arquivoRef = useRef<HTMLInputElement>(null);
 
   // RN16: o aviso cita o trecho, como no campo de resposta.
@@ -58,6 +60,9 @@ export function FormularioDePerfil({
           aria-label="Escolher foto do perfil"
           onChange={(evento) => {
             const escolhido = evento.target.files?.[0] ?? null;
+            // O servidor confere de novo; isto evita um envio cortado no
+            // caminho, que chegaria como erro sem explicação.
+            setProblemaDaFoto(escolhido ? problemaNaImagem(escolhido) : null);
             if (previa) URL.revokeObjectURL(previa);
             setPrevia(escolhido ? URL.createObjectURL(escolhido) : null);
           }}
@@ -96,13 +101,19 @@ export function FormularioDePerfil({
         error={link ? `Tire o endereço: "${link.trecho}"` : estado.erros?.bio}
       />
 
+      {problemaDaFoto ? (
+        <p role="alert" className="text-caption text-error">
+          {problemaDaFoto}
+        </p>
+      ) : null}
+
       {estado.erro ? (
         <p role="alert" className="text-caption text-error">
           {estado.erro}
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pendente || link !== null}>
+      <Button type="submit" disabled={pendente || link !== null || problemaDaFoto !== null}>
         {pendente ? "Salvando…" : "Salvar"}
       </Button>
     </form>

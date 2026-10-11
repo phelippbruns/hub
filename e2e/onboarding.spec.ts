@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { topicoDoSeed } from "./apoio-banco";
+import { cadastroConcluido } from "./apoio-tela";
 
 /**
  * Onboarding (RN31, RN34).
@@ -29,7 +30,7 @@ async function criarContaEChegarNoOnboarding(page: Page, prefixo: string) {
   await aceitarTermos(page);
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  await expect(page).toHaveURL(/\/boas-vindas/);
+  await cadastroConcluido(page);
   return email;
 }
 
@@ -73,7 +74,7 @@ test.describe("RN31: três passos até o Hub", () => {
   test("o Início devolve para o onboarding de quem ainda não passou", async ({ page }) => {
     await criarContaEChegarNoOnboarding(page, "atalho");
     await page.goto("/inicio");
-    await expect(page).toHaveURL(/\/boas-vindas/);
+    await cadastroConcluido(page);
   });
 
   test("não dá para avançar com menos de 3 comunidades", async ({ page }) => {

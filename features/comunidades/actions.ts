@@ -20,7 +20,7 @@ import {
   definirPainelOculto,
   trocarCapa,
 } from "@/lib/data/comunidades";
-import { ImagemRecusada, TAMANHO_MAXIMO } from "@/lib/midia/imagem";
+import { ImagemRecusada, TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB } from "@/lib/midia/imagem";
 import { apagarImagem, guardarImagem } from "@/lib/midia/deposito";
 import { getViewer } from "@/lib/auth/session";
 import { RuleViolationError, UnauthenticatedError } from "@/lib/data/errors";
@@ -149,7 +149,8 @@ export async function trocarCapaDaComunidade(
   if (!(arquivo instanceof File) || arquivo.size === 0) {
     return { erro: "Escolha uma imagem." };
   }
-  if (arquivo.size > TAMANHO_MAXIMO) return { erro: "A imagem passa de 5 MB." };
+  if (arquivo.size > TAMANHO_MAXIMO)
+    return { erro: `A imagem passa de ${TAMANHO_MAXIMO_EM_MB} MB.` };
 
   let caminho: string;
   try {

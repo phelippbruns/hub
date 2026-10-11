@@ -346,6 +346,9 @@ model Answer {
   id        String     @id @default(uuid()) @db.Uuid
   topicId   String     @map("topic_id") @db.Uuid
   authorId  String?    @map("author_id") @db.Uuid
+  /// Pode ser vazio **se houver mídia**: GIF ou imagem sozinhos já são
+  /// resposta (decisão do PO). CHECK `answers_texto_ou_midia` garante que não
+  /// existe resposta vazia dos dois lados.
   text      String     @db.VarChar(240)
   mediaUrl  String?    @map("media_url")
   mediaKind MediaKind? @map("media_kind")

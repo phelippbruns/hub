@@ -22,6 +22,7 @@ const UNIVERSOS = [
   { slug: "cinema", name: "Cinema" },
   { slug: "fotografia", name: "Fotografia" },
   { slug: "games", name: "Games" },
+  { slug: "ceramica", name: "Cerâmica" },
 ] as const;
 
 const COMUNIDADES: { universo: string; name: string; intro: string }[] = [
@@ -44,6 +45,14 @@ const COMUNIDADES: { universo: string; name: string; intro: string }[] = [
   { universo: "games", name: "Speedrun", intro: "O jogo inteiro, o mais rápido possível." },
   { universo: "games", name: "Retrô", intro: "Cartucho, fliperama e emulador." },
   { universo: "games", name: "Jogos de Tabuleiro", intro: "Da mesa da cozinha ao campeonato." },
+  /*
+   * Universo com comunidade nenhuma é beco sem saída: aparece no Explorar e
+   * não leva a lugar nenhum. Por isso Cerâmica entra com as de partida.
+   */
+  { universo: "ceramica", name: "Torno", intro: "Centrar, levantar e o que dá errado." },
+  { universo: "ceramica", name: "Esmaltes", intro: "Receitas, testes e a surpresa do forno." },
+  { universo: "ceramica", name: "Queima", intro: "Forno elétrico, gás e queima a lenha." },
+  { universo: "ceramica", name: "Modelagem Manual", intro: "Pinch, placa e rolinho." },
 ];
 
 const { url, host } = await pedirConexao();

@@ -1,3 +1,7 @@
+import { TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB, TIPOS_ACEITOS, type TipoDeImagem } from "./limites";
+
+export { TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB, TIPOS_ACEITOS, type TipoDeImagem };
+
 /**
  * Conferir e limpar uma imagem antes de guardá-la (regra de segurança 7).
  *
@@ -17,12 +21,6 @@
  * **Arquivo que não for entendido é recusado.** Na dúvida, não guarda — o
  * contrário deixaria passar justamente o arquivo estranho.
  */
-
-export const TIPOS_ACEITOS = ["image/jpeg", "image/png", "image/webp"] as const;
-export type TipoDeImagem = (typeof TIPOS_ACEITOS)[number];
-
-/** 5 MB. Caber numa resposta, não num ensaio fotográfico. */
-export const TAMANHO_MAXIMO = 5 * 1024 * 1024;
 
 export type ImagemLimpa = { bytes: Uint8Array; tipo: TipoDeImagem; extensao: string };
 
@@ -180,7 +178,7 @@ function limparWebp(bytes: Uint8Array): Uint8Array {
 export function prepararImagem(bytes: Uint8Array): ImagemLimpa {
   if (bytes.length === 0) throw new ImagemRecusada("O arquivo está vazio");
   if (bytes.length > TAMANHO_MAXIMO) {
-    throw new ImagemRecusada("A imagem passa de 5 MB");
+    throw new ImagemRecusada(`A imagem passa de ${TAMANHO_MAXIMO_EM_MB} MB`);
   }
 
   const tipo = tipoPelosBytes(bytes);

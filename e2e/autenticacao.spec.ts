@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
-import { alerta } from "./apoio-tela";
+import { alerta, cadastroConcluido } from "./apoio-tela";
 
 /**
  * Jornadas da entrada (F03).
@@ -84,7 +84,7 @@ async function criarContaESair(
   await aceitarTermos(page);
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  await expect(page).toHaveURL(/\/boas-vindas/);
+  await cadastroConcluido(page);
 
   // RN31: sem concluir o onboarding a pessoa não chega ao Início, então o
   // caminho para sair passa por ele.
@@ -187,7 +187,7 @@ test.describe("RN29: criar conta", () => {
     await aceitarTermos(page);
     await page.getByRole("button", { name: "Continuar" }).click();
 
-    await expect(page).toHaveURL(/\/boas-vindas/);
+    await cadastroConcluido(page);
   });
 
   test("dá para escolher o @ no cadastro", async ({ page }) => {
@@ -204,7 +204,7 @@ test.describe("RN29: criar conta", () => {
     await aceitarTermos(page);
     await page.getByRole("button", { name: "Continuar" }).click();
 
-    await expect(page).toHaveURL(/\/boas-vindas/);
+    await cadastroConcluido(page);
   });
 
   test("avisa quando o @ já está em uso, antes de enviar", async ({ page }) => {
@@ -233,7 +233,7 @@ test.describe("RN29: criar conta", () => {
     await aceitarTermos(page);
     await page.getByRole("button", { name: "Continuar" }).click();
 
-    await expect(page).toHaveURL(/\/boas-vindas/);
+    await cadastroConcluido(page);
   });
 });
 

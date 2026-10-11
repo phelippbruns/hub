@@ -60,7 +60,10 @@ export function translateDatabaseError(error: unknown): never {
   if (text.includes("profiles_handle_key")) {
     throw new RuleViolationError("RN17", "Esse @ já está em uso");
   }
-  for (const rule of ["RN04", "RN07", "RN08", "RN17", "RN20", "RN21"] as const) {
+  if (text.includes("answers_texto_ou_midia")) {
+    throw new RuleViolationError("RN13", "Envie um texto, uma imagem ou um GIF");
+  }
+  for (const rule of ["RN04", "RN07", "RN08", "RN13", "RN17", "RN20", "RN21"] as const) {
     if (text.includes(`${rule}:`)) {
       throw new RuleViolationError(rule, text.slice(text.indexOf(`${rule}:`)));
     }
