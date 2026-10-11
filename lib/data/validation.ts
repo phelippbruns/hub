@@ -132,8 +132,18 @@ export const createCommunitySchema = z.object({
 /** RN27: descrição de perfil de até 120 caracteres, sem links. */
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(1).max(80),
+  /** RN17: o @ é único, e dá para trocar na tela de editar perfil. */
+  handle: handleSchema.optional(),
   bio: userText(120, "A descrição").nullable().optional(),
-  avatarUrl: z.url().nullable().optional(),
+  /**
+   * Caminho no depósito, não um endereço: o depósito é privado e o endereço
+   * é assinado na hora de exibir, como na imagem da resposta.
+   *
+   * **Ausente quer dizer "não mexer"**, e não "apagar": a foto é enviada por
+   * um caminho diferente do nome e da descrição, e salvar o formulário sem
+   * trocar a foto não pode apagá-la.
+   */
+  avatarCaminho: z.string().min(1).max(500).nullable().optional(),
 });
 
 /** RN22: o convite pode levar uma mensagem de até 240 caracteres, sem links. */

@@ -2,7 +2,7 @@
  * Perfis (RN17, RN27, RN29, RN30).
  */
 import { prisma } from "./prisma";
-import { ForbiddenError, NotFoundError } from "./errors";
+import { ForbiddenError, NotFoundError, translateDatabaseError } from "./errors";
 import { updateProfileSchema } from "./validation";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { generateUniqueHandle, suggestHandle, withSuffix } from "@/lib/auth/handle";
@@ -48,6 +48,21 @@ export async function emailDeQuemTemOHandle(handle: string): Promise<string | nu
      LIMIT 1
   `;
   return linhas[0]?.email ?? null;
+}
+
+/**
+ * O @ de quem está logado.
+ *
+ * A tela de perfil próprio e a de outra pessoa são a mesma, e ela recebe um
+ * @. Esta função é a ponte: `/perfil` precisa saber qual é o seu.
+ */
+export async function meuHandle(viewer: Viewer): Promise<string> {
+  const me = requireProfileId(viewer);
+  const perfil = await prisma.profile.findUniqueOrThrow({
+    where: { id: me },
+    select: { handle: true },
+  });
+  return perfil.handle;
 }
 
 export async function getProfileByAuthId(authUserId: string) {
@@ -141,14 +156,25 @@ export async function updateProfile(viewer: Viewer, input: unknown) {
   const me = requireProfileId(viewer);
   const data = updateProfileSchema.parse(input);
 
-  return prisma.profile.update({
-    where: { id: me },
-    data: {
-      name: data.name,
-      bio: data.bio ?? null,
-      avatarUrl: data.avatarUrl ?? null,
-    },
-  });
+  /*
+   * Só o que veio é alterado. Antes, um campo ausente virava `null` — e
+   * salvar nome e descrição apagaria a foto, que é enviada por outro
+   * caminho.
+   */
+  try {
+    return await prisma.profile.update({
+      where: { id: me },
+      data: {
+        name: data.name,
+        ...(data.handle === undefined ? {} : { handle: data.handle }),
+        ...(data.bio === undefined ? {} : { bio: data.bio }),
+        ...(data.avatarCaminho === undefined ? {} : { avatarUrl: data.avatarCaminho }),
+      },
+    });
+  } catch (error) {
+    // RN17: o @ é único. O índice é a garantia; aqui vira mensagem.
+    translateDatabaseError(error);
+  }
 }
 
 /** RN27/RN28: o perfil público. Seguidores são informativos e não abrem lista. */

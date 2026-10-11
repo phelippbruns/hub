@@ -217,6 +217,8 @@ model Profile {
   messages           Message[]
   blocksMade         Block[]           @relation("Blocker")
   blocksReceived     Block[]           @relation("Blocked")
+  mutesMade          Mute[]            @relation("Muter")
+  mutesReceived      Mute[]            @relation("Muted")
   reports            Report[]
   moderationActions  ModerationEntry[]
   notifications      Notification[]
@@ -488,6 +490,21 @@ model Message {
 }
 
 // -------------------------------------------------------------- segurança
+
+/// F12: silenciar tira a pessoa só do **seu** Início. Diferente de bloquear,
+/// ela não perde nada, não fica sabendo, e você continua seguindo — é a saída
+/// para quem incomoda sem fazer mal.
+model Mute {
+  muterId   String   @map("muter_id") @db.Uuid
+  mutedId   String   @map("muted_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  muter Profile @relation("Muter", fields: [muterId], references: [id], onDelete: Cascade)
+  muted Profile @relation("Muted", fields: [mutedId], references: [id], onDelete: Cascade)
+
+  @@id([muterId, mutedId])
+  @@map("mutes")
+}
 
 /// RN26: bloquear tira você das Cabines em comum, sem aviso, e impede novos
 /// convites.
