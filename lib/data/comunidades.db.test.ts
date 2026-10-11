@@ -8,7 +8,6 @@ import { db, makeProfile, makeUniverse, resetDatabase } from "./testing/db";
 import {
   alternarFixada,
   definirPainelOculto,
-  emAltaAgora,
   minhasComunidades,
   paginaDaComunidade,
   painelEstaOculto,
@@ -332,28 +331,6 @@ describe("os tópicos da comunidade", () => {
 
     const seguidos = await topicosQueSigoAqui(viewerFor(dona.id), comunidade.id);
     expect(seguidos.map((t) => t.name)).toEqual(["primeira festa"]);
-  });
-
-  it('"Em alta agora" é o tópico com mais pessoas diferentes hoje', async () => {
-    const { comunidade } = await cenario();
-
-    const destaque = await emAltaAgora(comunidade.id);
-    expect(destaque?.name).toBe("primeira festa");
-    expect(destaque?.pessoas).toBe(2);
-  });
-
-  it("sem resposta nenhuma hoje, não há destaque", async () => {
-    const dona = await makeProfile();
-    const universo = await makeUniverse("Música");
-    const comunidade = await criar(universo.id, "Caladona", dona);
-    await createTopic(viewerFor(dona.id), {
-      communityId: comunidade.id,
-      name: "ninguém respondeu",
-      description: "Alô?",
-      media: null,
-    });
-
-    expect(await emAltaAgora(comunidade.id)).toBeNull();
   });
 });
 

@@ -134,6 +134,8 @@ As regras RN01 a RN34 estão em [docs/escopo.md](docs/escopo.md).
 
 **As jornadas rodam em série.** Elas compartilham um banco, um servidor Next e um Supabase com limite de autenticação de verdade; em paralelo falham por 429 ou tempo esgotado, nunca pelo que queriam verificar. `playwright.config.ts` fixa `workers: 1`.
 
+**O ciclo das 00h roda no banco, de hora em hora.** `hub_ciclo_pendente()` é chamada pelo `pg_cron` a cada hora e não faz nada quando o dia já virou. De hora em hora, e não só à meia-noite, por dois motivos: o `pg_cron` agenda no fuso do servidor (UTC) enquanto o fuso do ciclo é configuração (`hub_cycle_timezone()`), e um agendamento único que não roda **pula o dia inteiro em silêncio**. `hub_virar_ciclo(dia)` é idempotente, e `npm run ciclo:rodar` a chama à mão.
+
 **O depósito de imagens é privado, e só o servidor fala com ele.** Nada nele é alcançável por endereço direto: a tela recebe uma URL assinada de validade curta, gerada na hora de desenhar. Não existe política de acesso para `authenticated` no Storage, e isso é **proposital** — é o que garante que nenhuma imagem entra sem passar pela conferência de tipo pelos bytes e pela remoção dos metadados de localização ([lib/midia/imagem.ts](lib/midia/imagem.ts)). Acrescentar uma política ali abriria um caminho que contorna a limpeza.
 
 **Componente de cliente não importa `lib/data/`.** Mesmo indiretamente: um reexport inocente arrasta o Prisma e o `pg` para o pacote do navegador, e o build quebra com _"Can't resolve 'dns'"_, que não diz nada sobre a causa. Constantes que a tela e a camada de dados compartilham moram em `features/<nome>/shared.ts`.

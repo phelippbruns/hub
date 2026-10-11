@@ -92,37 +92,6 @@ export async function topicosDaComunidade(
   return linhas.map(montarTopico);
 }
 
-/**
- * O tópico em destaque hoje.
- *
- * **Não é o Hot Topic.** O Hot Topic nasce da virada das 00h (RN20, F10) e
- * ainda não existe. Isto é o tópico com mais pessoas diferentes respondendo
- * no ciclo de hoje — o mesmo critério que a F10 vai usar, só que lido ao vivo
- * em vez de congelado pela virada.
- *
- * A tela chama isso de "Em alta agora", justamente para não prometer um
- * mecanismo que ainda não roda.
- */
-export async function emAltaAgora(communityId: string): Promise<TopicoNaComunidade | null> {
-  const linhas = await prisma.$queryRaw<LinhaDeTopico[]>`
-    SELECT t.id, t.slug, t.name, t.description,
-           p.id AS autor_id, p.name AS autor_nome, p.handle AS autor_handle,
-           count(DISTINCT a.author_id) AS pessoas,
-           count(a.id) AS respostas
-      FROM topics t
-      LEFT JOIN profiles p ON p.id = t.author_id
-      JOIN answers a ON a.topic_id = t.id
-                    AND a.deleted_at IS NULL
-                    AND hub_cycle_date(a.created_at) = hub_cycle_date(now())
-     WHERE t.community_id = ${communityId}::uuid AND t.deleted_at IS NULL
-     GROUP BY t.id, p.id
-     ORDER BY count(DISTINCT a.author_id) DESC, count(a.id) DESC, t.created_at DESC
-     LIMIT 1
-  `;
-
-  return linhas[0] ? montarTopico(linhas[0]) : null;
-}
-
 export type PaginaDaComunidade = {
   id: string;
   slug: string;
@@ -223,13 +192,22 @@ export type MinhaComunidade = {
   membersCount: number;
   topicosAtivos: number;
   fixada: boolean;
+  /**
+   * Em que lugar o tópico da pessoa está na disputa de hoje, do 1º ao 3º.
+   *
+   * Fora do pódio vem `null`: a linha serve para dizer "está perto", não
+   * para informar que você é o décimo quarto.
+   */
+  posicaoDoMeuTopico: number | null;
 };
 
 /**
  * Minhas Comunidades (tela 12): fixadas no topo, o resto de A a Z.
  *
- * "Tópicos ativos" é quantos receberam resposta no ciclo de hoje — é o número
- * que diz se vale entrar agora, e não quantos existem desde sempre.
+ * RN11: **tópico ativo é o que teve resposta nas últimas 24 horas**, e não o
+ * que teve resposta no ciclo de hoje. A diferença aparece logo depois da
+ * meia-noite: às 00h05, um tópico movimentado a noite inteira apareceria
+ * como morto se contássemos só o ciclo corrente.
  *
  * A ordenação alfabética usa o nome sem acento, senão "Ópera" cairia depois
  * de "Zumbi" no `ORDER BY` padrão do Postgres.
@@ -250,6 +228,7 @@ export async function minhasComunidades(
       members_count: number;
       topicos_ativos: string;
       fixada: boolean;
+      minha_posicao: string | null;
     }[]
   >`
     SELECT c.id, c.slug, c.name, c.cover_url, c.members_count,
@@ -258,10 +237,28 @@ export async function minhasComunidades(
                FROM topics t
                JOIN answers a ON a.topic_id = t.id
                              AND a.deleted_at IS NULL
-                             AND hub_cycle_date(a.created_at) = hub_cycle_date(now())
+                             AND a.created_at >= now() - interval '24 hours'
               WHERE t.community_id = c.id AND t.deleted_at IS NULL
            ) AS topicos_ativos,
-           (m.pinned_at IS NOT NULL) AS fixada
+           (m.pinned_at IS NOT NULL) AS fixada,
+           (
+             -- A disputa em andamento, para a linha "Seu tópico está em 2º".
+             -- Fecha à meia-noite, então este número muda ao longo do dia.
+             SELECT posicao FROM (
+               SELECT t.author_id,
+                      rank() OVER (
+                        ORDER BY count(DISTINCT a.author_id) DESC, t.created_at ASC
+                      ) AS posicao
+                 FROM topics t
+                 JOIN answers a ON a.topic_id = t.id
+                               AND a.deleted_at IS NULL
+                               AND hub_cycle_date(a.created_at) = hub_cycle_date(now())
+                WHERE t.community_id = c.id AND t.deleted_at IS NULL
+                GROUP BY t.id, t.author_id, t.created_at
+             ) AS disputa
+              WHERE disputa.author_id = ${me}::uuid AND disputa.posicao <= 3
+              LIMIT 1
+           ) AS minha_posicao
       FROM memberships m
       JOIN communities c ON c.id = m.community_id AND c.deleted_at IS NULL
      WHERE m.profile_id = ${me}::uuid
@@ -280,6 +277,7 @@ export async function minhasComunidades(
     membersCount: l.members_count,
     topicosAtivos: Number(l.topicos_ativos),
     fixada: l.fixada,
+    posicaoDoMeuTopico: l.minha_posicao === null ? null : Number(l.minha_posicao),
   }));
 }
 

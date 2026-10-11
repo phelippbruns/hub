@@ -133,6 +133,22 @@ test.describe("a página do tópico", () => {
     await olho.click();
     await expect(page.getByRole("button", { name: /^Seguindo o tópico/ })).toBeVisible();
 
+    /*
+     * Esperar o banco antes de recarregar. O olho muda na hora, mas a
+     * requisição ainda está indo: recarregar aqui a cancela, e o teste
+     * reprova por corrida em vez de por defeito.
+     */
+    await expect
+      .poll(async () => {
+        const linhas = await consultar<{ n: string }>(
+          `SELECT count(*) AS n
+             FROM follows f JOIN topics t ON t.id = f.topic_id
+            WHERE t.slug = 'assunto-seguido' AND f.target = 'topic'`,
+        );
+        return Number(linhas[0]?.n ?? 0);
+      })
+      .toBeGreaterThan(0);
+
     // Não foi só a tela: recarregar mantém.
     await page.reload();
     await expect(page.getByRole("button", { name: /^Seguindo o tópico/ })).toBeVisible();

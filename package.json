@@ -29,7 +29,8 @@
     "verificar:deploy": "node scripts/verificar-deploy.mts",
     "db:deploy:remoto": "node scripts/migrar-producao.mts",
     "conteudo:inicial": "node scripts/conteudo-inicial.mts",
-    "moderacao:atribuir": "node scripts/atribuir-moderacao.mts"
+    "moderacao:atribuir": "node scripts/atribuir-moderacao.mts",
+    "ciclo:rodar": "node --env-file-if-exists=.env.local scripts/rodar-ciclo.mts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
