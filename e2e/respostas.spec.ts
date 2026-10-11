@@ -244,7 +244,19 @@ test.describe("imagem na resposta", () => {
   });
 });
 
+/*
+ * O GIF vive atrás da chave do GIPHY, como o botão do Google vive atrás das
+ * credenciais: sem chave, o botão não aparece.
+ *
+ * A CI não tem a chave de propósito — pôr uma lá faria cada execução gastar
+ * cota e depender de um serviço de terceiro para ficar verde. Então os dois
+ * casos são testados, cada um no ambiente em que existe.
+ */
+const temChaveDoGiphy = Boolean(process.env.GIPHY_API_KEY);
+
 test.describe("GIF na resposta", () => {
+  test.skip(!temChaveDoGiphy, "sem GIPHY_API_KEY o GIF não existe nesta instalação");
+
   test("escolhe um GIF, responde, e ele aparece", async ({ page }) => {
     await entrarNoApp(page, "gif");
     await meuTopico(page, "Com GIF");
@@ -290,6 +302,20 @@ test.describe("GIF na resposta", () => {
     // Com imagem escolhida, o GIF fica desativado — desativar explica
     // melhor do que recusar depois de enviar.
     await expect(page.getByRole("button", { name: "Adicionar GIF" })).toBeDisabled();
+  });
+});
+
+test.describe("sem a chave do GIPHY", () => {
+  test.skip(temChaveDoGiphy, "esta instalação tem a chave, então o botão aparece");
+
+  test("o botão de GIF simplesmente não aparece", async ({ page }) => {
+    await entrarNoApp(page, "semgif");
+    await meuTopico(page, "Sem GIF");
+
+    // Botão que não funciona é promessa quebrada: melhor não existir.
+    await expect(page.getByRole("button", { name: "Adicionar GIF" })).toHaveCount(0);
+    // E responder com texto continua funcionando.
+    await expect(page.getByRole("button", { name: "Adicionar imagem" })).toBeVisible();
   });
 });
 
