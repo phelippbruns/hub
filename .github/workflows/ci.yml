@@ -66,7 +66,11 @@ jobs:
       - name: Subir o Supabase local
         # O mailpit fica de pé: as jornadas de autenticação leem o código de
         # recuperação na caixa de entrada, como a pessoa faria.
-        run: npx supabase start -x realtime,storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor
+        # `storage-api` **precisa** subir: desde a F09 a resposta aceita
+        # imagem, e sem o serviço de arquivos o envio falha só aqui — a
+        # máquina de quem desenvolve tem tudo ligado. `imgproxy` fica de
+        # fora porque é transformação de imagem, recurso pago que não usamos.
+        run: npx supabase start -x realtime,imgproxy,studio,edge-runtime,logflare,vector,supavisor
 
       # O CLI imprime as chaves do ambiente local; lê-las daqui evita escrever
       # qualquer coisa parecida com segredo dentro do repositório.
