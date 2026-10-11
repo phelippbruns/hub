@@ -33,3 +33,20 @@ export function alerta(escopo: Page | Locator): Locator {
 export function respostaPublicada(escopo: Page, texto: string): Locator {
   return escopo.locator("article").filter({ hasText: texto });
 }
+
+/**
+ * Espera o cadastro terminar e cair em "/boas-vindas".
+ *
+ * Criar conta é lento de verdade: o Supabase local gasta segundos só no hash
+ * da senha, e com a suíte inteira rodando em série isso passa dos 5 s padrão
+ * do Playwright. Quando estourava, a falha dizia "esperava /boas-vindas,
+ * recebi /criar-conta" — que parece defeito de redirecionamento e é só
+ * lentidão, com o botão ainda em "Criando…".
+ *
+ * Por isso é função e não um timeout escrito em cada arquivo: o jeito certo
+ * precisa ser o mais curto de escrever, senão o próximo arquivo volta ao
+ * padrão de 5 s.
+ */
+export async function cadastroConcluido(page: Page): Promise<void> {
+  await page.waitForURL(/\/boas-vindas/, { timeout: 30_000 });
+}

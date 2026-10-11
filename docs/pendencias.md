@@ -39,11 +39,14 @@ ponto em aberto sobre 16 ou 17 por causa do ECA Digital.
 
 ### 1.3 Universos e comunidades curadas
 
-Hoje há 4 Universos e 19 comunidades que eu escolhi como ponto de partida
+Hoje há 5 Universos e 23 comunidades como ponto de partida
 (`npm run conteudo:inicial`). Quais entram no lançamento é decisão de produto.
+Cerâmica foi pedida por você em 11 de outubro, com Torno, Esmaltes, Queima e
+Modelagem Manual — Universo sem comunidade nenhuma aparece no Explorar e não
+leva a lugar nenhum.
 
 Ligado a isto: **quem modera as comunidades da plataforma.** Hoje a resposta é
-"a conta do Phelipp", o que é um remendo — toda denúncia nas 19 cai no seu
+"a conta do Phelipp", o que é um remendo — toda denúncia nas 23 cai no seu
 colo. Precisa virar um papel de equipe.
 
 ### 1.4 O corte de membros está desligado

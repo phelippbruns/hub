@@ -205,7 +205,7 @@ São 34 regras. Elas substituem integralmente as RN01 a RN23 do escopo anterior.
 | RN10 | O Hot Topic de um ciclo não pode vencer o ciclo seguinte. | Ciclo |
 | RN11 | Tópico ativo é o tópico com ao menos uma resposta nas últimas 24 horas. | Ciclo |
 | RN12 | Os demais tópicos aparecem por número de respostas por padrão. O usuário pode trocar para ordem cronológica. | Tópicos |
-| RN13 | A resposta tem até 240 caracteres, com GIF ou 1 imagem. Não existem respostas dentro de respostas. | Respostas |
+| RN13 | A resposta tem até 240 caracteres, com GIF ou 1 imagem. O texto é opcional quando há GIF ou imagem — mídia sozinha já é resposta; vazia dos dois lados, não. Não existem respostas dentro de respostas. | Respostas |
 | RN14 | A resposta não pode ser editada. Para corrigir, o autor apaga e responde de novo. O autor pode apagar a própria resposta a qualquer momento. | Respostas |
 | RN15 | Não há curtidas nem contador por resposta. Todo tópico mostra o número de pessoas e de respostas. | Respostas |
 | RN16 | Links são bloqueados em todo texto, inclusive endereços digitados por extenso. Compartilhar comunidades e tópicos é permitido: o botão de compartilhar envia para uma Cabine ou gera um link que abre o Hub. Quem abre o link sem conta vê a comunidade, os membros e o tópico; as respostas só aparecem depois do cadastro. | Todas |

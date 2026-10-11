@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { ImagemRecusada, TAMANHO_MAXIMO, prepararImagem, tipoPelosBytes } from "./imagem";
+import {
+  ImagemRecusada,
+  TAMANHO_MAXIMO,
+  TAMANHO_MAXIMO_EM_MB,
+  prepararImagem,
+  tipoPelosBytes,
+} from "./imagem";
 
 /**
  * Regra de segurança 7, com bytes de verdade.
@@ -135,11 +141,21 @@ describe("o tipo vem dos bytes, não do navegador", () => {
     expect(() => prepararImagem(new Uint8Array())).toThrow(/vazio/);
   });
 
-  it("recusa acima de 5 MB", () => {
+  it("recusa acima do limite", () => {
     const grande = new Uint8Array(TAMANHO_MAXIMO + 1);
     grande.set([0xff, 0xd8, 0xff]);
 
-    expect(() => prepararImagem(grande)).toThrow(/5 MB/);
+    expect(() => prepararImagem(grande)).toThrow(/passa de/);
+  });
+
+  it("o limite cabe no que a plataforma aceita receber", () => {
+    /*
+     * A plataforma onde o Hub roda corta requisições acima de 4,5 MB, e o
+     * envio carrega um pouco além da imagem. Com o limite acima disso, a
+     * foto era recusada **antes** de chegar aqui — e o erro que a pessoa via
+     * não dizia nada. Este teste trava o número.
+     */
+    expect(TAMANHO_MAXIMO_EM_MB).toBeLessThanOrEqual(4);
   });
 });
 

@@ -12,7 +12,7 @@ import { createAnswer, deleteAnswer } from "@/lib/data/topics";
 import { getViewer } from "@/lib/auth/session";
 import { UnauthenticatedError } from "@/lib/data/errors";
 import { acharLink } from "@/lib/texto/links";
-import { ImagemRecusada, TAMANHO_MAXIMO } from "@/lib/midia/imagem";
+import { ImagemRecusada, TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB } from "@/lib/midia/imagem";
 import { guardarImagem } from "@/lib/midia/deposito";
 
 async function quemPede() {
@@ -44,7 +44,6 @@ export async function responder(
   const endereco = String(formulario.get("endereco") ?? "");
   const texto = String(formulario.get("text") ?? "").trim();
 
-  if (!texto) return { erro: "Escreva alguma coisa antes de enviar." };
   if (texto.length > 240) return { erro: "A resposta passa de 240 caracteres." };
 
   /*
@@ -69,6 +68,14 @@ export async function responder(
 
   if (gif && temArquivo) return { erro: "Escolha uma imagem ou um GIF, não os dois." };
 
+  /*
+   * Decisão do PO: GIF ou imagem **sozinhos** já são resposta. Vazio dos dois
+   * lados, não — senão um clique errado publica um cartão em branco.
+   */
+  if (!texto && !gif && !temArquivo) {
+    return { erro: "Envie um texto, uma imagem ou um GIF." };
+  }
+
   if (gif) {
     // O endereço vem do GIPHY, público por natureza — nada a guardar.
     if (!/^https:\/\/[a-z0-9.-]*giphy\.com\//i.test(gif)) {
@@ -88,7 +95,8 @@ export async function responder(
   let caminho: string | null = null;
 
   if (temArquivo) {
-    if (arquivo.size > TAMANHO_MAXIMO) return { erro: "A imagem passa de 5 MB." };
+    if (arquivo.size > TAMANHO_MAXIMO)
+      return { erro: `A imagem passa de ${TAMANHO_MAXIMO_EM_MB} MB.` };
 
     try {
       caminho = await guardarImagem(new Uint8Array(await arquivo.arrayBuffer()), "respostas");

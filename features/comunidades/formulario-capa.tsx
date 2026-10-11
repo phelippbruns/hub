@@ -2,6 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { Button, CommunityCover } from "@/design/components";
+import { TAMANHO_MAXIMO_EM_MB, problemaNaImagem } from "@/lib/midia/limites";
 import { trocarCapaDaComunidade, type EstadoDaCapa } from "./actions";
 
 /**
@@ -26,6 +27,7 @@ export function FormularioDeCapa({
   );
   const [previa, setPrevia] = useState<string | null>(null);
   const [nomeDoArquivo, setNomeDoArquivo] = useState<string | null>(null);
+  const [problema, setProblema] = useState<string | null>(null);
   const arquivoRef = useRef<HTMLInputElement>(null);
 
   function escolher(arquivo: File | null) {
@@ -55,6 +57,9 @@ export function FormularioDeCapa({
         aria-label="Escolher nova capa"
         onChange={(evento) => {
           const escolhido = evento.target.files?.[0] ?? null;
+          // Conferir antes de enviar: o servidor confere de novo, mas um
+          // arquivo grande demais seria cortado no caminho, sem explicação.
+          setProblema(escolhido ? problemaNaImagem(escolhido) : null);
           setNomeDoArquivo(escolhido?.name ?? null);
           escolher(escolhido);
         }}
@@ -70,8 +75,15 @@ export function FormularioDeCapa({
       </div>
 
       <p className="text-caption text-inkMuted">
-        JPEG, PNG ou WebP, até 5 MB. A localização que a foto carrega é removida antes de guardar.
+        JPEG, PNG ou WebP, até {TAMANHO_MAXIMO_EM_MB} MB. A localização que a foto carrega é
+        removida antes de guardar.
       </p>
+
+      {problema ? (
+        <p role="alert" className="text-caption text-error">
+          {problema}
+        </p>
+      ) : null}
 
       {estado.erro ? (
         <p role="alert" className="text-caption text-error">
@@ -85,7 +97,7 @@ export function FormularioDeCapa({
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pendente || previa === null}>
+      <Button type="submit" disabled={pendente || previa === null || problema !== null}>
         {pendente ? "Enviando…" : "Trocar capa"}
       </Button>
     </form>

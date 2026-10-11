@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
-import { alerta, respostaPublicada } from "./apoio-tela";
+import { alerta, cadastroConcluido, respostaPublicada } from "./apoio-tela";
 
 /**
  * Respostas (F09): responder, o aviso de link, a imagem e apagar.
@@ -26,7 +26,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
   await expect(caixa).toHaveAttribute("aria-checked", "true");
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  await expect(page).toHaveURL(/\/boas-vindas/);
+  await cadastroConcluido(page);
   await page.getByRole("link", { name: "Começar" }).click();
   for (let i = 0; i < 3; i += 1) {
     await page
@@ -188,6 +188,47 @@ test.describe("imagem na resposta", () => {
     expect(linha?.media_url).toMatch(/^respostas\/[0-9a-f-]+\.jpg$/);
 
     await expect(page.getByRole("img", { name: /Imagem enviada por/ })).toBeVisible();
+  });
+
+  test("RN13: só a imagem já é resposta, e ela aparece dentro do cartão", async ({ page }) => {
+    /*
+     * Decisão do PO: GIF ou imagem sozinhos são resposta. E a mídia mora
+     * **dentro** do cartão branco, não solta embaixo dele — ela é parte da
+     * mensagem.
+     */
+    await entrarNoApp(page, "somidia");
+    await meuTopico(page, "So Midia");
+
+    await page.getByLabel("Adicionar imagem à resposta").setInputFiles({
+      name: "foto.jpg",
+      mimeType: "image/jpeg",
+      buffer: jpegComLocalizacao(),
+    });
+
+    const enviar = page.getByRole("button", { name: "Responder" });
+    await expect(enviar, "sem texto, a imagem sozinha deveria liberar o envio").toBeEnabled();
+    await enviar.click();
+
+    /*
+     * O banco primeiro, como no teste acima: guardar a imagem no depósito
+     * leva mais do que os 5 s padrão do Playwright quando a suíte inteira
+     * está rodando. Esperar aqui separa "não guardou" de "ainda guardando".
+     */
+    await esperarNoBanco(
+      `SELECT 1 FROM answers WHERE text = '' AND media_kind = 'image' AND deleted_at IS NULL`,
+    );
+
+    const imagem = page.getByRole("img", { name: /Imagem enviada por/ });
+    await expect(imagem).toBeVisible();
+    // Dentro do `<article>`, que é o cartão da resposta.
+    await expect(page.locator("article").filter({ has: imagem })).toBeVisible();
+  });
+
+  test("sem texto e sem mídia o envio fica travado", async ({ page }) => {
+    await entrarNoApp(page, "semnada");
+    await meuTopico(page, "Sem Nada");
+
+    await expect(page.getByRole("button", { name: "Responder" })).toBeDisabled();
   });
 
   test("recusada pelo servidor, o texto continua no campo", async ({ page }) => {

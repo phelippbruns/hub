@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
+import { cadastroConcluido } from "./apoio-tela";
 
 /**
  * O Início (F11).
@@ -26,7 +27,7 @@ async function criarConta(page: Page, prefixo: string) {
   await caixa.click();
   await expect(caixa).toHaveAttribute("aria-checked", "true");
   await page.getByRole("button", { name: "Continuar" }).click();
-  await expect(page).toHaveURL(/\/boas-vindas/);
+  await cadastroConcluido(page);
 }
 
 async function entrarNoApp(page: Page, prefixo: string) {

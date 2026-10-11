@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
-import { alerta } from "./apoio-tela";
+import { alerta, cadastroConcluido } from "./apoio-tela";
 
 /**
  * Tópicos (F08): criar, abrir, seguir e apagar.
@@ -35,7 +35,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
   await expect(caixa).toHaveAttribute("aria-checked", "true");
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  await expect(page).toHaveURL(/\/boas-vindas/);
+  await cadastroConcluido(page);
   await page.getByRole("link", { name: "Começar" }).click();
   for (let i = 0; i < 3; i += 1) {
     await page
@@ -95,6 +95,22 @@ test.describe("criar tópico", () => {
     const aviso = alerta(page.locator("form"));
     await expect(aviso).toContainText("já criou um tópico");
     await expect(page.getByRole("button", { name: "Criar tópico" })).toBeDisabled();
+  });
+
+  test("a comunidade tem o caminho para criar tópico", async ({ page }) => {
+    /*
+     * Faltava. O único caminho era o atalho da barra lateral, que pergunta
+     * em qual comunidade — mas a vontade de abrir um assunto nasce lendo a
+     * comunidade, com ela já escolhida.
+     */
+    await entrarNoApp(page, "cominho");
+    const comunidade = await minhaComunidade(page, "Com Caminho");
+
+    await page.goto(comunidade);
+    await page.locator("main").getByRole("link", { name: "Criar tópico" }).first().click();
+
+    await page.waitForURL(`**${comunidade}/novo`);
+    await expect(page.getByRole("heading", { name: "Novo tópico" })).toBeVisible();
   });
 
   test("o aviso do ciclo aparece na tela de criar", async ({ page }) => {

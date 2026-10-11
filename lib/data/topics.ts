@@ -271,15 +271,20 @@ export async function createAnswer(viewer: Viewer, input: unknown) {
   await requireActiveMembership(me, topic.communityId);
   if (topic.authorId) await assertNotBlocked(me, topic.authorId);
 
-  return prisma.answer.create({
-    data: {
-      topicId: data.topicId,
-      authorId: me,
-      text: data.text,
-      mediaUrl: data.media?.caminho ?? null,
-      mediaKind: data.media?.kind ?? null,
-    },
-  });
+  try {
+    return await prisma.answer.create({
+      data: {
+        topicId: data.topicId,
+        authorId: me,
+        text: data.text,
+        mediaUrl: data.media?.caminho ?? null,
+        mediaKind: data.media?.kind ?? null,
+      },
+    });
+  } catch (error) {
+    // CHECK `answers_texto_ou_midia`: resposta vazia dos dois lados.
+    translateDatabaseError(error);
+  }
 }
 
 /**

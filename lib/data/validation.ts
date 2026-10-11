@@ -114,12 +114,29 @@ export const createTopicSchema = z.object({
   media: mediaSchema,
 });
 
-/** RN13: resposta de até 240 caracteres. */
-export const createAnswerSchema = z.object({
-  topicId: uuidSchema,
-  text: userText(240, "A resposta"),
-  media: mediaSchema,
-});
+/**
+ * RN13: resposta de até 240 caracteres.
+ *
+ * O texto pode vir vazio **desde que haja mídia**: decisão do PO — responder
+ * só com um GIF ou só com uma imagem é uma resposta. Vazia dos dois lados
+ * continua recusada, aqui e por CHECK no banco.
+ */
+export const createAnswerSchema = z
+  .object({
+    topicId: uuidSchema,
+    text: z
+      .string()
+      .trim()
+      .max(240, "A resposta passa de 240 caracteres")
+      .refine((value) => !contemLink(value), {
+        message: "RN16: links não são aceitos",
+      }),
+    media: mediaSchema,
+  })
+  .refine((entrada) => entrada.text.length > 0 || entrada.media !== null, {
+    message: "A resposta precisa de texto, de uma imagem ou de um GIF",
+    path: ["text"],
+  });
 
 /** RN03: toda comunidade exige nome, intro, capa e Universo. */
 export const createCommunitySchema = z.object({

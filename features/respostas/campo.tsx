@@ -5,6 +5,7 @@ import { Button, TextField } from "@/design/components";
 import { GifIcon, ImageIcon } from "@/design/icons";
 import { EscolherGif, type GifEscolhido } from "./escolher-gif";
 import { acharLink } from "@/lib/texto/links";
+import { problemaNaImagem } from "@/lib/midia/limites";
 import { responder, type EstadoDaResposta } from "./actions";
 
 const LIMITE = 240;
@@ -31,6 +32,7 @@ export function CampoDeResposta({
   const [estado, acao, pendente] = useActionState<EstadoDaResposta, FormData>(responder, {});
   const [texto, setTexto] = useState("");
   const [imagem, setImagem] = useState<File | null>(null);
+  const [problemaDaImagem, setProblemaDaImagem] = useState<string | null>(null);
   const [gif, setGif] = useState<GifEscolhido | null>(null);
   const [escolhendoGif, setEscolhendoGif] = useState(false);
   const arquivoRef = useRef<HTMLInputElement>(null);
@@ -38,6 +40,12 @@ export function CampoDeResposta({
   // Derivado na renderização: função pura do que está escrito.
   const link = texto.trim() ? acharLink(texto) : null;
   const longoDemais = texto.length > LIMITE;
+
+  /*
+   * Decisão do PO: só um GIF ou só uma imagem já é resposta. Então o botão
+   * libera com mídia escolhida, mesmo sem nada escrito.
+   */
+  const temConteudo = texto.trim().length > 0 || imagem !== null || gif !== null;
 
   /*
    * Limpa quando o servidor **aceitou**, nunca no clique.
@@ -91,7 +99,16 @@ export function CampoDeResposta({
           accept="image/jpeg,image/png,image/webp"
           className="sr-only"
           aria-label="Adicionar imagem à resposta"
-          onChange={(evento) => setImagem(evento.target.files?.[0] ?? null)}
+          onChange={(evento) => {
+            /*
+             * Conferir aqui não substitui o servidor — ele continua sendo a
+             * regra. Evita a pior falha: o envio ser cortado no caminho e a
+             * pessoa receber um erro que não diz nada.
+             */
+            const escolhido = evento.target.files?.[0] ?? null;
+            setProblemaDaImagem(escolhido ? problemaNaImagem(escolhido) : null);
+            setImagem(escolhido);
+          }}
         />
         <Button
           variant="secondary"
@@ -141,7 +158,9 @@ export function CampoDeResposta({
           type="submit"
           size="sm"
           className="ml-auto"
-          disabled={pendente || !texto.trim() || link !== null || longoDemais}
+          disabled={
+            pendente || !temConteudo || link !== null || longoDemais || problemaDaImagem !== null
+          }
         >
           Responder
         </Button>
@@ -157,6 +176,12 @@ export function CampoDeResposta({
         }}
         onFechar={() => setEscolhendoGif(false)}
       />
+
+      {problemaDaImagem ? (
+        <p role="alert" className="text-caption text-error">
+          {problemaDaImagem}
+        </p>
+      ) : null}
 
       {estado.erro ? (
         <p role="alert" className="text-caption text-error">

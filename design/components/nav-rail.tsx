@@ -89,7 +89,17 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
   return (
     <nav
       aria-label="Navegação principal"
-      className="bg-paper border-ink w-navRail flex flex-col items-center gap-1 border-r-2 px-1 py-3"
+      /*
+       * `sticky` com a altura da janela: a barra fica onde está, por mais
+       * longa que a página seja.
+       *
+       * Antes ela era só uma coluna do grid, do tamanho do conteúdo. Numa
+       * tela comprida — o Início cheio, um tópico com muitas respostas —
+       * descer a página levava os botões de criar embora, porque eles moram
+       * no fim da barra. `self-start` é o que faz o `sticky` valer num item
+       * de grid, e `overflow-y-auto` guarda o caso de janela baixa.
+       */
+      className="bg-paper border-ink w-navRail sticky top-0 flex h-screen flex-col items-center gap-1 self-start overflow-y-auto border-r-2 px-1 py-3"
       style={{ paddingTop: "max(var(--spacing-3), env(safe-area-inset-top))" }}
     >
       {/* A marca leva ao Início, como em qualquer site. O rótulo é só "Hub":

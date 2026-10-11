@@ -6,6 +6,11 @@ import type { ReactNode } from "react";
  * popularidade.
  *
  * O texto é renderizado como texto, nunca como HTML (regra de segurança 8).
+ *
+ * `media` é a imagem ou o GIF, e entra **dentro** do cartão: a mídia é parte
+ * da mensagem, não um anexo solto embaixo dela. Como a resposta pode ser só
+ * mídia, o parágrafo só aparece quando há texto — senão sobra um espaço em
+ * branco sem conteúdo.
  */
 export function AnswerCard({
   author,
@@ -13,12 +18,14 @@ export function AnswerCard({
   when,
   children,
   avatar,
+  media,
 }: {
   author: string;
   handle: string;
   when: string;
-  children: ReactNode;
+  children?: ReactNode;
   avatar?: ReactNode;
+  media?: ReactNode;
 }) {
   return (
     <article className="bg-paper flex flex-col gap-1 rounded-sm p-2">
@@ -29,7 +36,8 @@ export function AnswerCard({
           @{handle} · {when}
         </span>
       </div>
-      <p className="text-body text-ink">{children}</p>
+      {children ? <p className="text-body text-ink">{children}</p> : null}
+      {media}
     </article>
   );
 }

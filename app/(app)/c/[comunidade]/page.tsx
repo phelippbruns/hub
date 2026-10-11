@@ -8,6 +8,8 @@ import {
   SectionTitle,
   TopicName,
 } from "@/design/components";
+import { sizes, variants } from "@/design/components/button";
+import { cn } from "@/design/cn";
 import { CabecalhoDaComunidade } from "@/features/comunidades/cabecalho";
 import { ControlesDeTopicos } from "@/features/comunidades/controles-de-topicos";
 import { comunidadeDaRota } from "@/features/comunidades/dados";
@@ -89,7 +91,17 @@ export default async function ComunidadePage({
         </>
       ) : null}
 
-      <SectionTitle>Tópicos</SectionTitle>
+      {/*
+        O botão de criar tópico também mora **aqui**, e não só no atalho da
+        barra lateral: a vontade de abrir um assunto nasce lendo a comunidade,
+        e não havia caminho daqui para `/c/<slug>/novo`.
+
+        Só para quem é membro: RN07 exige participação para criar, e um botão
+        que leva a uma recusa é pior do que botão nenhum.
+      */}
+      <SectionTitle acao={dados.souMembro ? <BotaoNovoTopico slug={dados.slug} /> : undefined}>
+        Tópicos
+      </SectionTitle>
       <ControlesDeTopicos
         slug={dados.slug}
         nomeDaComunidade={dados.name}
@@ -103,6 +115,7 @@ export default async function ComunidadePage({
           description={
             termo ? "Tente outro termo." : "Seja a primeira pessoa a abrir um assunto aqui."
           }
+          action={!termo && dados.souMembro ? <BotaoNovoTopico slug={dados.slug} /> : undefined}
         />
       ) : (
         <div className="flex flex-col gap-2">
@@ -126,5 +139,23 @@ export default async function ComunidadePage({
         </div>
       )}
     </ContentColumn>
+  );
+}
+
+/**
+ * O caminho para a tela 16, de dentro da comunidade.
+ *
+ * Link com a aparência de botão, e não `<Button>` dentro de `<Link>`: botão
+ * dentro de link é HTML inválido e dá dois nomes acessíveis ao mesmo alvo.
+ * Mesmo caminho do "Responder" do cartão de Hot Topic.
+ */
+function BotaoNovoTopico({ slug }: { slug: string }) {
+  return (
+    <Link
+      href={`/c/${slug}/novo`}
+      className={cn("rounded-pill inline-block", variants.primary, sizes.sm)}
+    >
+      Criar tópico
+    </Link>
   );
 }

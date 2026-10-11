@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
+import { cadastroConcluido } from "./apoio-tela";
 
 /**
  * O ciclo do Hot Topic (F10), na tela.
@@ -26,7 +27,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
   await expect(caixa).toHaveAttribute("aria-checked", "true");
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  await expect(page).toHaveURL(/\/boas-vindas/);
+  await cadastroConcluido(page);
   await page.getByRole("link", { name: "Começar" }).click();
   for (let i = 0; i < 3; i += 1) {
     await page
