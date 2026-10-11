@@ -260,11 +260,10 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 
 ## 5. Fila de features
 
-Feito: **F00 a F09**. Faltam 12.
+Feito: **F00 a F10**. Faltam 11.
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
-| F10 | Ciclo do Hot Topic | F09 | A virada das 00h, que é o motivo de voltar |
 | F11 | Início | F10 | A primeira tela de quem entra |
 | F12 | Perfil, seguir e Coleção | F09 | Afinidade entre pessoas |
 | F13 | Cabine | F12 | Conversa privada |

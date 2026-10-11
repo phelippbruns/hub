@@ -50,6 +50,17 @@ export function LinhaMinhaComunidade({ comunidade }: { comunidade: MinhaComunida
             , {comunidade.topicosAtivos}{" "}
             {comunidade.topicosAtivos === 1 ? "tópico ativo" : "tópicos ativos"}
           </span>
+
+          {/*
+            A disputa de hoje, que fecha à meia-noite. Só até o 3º lugar: a
+            linha serve para dizer "está perto", não para avisar que você é o
+            décimo quarto.
+          */}
+          {comunidade.posicaoDoMeuTopico ? (
+            <span className="text-caption text-ink block">
+              Seu tópico está em {comunidade.posicaoDoMeuTopico}º no ciclo
+            </span>
+          ) : null}
         </span>
       </Link>
 

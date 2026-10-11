@@ -263,6 +263,52 @@ para ser escrita.
 
 ---
 
+### Editar por busca de texto depois do formatador
+
+Cinco vezes na F09 e na F10 eu troquei um trecho de código procurando pelo
+texto exato — e o Prettier já tinha reordenado as classes do Tailwind ou
+juntado as linhas. A troca **não casava e não reclamava**: o comando
+terminava com sucesso, e eu seguia achando que a mudança estava feita.
+
+Duas delas só apareceram muito depois: o avatar que não existia na tela, e a
+linha "Seu tópico está em 1º" que o teste não achava.
+
+*Por que passou:* substituição que não encontra o texto não é erro para a
+ferramenta. É uma edição silenciosamente perdida.
+
+*Como resolvi:* nos casos achados, reli o arquivo e editei pelo conteúdo
+real. O hábito que fica: **conferir que a troca aconteceu** — um `grep` pelo
+que deveria estar lá — em vez de confiar no silêncio.
+
+**Regra:** editar por texto exato depois de um formatador é apostar que ele
+não mexeu ali. Ou leio o arquivo antes, ou confiro depois.
+
+👁 **Atenção** — nada avisa quando uma substituição não casa.
+
+---
+
+### Recarregar antes de o servidor confirmar, de novo
+
+Terceira vez: o teste clica, a tela muda na hora pelo estado otimista, o
+teste recarrega — e cancela a requisição que ainda estava indo. Aconteceu na
+F06 com entrar na comunidade, na F07 com sair, e agora na F10 com o olho de
+seguir.
+
+*Por que passou:* passava **sozinho**. Só na suíte inteira, com o servidor
+mais lento, a corrida aparecia. Um teste que depende da máquina estar
+descansada não é um teste.
+
+*Como resolvi:* esperar o banco confirmar antes de recarregar, como nas
+outras duas vezes.
+
+**Regra:** estado otimista e recarregar não convivem sem uma espera pelo
+servidor. E "passa sozinho, falha na suíte" é sempre corrida — nunca azar.
+
+👁 **Atenção** — ainda é disciplina, três vezes seguidas. Virar função é o
+próximo passo se acontecer de novo.
+
+---
+
 ### Teste que confere o que a pessoa digitou, não o que foi publicado
 
 Escrevi `getByText("minha resposta")` para conferir que a resposta apareceu
