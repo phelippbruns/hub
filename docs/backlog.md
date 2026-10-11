@@ -461,6 +461,22 @@ vai para comunidade, `#` vai para tópico, `*` para resposta. É a hierarquia
 subindo um degrau. Trocar as marcas sem tirar o Universo o deixaria sem
 marca nenhuma, em tela, no Explorar.
 
+**Tamanho: 2 a 3 horas.** Minha primeira estimativa foi de 6 a 9, e estava
+errada por eu não ter lido o código antes de orçar. O que a derrubou foi uma
+descoberta: `comunidadesDoUniverso()` em `lib/data/descoberta.ts` **já** lista
+comunidades por atividade, com busca dentro. Tirar dela a linha
+`AND c.universe_id = …` entrega o Explorar inteiro que o PO descreveu. Eu
+tinha orçado uma reescrita dessa camada; ela não existe.
+
+O único pedaço de verdade é o **onboarding**: ele escolhe comunidades
+*agrupadas por Universo*, e isso é a estrutura da tela, não um campo. Com um
+Universo só, a pessoa veria um grupo chamado "Comunidades de Hubverso". Tem de
+virar lista achatada.
+
+Nos testes, 69 das 144 menções a Universo são andaime (`makeUniverse`,
+`universeId` no setup). Mantendo o ajudante `makeUniverse()` devolvendo o
+Hubverso, essas 69 não são tocadas.
+
 ```text
 Feature: F12.1 Fim do Universo e marcas do nível
 Leia CLAUDE.md, docs/escopo.md (RN01, RN02, RN03, RN31), docs/vacilos.md e as telas 9, 10, 11, 14 e 23 em docs/telas.html.
@@ -471,7 +487,7 @@ Escopo:
 1. Hubverso: um único Universo no banco, criado por migration, para onde vai toda comunidade. A coluna universe_id continua existindo e NOT NULL — a comunidade continua tendo um pai, só que invisível. Arrancar a coluna seria semanas de risco por nenhum ganho de produto.
 2. O campo Universo sai da tela de criar comunidade. Quem cria escolhe nome, intro e capa; o Hubverso é automático.
 3. Explorar continua igual, sem a seção de Universos (decisão do PO). A lista abre por comunidades com mais atividade na plataforma; a busca segue global, ignorando Universo.
-4. A tela /u/<universo> é apagada, com o @ "u" continuando reservado em lib/data/validation.ts — endereço que já existiu nunca volta a ser livre.
+4. A tela /u/<universo> é apagada, junto com features/descoberta/universo.tsx e universosComContagem(), e o @ "u" continua reservado em lib/data/validation.ts — endereço que já existiu nunca volta a ser livre. Apagar leva uns 30 minutos e é o que evita a F21 construir o layout de celular de uma tela que ninguém alcança; deixar vivo só se o PO quiser a porta aberta para voltar atrás nos Universos.
 5. O onboarding escolhe comunidades de uma lista achatada, sem agrupamento por Universo, mantendo o mínimo de 3 (RN31).
 6. A Coleção perde o agrupamento por Universo e fica com comunidade e ordem cronológica (RN27 muda).
 7. Capa padrão: hoje a comunidade sem capa enviada herda a do Universo (RN03). O Hubverso precisa de uma capa padrão própria, que passa a ser a capa padrão do Hub.

@@ -326,7 +326,33 @@ test.describe("GIF na resposta", () => {
     // GIF guarda a URL do GIPHY: ela é pública, não há o que depositar.
     expect(linha?.media_url).toMatch(/^https:\/\/[a-z0-9.-]*giphy\.com\//);
 
-    await expect(page.getByRole("img", { name: /GIF enviado por/ })).toBeVisible();
+    const gif = page.getByRole("img", { name: /GIF enviado por/ });
+    await expect(gif).toBeVisible();
+
+    /*
+     * O GIF aparece no tamanho dele, não no tamanho do cartão.
+     *
+     * Quando a mídia passou para dentro do cartão, o GIF passou a ser item de
+     * um `flex flex-col` — e item de flex em coluna estica na largura por
+     * padrão. Um GIF de 200 px era espichado até a largura da resposta, sem
+     * erro nenhum e sem teste vermelho: o snapshot guarda o HTML, e o HTML
+     * estava certo.
+     *
+     * Medir o desenhado contra o natural é a única forma de pegar isso.
+     */
+    await gif.evaluate(
+      (el: HTMLImageElement) =>
+        el.complete || new Promise((pronto) => el.addEventListener("load", pronto, { once: true })),
+    );
+    const medidas = await gif.evaluate((el: HTMLImageElement) => ({
+      desenhada: el.clientWidth,
+      natural: el.naturalWidth,
+    }));
+
+    expect(medidas.natural, "o GIF não carregou, então a medida não diz nada").toBeGreaterThan(0);
+    expect(medidas.desenhada, "o GIF foi redimensionado em vez de ficar no tamanho original").toBe(
+      medidas.natural,
+    );
   });
 
   test("RN13: imagem e GIF são excludentes", async ({ page }) => {

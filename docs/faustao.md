@@ -475,6 +475,30 @@ enfeite.
 
 ---
 
+### Mídia esticada por mover para dentro de um flex
+
+Com a mídia dentro do cartão da resposta, todo GIF e toda imagem passaram a
+ser espichados até a largura do cartão: um GIF de 480 px era desenhado com
+1070 px. A causa é uma linha que eu nem toquei — o cartão é `flex flex-col`, e
+item de flex em coluna **estica na largura** por padrão.
+
+*Por que passou:* `w-auto` estava lá e não serve de nada em flex. O snapshot
+guarda o HTML, e o HTML estava certo; a suíte inteira passou verde, e quem viu
+foi o PO, em produção. É a mesma cegueira do véu invisível da F07 e do avatar
+dentro do link: **nenhuma barreira olha pixel.**
+
+*Como resolvi:* `self-start` num embrulho dentro do próprio cartão, para
+valer para qualquer chamador, e a jornada do GIF passou a **medir** o
+desenhado contra o natural (`clientWidth` contra `naturalWidth`). Conferi que
+o teste reprova sem a correção: 480 esperado, 1070 recebido.
+
+**Regra:** mover elemento para dentro de um contêiner é mudar o layout dele,
+mesmo sem tocar na classe. E layout só se garante medindo — se o teste não lê
+um número da tela, ele não está olhando.
+
+🔒 **Barrado** — `e2e/respostas.spec.ts` compara a largura desenhada com a
+natural do GIF.
+
 ### O mesmo erro de teste, três features seguidas
 
 `getByRole("alert")` casa também com o `<div role="alert">` vazio que o Next

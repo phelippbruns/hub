@@ -173,7 +173,38 @@ aceite.
 
 ---
 
-## 5. Caminho que ninguém abriu
+## 5. Orçamento dado sem ler o código
+
+### 6 a 9 horas que eram 2 a 3
+
+Perguntado quanto custaria a F12.1, respondi "6 a 9 horas", contando uma
+reescrita da camada de descoberta. Quando o PO perguntou se não dava para
+fazer mais simples, eu abri o arquivo: `comunidadesDoUniverso()` **já** lista
+comunidades por atividade, com busca. Tirar uma linha de SQL dela entrega o
+Explorar inteiro. A reescrita que eu havia orçado não existia.
+
+*O que custou:* por pouco, uma decisão de produto errada. Com 6 a 9 horas na
+mesa, adiar era uma escolha defensável; com 2 a 3, não é. Um número inflado
+não é conservador — ele **muda a decisão** de quem está decidindo.
+
+*Por que não apareceu antes:* eu orcei pela superfície, contando arquivos que
+mencionam "universo" — 35 de produto, 18 de teste. O número era verdadeiro e a
+conclusão errada: a maioria é encanamento que não muda, e 69 das 144 menções
+nos testes são andaime de setup.
+
+*Como ficou:* o tamanho corrigido no [backlog](backlog.md), com o motivo
+escrito, para o próximo orçamento não repetir o atalho.
+
+**Regra:** estimativa sem abrir os arquivos é chute vestido de número. Antes
+de dar prazo, ler as duas ou três funções que o trabalho realmente toca —
+contar menções não é ler.
+
+💭 **Solto** — nada impede um orçamento de superfície. O que protege é o
+hábito de perguntar "quais funções mudam?" antes de "quantos arquivos citam?".
+
+---
+
+## 6. Caminho que ninguém abriu
 
 ### Criar tópico sem porta na comunidade
 
