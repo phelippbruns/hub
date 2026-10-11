@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { consultar } from "./apoio-banco";
+import { consultar, esperarNoBanco } from "./apoio-banco";
 import { alerta } from "./apoio-tela";
 
 /**
@@ -196,7 +196,10 @@ test.describe("sair da comunidade", () => {
      * requisição ainda está indo — trocar de página aqui a cancelaria, e o
      * teste reprovaria por corrida em vez de por defeito.
      */
-    await expect.poll(() => souMembroNoBanco(nome)).toBe(false);
+    await esperarNoBanco(`
+      SELECT 1 FROM communities c
+       WHERE c.name = '${nome}'
+         AND NOT EXISTS (SELECT 1 FROM memberships m WHERE m.community_id = c.id)`);
 
     await page.goto("/comunidades/minhas");
     await expect(page.getByText(nome, { exact: true })).toHaveCount(0);
@@ -231,17 +234,6 @@ test.describe("nonce nas telas com sessão", () => {
     }
   });
 });
-
-/** O que o banco diz, para separar "a tela mudou" de "foi salvo". */
-async function souMembroNoBanco(nomeDaComunidade: string): Promise<boolean> {
-  const linhas = await consultar<{ n: string }>(
-    `SELECT count(*) AS n
-       FROM memberships m
-       JOIN communities c ON c.id = m.community_id
-      WHERE c.name = '${nomeDaComunidade}'`,
-  );
-  return Number(linhas[0]?.n ?? 0) > 0;
-}
 
 test.describe("Minhas Comunidades", () => {
   test("fixar sobe a comunidade para o topo e resiste a recarregar", async ({ page }) => {

@@ -99,6 +99,9 @@ async function criarContaESair(
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByRole("button", { name: "Agora não" }).click();
   await expect(page).toHaveURL(/\/inicio/);
+
+  // O botão de sair mora em Configurações desde a F11.
+  await page.goto("/configuracoes");
   await page.getByRole("button", { name: "Sair" }).click();
   await expect(page).toHaveURL(/\/$/);
 }
@@ -251,7 +254,7 @@ test.describe("entrar pelo @", () => {
 
       await expect(page, `entrar com "${identificador}"`).toHaveURL(/\/inicio/);
 
-      // O botão de sair fica no Início, como no resto da suíte.
+      await page.goto("/configuracoes");
       await page.getByRole("button", { name: "Sair" }).click();
       await expect(page).toHaveURL(/\/$/);
     }
@@ -403,6 +406,7 @@ test.describe("recuperar senha, de ponta a ponta", () => {
     await expect(page).toHaveURL(/\/inicio/);
 
     // E a senha nova funciona de verdade.
+    await page.goto("/configuracoes");
     await page.getByRole("button", { name: "Sair" }).click();
     await expect(page).toHaveURL(/\/$/);
     await page.goto("/entrar");

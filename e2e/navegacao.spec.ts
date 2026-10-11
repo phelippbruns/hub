@@ -143,7 +143,12 @@ test.describe("coluna de conteúdo", () => {
   test("tem 720 px e o título alinhado a ela", async ({ page }) => {
     await entrarNoApp(page, "coluna");
 
-    const titulo = page.getByRole("heading", { name: "Início", level: 1 });
+    /*
+     * "Hoje" é o título da tela, como o protótipo escreve; "Início" é o nome
+     * do item na barra de navegação. São coisas diferentes, e eu tinha
+     * confundido as duas até a F11.
+     */
+    const titulo = page.getByRole("heading", { name: "Hoje", level: 1 });
     const coluna = await titulo.evaluate((el) => {
       const pai = el.parentElement!;
       return {

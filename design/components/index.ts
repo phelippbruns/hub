@@ -34,3 +34,4 @@ export { PinButton } from "./pin-button";
 export { ConfirmSheet } from "./confirm-sheet";
 export { TopicName } from "./topic-name";
 export { TopicOpening } from "./topic-opening";
+export { ActivityRow, HomeRow, SuggestionRow } from "./home-rows";

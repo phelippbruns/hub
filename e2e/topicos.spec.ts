@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { consultar } from "./apoio-banco";
+import { consultar, esperarNoBanco } from "./apoio-banco";
 import { alerta } from "./apoio-tela";
 
 /**
@@ -138,16 +138,9 @@ test.describe("a página do tópico", () => {
      * requisição ainda está indo: recarregar aqui a cancela, e o teste
      * reprova por corrida em vez de por defeito.
      */
-    await expect
-      .poll(async () => {
-        const linhas = await consultar<{ n: string }>(
-          `SELECT count(*) AS n
-             FROM follows f JOIN topics t ON t.id = f.topic_id
-            WHERE t.slug = 'assunto-seguido' AND f.target = 'topic'`,
-        );
-        return Number(linhas[0]?.n ?? 0);
-      })
-      .toBeGreaterThan(0);
+    await esperarNoBanco(`
+      SELECT 1 FROM follows f JOIN topics t ON t.id = f.topic_id
+       WHERE t.slug = 'assunto-seguido' AND f.target = 'topic'`);
 
     // Não foi só a tela: recarregar mantém.
     await page.reload();

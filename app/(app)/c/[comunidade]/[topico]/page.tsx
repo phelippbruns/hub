@@ -9,6 +9,7 @@ import { getViewer } from "@/lib/auth/session";
 import { LIMITE_RESPOSTAS_PARA_APAGAR, topicoPorEndereco } from "@/lib/data/topics";
 import { NotFoundError } from "@/lib/data/errors";
 import { haQuantoTempo } from "@/lib/tempo";
+import { marcarTopicoComoVisto } from "@/lib/data/inicio";
 import { serverEnv } from "@/lib/env";
 
 type Params = Promise<{ comunidade: string; topico: string }>;
@@ -18,6 +19,7 @@ async function carregar(params: Params) {
   const viewer = await getViewer();
   try {
     return {
+      viewer,
       slugs: { comunidade, topico },
       dados: await topicoPorEndereco(viewer, comunidade, topico),
     };
@@ -43,8 +45,16 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
  * escopo da feature.
  */
 export default async function TopicoPage({ params }: { params: Params }) {
-  const { slugs, dados } = await carregar(params);
+  const { viewer, slugs, dados } = await carregar(params);
   const endereco = `/c/${slugs.comunidade}/${slugs.topico}`;
+
+  /*
+   * Abrir o tópico zera o "n novas" do Início (F11).
+   *
+   * Sem `await`: marcar o visto não pode atrasar a tela, e se falhar o pior
+   * que acontece é o número continuar lá na próxima visita.
+   */
+  void marcarTopicoComoVisto(viewer, dados.id);
 
   return (
     <ContentColumn larga>

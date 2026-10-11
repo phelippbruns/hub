@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
+  ActivityRow,
   AnswerCard,
   BottomSheet,
   Button,
@@ -14,6 +15,7 @@ import {
   EndOfList,
   ErrorState,
   FollowButton,
+  HomeRow,
   HotTopicCard,
   LevelMark,
   PinButton,
@@ -22,6 +24,7 @@ import {
   Skeleton,
   SortToggle,
   SuccessMessage,
+  SuggestionRow,
   Switch,
   Tabs,
   TextField,
@@ -143,6 +146,35 @@ const cases: Array<[string, React.ReactElement]> = [
   ["botão destrutivo", <Button variant="danger">Sair da comunidade</Button>],
   // F08: tópicos.
   ["nome de tópico", <TopicName>primeira festa</TopicName>],
+  // F11: as linhas do Início.
+  [
+    "linha do Início, com novas",
+    <HomeRow
+      nome="filmes que ninguém viu"
+      href="/c/terror/filmes"
+      detalhe="Terror. 19 pessoas, 27 respostas"
+      destaque="3 novas"
+    />,
+  ],
+  [
+    "linha do Início, sem destaque",
+    <HomeRow nome="serra" href="/c/paisagem/serra" detalhe="Fotografia. 12 pessoas" />,
+  ],
+  [
+    "o que quem você segue fez",
+    <ActivityRow
+      handle="liasouza"
+      oQueFez="respondeu"
+      topico="primeira festa"
+      href="/c/musica/primeira-festa"
+      comunidade="Música Eletrônica"
+      quando="há 20 min"
+    />,
+  ],
+  [
+    "comunidade sugerida",
+    <SuggestionRow nome="Vinil" universo="Música" membros={2100} href="/c/vinil" />,
+  ],
   [
     "abertura do tópico",
     <TopicOpening

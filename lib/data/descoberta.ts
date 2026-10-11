@@ -14,6 +14,8 @@ import { enderecoDeMidia } from "@/lib/midia/deposito";
 /** Linha de comunidade, como as telas 9, 10 e 11 mostram. */
 export type ComunidadeNaLista = {
   id: string;
+  /** O endereço em /c/<slug>. */
+  slug: string;
   name: string;
   intro: string;
   coverUrl: string | null;
@@ -27,6 +29,7 @@ export type ComunidadeNaLista = {
 
 type LinhaCrua = {
   id: string;
+  slug: string;
   name: string;
   intro: string;
   cover_url: string | null;
@@ -41,6 +44,7 @@ type LinhaCrua = {
 function montar(linha: LinhaCrua): ComunidadeNaLista {
   return {
     id: linha.id,
+    slug: linha.slug,
     name: linha.name,
     intro: linha.intro,
     // Preenchido depois por `comCapas`: assinar é assíncrono.
@@ -77,7 +81,7 @@ export async function paraVoce(
         JOIN communities c ON c.id = m.community_id
        WHERE m.profile_id = ${me}::uuid AND m.banned_at IS NULL
     )
-    SELECT c.id, c.name, c.intro, c.cover_url, c.members_count,
+    SELECT c.id, c.slug, c.name, c.intro, c.cover_url, c.members_count,
            u.id AS universe_id, u.name AS universe_name, u.slug AS universe_slug,
            false AS sou_membro, NULL AS respostas_hoje
       FROM communities c
@@ -134,7 +138,7 @@ export async function comunidadesDoUniverso(
   if (!universo) throw new NotFoundError("Universo");
 
   const linhas = await prisma.$queryRaw<LinhaCrua[]>`
-    SELECT c.id, c.name, c.intro, c.cover_url, c.members_count,
+    SELECT c.id, c.slug, c.name, c.intro, c.cover_url, c.members_count,
            u.id AS universe_id, u.name AS universe_name, u.slug AS universe_slug,
            EXISTS (
              SELECT 1 FROM memberships m
@@ -178,7 +182,7 @@ export async function buscarComunidades(viewer: Viewer, termo: string, limite = 
   if (!busca) return [];
 
   const linhas = await prisma.$queryRaw<LinhaCrua[]>`
-    SELECT c.id, c.name, c.intro, c.cover_url, c.members_count,
+    SELECT c.id, c.slug, c.name, c.intro, c.cover_url, c.members_count,
            u.id AS universe_id, u.name AS universe_name, u.slug AS universe_slug,
            EXISTS (
              SELECT 1 FROM memberships m
