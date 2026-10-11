@@ -581,7 +581,79 @@ se presume.
 
 ---
 
-## 6. Placar
+## 6. Trabalhar gastando menos
+
+Phelipp pediu, em 11 de outubro de 2026, que eu olhasse onde desperdiço
+esforço — e que o registro ficasse aqui, junto dos erros, porque é a mesma
+natureza: coisa que se repete por falta de hábito.
+
+Estas práticas valem **a partir de agora**. Nenhuma delas corta verificação;
+todas cortam repetição.
+
+### 1. Editar com a ferramenta que falha alto
+
+**O maior desperdício da sessão.** Eu trocava trechos de código procurando
+texto exato com um script. Quando o formatador já tinha reordenado as
+classes ou juntado as linhas, a troca **não casava e não reclamava** — e eu
+seguia achando que a mudança estava feita. Aconteceu pelo menos cinco vezes
+na F09, F10 e F11, e duas delas só apareceram muito depois: o avatar
+invisível e a linha do ciclo que o teste não achava.
+
+Cada uma custou reler o arquivo, refazer a edição e rodar o portão de novo.
+
+**Prática:** usar a ferramenta de edição que **recusa** quando o texto não
+bate, em vez de um script que silencia. Quando for script mesmo, conferir
+com um `grep` pelo que deveria estar lá — nunca confiar no silêncio.
+
+### 2. O teste mais estreito que pode falhar
+
+A suíte de jornadas leva de 5 a 9 minutos. Eu a rodei inteira depois de
+quase toda mudança, inclusive mudanças que só podiam afetar um arquivo.
+
+**Prática:** rodar **o arquivo de teste afetado** enquanto desenvolvo, e a
+suíte inteira **uma vez**, antes do PR. A suíte completa existe para pegar o
+que eu não previ — e para isso ela só precisa rodar quando acho que acabei.
+
+### 3. Uma passada de olho por feature, não uma por correção
+
+Abrir a tela é o que achou o véu invisível da F07, o avatar da F09 e a
+duplicação da F11 — não abro mão disso. Mas eu capturava e reolhava a tela
+**depois de cada ajuste**, e imagem é cara.
+
+**Prática:** juntar os ajustes suspeitos, aplicar todos, e **então** olhar.
+Uma captura por tela, por feature. Reolhar só quando a correção foi
+justamente no que estava errado na imagem.
+
+### 4. Perguntar ao banco, não construir uma sonda
+
+Várias vezes escrevi um arquivo de teste temporário só para descobrir um
+estado — e isso custa escrever, rodar, ler e apagar. Na maioria dos casos a
+resposta estava a uma consulta de distância, ou num `--list` do Playwright.
+
+**Prática:** antes de montar sonda, perguntar se uma consulta ao banco ou um
+comando de listagem responde. Sonda é para comportamento de navegador, não
+para "o que tem na tabela".
+
+### 5. Conferir a branch antes de commitar
+
+Commitei na branch errada e precisei desfazer com cherry-pick e três
+merges. O comando que teria evitado custa nada.
+
+**Prática:** `git branch --show-current` antes de qualquer commit numa pilha
+de PRs.
+
+### 6. Ler o erro inteiro antes da primeira hipótese
+
+Em mais de um caso eu formulei uma teoria e fui testá-la, quando a mensagem
+de erro já dizia a resposta — o "strict mode violation" listava os dois
+elementos que casaram, e eu só li a primeira linha.
+
+**Prática:** ler a mensagem até o fim antes de mexer em qualquer coisa. Ela
+quase sempre nomeia a causa.
+
+---
+
+## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
 barreira: migrations no deploy, jornadas em série, plural do português,
@@ -591,7 +663,7 @@ utilitários de zero, e os dois limites de camada que o build recusa.
 O resto é 👁 — protegido só por esta página. **Cada um desses é uma dívida**, e
 a pergunta a fazer em cada revisão é: dá para virar teste?
 
-## 7. O padrão por trás
+## 8. O padrão por trás
 
 Olhando a lista, quase tudo cai em três hábitos:
 
@@ -600,4 +672,12 @@ Olhando a lista, quase tudo cai em três hábitos:
 2. **Testar o caminho que eu tinha em mente.** O bug mora no caminho que eu
    não imaginei: o outro botão, o nome curto, a palavra no plural.
 3. **Tratar minha máquina como o mundo.** IPv6, migration já aplicada,
-   servidor já aquecido — tudo que é verdade aqui e não é lá.
+   servidor já aquecido, serviço de arquivos ligado, chave do GIPHY no
+   ambiente — tudo que é verdade aqui e não é lá.
+
+E um quarto, que não é de produto e sim de ofício:
+
+4. **Confiar no silêncio.** Substituição que não casa, teste que passa
+   olhando o lugar errado, comando que termina sem fazer nada. Quase todo
+   desperdício desta sessão começou com uma ferramenta que não reclamou — e
+   a defesa é escolher ferramentas que reclamam, não prestar mais atenção.
