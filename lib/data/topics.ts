@@ -14,7 +14,7 @@ import {
 import { createAnswerSchema, createTopicSchema } from "./validation";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { assertNotBlocked, requireActiveMembership } from "./access";
-import { enderecosDeMidia } from "@/lib/midia/deposito";
+import { comAvatar, comAvatares, enderecosDeMidia } from "@/lib/midia/deposito";
 
 /**
  * RN08: a partir de quantas respostas de outras pessoas o autor não apaga.
@@ -135,6 +135,8 @@ export async function getTopicForViewer(viewer: Viewer, topicId: string) {
 
   return {
     ...topic,
+    // A foto vem como caminho no depósito; a tela precisa de endereço.
+    author: await comAvatar(topic.author),
     peopleCount: people.length,
     answerCount,
     following,
@@ -177,8 +179,12 @@ async function listAnswers(me: string, topicId: string) {
   // GIF guarda a URL do GIPHY; imagem guarda o caminho no depósito.
   const enderecos = await enderecosDeMidia(respostas.map((r) => r.mediaUrl));
 
+  // A foto de quem respondeu também é caminho, e também precisa ser assinada.
+  const autores = await comAvatares(respostas.map((r) => r.author));
+
   return respostas.map((resposta, i) => ({
     ...resposta,
+    author: autores.at(i) ?? null,
     /** Endereço temporário da imagem; `mediaUrl` guarda só o caminho. */
     mediaHref: enderecos.at(i) ?? null,
     souAutor: resposta.authorId === me,
@@ -325,8 +331,11 @@ export async function listTopicsOfCommunity(
     orderBy: order === "recent" ? { createdAt: "desc" } : { createdAt: "desc" },
   });
 
-  const withCounts = topics.map((topic) => ({
+  const autores = await comAvatares(topics.map((topic) => topic.author));
+
+  const withCounts = topics.map((topic, i) => ({
     ...topic,
+    author: autores.at(i) ?? null,
     answerCount: topic._count.answers,
   }));
 

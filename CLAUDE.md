@@ -148,6 +148,10 @@ As regras RN01 a RN34 estão em [docs/escopo.md](docs/escopo.md).
 
 Não remova essa linha, e não marque rota como estática. O teste `todo script de <rota> leva nonce` ([e2e/design-system.spec.ts](e2e/design-system.spec.ts)) guarda isso — acrescente cada rota nova à lista dele.
 
+**Rota que consulta o banco leva `loading.tsx` — menos a que pode dar 404.** Consequência direta do de cima: se toda navegação espera o servidor, sem `loading.tsx` o Next não tem o que desenhar na espera — a tela anterior fica parada, sem sinal nenhum, até a nova chegar inteira. Dois segundos sem resposta parecem dez, e foi assim que o Hub ganhou fama de lento sem ser. Use `<PaginaCarregando>` dentro de uma `<ContentColumn>`, como fazem as sete rotas que já têm. Formulário e tela de espaço reservado não precisam.
+
+**A exceção é obrigatória:** `loading.tsx` abre um limite de Suspense, e o Next começa a transmitir a resposta **antes** de a página rodar. Numa rota que chama `notFound()` o cabeçalho já foi enviado como 200, e o 404 vira 200 com a tela de não encontrado no meio do fluxo — endereço que não existe passa a dizer que existe. Por isso `/c/<comunidade>`, `/c/<comunidade>/<topico>`, `/<handle>` e `/u/<universo>` **não têm** `loading.tsx`. Para dar sinal de carregando nelas sem perder o 404, o caminho é outro: conferir a existência na página e envolver só os pedaços lentos em `<Suspense>`, depois da conferência.
+
 **Só layout de computador até a F21.** Da F00 à F20, implemente apenas o layout acima de 768 px, seguindo a versão web de cada tela em [docs/telas.html](docs/telas.html). Não crie estilos de celular nem breakpoints.
 
 ## Comandos

@@ -1,11 +1,11 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useId, useRef, useState } from "react";
 import { Button, TextField } from "@/design/components";
 import { GifIcon, ImageIcon } from "@/design/icons";
 import { EscolherGif, type GifEscolhido } from "./escolher-gif";
 import { acharLink } from "@/lib/texto/links";
-import { problemaNaImagem } from "@/lib/midia/limites";
+import { TAMANHO_MAXIMO_EM_MB, problemaNaImagem } from "@/lib/midia/limites";
 import { responder, type EstadoDaResposta } from "./actions";
 
 const LIMITE = 240;
@@ -36,6 +36,7 @@ export function CampoDeResposta({
   const [gif, setGif] = useState<GifEscolhido | null>(null);
   const [escolhendoGif, setEscolhendoGif] = useState(false);
   const arquivoRef = useRef<HTMLInputElement>(null);
+  const idDoLimite = useId();
 
   // Derivado na renderização: função pura do que está escrito.
   const link = texto.trim() ? acharLink(texto) : null;
@@ -46,6 +47,27 @@ export function CampoDeResposta({
    * libera com mídia escolhida, mesmo sem nada escrito.
    */
   const temConteudo = texto.trim().length > 0 || imagem !== null || gif !== null;
+
+  /*
+   * O que falta para enviar, em uma frase.
+   *
+   * O design system manda: botão desativado sempre vem com texto dizendo o
+   * que falta. Sem isto, quem escolhia uma foto grande via o Responder apagar
+   * e não ligava uma coisa à outra — o aviso existia, mas no fim do
+   * formulário, longe do botão de imagem onde o problema aconteceu.
+   *
+   * A ordem importa: mostra o impedimento mais perto do que a pessoa acabou
+   * de fazer.
+   */
+  const oQueFalta =
+    problemaDaImagem ??
+    (longoDemais
+      ? `A resposta passa de ${LIMITE} caracteres.`
+      : link
+        ? "Tire o endereço da resposta."
+        : !temConteudo
+          ? "Escreva algo, ou escolha uma imagem ou um GIF."
+          : null);
 
   /*
    * Limpa quando o servidor **aceitou**, nunca no clique.
@@ -110,15 +132,28 @@ export function CampoDeResposta({
             setImagem(escolhido);
           }}
         />
+        {/*
+          O limite vem como **descrição**, não dentro do nome do botão: o
+          composer é estreito e uma linha fixa de regra roubaria espaço da
+          resposta, mas enfiar a regra no nome deixaria o botão se chamando
+          "Adicionar imagem — JPEG, PNG ou WebP, até 4 MB", que é o que o
+          leitor de tela anuncia a cada passagem. `aria-describedby` diz a
+          mesma coisa depois do nome, e `title` atende o mouse.
+        */}
         <Button
           variant="secondary"
           size="sm"
           onClick={() => arquivoRef.current?.click()}
           aria-label="Adicionar imagem"
+          aria-describedby={idDoLimite}
+          title={`JPEG, PNG ou WebP, até ${TAMANHO_MAXIMO_EM_MB} MB`}
           disabled={gif !== null}
         >
           <ImageIcon decorative className="size-icon" />
         </Button>
+        <span id={idDoLimite} className="sr-only">
+          JPEG, PNG ou WebP, até {TAMANHO_MAXIMO_EM_MB} MB
+        </span>
 
         {/*
           O GIF só aparece com a chave do GIPHY configurada, do mesmo jeito
@@ -154,17 +189,32 @@ export function CampoDeResposta({
           </span>
         ) : null}
 
-        <Button
-          type="submit"
-          size="sm"
-          className="ml-auto"
-          disabled={
-            pendente || !temConteudo || link !== null || longoDemais || problemaDaImagem !== null
-          }
-        >
-          Responder
-        </Button>
+        {/*
+          `ml-auto` no embrulho, e não no botão: com `disabledHint` o botão
+          passa a morar dentro de um `span` próprio, e a margem presa nele
+          empurraria o botão dentro do embrulho em vez do embrulho na linha.
+        */}
+        <div className="ml-auto">
+          <Button
+            type="submit"
+            size="sm"
+            disabled={pendente || oQueFalta !== null}
+            disabledHint={oQueFalta ?? undefined}
+          >
+            Responder
+          </Button>
+        </div>
       </div>
+
+      {/*
+        O aviso da imagem fica **aqui**, logo abaixo do botão que a escolhe, e
+        não no fim do formulário: o problema aconteceu nesta linha.
+      */}
+      {problemaDaImagem ? (
+        <p role="alert" className="text-caption text-error">
+          {problemaDaImagem}
+        </p>
+      ) : null}
 
       {gif ? <input type="hidden" name="gif" value={gif.url} /> : null}
 
@@ -176,12 +226,6 @@ export function CampoDeResposta({
         }}
         onFechar={() => setEscolhendoGif(false)}
       />
-
-      {problemaDaImagem ? (
-        <p role="alert" className="text-caption text-error">
-          {problemaDaImagem}
-        </p>
-      ) : null}
 
       {estado.erro ? (
         <p role="alert" className="text-caption text-error">

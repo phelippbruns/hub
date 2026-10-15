@@ -9,6 +9,7 @@ import { prisma } from "./prisma";
 import { ForbiddenError, NotFoundError } from "./errors";
 import { requireProfileId, type Viewer } from "./viewer";
 import { assertNotBlocked } from "./access";
+import { comAvatares } from "@/lib/midia/deposito";
 
 /**
  * RN18: seguir um tópico pelo ícone de olho o salva na Coleção.
@@ -120,12 +121,17 @@ export async function getFollowing(viewer: Viewer, ownerId: string) {
   const me = requireProfileId(viewer);
   if (me !== ownerId) throw new ForbiddenError("A lista de seguindo é privada");
 
-  return prisma.follow.findMany({
+  const seguindo = await prisma.follow.findMany({
     where: { followerId: ownerId, target: "profile" },
     include: {
       followedProfile: { select: { id: true, name: true, handle: true, avatarUrl: true } },
     },
   });
+
+  // A foto vem como caminho no depósito; a tela precisa de endereço.
+  const pessoas = await comAvatares(seguindo.map((f) => f.followedProfile));
+
+  return seguindo.map((f, i) => ({ ...f, followedProfile: pessoas.at(i) ?? null }));
 }
 
 /** RN28: o número de seguidores é informativo e público. */

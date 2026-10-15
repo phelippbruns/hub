@@ -14,6 +14,38 @@ export function Skeleton({ className }: { className?: string }) {
   return <span aria-hidden="true" className={cn("bg-lavender/40 block rounded-sm", className)} />;
 }
 
+/**
+ * O esqueleto de uma tela inteira, para o `loading.tsx` de cada rota.
+ *
+ * Existe porque **toda rota do Hub renderiza por requisição** (a CSP exige
+ * nonce, e nonce não sobrevive ao prerender). Cada navegação espera o
+ * servidor — e, sem um `loading.tsx`, o Next não tem o que desenhar durante
+ * a espera: a tela anterior fica parada, sem sinal nenhum, até a nova chegar
+ * inteira. Dois segundos sem resposta parecem dez.
+ *
+ * `linhas` é quantos blocos de conteúdo desenhar, para o esqueleto ter mais
+ * ou menos a altura da tela que vem. Não precisa ser exato: precisa ocupar
+ * espaço e dizer "estou indo".
+ */
+export function PaginaCarregando({
+  titulo = true,
+  linhas = 3,
+  label = "Carregando a página",
+}: {
+  titulo?: boolean;
+  linhas?: number;
+  label?: string;
+}) {
+  return (
+    <LoadingBlock label={label}>
+      {titulo ? <Skeleton className="h-avatarMd w-authColumn max-w-full" /> : null}
+      {Array.from({ length: linhas }, (_, i) => (
+        <Skeleton key={i} className="h-cover w-full" />
+      ))}
+    </LoadingBlock>
+  );
+}
+
 /** Região carregando, anunciada ao leitor de tela. */
 export function LoadingBlock({
   label = "Carregando",

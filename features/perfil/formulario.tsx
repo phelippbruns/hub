@@ -3,7 +3,7 @@
 import { useActionState, useRef, useState } from "react";
 import { Button, Input, TextField } from "@/design/components";
 import { acharLink } from "@/lib/texto/links";
-import { problemaNaImagem } from "@/lib/midia/limites";
+import { TAMANHO_MAXIMO_EM_MB, problemaNaImagem } from "@/lib/midia/limites";
 import { salvarPerfil, type EstadoDoPerfil } from "./actions";
 
 /**
@@ -50,6 +50,10 @@ export function FormularioDePerfil({
           />
         </button>
         <span className="text-caption text-inkMuted">Toque na foto para trocar</span>
+        {/* O limite antes da escolha, como na tela de capa. */}
+        <span className="text-caption text-inkMuted">
+          JPEG, PNG ou WebP, até {TAMANHO_MAXIMO_EM_MB} MB.
+        </span>
 
         <input
           ref={arquivoRef}
@@ -113,7 +117,11 @@ export function FormularioDePerfil({
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pendente || link !== null || problemaDaFoto !== null}>
+      <Button
+        type="submit"
+        disabled={pendente || link !== null || problemaDaFoto !== null}
+        disabledHint={problemaDaFoto ?? (link ? "Tire o endereço da descrição." : undefined)}
+      >
         {pendente ? "Salvando…" : "Salvar"}
       </Button>
     </form>

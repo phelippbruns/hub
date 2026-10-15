@@ -489,6 +489,67 @@ a pessoa escreveu não dá.
 
 ---
 
+### `loading.tsx` transformou 404 em 200
+
+Pus `loading.tsx` em onze rotas para a navegação parar de parecer parada. Em
+quatro delas, o endereço de uma coisa que não existe **deixou de responder
+404** e passou a responder 200 com a tela de não encontrado.
+
+`loading.tsx` abre um limite de Suspense, e o Next começa a transmitir a
+resposta antes de a página rodar. Quando a página chama `notFound()`, o
+cabeçalho já foi enviado — e cabeçalho enviado não volta atrás. Para quem
+olha a tela não muda nada; para um buscador, um verificador de link ou um
+teste, o Hub passou a dizer que toda URL existe.
+
+*Por que passou:* lint, tipos, 498 testes de unidade e o build de produção
+passaram. Era invisível na tela, e eu não consegui rodar as jornadas na
+máquina — o Docker estava parado. Quem pegou foi a jornada "tópico que não
+existe não quebra a tela", na CI, que confere o **status** e não o desenho.
+
+*Como resolvi:* tirei o `loading.tsx` das quatro rotas que chamam
+`notFound()` — comunidade, tópico, perfil de outra pessoa e Universo — e
+escrevi a exceção no CLAUDE.md junto da regra. Para dar sinal nelas sem
+perder o 404, o caminho é conferir a existência na página e envolver só os
+pedaços lentos em `<Suspense>`, depois da conferência. Ficou anotado.
+
+**Regra:** melhoria de percepção também muda o protocolo. Antes de abrir um
+limite de Suspense numa rota, pergunte o que ela responde quando o que foi
+pedido não existe.
+
+🔒 **Barrado** — a jornada do 404 já existia e foi ela que pegou; a exceção
+está escrita ao lado da regra que a causa.
+
+### A foto de perfil só funcionava na página do perfil
+
+Da F02 à F12, a foto de uma pessoa aparecia na página dela e **em nenhum
+outro lugar**: nem na resposta, nem no autor do tópico, nem na busca de
+pessoas, nem na lista de quem eu sigo. Quem descobriu foi o PO, usando o Hub
+em produção.
+
+O depósito é privado, então `profiles.avatar_url` guarda o **caminho**
+(`perfis/x.jpg`) e quem desenha precisa pedir uma URL assinada. Só
+`perfilNaTela` pedia. As outras seis consultas entregavam o caminho cru, e o
+navegador procurava o arquivo ao lado da página: 404, e nada desenhado.
+
+*Por que passou:* não há erro. Um `background-image` que não resolve é
+silêncio — sem aviso no console do servidor, sem teste vermelho, sem nada no
+build. E a causa não era distração: **a assinatura morava em cada chamador**,
+então toda consulta nova podia esquecer, e o acerto dependia de lembrar. A
+mesma forma do véu invisível da F07 e do avatar dentro do link: só olhando a
+tela.
+
+*Como resolvi:* `comAvatar()` e `comAvatares()` em `lib/midia/deposito.ts`,
+aplicados nas sete consultas que devolvem gente. E
+`lib/data/avatares.db.test.ts`, que chama cada uma delas com uma foto gravada
+e reprova se o que sai parecer caminho de depósito.
+
+**Regra:** quando o acerto depende de cada chamador lembrar, o erro não é do
+chamador — é de onde a regra mora. Transformação obrigatória vira função, e
+a lista de quem precisa dela vira teste.
+
+🔒 **Barrado** — `avatares.db.test.ts` varre as consultas que devolvem
+pessoas. Consulta nova entra na lista; se esquecer de assinar, reprova.
+
 ### Avatar invisível dentro de um link
 
 O avatar da resposta sumiu da tela. A causa: o `<span>` ficou **dentro de um

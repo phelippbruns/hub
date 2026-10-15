@@ -7,6 +7,7 @@ import { updateProfileSchema } from "./validation";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { generateUniqueHandle, suggestHandle, withSuffix } from "@/lib/auth/handle";
 import type { AgeVerificationMethod } from "@/lib/auth/age-verifier";
+import { enderecoDeMidia } from "@/lib/midia/deposito";
 
 /** RN17: o @ é único. Exportado para a tela avisar antes de enviar. */
 export async function handleEmUso(handle: string): Promise<boolean> {
@@ -204,6 +205,8 @@ export async function getProfileForViewer(viewer: Viewer, handle: string) {
 
   return {
     ...profile,
+    // A foto vem como caminho no depósito; a tela precisa de endereço.
+    avatarUrl: await enderecoDeMidia(profile.avatarUrl),
     isSelf: me === profile.id,
     counts: { followers, answers, communities, activeDays },
   };

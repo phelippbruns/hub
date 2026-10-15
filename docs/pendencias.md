@@ -337,7 +337,7 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 Cinco pontos levantados depois de usar o Hub em produção. Dois são defeito com
 causa já encontrada, dois são qualidade e um é decisão de produto.
 
-#### 4.6.1 Foto de perfil não aparece nas respostas e nos tópicos — **defeito, causa encontrada**
+#### 4.6.1 Foto de perfil não aparece nas respostas e nos tópicos — **resolvido em 15 de outubro**
 
 A foto aparece no perfil e **em nenhum outro lugar**. Não é cache nem upload: é
 endereço.
@@ -356,11 +356,12 @@ em cada chamador, então todo chamador novo pode esquecer, e nada avisa. A
 correção é assinar **uma vez**, onde o avatar sai da camada de dados, e os
 testes conferirem que nenhuma consulta devolve caminho cru de avatar.
 
-Custo: **meio dia**, contando a barreira. É o mais urgente dos cinco — foto de
-perfil é identidade real, que é um princípio do Hub, e hoje ela só funciona na
-própria página da pessoa.
+**Feito:** `comAvatar()` e `comAvatares()` em `lib/midia/deposito.ts`,
+aplicados nas sete consultas que devolvem gente, e
+`lib/data/avatares.db.test.ts` como barreira — ele chama cada uma e reprova se
+o que sai parecer caminho de depósito. Entrada no [Faustão](faustao.md).
 
-#### 4.6.2 Deixar claro quando a imagem passa de 4 MB — **defeito de aviso**
+#### 4.6.2 Deixar claro quando a imagem passa de 4 MB — **resolvido em 15 de outubro**
 
 Desde 11 de outubro o Hub confere o tamanho no navegador e mostra o motivo.
 Duas coisas erradas sobraram:
@@ -376,10 +377,12 @@ Duas coisas erradas sobraram:
 E falta dizer o limite **antes** da escolha, não depois: "JPEG, PNG ou WebP,
 até 4 MB" ao lado do botão de imagem.
 
-Custo: **2 horas**, nas três telas que enviam imagem (resposta, capa da
-comunidade, foto de perfil).
+**Feito** nas três telas que enviam imagem. O aviso subiu para logo abaixo do
+botão que escolhe a foto, todo botão de enviar desativado passou a dizer o que
+falta (`disabledHint`), e o limite aparece **antes** da escolha: no nome do
+botão de imagem no composer, e como texto na capa e no perfil.
 
-#### 4.6.3 A navegação parece lenta — **qualidade, causa provável encontrada**
+#### 4.6.3 A navegação parece lenta — **tratado em 15 de outubro**
 
 "Parece" é a palavra certa: suspeito que o problema não é velocidade, é
 **ausência de sinal**.
@@ -391,19 +394,28 @@ dizer que cada navegação espera o servidor. E **não existe um único
 durante a espera: a tela anterior fica parada, sem nada acontecendo, até a
 nova chegar inteira. Dois segundos sem feedback parecem dez.
 
-O que fazer, em ordem de custo:
+**Feito:** `loading.tsx` em 7 rotas — Início, Explorar, Minhas comunidades,
+busca, seu perfil, quem você segue e criar tópico — todas com
+`<PaginaCarregando>`, o esqueleto que entrou no design system e na galeria. A
+regra ficou no CLAUDE.md, ao lado do `force-dynamic` que a causa.
 
-1. `loading.tsx` nas rotas que fazem consulta pesada — Início, comunidade,
-   tópico, Explorar, perfil — com o esqueleto da tela. **Meio dia**, e é o que
-   mais muda a sensação.
-2. Medir antes de otimizar: as consultas do Início e da comunidade fazem
-   várias contagens por item (`count` de respostas e de pessoas por tópico).
-   Pode ser que algumas sejam lentas de verdade. Sem medir, qualquer
-   otimização é chute — foi exatamente o erro de orçamento registrado no
-   [Vacilos](vacilos.md).
+**Quatro rotas ficaram de fora, e isso é dívida consciente:** comunidade,
+tópico, perfil de outra pessoa e Universo. `loading.tsx` começa a transmitir a
+resposta antes de a página rodar, então o 404 delas virava 200 — endereço que
+não existe passando a dizer que existe. Descoberto pela jornada que confere o
+404; está no [Faustão](faustao.md).
 
-Decisão sua embutida: `loading.tsx` troca "tela parada" por "esqueleto
-piscando". É melhor na maioria dos casos, mas é uma escolha de produto.
+São justamente as telas mais pesadas. Para dar sinal nelas sem perder o 404, o
+caminho é conferir a existência na página e envolver só os pedaços lentos em
+`<Suspense>` — meio dia, e vale fazer junto com a F12.1, que já mexe em três
+delas.
+
+**O que falta, e depende de você ver:** isso troca "tela parada" por
+"esqueleto". Se ainda parecer lento depois disso, o próximo passo é **medir**
+— as consultas do Início e da comunidade fazem várias contagens por item
+(`count` de respostas e de pessoas por tópico) e podem ser lentas de verdade.
+Sem medir, qualquer otimização é chute: foi exatamente o erro de orçamento
+registrado no [Vacilos](vacilos.md).
 
 #### 4.6.4 Fluxo de navegação entre comunidades e tópicos — **precisa de detalhe seu**
 

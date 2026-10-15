@@ -32,6 +32,7 @@ import {
   Input,
   LevelMark,
   LoadingBlock,
+  PaginaCarregando,
   PasswordInput,
   PinButton,
   ProfileCounters,
@@ -258,6 +259,17 @@ export function DesignGallery() {
               <Skeleton className="h-avatarLg w-full" />
               <Skeleton className="h-3 w-1/2" />
             </LoadingBlock>
+          </Card>
+
+          {/*
+            O esqueleto de tela inteira, que é o que cada `loading.tsx` usa.
+            Toda rota do Hub renderiza por requisição, então toda navegação
+            espera — e sem isto a tela anterior ficava parada, sem sinal.
+          */}
+          <Card title="Carregando uma tela inteira" wide>
+            <div className="w-full">
+              <PaginaCarregando label="Carregando o Início" linhas={2} />
+            </div>
           </Card>
 
           <Card title="Erro de conexão">
