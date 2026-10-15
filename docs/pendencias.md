@@ -394,11 +394,21 @@ dizer que cada navegação espera o servidor. E **não existe um único
 durante a espera: a tela anterior fica parada, sem nada acontecendo, até a
 nova chegar inteira. Dois segundos sem feedback parecem dez.
 
-**Feito:** `loading.tsx` em 11 rotas — Início, comunidade, tópico, Explorar,
-Minhas comunidades, busca, os dois perfis, quem eu sigo, criar tópico e
-Universo — todas com `<PaginaCarregando>`, o esqueleto que entrou no design
-system e na galeria. A regra ficou no CLAUDE.md, ao lado do `force-dynamic`
-que a causa.
+**Feito:** `loading.tsx` em 7 rotas — Início, Explorar, Minhas comunidades,
+busca, seu perfil, quem você segue e criar tópico — todas com
+`<PaginaCarregando>`, o esqueleto que entrou no design system e na galeria. A
+regra ficou no CLAUDE.md, ao lado do `force-dynamic` que a causa.
+
+**Quatro rotas ficaram de fora, e isso é dívida consciente:** comunidade,
+tópico, perfil de outra pessoa e Universo. `loading.tsx` começa a transmitir a
+resposta antes de a página rodar, então o 404 delas virava 200 — endereço que
+não existe passando a dizer que existe. Descoberto pela jornada que confere o
+404; está no [Faustão](faustao.md).
+
+São justamente as telas mais pesadas. Para dar sinal nelas sem perder o 404, o
+caminho é conferir a existência na página e envolver só os pedaços lentos em
+`<Suspense>` — meio dia, e vale fazer junto com a F12.1, que já mexe em três
+delas.
 
 **O que falta, e depende de você ver:** isso troca "tela parada" por
 "esqueleto". Se ainda parecer lento depois disso, o próximo passo é **medir**

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useId, useRef, useState } from "react";
 import { Button, TextField } from "@/design/components";
 import { GifIcon, ImageIcon } from "@/design/icons";
 import { EscolherGif, type GifEscolhido } from "./escolher-gif";
@@ -36,6 +36,7 @@ export function CampoDeResposta({
   const [gif, setGif] = useState<GifEscolhido | null>(null);
   const [escolhendoGif, setEscolhendoGif] = useState(false);
   const arquivoRef = useRef<HTMLInputElement>(null);
+  const idDoLimite = useId();
 
   // Derivado na renderização: função pura do que está escrito.
   const link = texto.trim() ? acharLink(texto) : null;
@@ -132,21 +133,27 @@ export function CampoDeResposta({
           }}
         />
         {/*
-          O limite vem no nome do botão, não como texto solto: o composer é
-          estreito e uma linha fixa de regra roubaria espaço da resposta. Quem
-          passa o mouse e quem usa leitor de tela sabem antes de escolher; quem
-          erra mesmo assim recebe o aviso logo abaixo.
+          O limite vem como **descrição**, não dentro do nome do botão: o
+          composer é estreito e uma linha fixa de regra roubaria espaço da
+          resposta, mas enfiar a regra no nome deixaria o botão se chamando
+          "Adicionar imagem — JPEG, PNG ou WebP, até 4 MB", que é o que o
+          leitor de tela anuncia a cada passagem. `aria-describedby` diz a
+          mesma coisa depois do nome, e `title` atende o mouse.
         */}
         <Button
           variant="secondary"
           size="sm"
           onClick={() => arquivoRef.current?.click()}
-          aria-label={`Adicionar imagem — JPEG, PNG ou WebP, até ${TAMANHO_MAXIMO_EM_MB} MB`}
+          aria-label="Adicionar imagem"
+          aria-describedby={idDoLimite}
           title={`JPEG, PNG ou WebP, até ${TAMANHO_MAXIMO_EM_MB} MB`}
           disabled={gif !== null}
         >
           <ImageIcon decorative className="size-icon" />
         </Button>
+        <span id={idDoLimite} className="sr-only">
+          JPEG, PNG ou WebP, até {TAMANHO_MAXIMO_EM_MB} MB
+        </span>
 
         {/*
           O GIF só aparece com a chave do GIPHY configurada, do mesmo jeito

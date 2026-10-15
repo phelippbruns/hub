@@ -489,6 +489,36 @@ a pessoa escreveu não dá.
 
 ---
 
+### `loading.tsx` transformou 404 em 200
+
+Pus `loading.tsx` em onze rotas para a navegação parar de parecer parada. Em
+quatro delas, o endereço de uma coisa que não existe **deixou de responder
+404** e passou a responder 200 com a tela de não encontrado.
+
+`loading.tsx` abre um limite de Suspense, e o Next começa a transmitir a
+resposta antes de a página rodar. Quando a página chama `notFound()`, o
+cabeçalho já foi enviado — e cabeçalho enviado não volta atrás. Para quem
+olha a tela não muda nada; para um buscador, um verificador de link ou um
+teste, o Hub passou a dizer que toda URL existe.
+
+*Por que passou:* lint, tipos, 498 testes de unidade e o build de produção
+passaram. Era invisível na tela, e eu não consegui rodar as jornadas na
+máquina — o Docker estava parado. Quem pegou foi a jornada "tópico que não
+existe não quebra a tela", na CI, que confere o **status** e não o desenho.
+
+*Como resolvi:* tirei o `loading.tsx` das quatro rotas que chamam
+`notFound()` — comunidade, tópico, perfil de outra pessoa e Universo — e
+escrevi a exceção no CLAUDE.md junto da regra. Para dar sinal nelas sem
+perder o 404, o caminho é conferir a existência na página e envolver só os
+pedaços lentos em `<Suspense>`, depois da conferência. Ficou anotado.
+
+**Regra:** melhoria de percepção também muda o protocolo. Antes de abrir um
+limite de Suspense numa rota, pergunte o que ela responde quando o que foi
+pedido não existe.
+
+🔒 **Barrado** — a jornada do 404 já existia e foi ela que pegou; a exceção
+está escrita ao lado da regra que a causa.
+
 ### A foto de perfil só funcionava na página do perfil
 
 Da F02 à F12, a foto de uma pessoa aparecia na página dela e **em nenhum
