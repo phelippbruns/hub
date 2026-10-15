@@ -44,14 +44,6 @@ const COMUNIDADES: { name: string; intro: string }[] = [
   { name: "Speedrun", intro: "O jogo inteiro, o mais rápido possível." },
   { name: "Retrô", intro: "Cartucho, fliperama e emulador." },
   { name: "Jogos de Tabuleiro", intro: "Da mesa da cozinha ao campeonato." },
-  /*
-   * Universo com comunidade nenhuma é beco sem saída: aparece no Explorar e
-   * não leva a lugar nenhum. Por isso Cerâmica entra com as de partida.
-   */
-  { name: "Torno", intro: "Centrar, levantar e o que dá errado." },
-  { name: "Esmaltes", intro: "Receitas, testes e a surpresa do forno." },
-  { name: "Queima", intro: "Forno elétrico, gás e queima a lenha." },
-  { name: "Modelagem Manual", intro: "Pinch, placa e rolinho." },
 ];
 
 const { url, host } = await pedirConexao();
