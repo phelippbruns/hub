@@ -489,6 +489,37 @@ a pessoa escreveu não dá.
 
 ---
 
+### A foto de perfil só funcionava na página do perfil
+
+Da F02 à F12, a foto de uma pessoa aparecia na página dela e **em nenhum
+outro lugar**: nem na resposta, nem no autor do tópico, nem na busca de
+pessoas, nem na lista de quem eu sigo. Quem descobriu foi o PO, usando o Hub
+em produção.
+
+O depósito é privado, então `profiles.avatar_url` guarda o **caminho**
+(`perfis/x.jpg`) e quem desenha precisa pedir uma URL assinada. Só
+`perfilNaTela` pedia. As outras seis consultas entregavam o caminho cru, e o
+navegador procurava o arquivo ao lado da página: 404, e nada desenhado.
+
+*Por que passou:* não há erro. Um `background-image` que não resolve é
+silêncio — sem aviso no console do servidor, sem teste vermelho, sem nada no
+build. E a causa não era distração: **a assinatura morava em cada chamador**,
+então toda consulta nova podia esquecer, e o acerto dependia de lembrar. A
+mesma forma do véu invisível da F07 e do avatar dentro do link: só olhando a
+tela.
+
+*Como resolvi:* `comAvatar()` e `comAvatares()` em `lib/midia/deposito.ts`,
+aplicados nas sete consultas que devolvem gente. E
+`lib/data/avatares.db.test.ts`, que chama cada uma delas com uma foto gravada
+e reprova se o que sai parecer caminho de depósito.
+
+**Regra:** quando o acerto depende de cada chamador lembrar, o erro não é do
+chamador — é de onde a regra mora. Transformação obrigatória vira função, e
+a lista de quem precisa dela vira teste.
+
+🔒 **Barrado** — `avatares.db.test.ts` varre as consultas que devolvem
+pessoas. Consulta nova entra na lista; se esquecer de assinar, reprova.
+
 ### Avatar invisível dentro de um link
 
 O avatar da resposta sumiu da tela. A causa: o `<span>` ficou **dentro de um

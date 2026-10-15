@@ -9,7 +9,7 @@ import { prisma } from "./prisma";
 import { NotFoundError } from "./errors";
 import { viewerProfileId, type Viewer } from "./viewer";
 import { EXPLORE_MIN_MEMBERS } from "./communities";
-import { enderecoDeMidia } from "@/lib/midia/deposito";
+import { comAvatares, enderecoDeMidia } from "@/lib/midia/deposito";
 
 /** Linha de comunidade, como as telas 9, 10 e 11 mostram. */
 export type ComunidadeNaLista = {
@@ -306,14 +306,17 @@ export async function buscarPessoas(viewer: Viewer, termo: string, limite = 20) 
      LIMIT ${limite}
   `;
 
-  return linhas.map((l): PessoaNaBusca => ({
-    id: l.id,
-    handle: l.handle,
-    name: l.name,
-    avatarUrl: l.avatar_url,
-    comunidadesEmComum: Number(l.em_comum),
-    seguindo: l.seguindo,
-  }));
+  // A foto vem como caminho no depósito; a tela precisa de endereço.
+  return comAvatares(
+    linhas.map((l): PessoaNaBusca => ({
+      id: l.id,
+      handle: l.handle,
+      name: l.name,
+      avatarUrl: l.avatar_url,
+      comunidadesEmComum: Number(l.em_comum),
+      seguindo: l.seguindo,
+    })),
+  );
 }
 
 /** Os quatro Universos da grade de Explorar, com quantas comunidades têm. */

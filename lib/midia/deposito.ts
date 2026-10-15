@@ -96,6 +96,33 @@ export async function enderecosDeMidia(valores: (string | null)[]): Promise<(str
   return Promise.all(valores.map((valor) => enderecoDeMidia(valor)));
 }
 
+/** Qualquer coisa que carregue a foto de uma pessoa. */
+type ComAvatar = { avatarUrl: string | null };
+
+/**
+ * A foto de uma pessoa, pronta para a tela.
+ *
+ * `profiles.avatar_url` guarda o **caminho** no depósito (`perfis/x.jpg`),
+ * nunca um endereço. Quem entrega esse caminho cru para a tela entrega algo
+ * que o navegador procura ao lado da página, não acha, e não mostra — sem
+ * erro nenhum. Foi o que aconteceu da F02 à F12: a foto aparecia no perfil,
+ * que assinava, e em **nenhum outro lugar**.
+ *
+ * Existe como função e não como lembrete porque o erro era de repetição: a
+ * assinatura morava em cada chamador, então todo chamador novo podia
+ * esquecer. `lib/data/avatares.db.test.ts` varre as consultas que devolvem
+ * pessoas e reprova se alguma devolver caminho cru.
+ */
+export async function comAvatar<T extends ComAvatar | null>(pessoa: T): Promise<T> {
+  if (!pessoa) return pessoa;
+  return { ...pessoa, avatarUrl: await enderecoDeMidia(pessoa.avatarUrl) };
+}
+
+/** Vários de uma vez, pelo mesmo motivo de `enderecosDeMidia`. */
+export async function comAvatares<T extends ComAvatar | null>(pessoas: T[]): Promise<T[]> {
+  return Promise.all(pessoas.map((pessoa) => comAvatar(pessoa)));
+}
+
 /**
  * Apaga do depósito.
  *

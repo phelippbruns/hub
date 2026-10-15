@@ -97,7 +97,11 @@ export function FormularioDeCapa({
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pendente || previa === null || problema !== null}>
+      <Button
+        type="submit"
+        disabled={pendente || previa === null || problema !== null}
+        disabledHint={problema ?? (previa === null ? "Escolha uma imagem." : undefined)}
+      >
         {pendente ? "Enviando…" : "Trocar capa"}
       </Button>
     </form>

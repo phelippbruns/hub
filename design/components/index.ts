@@ -16,6 +16,7 @@ export { BottomSheet } from "./bottom-sheet";
 export { Checkbox } from "./checkbox";
 export { Switch } from "./switch";
 export {
+  PaginaCarregando,
   Skeleton,
   LoadingBlock,
   ErrorState,

@@ -15,6 +15,7 @@ import {
 import { inviteToCabinSchema } from "./validation";
 import { requireProfileId, type Viewer } from "./viewer";
 import { isBlockedBetween, sharesCommunity } from "./access";
+import { comAvatares } from "@/lib/midia/deposito";
 
 async function requireCabinMember(cabinId: string, profileId: string) {
   const member = await prisma.cabinMember.findUnique({
@@ -191,11 +192,16 @@ export async function listMessages(viewer: Viewer, cabinId: string) {
   const me = requireProfileId(viewer);
   await requireCabinMember(cabinId, me);
 
-  return prisma.message.findMany({
+  const mensagens = await prisma.message.findMany({
     where: { cabinId, deletedAt: null },
     orderBy: { createdAt: "asc" },
     include: { author: { select: { id: true, name: true, handle: true, avatarUrl: true } } },
   });
+
+  // A foto vem como caminho no depósito; a tela precisa de endereço.
+  const autores = await comAvatares(mensagens.map((m) => m.author));
+
+  return mensagens.map((mensagem, i) => ({ ...mensagem, author: autores.at(i) ?? null }));
 }
 
 /**
