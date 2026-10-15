@@ -61,10 +61,27 @@ async function minhaComunidadeComTopico(page: Page, prefixo: string) {
 }
 
 /**
+ * Meio-dia de ontem **no fuso do ciclo**, como instante.
+ *
+ * Nada de "now() menos 20 horas". Era o que estava aqui, e falhava todo dia
+ * das 20h à meia-noite: depois das 20h, vinte horas atrás ainda é hoje, o
+ * ciclo elegia o dia errado e a comunidade não mostrava destaque nenhum. A
+ * CI pegou às 20h01 de Brasília, num PR que só mexia em documento.
+ *
+ * Ancorar no dia do ciclo em vez de numa diferença de horas é o que torna o
+ * teste igual às três da tarde e às onze da noite.
+ */
+const ONTEM_AO_MEIO_DIA = `((hub_cycle_date(now()) - 1) + time '12:00') AT TIME ZONE hub_cycle_timezone()`;
+
+/**
  * Põe respostas de ontem no tópico e vira o ciclo.
  *
  * Direto no banco porque nenhum caminho do produto deixa escolher quando uma
  * resposta aconteceu — e sem respostas de ontem não há o que eleger.
+ *
+ * `hub_virar_ciclo(dia)` conta as respostas de `dia` e grava o vencedor em
+ * `dia + 1`: o movimento de ontem é o destaque de hoje. Por isso o dia que
+ * entra aqui é **ontem**, e a tela procura hoje.
  */
 async function houveMovimentoOntemEOCicloVirou(slugDoTopico: string, pessoas: number) {
   await consultar(`
@@ -74,11 +91,11 @@ async function houveMovimentoOntemEOCicloVirou(slugDoTopico: string, pessoas: nu
       SELECT id FROM profiles WHERE deleted_at IS NULL LIMIT ${pessoas}
     )
     INSERT INTO answers (id, topic_id, author_id, text, created_at)
-    SELECT gen_random_uuid(), alvo.id, gente.id, 'resposta de ontem', now() - interval '20 hours'
+    SELECT gen_random_uuid(), alvo.id, gente.id, 'resposta de ontem', ${ONTEM_AO_MEIO_DIA}
       FROM alvo, gente
   `);
 
-  await consultar(`SELECT hub_virar_ciclo(hub_cycle_date(now() - interval '20 hours'))`);
+  await consultar(`SELECT hub_virar_ciclo(hub_cycle_date(now()) - 1)`);
 }
 
 test.describe("depois da virada", () => {
@@ -101,7 +118,7 @@ test.describe("depois da virada", () => {
     await entrarNoApp(page, "semvirada");
     const { comunidade } = await minhaComunidadeComTopico(page, "Sem Virada");
 
-    await consultar(`SELECT hub_virar_ciclo(hub_cycle_date(now() - interval '20 hours'))`);
+    await consultar(`SELECT hub_virar_ciclo(hub_cycle_date(now()) - 1)`);
     await page.goto(comunidade);
 
     await expect(page.getByRole("heading", { name: "Hot Topic", exact: true })).toHaveCount(0);

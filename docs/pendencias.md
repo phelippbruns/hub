@@ -1,6 +1,6 @@
 # Pendências do Hub
 
-Atualizado em 4 de outubro de 2026, depois da F06.
+Atualizado em 11 de outubro de 2026, depois da F12.
 
 O que falta para o Hub existir. Separado pelo que **impede o lançamento**, pelo
 que é **decisão sua**, pelo que é **dívida técnica** e pela **fila de features**.
@@ -332,15 +332,131 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 
 ---
 
+### 4.6 Pedidos do PO em 11 de outubro
+
+Cinco pontos levantados depois de usar o Hub em produção. Dois são defeito com
+causa já encontrada, dois são qualidade e um é decisão de produto.
+
+#### 4.6.1 Foto de perfil não aparece nas respostas e nos tópicos — **defeito, causa encontrada**
+
+A foto aparece no perfil e **em nenhum outro lugar**. Não é cache nem upload: é
+endereço.
+
+O depósito de imagens é privado, então `profiles.avatar_url` guarda um
+**caminho** (`perfis/<id>.jpg`), não um endereço — quem desenha precisa pedir
+uma URL assinada. Só um lugar faz isso: `lib/data/perfil.ts`. A resposta
+([lib/data/topics.ts](../lib/data/topics.ts)), o autor do tópico, a descoberta
+([lib/data/descoberta.ts](../lib/data/descoberta.ts)) e a lista de seguindo
+entregam o caminho cru para a tela, que o usa como se fosse endereço. O
+navegador procura `perfis/abc.jpg` ao lado da página, não acha, e não mostra
+nada — sem erro visível.
+
+**A causa de verdade não é o esquecimento, é onde a assinatura mora.** Ela está
+em cada chamador, então todo chamador novo pode esquecer, e nada avisa. A
+correção é assinar **uma vez**, onde o avatar sai da camada de dados, e os
+testes conferirem que nenhuma consulta devolve caminho cru de avatar.
+
+Custo: **meio dia**, contando a barreira. É o mais urgente dos cinco — foto de
+perfil é identidade real, que é um princípio do Hub, e hoje ela só funciona na
+própria página da pessoa.
+
+#### 4.6.2 Deixar claro quando a imagem passa de 4 MB — **defeito de aviso**
+
+Desde 11 de outubro o Hub confere o tamanho no navegador e mostra o motivo.
+Duas coisas erradas sobraram:
+
+1. **O aviso fica longe.** Ele é desenhado no fim do formulário, embaixo do
+   seletor de GIF, enquanto o problema aconteceu no botão de imagem, no topo.
+   Quem escolhe uma foto grande vê o botão Responder apagar e não liga uma
+   coisa à outra.
+2. **O botão desativado não explica.** O design system exige: botão desativado
+   vem com texto dizendo o que falta — é o `disabledHint` do `<Button>`, usado
+   em **um** lugar no projeto inteiro. O composer de resposta não usa.
+
+E falta dizer o limite **antes** da escolha, não depois: "JPEG, PNG ou WebP,
+até 4 MB" ao lado do botão de imagem.
+
+Custo: **2 horas**, nas três telas que enviam imagem (resposta, capa da
+comunidade, foto de perfil).
+
+#### 4.6.3 A navegação parece lenta — **qualidade, causa provável encontrada**
+
+"Parece" é a palavra certa: suspeito que o problema não é velocidade, é
+**ausência de sinal**.
+
+Toda rota do Hub renderiza por requisição (`force-dynamic` no
+[app/layout.tsx](../app/layout.tsx), exigido pela CSP com nonce). Isso quer
+dizer que cada navegação espera o servidor. E **não existe um único
+`loading.tsx` no projeto** — conferido. Sem ele, o Next não tem o que mostrar
+durante a espera: a tela anterior fica parada, sem nada acontecendo, até a
+nova chegar inteira. Dois segundos sem feedback parecem dez.
+
+O que fazer, em ordem de custo:
+
+1. `loading.tsx` nas rotas que fazem consulta pesada — Início, comunidade,
+   tópico, Explorar, perfil — com o esqueleto da tela. **Meio dia**, e é o que
+   mais muda a sensação.
+2. Medir antes de otimizar: as consultas do Início e da comunidade fazem
+   várias contagens por item (`count` de respostas e de pessoas por tópico).
+   Pode ser que algumas sejam lentas de verdade. Sem medir, qualquer
+   otimização é chute — foi exatamente o erro de orçamento registrado no
+   [Vacilos](vacilos.md).
+
+Decisão sua embutida: `loading.tsx` troca "tela parada" por "esqueleto
+piscando". É melhor na maioria dos casos, mas é uma escolha de produto.
+
+#### 4.6.4 Fluxo de navegação entre comunidades e tópicos — **precisa de detalhe seu**
+
+Anotado, mas não sei o suficiente para orçar. O que existe hoje: da comunidade
+se chega ao tópico clicando no nome; do tópico se volta pelo botão Voltar ou
+pelo nome da comunidade no topo; o Hot Topic tem caminho próprio; e desde 11 de
+outubro existe o botão de criar tópico dentro da comunidade.
+
+Me diga qual caminho te incomodou — onde você estava, para onde queria ir, e o
+que teve de fazer. Com isso eu digo o tamanho. Chutar aqui seria repetir o erro
+de orçamento que já está no Vacilos.
+
+#### 4.6.5 Tirar o limite de 1 tópico por dia — **decisão de produto**
+
+A RN07 limita cada pessoa a 1 tópico por dia em cada comunidade. O PO decidiu
+em 11 de outubro **tirar o limite no começo**, enquanto o Hub é pequeno.
+
+Custo: **2 a 3 horas**. A regra tem duas metades, e as duas saem juntas — a
+checagem no app (que dá a mensagem boa) e o índice único
+`topics_one_per_author_per_day` no banco (que é quem garante a regra quando
+duas requisições chegam juntas). Sai também o aviso na tela de criar e o botão
+desativado, e a RN07 é reescrita.
+
+**O que você precisa saber antes:** o limite não existe só para conter
+volume. Ele é o que faz o ciclo das 00h ser uma disputa entre **pessoas
+diferentes** em vez de entre quem posta mais. Sem limite, uma pessoa pode abrir
+dez tópicos no mesmo dia na mesma comunidade e ocupar a lista inteira — e o Hot
+Topic continua elegendo por pessoas distintas respondendo, mas a lista de onde
+ele sai passa a ter um dono.
+
+Dois caminhos, e eu recomendo o segundo:
+
+1. **Tirar o limite.** Simples, e a lista fica sem defesa.
+2. **Subir o limite em vez de tirar** — 3 ou 5 por dia, o número vindo de uma
+   constante única (como `RN05` já faz com o corte de membros, hoje em 0). O
+   atrito sai do caminho de quem está começando, a defesa continua existindo, e
+   voltar atrás é mudar um número em vez de escrever uma migration de novo.
+
+Se escolher o 2, o custo cai para **1 hora** e não precisa apagar o índice do
+banco — só trocar o número dele.
+
+---
+
 ## 5. Fila de features
 
-Feito: **F00 a F12**. Faltam 9.
+Feito: **F00 a F12**. Faltam 10, contando a F12.1.
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
+| F12.1 | Fim do Universo e marcas do nível | F12 | Criar comunidade sem escolher Universo — **2 a 3 h**, planejada |
 | F13 | Cabine | F12 | Conversa privada |
 | F14 | Compartilhar e convite por link | F13 | Crescimento |
-| F15 | Notificações | F13 | Motivo de voltar |
+| F15 | Notificações e marcar com @ | F13 | Motivo de voltar |
 | F16 | Denúncia, bloqueio e moderação | F09, F13 | Segurança |
 | F17 | Configurações e LGPD | F15 | Exportar e excluir conta |
 | F18 | Termos e privacidade | F03 | Texto completo — **já destravada**, só falta o texto |
