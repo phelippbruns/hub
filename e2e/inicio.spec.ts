@@ -3,6 +3,16 @@ import { consultar, esperarNoBanco } from "./apoio-banco";
 import { cadastroConcluido } from "./apoio-tela";
 
 /**
+ * Meio-dia de ontem **no fuso do ciclo**, como instante.
+ *
+ * Nada de "now() menos 20 horas": depois das 20h de Brasília, vinte horas
+ * atrás ainda é hoje, o ciclo elegia o dia errado e o Início não mostrava
+ * destaque nenhum. A CI pegou às 20h01, num PR que só mexia em documento.
+ * A mesma correção está em `e2e/ciclo.spec.ts`.
+ */
+const ONTEM_AO_MEIO_DIA = `((hub_cycle_date(now()) - 1) + time '12:00') AT TIME ZONE hub_cycle_timezone()`;
+
+/**
  * O Início (F11).
  *
  * Os limites de cada seção têm 17 testes contra o banco em
@@ -114,9 +124,9 @@ test.describe("com conteúdo", () => {
         SELECT id FROM topics WHERE slug = 'assunto-do-inicio' ORDER BY created_at DESC LIMIT 1
       ), gente AS (SELECT id FROM profiles WHERE deleted_at IS NULL LIMIT 3)
       INSERT INTO answers (id, topic_id, author_id, text, created_at)
-      SELECT gen_random_uuid(), alvo.id, gente.id, 'resposta de ontem', now() - interval '20 hours'
+      SELECT gen_random_uuid(), alvo.id, gente.id, 'resposta de ontem', ${ONTEM_AO_MEIO_DIA}
         FROM alvo, gente`);
-    await consultar(`SELECT hub_virar_ciclo(hub_cycle_date(now() - interval '20 hours'))`);
+    await consultar(`SELECT hub_virar_ciclo(hub_cycle_date(now()) - 1)`);
 
     return comunidade;
   }

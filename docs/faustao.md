@@ -147,6 +147,38 @@ arquivo não voltar aos 5 s.
 🔒 **Barrado** — o caminho curto agora é o certo; o padrão de 5 s saiu dos
 arquivos.
 
+### "Vinte horas atrás" não é ontem depois das 20h
+
+Duas jornadas do Hot Topic reprovaram na CI — num PR que **só mexia em
+documento**. O ciclo não elegia destaque nenhum, e a comunidade aparecia sem
+Hot Topic.
+
+A causa é aritmética. O ajudante do teste punha respostas em
+`now() - interval '20 hours'` e mandava virar o ciclo de
+`hub_cycle_date(now() - interval '20 hours')`. Vinte horas atrás só é **ontem**
+quando a hora local é menor que 20. O fuso do ciclo é Brasília; a CI rodou às
+23h01 UTC, que são **20h01 em Brasília** — um minuto depois da fronteira.
+Passada ela, "ontem" virou hoje, `hub_virar_ciclo` gravou o vencedor em
+`dia + 1` (amanhã), e a tela, que procura hoje, não achou nada.
+
+*Por que passou:* a suíte inteira é verde das 00h às 20h. A janela de falha é
+de quatro horas por dia, e nenhuma das execuções anteriores caiu nela. Um
+teste que depende da hora não parece frágil — parece instável, que é pior,
+porque convida a rodar de novo em vez de investigar.
+
+*Como resolvi:* ancorar no **dia do ciclo**, não numa diferença de horas:
+`((hub_cycle_date(now()) - 1) + time '12:00') AT TIME ZONE
+hub_cycle_timezone()` para o instante, e `hub_cycle_date(now()) - 1` para o
+dia. Meio-dia de ontem é ontem a qualquer hora. Corrigido nos dois arquivos
+que tinham o padrão, `e2e/ciclo.spec.ts` e `e2e/inicio.spec.ts`.
+
+**Regra:** data em teste se ancora no dia, nunca numa subtração de horas.
+Toda vez que aparecer `now() - interval 'N hours'` com intenção de "ontem",
+pergunte o que acontece quando a hora local passa de N.
+
+🔒 **Barrado** — o padrão saiu dos dois arquivos; nenhum teste do ciclo usa
+mais diferença de horas para dizer "ontem".
+
 ### Corrida entre testes
 
 As jornadas em paralelo falhavam, nunca as mesmas duas vezes. Persegui o
