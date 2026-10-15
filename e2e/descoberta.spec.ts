@@ -49,7 +49,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
 }
 
 test.describe("Explorar", () => {
-  test("a lupa leva aos Universos, e cada um abre a própria página", async ({ page }) => {
+  test("a lupa leva ao Explorar, que é busca e comunidades", async ({ page }) => {
     await entrarNoApp(page, "explorar");
 
     await page
@@ -58,19 +58,38 @@ test.describe("Explorar", () => {
       .click();
     await expect(page).toHaveURL(/\/comunidades$/);
 
-    // Os quatro Universos do seed, cada um com a contagem.
-    const universos = await consultar<{ name: string; slug: string }>(
-      `SELECT name, slug FROM universes ORDER BY name`,
+    await expect(page.getByRole("heading", { name: "Explorar", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Para você" })).toBeVisible();
+  });
+
+  test("F12.1: o Universo não aparece em lugar nenhum do Explorar", async ({ page }) => {
+    await entrarNoApp(page, "semuniverso");
+    await page.goto("/comunidades");
+
+    /*
+     * A conferência é pelo nome dos Universos que ainda existem no banco: a
+     * migration consolidou as comunidades no Hubverso mas **não apagou** as
+     * linhas antigas. Se alguma voltar a ser desenhada, este teste reprova.
+     */
+    const universos = await consultar<{ name: string }>(
+      `SELECT name FROM universes WHERE slug <> 'hubverso'`,
     );
-    expect(universos.length).toBeGreaterThan(0);
 
+    await expect(page.getByText("Universos", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Hubverso")).toHaveCount(0);
     for (const universo of universos) {
-      await expect(page.getByRole("link", { name: universo.name })).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: universo.name, exact: true }),
+        `o Universo ${universo.name} voltou a aparecer no Explorar`,
+      ).toHaveCount(0);
     }
+  });
 
-    await page.getByRole("link", { name: universos[0]!.name }).click();
-    await page.waitForURL(`**/u/${universos[0]!.slug}`);
-    await expect(page.getByRole("heading", { name: universos[0]!.name, level: 1 })).toBeVisible();
+  test("F12.1: o endereço antigo de Universo não existe mais", async ({ page }) => {
+    await entrarNoApp(page, "rotamorta");
+
+    const resposta = await page.goto("/u/musica");
+    expect(resposta?.status(), "a rota do Universo foi apagada").toBe(404);
   });
 
   test("Para você não sugere comunidade em que a pessoa já está", async ({ page }) => {
@@ -134,50 +153,6 @@ test.describe("busca", () => {
     await page.goto("/busca?q=xyzinexistente");
 
     await expect(page.getByText(/Nada encontrado para/)).toBeVisible();
-  });
-});
-
-test.describe("Universo", () => {
-  test("mostra respostas de hoje e deixa trocar a ordem", async ({ page }) => {
-    await entrarNoApp(page, "universo");
-
-    const [universo] = await consultar<{ slug: string }>(
-      `SELECT u.slug
-         FROM universes u
-         JOIN communities c ON c.universe_id = u.id
-        WHERE c.members_count >= 20 AND c.deleted_at IS NULL
-        GROUP BY u.slug LIMIT 1`,
-    );
-    expect(universo, "o seed precisa de uma comunidade acima do corte").toBeTruthy();
-
-    await page.goto(`/u/${universo!.slug}`);
-    await expect(page.getByText(/respostas? hoje/).first()).toBeVisible();
-
-    const maisRecentes = page.getByRole("button", { name: "Ordenar por mais recentes" });
-    await maisRecentes.click();
-    await expect(page).toHaveURL(/ordem=recentes/);
-    await expect(maisRecentes).toHaveAttribute("aria-pressed", "true");
-  });
-
-  /*
-   * O corte da RN05 vale 0 hoje: toda comunidade aparece, por menor que seja.
-   * Quem prova o mecanismo é `lib/data/descoberta.db.test.ts`, que o exercita
-   * com um corte explícito. Aqui o que importa é a consequência para quem usa
-   * — uma comunidade pequena está visível, e não só pela busca.
-   */
-  test("com o corte desligado, comunidade pequena aparece no Universo", async ({ page }) => {
-    await entrarNoApp(page, "cortezero");
-
-    const [pequena] = await consultar<{ name: string; slug: string }>(
-      `SELECT c.name, u.slug
-         FROM communities c JOIN universes u ON u.id = c.universe_id
-        WHERE c.members_count < 20 AND c.deleted_at IS NULL
-        LIMIT 1`,
-    );
-    expect(pequena, "o seed precisa de uma comunidade pequena").toBeTruthy();
-
-    await page.goto(`/u/${pequena!.slug}`);
-    await expect(page.getByText(pequena!.name, { exact: true }).first()).toBeVisible();
   });
 });
 

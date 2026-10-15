@@ -7,20 +7,19 @@ import { escolherComunidades } from "./actions";
 import { MINIMO_DE_COMUNIDADES, type EstadoDoOnboarding } from "./shared";
 
 type Comunidade = { id: string; name: string };
-type Universo = { id: string; name: string; communities: Comunidade[] };
 
 /**
  * Tela 5, segundo e terceiro estados: "Do que você gosta?".
  *
- * Os chips de Universo (amarelos) filtram; os de comunidade (lavanda)
- * escolhem. Sem nenhum Universo marcado, tudo aparece — é melhor mostrar
- * opções do que uma tela vazia esperando um primeiro clique.
+ * Uma grade só de chips de comunidade. Antes vinha agrupada por Universo,
+ * com chips amarelos que filtravam — a F12.1 tirou o Universo do produto, e
+ * um agrupamento com um grupo só é moldura em volta de nada.
  */
 export function EscolherComunidades({
-  universos,
+  comunidades,
   convite,
 }: {
-  universos: Universo[];
+  comunidades: Comunidade[];
   /** RN31: a comunidade do link vem marcada e conta como uma das 3. */
   convite: { topicName: string; community: { id: string; name: string } } | null;
 }) {
@@ -29,16 +28,10 @@ export function EscolherComunidades({
     {},
   );
 
-  const [universosAbertos, setUniversosAbertos] = useState<string[]>([]);
   const [escolhidas, setEscolhidas] = useState<string[]>(convite ? [convite.community.id] : []);
 
   const faltam = MINIMO_DE_COMUNIDADES - escolhidas.length;
   const podeContinuar = faltam <= 0;
-
-  const visiveis =
-    universosAbertos.length === 0
-      ? universos
-      : universos.filter((u) => universosAbertos.includes(u.id));
 
   function alternar(lista: string[], id: string) {
     return lista.includes(id) ? lista.filter((x) => x !== id) : [...lista, id];
@@ -79,41 +72,20 @@ export function EscolherComunidades({
       ) : null}
 
       <section className="flex flex-col gap-1">
-        <h2 className="text-caption text-inkMuted font-bold">Universos</h2>
-        <div role="group" aria-label="Universos" className="flex flex-wrap gap-2">
-          {universos.map((universo) => (
-            <Chip
-              key={universo.id}
-              label={universo.name}
-              tone="sun"
-              selected={universosAbertos.includes(universo.id)}
-              onClick={() => setUniversosAbertos((atual) => alternar(atual, universo.id))}
-            />
-          ))}
+        <h2 className="text-caption text-inkMuted font-bold">Comunidades</h2>
+        <div role="group" aria-label="Comunidades" className="flex flex-wrap gap-2">
+          {comunidades
+            .filter((c) => c.id !== convite?.community.id)
+            .map((comunidade) => (
+              <Chip
+                key={comunidade.id}
+                label={comunidade.name}
+                selected={escolhidas.includes(comunidade.id)}
+                onClick={() => setEscolhidas((atual) => alternar(atual, comunidade.id))}
+              />
+            ))}
         </div>
       </section>
-
-      {visiveis.map((universo) => (
-        <section key={universo.id} className="flex flex-col gap-1">
-          <h2 className="text-caption text-inkMuted font-bold">{universo.name}</h2>
-          <div
-            role="group"
-            aria-label={`Comunidades de ${universo.name}`}
-            className="flex flex-wrap gap-2"
-          >
-            {universo.communities
-              .filter((c) => c.id !== convite?.community.id)
-              .map((comunidade) => (
-                <Chip
-                  key={comunidade.id}
-                  label={comunidade.name}
-                  selected={escolhidas.includes(comunidade.id)}
-                  onClick={() => setEscolhidas((atual) => alternar(atual, comunidade.id))}
-                />
-              ))}
-          </div>
-        </section>
-      ))}
 
       <p aria-live="polite" className="text-caption text-inkMuted">
         {escolhidas.length} de {MINIMO_DE_COMUNIDADES} escolhidas

@@ -319,15 +319,3 @@ export async function buscarPessoas(viewer: Viewer, termo: string, limite = 20) 
   );
 }
 
-/** Os quatro Universos da grade de Explorar, com quantas comunidades têm. */
-export async function universosComContagem() {
-  return prisma.universe.findMany({
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      _count: { select: { communities: { where: { deletedAt: null } } } },
-    },
-  });
-}

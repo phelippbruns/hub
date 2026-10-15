@@ -138,9 +138,15 @@ export const createAnswerSchema = z
     path: ["text"],
   });
 
-/** RN03: toda comunidade exige nome, intro, capa e Universo. */
+/**
+ * RN03: toda comunidade exige nome, intro e capa.
+ *
+ * O Universo saiu da exigência na F12.1: toda comunidade cai no Hubverso, que
+ * é um pai único e invisível. `universeId` continua aceito — quem já manda
+ * um continua funcionando — mas não é mais pedido a ninguém.
+ */
 export const createCommunitySchema = z.object({
-  universeId: uuidSchema,
+  universeId: uuidSchema.optional(),
   name: userText(60, "O nome da comunidade"),
   intro: userText(240, "A intro"),
   coverUrl: z.url().nullable().default(null),

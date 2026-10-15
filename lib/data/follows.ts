@@ -78,7 +78,7 @@ export async function unfollowCommunity(viewer: Viewer, communityId: string) {
 export async function getCollection(
   viewer: Viewer,
   ownerId: string,
-  groupBy: "universe" | "community" | "recent" = "recent",
+  groupBy: "community" | "recent" = "recent",
 ) {
   const me = requireProfileId(viewer);
   if (me !== ownerId) throw new ForbiddenError("A Coleção é privada");
@@ -98,17 +98,15 @@ export async function getCollection(
   const topics = follows.flatMap((follow) => (follow.topic ? [follow.topic] : []));
   if (groupBy === "recent") return topics;
 
-  // RN18: a Coleção organiza por Universo (marca { amarela), por comunidade
-  // (marca # lavanda) ou em ordem cronológica.
-  const keyOf =
-    groupBy === "universe"
-      ? (topic: (typeof topics)[number]) => topic.community.universeId
-      : (topic: (typeof topics)[number]) => topic.community.id;
-
+  /*
+   * RN27: a Coleção organiza por comunidade ou em ordem cronológica.
+   *
+   * O agrupamento por Universo saiu na F12.1. Com um Universo só, ele
+   * devolvia sempre um grupo — controle que não controla nada.
+   */
   const groups = new Map<string, typeof topics>();
   for (const topic of topics) {
-    const groupKey = keyOf(topic);
-    groups.set(groupKey, [...(groups.get(groupKey) ?? []), topic]);
+    groups.set(topic.community.id, [...(groups.get(topic.community.id) ?? []), topic]);
   }
   return [...groups.entries()].map(([id, items]) => ({ id, topics: items }));
 }

@@ -879,6 +879,59 @@ quase sempre nomeia a causa.
 
 ---
 
+Phelipp pediu de novo em 15 de outubro, depois da rodada de acabamento: achar
+mais jeito de gastar menos **para sobrar orçamento para construir**. Estas
+cinco são o que aquela rodada cobrou caro.
+
+### 7. A suíte inteira roda na CI, não aqui e lá
+
+Rodei as jornadas completas na máquina (9 a 12 minutos) e a CI rodou as
+mesmas logo depois. **Duas execuções para um sinal só**, mais a saída longa de
+cada uma para ler.
+
+**Prática:** durante o trabalho, só o arquivo de teste afetado. O portão é a
+**CI** — rodar a suíte inteira localmente só quando a CI não puder decidir,
+como numa jornada que dependa de serviço que ela não tem.
+
+### 8. Conferir o ambiente antes de abrir a rodada, não no meio
+
+O Docker estava parado e eu só descobri **depois** de implementar. Foram para
+a CI duas regressões que um `test:db` local teria pego na hora: o 404 virando
+200 e o nome do botão de imagem. Custou dois ciclos de CI de 9 minutos, mais
+a correção, mais um terceiro ciclo.
+
+**Prática:** `docker info` antes de começar qualquer trabalho que precise de
+banco. Custa um segundo, e se estiver parado eu aviso **antes**, não depois.
+
+### 9. Log de CI se lê filtrado
+
+Saída de CI tem milhares de linhas e a parte que importa são duas.
+
+**Prática:** `gh run view --log-failed | grep -E "✘|Error:"`, e
+`gh run view --json jobs --jq '...conclusion=="failure"'` para saber qual
+passo caiu. Nunca despejar o arquivo inteiro.
+
+### 10. Ambiguidade se resolve no plano, não no código
+
+A troca das marcas de nível foi pedida, planejada, orçada — e cancelada. Saiu
+barato **porque ainda era texto**. Se eu tivesse implementado antes de
+confirmar, teria custado o código e o desfazimento.
+
+**Prática:** toda leitura dupla que eu perceber vira pergunta **antes** de
+existir código. Pergunta no plano custa uma frase; no código, custa a feature.
+
+### 11. Provar a correção uma vez, com o teste estreito
+
+Reverter o conserto do GIF e ver o teste reprovar — 480 esperado, 1070
+recebido — custou 20 segundos e deu certeza de que o teste guarda alguma
+coisa. Vale manter, e é diferente de rodar a suíte: é **um arquivo**, duas
+vezes.
+
+**Prática:** quando escrever um teste para um defeito, rodar o arquivo com e
+sem a correção. Nunca a suíte.
+
+---
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

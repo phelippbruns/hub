@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SectionTitle, TopicName } from "@/design/components";
 
-export type AgrupamentoDaColecao = "universo" | "comunidade" | "recente";
+export type AgrupamentoDaColecao = "comunidade" | "recente";
 
 type TopicoDaColecao = {
   id: string;
@@ -26,7 +26,6 @@ export function Colecao({
   base: string;
 }) {
   const opcoes: { id: AgrupamentoDaColecao; rotulo: string; marca: string }[] = [
-    { id: "universo", rotulo: "Por Universo", marca: "{" },
     { id: "comunidade", rotulo: "Por comunidade", marca: "#" },
     { id: "recente", rotulo: "Mais recentes", marca: "🕐" },
   ];

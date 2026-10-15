@@ -81,7 +81,12 @@ export async function enderecoDoTopico(topicId: string): Promise<string | null> 
  * está desativado — a tela precisa da razão, não só do booleano, porque o
  * protótipo explica para a pessoa o motivo.
  */
-export async function topicoPorEndereco(viewer: Viewer, comunidade: string, topico: string) {
+export async function topicoPorEndereco(
+  viewer: Viewer,
+  comunidade: string,
+  topico: string,
+  opcoes: { comRespostas?: boolean } = {},
+) {
   const encontrado = await prisma.topic.findFirst({
     where: {
       slug: topico,
@@ -92,7 +97,7 @@ export async function topicoPorEndereco(viewer: Viewer, comunidade: string, topi
   });
   if (!encontrado) throw new NotFoundError("Tópico");
 
-  return getTopicForViewer(viewer, encontrado.id);
+  return getTopicForViewer(viewer, encontrado.id, opcoes);
 }
 
 /**
@@ -102,7 +107,19 @@ export async function topicoPorEndereco(viewer: Viewer, comunidade: string, topi
  * respostas** — elas só aparecem depois do cadastro.
  * RN15: nunca curtida nem contador por resposta; só pessoas e respostas.
  */
-export async function getTopicForViewer(viewer: Viewer, topicId: string) {
+export async function getTopicForViewer(
+  viewer: Viewer,
+  topicId: string,
+  /*
+   * `comRespostas: false` devolve o tópico **sem** a lista.
+   *
+   * A tela usa isso para desenhar o cabeçalho na hora e deixar as respostas
+   * escorrerem num `<Suspense>`: elas são a parte lenta, porque cada imagem
+   * e cada foto de perfil exige uma assinatura no depósito. O padrão é
+   * `true`, então nada que já chamava esta função muda.
+   */
+  { comRespostas = true }: { comRespostas?: boolean } = {},
+) {
   const me = viewerProfileId(viewer);
 
   const topic = await prisma.topic.findFirst({
@@ -146,8 +163,21 @@ export async function getTopicForViewer(viewer: Viewer, topicId: string) {
     /** RN08: só o autor apaga, e só abaixo do limite. */
     podeApagar: souAutor && deOutros < LIMITE_RESPOSTAS_PARA_APAGAR,
     // RN16: a lista de respostas só vem para quem tem conta.
-    answers: me === null ? null : await listAnswers(me, topicId),
+    answers: me === null || !comRespostas ? null : await listAnswers(me, topicId),
+    /** RN16 de novo: distingue "não pode ver" de "não pedi agora". */
+    podeVerRespostas: me !== null,
   };
+}
+
+/**
+ * As respostas de um tópico, para a tela pedir separado do cabeçalho.
+ *
+ * RN16: sem conta, não vem lista nenhuma.
+ */
+export async function respostasDoTopico(viewer: Viewer, topicId: string) {
+  const me = viewerProfileId(viewer);
+  if (me === null) return null;
+  return listAnswers(me, topicId);
 }
 
 /**

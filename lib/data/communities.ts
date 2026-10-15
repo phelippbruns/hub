@@ -19,20 +19,47 @@ import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 export const EXPLORE_MIN_MEMBERS = 0;
 
 /**
- * RN03: toda comunidade exige nome, intro, capa e Universo. Sem capa enviada,
- * usa a capa padrão do Universo.
+ * O Universo único em que toda comunidade nasce (F12.1).
+ *
+ * A coluna `universe_id` continua NOT NULL: a comunidade tem um pai, ele é
+ * que não aparece em lugar nenhum. Ter um nome em vez de um id chumbado é o
+ * que faz isto funcionar em qualquer banco — o local recém-criado, o de
+ * teste e o de produção.
+ */
+export const HUBVERSO = "hubverso";
+
+async function hubverso() {
+  const encontrado = await prisma.universe.findUnique({
+    where: { slug: HUBVERSO },
+    select: { id: true, defaultCoverUrl: true },
+  });
+  if (!encontrado) {
+    // Só acontece em banco sem a migration da F12.1 aplicada.
+    throw new NotFoundError("Hubverso");
+  }
+  return encontrado;
+}
+
+/**
+ * RN03: toda comunidade exige nome, intro e capa. Sem capa enviada, usa a
+ * capa padrão do Hub.
  * RN04: o nome único é garantido pelo índice da migration — a mensagem boa vem
  * da tradução do erro do banco.
  * RN06: quem cria é moderador.
+ *
+ * O Universo saiu da criação na F12.1. Quem ainda mandar um continua sendo
+ * atendido; quem não mandar — que é a tela de hoje — cai no Hubverso.
  */
 export async function createCommunity(viewer: Viewer, input: unknown) {
   const me = requireProfileId(viewer);
   const data = createCommunitySchema.parse(input);
 
-  const universe = await prisma.universe.findUnique({
-    where: { id: data.universeId },
-    select: { id: true, defaultCoverUrl: true },
-  });
+  const universe = data.universeId
+    ? await prisma.universe.findUnique({
+        where: { id: data.universeId },
+        select: { id: true, defaultCoverUrl: true },
+      })
+    : await hubverso();
   if (!universe) throw new NotFoundError("Universo");
 
   try {

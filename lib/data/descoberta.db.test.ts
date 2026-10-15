@@ -11,7 +11,6 @@ import {
   buscarTopicos,
   comunidadesDoUniverso,
   paraVoce,
-  universosComContagem,
 } from "./descoberta";
 import { EXPLORE_MIN_MEMBERS, joinCommunity, listExploreCommunities } from "./communities";
 import { createTopic, createAnswer } from "./topics";
@@ -277,17 +276,5 @@ describe("o que cada tela mostra", () => {
     await joinCommunity(viewerFor(eu.id), comunidade.id);
 
     expect((await paraVoce(viewerFor(eu.id))).map((c) => c.name)).not.toContain("Já Estou");
-  });
-
-  it("a grade de Universos traz a contagem de comunidades", async () => {
-    const universo = await makeUniverse("Música");
-    await comunidadeCom(universo.id, "Uma", 20);
-    await comunidadeCom(universo.id, "Outra", 5);
-
-    const universos = await universosComContagem();
-    const achado = universos.find((u) => u.id === universo.id);
-
-    // A contagem é de tudo que existe; o corte do RN05 vale na listagem.
-    expect(achado?._count.communities).toBe(2);
   });
 });

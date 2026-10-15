@@ -20,11 +20,9 @@ function numero(valor: number) {
  */
 export function LinhaComunidade({
   comunidade,
-  mostrarUniverso = false,
   mostrarRespostasHoje = false,
 }: {
   comunidade: ComunidadeNaLista;
-  mostrarUniverso?: boolean;
   mostrarRespostasHoje?: boolean;
 }) {
   const [membro, setMembro] = useState(comunidade.souMembro);
@@ -60,9 +58,7 @@ export function LinhaComunidade({
       <span className="min-w-0 flex-1">
         <span className="text-bodyStrong text-ink block truncate">{comunidade.name}</span>
         <span className="text-caption text-inkMuted block">
-          {mostrarUniverso ? `{${comunidade.universo.name}, ` : ""}
           {numero(membros)} {membros === 1 ? "membro" : "membros"}
-          {mostrarUniverso ? "" : null}
           {/* Tela 11: membros e respostas de hoje em linhas separadas. */}
           {mostrarRespostasHoje && comunidade.respostasHoje !== undefined ? (
             <>

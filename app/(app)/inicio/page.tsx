@@ -62,8 +62,8 @@ export default async function InicioPage() {
 
         <div className="bg-paper flex flex-col items-center gap-2 rounded-md p-5 text-center">
           <span aria-hidden="true" className="flex gap-1">
-            <LevelMark level="universe" />
             <LevelMark level="community" />
+            <LevelMark level="topic" />
           </span>
           <p className="text-subtitle text-ink">Suas comunidades aparecem aqui</p>
           <p className="text-body text-inkMuted">

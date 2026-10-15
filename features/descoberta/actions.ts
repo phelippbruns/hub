@@ -33,7 +33,6 @@ export async function alternarComunidade(communityId: string, souMembro: boolean
   for (const rota of ["/comunidades", "/busca", "/comunidades/minhas"]) {
     revalidatePath(rota);
   }
-  revalidatePath("/u/[universo]", "page");
 }
 
 /** O olho da linha de pessoa (RN18). */
