@@ -318,4 +318,3 @@ export async function buscarPessoas(viewer: Viewer, termo: string, limite = 20) 
     })),
   );
 }
-

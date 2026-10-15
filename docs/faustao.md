@@ -930,6 +930,18 @@ vezes.
 **Prática:** quando escrever um teste para um defeito, rodar o arquivo com e
 sem a correção. Nunca a suíte.
 
+### 12. `format:check` no repositório inteiro, uma vez, antes do commit
+
+A F12.1 reprovou na CI **só por formatação**: apagar uma função com script
+deixou uma linha em branco a mais, e eu tinha rodado o Prettier só nos
+arquivos que lembrei de listar. Um ciclo de CI de 9 minutos por uma linha
+vazia.
+
+**Prática:** `npm run format:check` sem argumento, uma vez, antes de commitar.
+Conferir arquivo por arquivo depende de lembrar a lista — e a lista cresce a
+cada edição. É a prática 1 de novo, por outro caminho: não confiar no
+silêncio de um script.
+
 ---
 
 ## 7. Placar
