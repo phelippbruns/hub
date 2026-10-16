@@ -785,10 +785,18 @@ quebra ficou mais estreita em produção: antes liberava **qualquer** projeto
 Supabase, agora só o nosso.
 
 Depois disso o canal conectava e o evento ainda não chegava: o serviço de
-Realtime monta a replicação ao subir, e a tabela tinha entrado na publicação
-**depois**. Reiniciar o container resolveu. Em produção o deploy roda a
-migration antes de o app servir, então a ordem é a certa — mas num banco já
-de pé vale saber.
+Realtime monta a replicação ao subir e **não revê a publicação sozinho**. A
+tabela tinha entrado nela depois. Reiniciar o container resolveu aqui — e a
+CI reprovou pelo mesmo motivo, porque lá o Supabase sobe antes das
+migrations. O reinício entrou no preparo das jornadas
+(`e2e/global-setup.ts`), que vale para a CI e para quem roda na máquina — e
+não num passo do workflow, que é o mesmo caso com um lugar a mais para
+esquecer.
+
+**Em produção isto importa na primeira vez.** O projeto Supabase já está de
+pé quando a migration roda; se a Cabine não entregar mensagem depois do
+deploy, é este o motivo, e a saída é reiniciar o Realtime no painel ou
+habilitar a tabela ali.
 
 **Regra:** quando o navegador fala direto com outro serviço, a CSP é parte
 do caminho e precisa ser conferida junto. E recusa de CSP é silenciosa para

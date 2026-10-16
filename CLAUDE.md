@@ -142,7 +142,14 @@ As regras RN01 a RN34 estão em [docs/escopo.md](docs/escopo.md).
 
 **A Cabine é a única tela em que o navegador fala direto com o Supabase.** A conversa assina a tabela `messages` pelo Realtime, com a chave anônima, e **quem autoriza é o RLS** — não a camada de dados. É por isso que `messages_read_member` existe desde a F02: ali ela não é segunda barreira, é a única. Enviar continua sendo Server Action, para a mensagem passar pela validação, pelo bloqueio de links e pela limpeza da imagem antes de existir.
 
-Três coisas precisam estar de pé ao mesmo tempo, e a falta de qualquer uma dá o mesmo sintoma — "a mensagem não chega", sem erro nenhum: a tabela publicada em `supabase_realtime` com `REPLICA IDENTITY FULL` (migration da F13), a CSP liberando o `wss` da origem configurada ([proxy.ts](proxy.ts)), e a sessão carregada **antes** de assinar o canal, senão ele conecta como anônimo e o RLS barra, corretamente.
+Quatro coisas precisam estar de pé ao mesmo tempo, e a falta de qualquer uma dá o mesmo sintoma — "a mensagem não chega", sem erro nenhum:
+
+1. a tabela publicada em `supabase_realtime` com `REPLICA IDENTITY FULL` (migration da F13);
+2. **o serviço de Realtime tendo subido depois dessa publicação.** Ele monta a replicação ao iniciar e não revê a publicação sozinho. Num banco que já estava de pé — a CI, ou sua máquina com o Supabase aberto antes da migration — é preciso reiniciá-lo. As jornadas fazem isso sozinhas em [e2e/global-setup.ts](e2e/global-setup.ts); à mão é `docker restart supabase_realtime_<projeto>`;
+3. a CSP liberando o `wss` da origem configurada ([proxy.ts](proxy.ts));
+4. a sessão carregada **antes** de assinar o canal, senão ele conecta como anônimo e o RLS barra, corretamente.
+
+E a assinatura não reenvia o que passou: ao chegar em `SUBSCRIBED`, a tela busca de novo o que o servidor tem, senão a mensagem enviada entre abrir e assinar some até alguém recarregar.
 
 **O depósito de imagens é privado, e só o servidor fala com ele.** Nada nele é alcançável por endereço direto: a tela recebe uma URL assinada de validade curta, gerada na hora de desenhar. Não existe política de acesso para `authenticated` no Storage, e isso é **proposital** — é o que garante que nenhuma imagem entra sem passar pela conferência de tipo pelos bytes e pela remoção dos metadados de localização ([lib/midia/imagem.ts](lib/midia/imagem.ts)). Acrescentar uma política ali abriria um caminho que contorna a limpeza.
 
