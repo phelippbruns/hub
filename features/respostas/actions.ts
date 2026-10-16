@@ -8,7 +8,7 @@
  * servidor — o navegador não tem caminho até o depósito.
  */
 import { revalidatePath } from "next/cache";
-import { createAnswer, deleteAnswer } from "@/lib/data/topics";
+import { createAnswer, deleteAnswer, pessoasParaMarcar } from "@/lib/data/topics";
 import { getViewer } from "@/lib/auth/session";
 import { UnauthenticatedError } from "@/lib/data/errors";
 import { acharLink } from "@/lib/texto/links";
@@ -121,4 +121,22 @@ export async function apagarResposta(answerId: string, endereco: string) {
   const viewer = await quemPede();
   await deleteAnswer(viewer, answerId);
   revalidatePath(endereco);
+}
+
+export type PessoaSugerida = { handle: string; nome: string };
+
+/**
+ * Quem dá para marcar neste tópico, a partir do que já foi digitado (F15).
+ *
+ * **Só membros daquela comunidade** (item 7 do escopo): marcar é convite,
+ * não intromissão, e sugerir alguém de fora seria oferecer um aviso que o
+ * servidor não vai mandar.
+ *
+ * No servidor, e não filtrando no navegador: a lista de membros não cabe
+ * na tela, e filtrar o que veio é uma busca que mente — foi o que aconteceu
+ * com a busca de pessoas da Cabine.
+ */
+export async function sugerirParaMarcar(topicId: string, termo: string): Promise<PessoaSugerida[]> {
+  const viewer = await quemPede();
+  return pessoasParaMarcar(viewer, topicId, termo);
 }

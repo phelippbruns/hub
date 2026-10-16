@@ -352,6 +352,27 @@ isso: meu acesso não tem permissão para alterar arquivos de workflow.
 Enquanto não for feito, a feature mais delicada do Hub — mensagem privada
 chegando em tempo real — é conferida só na minha máquina.
 
+### 4.7 Web Push: a metade da F15 que ficou para depois — **um passo seu**
+
+A F15 entregou as notificações **dentro do app**: a central, os seis tipos,
+marcar com @ e os interruptores. O que ficou de fora é o aviso chegando no
+aparelho com o app fechado.
+
+Ele foi separado porque depende de três coisas que o resto não depende:
+
+1. **Chaves VAPID**, que você precisa gerar e pôr na Vercel — é o que
+   identifica o Hub para o navegador de quem recebe;
+2. **PWA instalada**: push não chega em aba de navegador comum;
+3. **Não dá para testar aqui nem na CI**, porque o service worker só
+   registra em produção. Seria código indo para produção sem rede.
+
+O trabalho em si é pequeno — **meio dia** —, porque a parte difícil já está
+pronta: `avisar()` é a única porta por onde toda notificação passa, e os
+interruptores já são respeitados ali. O push entra nela.
+
+**Quando quiser fazer:** me diga, eu gero o par de chaves e te mostro
+exatamente onde colar na Vercel.
+
 ### 4.6 Pedidos do PO em 11 de outubro
 
 Cinco pontos levantados depois de usar o Hub em produção. Dois são defeito com
@@ -481,12 +502,12 @@ banco — só trocar o número dele.
 
 ## 5. Fila de features
 
-Feito: **F00 a F14**, contando a F12.1. Faltam 7.
+Feito: **F00 a F15**, contando a F12.1. Faltam 6 — e o Web Push, que saiu da
+F15 e virou rodada própria (seção 4.7).
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
 
-| F15 | Notificações e marcar com @ | F13 | Motivo de voltar |
 | F16 | Denúncia, bloqueio e moderação | F09, F13 | Segurança |
 | F17 | Configurações e LGPD | F15 | Exportar e excluir conta |
 | F18 | Termos e privacidade | F03 | Texto completo — **já destravada**, só falta o texto |

@@ -178,6 +178,51 @@ export async function updateProfile(viewer: Viewer, input: unknown) {
   }
 }
 
+/**
+ * RN34: liga e desliga um tipo de notificação.
+ *
+ * A lista de campos é fechada aqui, e não montada a partir do que chega do
+ * formulário: sem isso, um campo qualquer do perfil viraria alvo de
+ * escrita — `onboardedAt`, `handle`, o que fosse.
+ */
+const CAMPOS_DE_NOTIFICACAO = [
+  "notifyTopicBecameHot",
+  "notifyCabin",
+  "notifyFollowedTopics",
+  "notifyNewTopicInCommunity",
+  "notifyMention",
+] as const;
+
+export type CampoDeNotificacao = (typeof CAMPOS_DE_NOTIFICACAO)[number];
+
+export async function definirPreferenciaDeNotificacao(
+  viewer: Viewer,
+  campo: string,
+  ligado: boolean,
+) {
+  const me = requireProfileId(viewer);
+
+  const valido = CAMPOS_DE_NOTIFICACAO.find((conhecido) => conhecido === campo);
+  if (!valido) throw new ForbiddenError("Preferência de notificação desconhecida");
+
+  await prisma.profile.update({ where: { id: me }, data: { [valido]: ligado } });
+}
+
+/** As cinco escolhas atuais, para a tela desenhar os interruptores. */
+export async function preferenciasDeNotificacao(viewer: Viewer) {
+  const me = requireProfileId(viewer);
+  return prisma.profile.findUniqueOrThrow({
+    where: { id: me },
+    select: {
+      notifyTopicBecameHot: true,
+      notifyCabin: true,
+      notifyFollowedTopics: true,
+      notifyNewTopicInCommunity: true,
+      notifyMention: true,
+    },
+  });
+}
+
 /** RN23: a escolha atual de quem pode me convidar. */
 export async function quemPodeMeConvidar(viewer: Viewer): Promise<"community_members" | "nobody"> {
   const me = requireProfileId(viewer);

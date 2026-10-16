@@ -7,6 +7,7 @@ import { EscolherGif, type GifEscolhido } from "./escolher-gif";
 import { acharLink } from "@/lib/texto/links";
 import { TAMANHO_MAXIMO_EM_MB, problemaNaImagem } from "@/lib/midia/limites";
 import { responder, type EstadoDaResposta } from "./actions";
+import { SugerirMarcacao } from "./sugerir-marcacao";
 
 const LIMITE = 240;
 
@@ -37,6 +38,14 @@ export function CampoDeResposta({
   const [escolhendoGif, setEscolhendoGif] = useState(false);
   const arquivoRef = useRef<HTMLInputElement>(null);
   const idDoLimite = useId();
+  /**
+   * Onde está o cursor, para saber se há um @ sendo escrito (F15).
+   *
+   * `null` quer dizer **fim do texto**, que é onde o cursor está em quase
+   * todo caso — e é o único lugar em que dá para confiar: `onSelect` nem
+   * sempre dispara, e sem essa saída a sugestão nunca aparecia.
+   */
+  const [cursor, setCursor] = useState<number | null>(null);
 
   // Derivado na renderização: função pura do que está escrito.
   const link = texto.trim() ? acharLink(texto) : null;
@@ -100,9 +109,29 @@ export function CampoDeResposta({
         maxLength={LIMITE}
         tall
         value={texto}
-        onValueChange={setTexto}
+        onValueChange={(valor) => {
+          setTexto(valor);
+          // Volta ao fim; se o cursor estiver no meio, o `onSelect` logo
+          // em seguida corrige.
+          setCursor(null);
+        }}
+        onSelect={(evento) => setCursor(evento.currentTarget.selectionStart ?? null)}
         className="w-full"
         error={link ? `Tire o endereço: "${link.trecho}"` : undefined}
+      />
+
+      {/* F15: quem marcar, enquanto o @ está sendo escrito. */}
+      <SugerirMarcacao
+        topicId={topicId}
+        texto={texto}
+        posicaoDoCursor={cursor ?? texto.length}
+        aoEscolher={(handle, inicio, fim) => {
+          // Substitui o pedaço digitado pelo @ inteiro, com um espaço:
+          // sem ele a próxima palavra gruda na marcação.
+          const novo = `${texto.slice(0, inicio)}@${handle} ${texto.slice(fim)}`;
+          setTexto(novo);
+          setCursor(inicio + handle.length + 2);
+        }}
       />
 
       <div className="flex items-center gap-2">

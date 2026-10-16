@@ -46,6 +46,7 @@ async function Respostas({ topicId, endereco }: { topicId: string; endereco: str
           resposta={{
             id: resposta.id,
             texto: resposta.text,
+            mencoes: resposta.mencoes,
             quando: haQuantoTempo(resposta.createdAt),
             souAutor: resposta.souAutor,
             imagem: resposta.mediaHref,

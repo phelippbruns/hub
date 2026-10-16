@@ -11,10 +11,13 @@ import {
 } from "@/design/components";
 import { MoreOptionsIcon } from "@/design/icons";
 import { apagarResposta } from "./actions";
+import { TextoComMencoes } from "@/features/notificacoes/texto-com-mencoes";
 
 export type RespostaNaTela = {
   id: string;
   texto: string;
+  /** Os @ do texto que existem de verdade: só esses viram link (F15). */
+  mencoes: string[];
   quando: string;
   souAutor: boolean;
   imagem: string | null;
@@ -105,7 +108,7 @@ export function LinhaDeResposta({
             ) : null
           }
         >
-          {resposta.texto}
+          <TextoComMencoes texto={resposta.texto} existentes={resposta.mencoes} />
         </AnswerCard>
       </div>
 
