@@ -853,6 +853,29 @@ máquina está mais lenta que a do teste.
 🔒 **Barrado** — a jornada roda em duas abas e foi conferida três vezes
 seguidas; sem a busca ao assinar, ela volta a oscilar.
 
+### Gravar cookie durante a renderização
+
+A tela de convite precisava guardar qual tópico trouxe a pessoa, e eu chamei
+`guardarConvite()` dentro da página. O App Router não permite: cookie se
+grava em Server Action, Route Handler ou proxy — nunca ao renderizar.
+
+O sintoma não ajudou. A página devolveu **"This page couldn't load. A server
+error occurred"**, sem dizer o que, enquanto a página da comunidade, que não
+grava nada, funcionava ao lado. Por um momento pareceu problema do layout
+novo.
+
+*Como resolvi:* quem grava é o proxy, que roda antes de renderizar e já está
+decidindo sobre sessão. De quebra o cookie passou a guardar o **caminho** em
+vez do id, e o fim do onboarding devolve a pessoa ao endereço exato que ela
+abriu.
+
+**Regra:** escrita de cookie é efeito, e efeito não acontece em renderização.
+Quando a mesma página funciona num caso e quebra no outro, comece pela
+diferença entre os dois caminhos, não pela mudança mais recente.
+
+🔒 **Barrado** — a jornada do convite abre o link sem conta; sem o cookie no
+proxy, ela reprova no retorno ao tópico.
+
 ### Componente de cliente puxando o banco
 
 Uma constante compartilhada entre a tela e `lib/data/` foi parar num reexport.

@@ -126,7 +126,22 @@ export async function getTopicForViewer(
     where: { id: topicId, deletedAt: null, community: { deletedAt: null } },
     include: {
       author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
-      community: { select: { id: true, name: true, slug: true, universeId: true } },
+      /*
+       * `intro`, `membersCount` e `coverUrl` entram para a tela de convite
+       * (F14): quem abre o link sem conta vê a comunidade inteira, não só o
+       * nome dela.
+       */
+      community: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          universeId: true,
+          intro: true,
+          membersCount: true,
+          coverUrl: true,
+        },
+      },
     },
   });
 

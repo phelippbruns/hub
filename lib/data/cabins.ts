@@ -587,6 +587,35 @@ export async function quantasPessoas(cabinId: string): Promise<number> {
   return prisma.cabinMember.count({ where: { cabinId, leftAt: null } });
 }
 
+/**
+ * A Cabine aberta que você já divide com esta pessoa, se houver (F14).
+ *
+ * Compartilhar com quem já conversa com você manda o cartão para a conversa
+ * existente, em vez de abrir outra. Só conta Cabine de **duas** pessoas:
+ * mandar um link para um grupo de cinco porque uma delas está lá seria
+ * compartilhar com gente que você não escolheu.
+ */
+export async function cabineAbertaCom(viewer: Viewer, outraPessoa: string): Promise<string | null> {
+  const me = requireProfileId(viewer);
+
+  const minhas = await prisma.cabinMember.findMany({
+    where: {
+      profileId: me,
+      leftAt: null,
+      cabin: {
+        closedAt: null,
+        members: { some: { profileId: outraPessoa, leftAt: null } },
+      },
+    },
+    select: {
+      cabinId: true,
+      cabin: { select: { _count: { select: { members: { where: { leftAt: null } } } } } },
+    },
+  });
+
+  return minhas.find((m) => m.cabin._count.members === 2)?.cabinId ?? null;
+}
+
 /** RN22: quem convidou pode cancelar enquanto o convite estiver aberto. */
 export async function cancelarConvite(viewer: Viewer, inviteId: string): Promise<void> {
   const me = requireProfileId(viewer);

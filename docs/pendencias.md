@@ -481,12 +481,11 @@ banco — só trocar o número dele.
 
 ## 5. Fila de features
 
-Feito: **F00 a F13**, contando a F12.1. Faltam 8.
+Feito: **F00 a F14**, contando a F12.1. Faltam 7.
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
 
-| F14 | Compartilhar e convite por link | F13 | Crescimento |
 | F15 | Notificações e marcar com @ | F13 | Motivo de voltar |
 | F16 | Denúncia, bloqueio e moderação | F09, F13 | Segurança |
 | F17 | Configurações e LGPD | F15 | Exportar e excluir conta |

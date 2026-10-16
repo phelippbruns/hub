@@ -34,10 +34,29 @@ export async function listarComunidadesParaEscolher() {
   });
 }
 
-/** A comunidade do tópico que trouxe a pessoa, para vir marcada como "Do seu convite". */
-export async function comunidadeDoConvite(topicId: string) {
+/**
+ * A comunidade do tópico que trouxe a pessoa, para vir marcada como "Do seu
+ * convite".
+ *
+ * Recebe o **caminho** que ficou no cookie (`/c/<comunidade>/<topico>`), e
+ * não um id: é o endereço que a pessoa abriu, e é para ele que ela volta no
+ * fim do onboarding.
+ *
+ * Aceita id também, pelos convites antigos que apontavam para
+ * `/topico/<id>` — o cookie dura um dia, então essa ponte some sozinha.
+ */
+export async function comunidadeDoConvite(convite: string) {
+  const partes = convite.split("/").filter(Boolean);
+  const porCaminho = partes.length === 3 && partes[0] === "c";
+
   const topic = await prisma.topic.findFirst({
-    where: { id: topicId, deletedAt: null },
+    where: porCaminho
+      ? {
+          slug: partes[2],
+          deletedAt: null,
+          community: { slug: partes[1], deletedAt: null },
+        }
+      : { id: convite, deletedAt: null },
     select: {
       id: true,
       name: true,

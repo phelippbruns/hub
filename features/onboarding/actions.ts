@@ -64,7 +64,9 @@ export async function concluir(formData: FormData): Promise<void> {
   const convite = await lerConvite();
   if (convite) {
     await limparConvite();
-    redirect(`/topico/${convite}`);
+    // Desde a F14 o cookie guarda o caminho. Os antigos guardavam o id, e
+    // `/topico/<id>` continua levando ao tópico — o cookie dura um dia.
+    redirect(convite.startsWith("/") ? convite : `/topico/${convite}`);
   }
 
   redirect("/inicio");
