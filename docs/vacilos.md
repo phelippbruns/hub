@@ -234,7 +234,36 @@ hábito de perguntar "quais funções mudam?" antes de "quantos arquivos citam?"
 
 ---
 
-## 6. Caminho que ninguém abriu
+## 6. Função que existe e não funciona
+
+### A busca de pessoas que só filtrava a primeira página
+
+A tela de nova Cabine trazia as primeiras pessoas por ordem alfabética e
+tinha um campo "Buscar pessoas". O campo filtrava **a lista que já estava na
+tela** — então procurar alguém que não estivesse entre os primeiros nomes
+não encontrava nada.
+
+*O que custou:* nada, porque a jornada pegou antes de ir para produção. Mas
+o modo de falhar é o pior que existe: o campo responde, a lista muda, e a
+pessoa conclui que quem ela procura não está no Hub.
+
+*Por que não apareceu antes:* com poucos dados, filtrar no navegador é
+indistinguível de buscar de verdade. O teste só reprovou porque o seed tem
+gente suficiente para a pessoa procurada ficar fora das primeiras.
+
+*Como ficou:* a busca virou ida ao servidor, com espera de 250 ms para não
+consultar a cada tecla, e a jornada passou a procurar pelo campo em vez de
+clicar na lista.
+
+**Regra:** filtro no navegador só vale quando **tudo** está no navegador. Se
+a lista é paginada ou limitada, filtrar o que veio é uma busca que mente.
+
+💭 **Solto** — nada impede o mesmo atalho numa tela nova. O que protege é
+testar com dados em quantidade, não com dois registros.
+
+---
+
+## 7. Caminho que ninguém abriu
 
 ### Criar tópico sem porta na comunidade
 

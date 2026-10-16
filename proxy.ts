@@ -10,6 +10,38 @@ import { updateSession } from "@/lib/supabase/session";
  * Este arquivo é o `proxy` do Next 16 (antigo `middleware`). Ele também renova
  * a sessão do Supabase a cada requisição.
  */
+/**
+ * De onde o navegador pode falar com o Supabase.
+ *
+ * Era `https://*.supabase.co wss://*.supabase.co`, chumbado. Duas coisas
+ * erradas nisso:
+ *
+ * 1. **O Realtime da Cabine não conectava em desenvolvimento.** O Supabase
+ *    local é `http://127.0.0.1:54321`, que o curinga não cobre. A CSP
+ *    bloqueava o WebSocket, a assinatura falhava com "transport failure" e
+ *    a mensagem simplesmente não chegava — sem nada na tela, sem erro de
+ *    servidor, sem teste vermelho fora do que mede o tempo real.
+ * 2. Em produção, o curinga libera **qualquer** projeto Supabase, não o
+ *    nosso. Derivar do endereço configurado é mais estreito.
+ *
+ * O `wss` sai do mesmo endereço trocando o esquema: é a mesma origem, e é
+ * por onde o Realtime fala.
+ */
+function origensDoSupabase(): string[] {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) return [];
+
+  try {
+    const { origin, host, protocol } = new URL(url);
+    const seguro = protocol === "https:";
+    return [origin, `${seguro ? "wss" : "ws"}://${host}`];
+  } catch {
+    // Endereço malformado não derruba a requisição: o `lib/env.ts` é quem
+    // recusa isso na inicialização, com mensagem clara.
+    return [];
+  }
+}
+
 function buildCsp(nonce: string, isDev: boolean): string {
   // 'unsafe-eval' é exigido pelo React Refresh. Só em desenvolvimento.
   const scriptSrc = [`'self'`, `'nonce-${nonce}'`, `'strict-dynamic'`, isDev ? `'unsafe-eval'` : ""]
@@ -23,7 +55,7 @@ function buildCsp(nonce: string, isDev: boolean): string {
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self' https://fonts.gstatic.com`,
     `img-src 'self' blob: data: https:`,
-    `connect-src 'self' https://*.supabase.co wss://*.supabase.co`,
+    `connect-src ${[`'self'`, ...origensDoSupabase()].join(" ")}`,
     `frame-ancestors 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,

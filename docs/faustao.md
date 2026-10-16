@@ -763,6 +763,96 @@ exceção do `.env.example`.
 
 ## 5. Limites de camada
 
+### A CSP bloqueou o Realtime, e o sintoma foi "a mensagem não chega"
+
+A conversa da Cabine assinava o Supabase e **nada acontecia**. A assinatura
+não dava erro; a mensagem simplesmente não aparecia do outro lado.
+
+A causa estava a três camadas de distância: a Content Security Policy
+liberava `wss://*.supabase.co`, e o Supabase local é `ws://127.0.0.1:54321`.
+O navegador recusava a conexão, e o que sobrava era um canal com estado
+`CHANNEL_ERROR: transport failure` — dentro do console, que ninguém olha.
+
+*Por que passou:* lint, tipos, build, 493 testes de unidade e 258 de banco,
+todos verdes. O RLS estava certo, a publicação estava certa, o código do
+cliente estava certo. **Nada no servidor sabe que o navegador recusou uma
+conexão.** Só a jornada que mede o tempo real pega isso, e só se ela existir
+antes.
+
+*Como resolvi:* a CSP passou a derivar as origens do
+`NEXT_PUBLIC_SUPABASE_URL` configurado, `https` e `wss` da mesma origem. De
+quebra ficou mais estreita em produção: antes liberava **qualquer** projeto
+Supabase, agora só o nosso.
+
+Depois disso o canal conectava e o evento ainda não chegava: o serviço de
+Realtime monta a replicação ao subir e **não revê a publicação sozinho**. A
+tabela tinha entrado nela depois. Reiniciar o container resolveu aqui — e a
+CI reprovou pelo mesmo motivo, porque lá o Supabase sobe antes das
+migrations. O reinício entrou no preparo das jornadas
+(`e2e/global-setup.ts`), que vale para a CI e para quem roda na máquina — e
+não num passo do workflow, que é o mesmo caso com um lugar a mais para
+esquecer.
+
+**Em produção isto importa na primeira vez.** O projeto Supabase já está de
+pé quando a migration roda; se a Cabine não entregar mensagem depois do
+deploy, é este o motivo, e a saída é reiniciar o Realtime no painel ou
+habilitar a tabela ali.
+
+**Regra:** quando o navegador fala direto com outro serviço, a CSP é parte
+do caminho e precisa ser conferida junto. E recusa de CSP é silenciosa para
+o servidor: o teste que a pega é o que exercita o caminho inteiro, no
+navegador.
+
+🔒 **Barrado** — a jornada "a mensagem chega na outra aba sem recarregar"
+reprova sem a assinatura. Conferido nos dois sentidos.
+
+### Consertar instabilidade criando instabilidade
+
+Para a CI enxergar a publicação nova, pus um reinício do Realtime no preparo
+das jornadas. Resolveu um problema e criou outro: **reiniciar a cada
+execução** deixou a jornada passando ou reprovando conforme a sorte, porque
+a replicação leva alguns segundos para subir depois que o container se diz
+saudável.
+
+*Por que passou:* as três execuções seguidas que eu usei como prova
+aconteceram **antes** de eu acrescentar o reinício. Confirmei a correção
+contra um estado que a própria correção mudou.
+
+*Como resolvi:* reiniciar **só quando precisa**, e esperar a condição certa
+— o slot de replicação existir e estar ativo, que dá para perguntar ao
+banco — em vez do "healthy" do container, que vem antes.
+
+**Regra:** quando a correção mexe no ambiente, a prova tem de ser refeita
+**depois** dela. E "o serviço está de pé" quase nunca é a mesma coisa que
+"o serviço está pronto": procure a condição observável que importa.
+
+🔒 **Barrado** — o preparo espera o slot, e a jornada foi conferida três
+vezes seguidas depois da mudança.
+
+### A fresta entre abrir a tela e assinar o canal
+
+A jornada do tempo real passava e reprovava sem padrão. A causa não era o
+teste: entre a tela abrir e o canal conectar existe uma fresta — ler a
+sessão do cookie e subir o WebSocket leva tempo — e **mensagem enviada
+nessa fresta não é reenviada**. O Realtime entrega o que acontece depois da
+assinatura; o que passou sumia até alguém recarregar a página.
+
+*Por que passou:* na máquina, abrir e mandar leva mais tempo do que assinar,
+então quase sempre funciona. É o tipo de defeito que aparece como "teste
+instável" e tenta ser resolvido afrouxando o tempo de espera — o que teria
+escondido um buraco real para quem usa.
+
+*Como resolvi:* ao chegar em `SUBSCRIBED`, a tela busca de novo o que o
+servidor tem. Fecha a fresta, e de quebra traz a imagem assinada e o autor
+resolvido, que o evento cru não carrega.
+
+**Regra:** teste que oscila é hipótese de defeito, não de teste. Antes de
+mexer no tempo de espera, perguntar o que acontece com quem usa quando a
+máquina está mais lenta que a do teste.
+
+🔒 **Barrado** — a jornada roda em duas abas e foi conferida três vezes
+seguidas; sem a busca ao assinar, ela volta a oscilar.
+
 ### Componente de cliente puxando o banco
 
 Uma constante compartilhada entre a tela e `lib/data/` foi parar num reexport.

@@ -335,6 +335,23 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 
 ---
 
+### 4.5.1 A CI não roda o tempo real da Cabine — **um passo seu**
+
+A CI sobe o Supabase com `-x realtime`: o serviço de tempo real **não existe
+lá**. A jornada que prova a Cabine funcionando — duas abas, a mensagem
+chegando sem recarregar — se pula sozinha na CI, dizendo o motivo no
+relatório.
+
+É o mesmo caso do `storage-api` na F09, quando o envio de imagem não podia
+ser testado na CI até o serviço ser ligado. Está no [Faustão](faustao.md).
+
+**O passo:** em `.github/workflows/ci.yml`, tire `realtime,` da linha
+`npx supabase start -x realtime,imgproxy,studio,…`. Eu não consigo fazer
+isso: meu acesso não tem permissão para alterar arquivos de workflow.
+
+Enquanto não for feito, a feature mais delicada do Hub — mensagem privada
+chegando em tempo real — é conferida só na minha máquina.
+
 ### 4.6 Pedidos do PO em 11 de outubro
 
 Cinco pontos levantados depois de usar o Hub em produção. Dois são defeito com
@@ -464,12 +481,11 @@ banco — só trocar o número dele.
 
 ## 5. Fila de features
 
-Feito: **F00 a F12**. Faltam 10, contando a F12.1.
+Feito: **F00 a F13**, contando a F12.1. Faltam 8.
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
-| F12.1 | Fim do Universo e marcas do nível | F12 | Criar comunidade sem escolher Universo — **2 a 3 h**, planejada |
-| F13 | Cabine | F12 | Conversa privada |
+
 | F14 | Compartilhar e convite por link | F13 | Crescimento |
 | F15 | Notificações e marcar com @ | F13 | Motivo de voltar |
 | F16 | Denúncia, bloqueio e moderação | F09, F13 | Segurança |

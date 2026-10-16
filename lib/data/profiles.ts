@@ -178,6 +178,33 @@ export async function updateProfile(viewer: Viewer, input: unknown) {
   }
 }
 
+/** RN23: a escolha atual de quem pode me convidar. */
+export async function quemPodeMeConvidar(viewer: Viewer): Promise<"community_members" | "nobody"> {
+  const me = requireProfileId(viewer);
+  const perfil = await prisma.profile.findUniqueOrThrow({
+    where: { id: me },
+    select: { invitePolicy: true },
+  });
+  return perfil.invitePolicy;
+}
+
+/**
+ * RN23: cada pessoa define quem pode convidá-la para uma Cabine.
+ *
+ * São só dois valores: membros das minhas comunidades, ou ninguém. Não
+ * existe "todo mundo" — convidar já exige comunidade em comum (RN21), então
+ * a escolha é entre o padrão e fechar a porta.
+ */
+export async function definirQuemPodeConvidar(viewer: Viewer, escolha: string) {
+  const me = requireProfileId(viewer);
+
+  if (escolha !== "community_members" && escolha !== "nobody") {
+    throw new ForbiddenError("Escolha inválida para quem pode te convidar");
+  }
+
+  await prisma.profile.update({ where: { id: me }, data: { invitePolicy: escolha } });
+}
+
 /** RN27/RN28: o perfil público. Seguidores são informativos e não abrem lista. */
 export async function getProfileForViewer(viewer: Viewer, handle: string) {
   const profile = await prisma.profile.findFirst({

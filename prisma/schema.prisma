@@ -433,6 +433,8 @@ model CabinMember {
   joinedAt  DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
   /// RN24: quem sai volta só por novo convite.
   leftAt    DateTime? @map("left_at") @db.Timestamptz(6)
+  /// Até quando esta pessoa leu. Nulo = nunca abriu, então tudo conta.
+  lastReadAt DateTime? @map("last_read_at") @db.Timestamptz(6)
 
   cabin   Cabin   @relation(fields: [cabinId], references: [id], onDelete: Cascade)
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
