@@ -36,18 +36,22 @@ export default async function globalSetup() {
     await client.end();
   }
 
-  reiniciarRealtime();
+  await preparaRealtime(url);
 }
 
 /**
- * Reinicia o container do Realtime, se ele existir.
+ * Garante que o Realtime está entregando as mudanças de `messages`.
  *
- * Falhar aqui não derruba a suíte: sem Docker à mão, a jornada do tempo real
- * é a única que depende disso, e ela reprova com a própria mensagem —
- * "a mensagem não chegou pelo Realtime" — que diz mais do que um erro de
- * preparo.
+ * Reinicia **só quando precisa**. Reiniciar a cada execução parecia mais
+ * simples e era pior: a replicação leva alguns segundos para subir depois
+ * que o container se diz saudável, e a jornada passava ou reprovava
+ * conforme a sorte — instabilidade que eu mesmo tinha criado tentando
+ * consertar a instabilidade anterior.
+ *
+ * A condição de pronto não é "o container está de pé": é **o slot de
+ * replicação existir e estar ativo**. Isso dá para perguntar ao banco.
  */
-function reiniciarRealtime() {
+async function preparaRealtime(url: string) {
   try {
     const nome = execFileSync(
       "docker",
@@ -57,22 +61,37 @@ function reiniciarRealtime() {
       .split("\n")[0]
       ?.trim();
 
+    // Sem Realtime de pé — a CI sobe o Supabase com `-x realtime`. A jornada
+    // do tempo real se pula sozinha, dizendo por quê.
     if (!nome) return;
+
+    if (await replicacaoPronta(url)) return;
 
     execFileSync("docker", ["restart", nome], { stdio: "pipe" });
 
-    // Esperar ficar saudável: assinar um Realtime que ainda está subindo
-    // falha do mesmo jeito que não reiniciar.
     for (let i = 0; i < 60; i += 1) {
-      const estado = execFileSync(
-        "docker",
-        ["ps", "--filter", `name=${nome}`, "--format", "{{.Status}}"],
-        { encoding: "utf8" },
-      );
-      if (estado.includes("healthy")) return;
-      execFileSync("sleep", ["2"]);
+      if (await replicacaoPronta(url)) return;
+      await new Promise((pronto) => setTimeout(pronto, 1000));
     }
   } catch {
-    // Sem Docker, ou sem permissão. Ver o comentário acima.
+    // Sem Docker ou sem permissão: quem reprova é a jornada, com uma
+    // mensagem que diz mais do que um erro de preparo.
+  }
+}
+
+/** O slot do postgres_changes existe e está ativo? */
+async function replicacaoPronta(url: string): Promise<boolean> {
+  const client = new pg.Client(url);
+  await client.connect();
+  try {
+    const { rows } = await client.query<{ pronto: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM pg_replication_slots
+          WHERE slot_name LIKE 'supabase_realtime_replication_slot%' AND active
+       ) AS pronto`,
+    );
+    return rows[0]?.pronto === true;
+  } finally {
+    await client.end();
   }
 }

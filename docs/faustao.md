@@ -806,6 +806,29 @@ navegador.
 🔒 **Barrado** — a jornada "a mensagem chega na outra aba sem recarregar"
 reprova sem a assinatura. Conferido nos dois sentidos.
 
+### Consertar instabilidade criando instabilidade
+
+Para a CI enxergar a publicação nova, pus um reinício do Realtime no preparo
+das jornadas. Resolveu um problema e criou outro: **reiniciar a cada
+execução** deixou a jornada passando ou reprovando conforme a sorte, porque
+a replicação leva alguns segundos para subir depois que o container se diz
+saudável.
+
+*Por que passou:* as três execuções seguidas que eu usei como prova
+aconteceram **antes** de eu acrescentar o reinício. Confirmei a correção
+contra um estado que a própria correção mudou.
+
+*Como resolvi:* reiniciar **só quando precisa**, e esperar a condição certa
+— o slot de replicação existir e estar ativo, que dá para perguntar ao
+banco — em vez do "healthy" do container, que vem antes.
+
+**Regra:** quando a correção mexe no ambiente, a prova tem de ser refeita
+**depois** dela. E "o serviço está de pé" quase nunca é a mesma coisa que
+"o serviço está pronto": procure a condição observável que importa.
+
+🔒 **Barrado** — o preparo espera o slot, e a jornada foi conferida três
+vezes seguidas depois da mudança.
+
 ### A fresta entre abrir a tela e assinar o canal
 
 A jornada do tempo real passava e reprovava sem padrão. A causa não era o

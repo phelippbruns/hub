@@ -335,6 +335,23 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 
 ---
 
+### 4.5.1 A CI não roda o tempo real da Cabine — **um passo seu**
+
+A CI sobe o Supabase com `-x realtime`: o serviço de tempo real **não existe
+lá**. A jornada que prova a Cabine funcionando — duas abas, a mensagem
+chegando sem recarregar — se pula sozinha na CI, dizendo o motivo no
+relatório.
+
+É o mesmo caso do `storage-api` na F09, quando o envio de imagem não podia
+ser testado na CI até o serviço ser ligado. Está no [Faustão](faustao.md).
+
+**O passo:** em `.github/workflows/ci.yml`, tire `realtime,` da linha
+`npx supabase start -x realtime,imgproxy,studio,…`. Eu não consigo fazer
+isso: meu acesso não tem permissão para alterar arquivos de workflow.
+
+Enquanto não for feito, a feature mais delicada do Hub — mensagem privada
+chegando em tempo real — é conferida só na minha máquina.
+
 ### 4.6 Pedidos do PO em 11 de outubro
 
 Cinco pontos levantados depois de usar o Hub em produção. Dois são defeito com

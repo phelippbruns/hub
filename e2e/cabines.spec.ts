@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { esperarNoBanco } from "./apoio-banco";
 import { cadastroConcluido, escolherComunidades } from "./apoio-tela";
@@ -13,6 +14,31 @@ import { cadastroConcluido, escolherComunidades } from "./apoio-tela";
 
 function unico(p: string) {
   return `${p}${Date.now() % 100000}${Math.floor(Math.random() * 1000)}`;
+}
+
+/**
+ * O serviço de Realtime está de pé?
+ *
+ * A CI sobe o Supabase com `-x realtime`: o serviço simplesmente não existe
+ * lá. Sem esta porteira, a jornada do tempo real reprovaria sempre na CI
+ * por falta de infraestrutura, e não por defeito — e o hábito de reprovar
+ * por motivo errado é o que ensina a ignorar o vermelho.
+ *
+ * A porteira é **barulhenta de propósito**: o motivo aparece no relatório,
+ * em vez de um teste que some. Para ligar de verdade, tire `realtime` da
+ * lista de exclusões em `.github/workflows/ci.yml`.
+ */
+function temRealtime(): boolean {
+  try {
+    const nomes = execFileSync(
+      "docker",
+      ["ps", "--filter", "name=supabase_realtime", "--format", "{{.Names}}"],
+      { encoding: "utf8" },
+    );
+    return nomes.trim().length > 0;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -147,6 +173,11 @@ test.describe("convidar e aceitar", () => {
 
 test.describe("a conversa em tempo real", () => {
   test("a mensagem chega na outra aba sem recarregar", async ({ page, browser }) => {
+    test.skip(
+      !temRealtime(),
+      "o serviço de Realtime não está de pé (a CI sobe o Supabase com -x realtime)",
+    );
+
     await entrarNoApp(page, "tempo");
     const outra = await outraSessao(browser, "real");
 
