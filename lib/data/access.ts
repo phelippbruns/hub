@@ -43,6 +43,29 @@ export async function requireActiveMembership(profileId: string, communityId: st
   return membership;
 }
 
+/**
+ * As comunidades que duas pessoas dividem, pelo nome.
+ *
+ * O convite de Cabine mostra "Comunidades em comum: Música Eletrônica,
+ * Vinil" — é o que explica para quem recebe **por que** aquela pessoa pode
+ * convidá-la (RN21). Sem isso o convite chega sem contexto nenhum.
+ */
+export async function comunidadesEmComum(
+  a: string,
+  b: string,
+): Promise<{ id: string; name: string; slug: string }[]> {
+  const comunidades = await prisma.community.findMany({
+    where: {
+      deletedAt: null,
+      memberships: { some: { profileId: a, bannedAt: null } },
+      AND: { memberships: { some: { profileId: b, bannedAt: null } } },
+    },
+    select: { id: true, name: true, slug: true },
+    orderBy: [{ membersCount: "desc" }, { name: "asc" }],
+  });
+  return comunidades;
+}
+
 /** RN21: só convida quem divide ao menos uma comunidade com você. */
 export async function sharesCommunity(a: string, b: string): Promise<boolean> {
   const shared = await prisma.membership.findFirst({

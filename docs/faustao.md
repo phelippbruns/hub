@@ -763,6 +763,41 @@ exceção do `.env.example`.
 
 ## 5. Limites de camada
 
+### A CSP bloqueou o Realtime, e o sintoma foi "a mensagem não chega"
+
+A conversa da Cabine assinava o Supabase e **nada acontecia**. A assinatura
+não dava erro; a mensagem simplesmente não aparecia do outro lado.
+
+A causa estava a três camadas de distância: a Content Security Policy
+liberava `wss://*.supabase.co`, e o Supabase local é `ws://127.0.0.1:54321`.
+O navegador recusava a conexão, e o que sobrava era um canal com estado
+`CHANNEL_ERROR: transport failure` — dentro do console, que ninguém olha.
+
+*Por que passou:* lint, tipos, build, 493 testes de unidade e 258 de banco,
+todos verdes. O RLS estava certo, a publicação estava certa, o código do
+cliente estava certo. **Nada no servidor sabe que o navegador recusou uma
+conexão.** Só a jornada que mede o tempo real pega isso, e só se ela existir
+antes.
+
+*Como resolvi:* a CSP passou a derivar as origens do
+`NEXT_PUBLIC_SUPABASE_URL` configurado, `https` e `wss` da mesma origem. De
+quebra ficou mais estreita em produção: antes liberava **qualquer** projeto
+Supabase, agora só o nosso.
+
+Depois disso o canal conectava e o evento ainda não chegava: o serviço de
+Realtime monta a replicação ao subir, e a tabela tinha entrado na publicação
+**depois**. Reiniciar o container resolveu. Em produção o deploy roda a
+migration antes de o app servir, então a ordem é a certa — mas num banco já
+de pé vale saber.
+
+**Regra:** quando o navegador fala direto com outro serviço, a CSP é parte
+do caminho e precisa ser conferida junto. E recusa de CSP é silenciosa para
+o servidor: o teste que a pega é o que exercita o caminho inteiro, no
+navegador.
+
+🔒 **Barrado** — a jornada "a mensagem chega na outra aba sem recarregar"
+reprova sem a assinatura. Conferido nos dois sentidos.
+
 ### Componente de cliente puxando o banco
 
 Uma constante compartilhada entre a tela e `lib/data/` foi parar num reexport.

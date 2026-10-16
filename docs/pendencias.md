@@ -464,12 +464,11 @@ banco — só trocar o número dele.
 
 ## 5. Fila de features
 
-Feito: **F00 a F12**. Faltam 10, contando a F12.1.
+Feito: **F00 a F13**, contando a F12.1. Faltam 8.
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
-| F12.1 | Fim do Universo e marcas do nível | F12 | Criar comunidade sem escolher Universo — **2 a 3 h**, planejada |
-| F13 | Cabine | F12 | Conversa privada |
+
 | F14 | Compartilhar e convite por link | F13 | Crescimento |
 | F15 | Notificações e marcar com @ | F13 | Motivo de voltar |
 | F16 | Denúncia, bloqueio e moderação | F09, F13 | Segurança |
