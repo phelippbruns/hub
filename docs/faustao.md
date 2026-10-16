@@ -798,6 +798,30 @@ navegador.
 🔒 **Barrado** — a jornada "a mensagem chega na outra aba sem recarregar"
 reprova sem a assinatura. Conferido nos dois sentidos.
 
+### A fresta entre abrir a tela e assinar o canal
+
+A jornada do tempo real passava e reprovava sem padrão. A causa não era o
+teste: entre a tela abrir e o canal conectar existe uma fresta — ler a
+sessão do cookie e subir o WebSocket leva tempo — e **mensagem enviada
+nessa fresta não é reenviada**. O Realtime entrega o que acontece depois da
+assinatura; o que passou sumia até alguém recarregar a página.
+
+*Por que passou:* na máquina, abrir e mandar leva mais tempo do que assinar,
+então quase sempre funciona. É o tipo de defeito que aparece como "teste
+instável" e tenta ser resolvido afrouxando o tempo de espera — o que teria
+escondido um buraco real para quem usa.
+
+*Como resolvi:* ao chegar em `SUBSCRIBED`, a tela busca de novo o que o
+servidor tem. Fecha a fresta, e de quebra traz a imagem assinada e o autor
+resolvido, que o evento cru não carrega.
+
+**Regra:** teste que oscila é hipótese de defeito, não de teste. Antes de
+mexer no tempo de espera, perguntar o que acontece com quem usa quando a
+máquina está mais lenta que a do teste.
+
+🔒 **Barrado** — a jornada roda em duas abas e foi conferida três vezes
+seguidas; sem a busca ao assinar, ela volta a oscilar.
+
 ### Componente de cliente puxando o banco
 
 Uma constante compartilhada entre a tela e `lib/data/` foi parar num reexport.

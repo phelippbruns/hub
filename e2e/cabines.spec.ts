@@ -15,12 +15,20 @@ function unico(p: string) {
   return `${p}${Date.now() % 100000}${Math.floor(Math.random() * 1000)}`;
 }
 
-/** Cria conta e passa pelo onboarding. Devolve o @ de quem entrou. */
-async function entrarNoApp(page: Page, prefixo: string): Promise<string> {
+/**
+ * Cria conta e passa pelo onboarding. Devolve o @ e o nome de quem entrou.
+ *
+ * O nome é **único**, e não "Pessoa <papel>": a CI repete cada teste que
+ * falha, e cada repetição deixava mais uma "Pessoa real" no banco. O clique
+ * pelo nome então achava três, quatro, cinco pessoas e reprovava por
+ * ambiguidade, não pelo que o teste queria verificar.
+ */
+async function entrarNoApp(page: Page, prefixo: string): Promise<{ handle: string; nome: string }> {
   const handle = unico("c").slice(0, 20);
+  const nome = `Pessoa ${unico(prefixo)}`;
 
   await page.goto("/criar-conta");
-  await page.getByLabel("Nome completo").fill(`Pessoa ${prefixo}`);
+  await page.getByLabel("Nome completo").fill(nome);
   await page.getByLabel("Email").fill(`${unico(prefixo)}@teste.hub`);
   await page.getByLabel("@").fill(handle);
   await page.getByLabel("Senha", { exact: true }).fill("senhaboa123");
@@ -44,15 +52,15 @@ async function entrarNoApp(page: Page, prefixo: string): Promise<string> {
   await page.getByRole("button", { name: "Agora não" }).click();
   await expect(page).toHaveURL(/\/inicio/);
 
-  return handle;
+  return { handle, nome };
 }
 
 /** Uma segunda pessoa, em sessão própria. */
 async function outraSessao(browser: Browser, prefixo: string) {
   const contexto = await browser.newContext();
   const page = await contexto.newPage();
-  const handle = await entrarNoApp(page, prefixo);
-  return { contexto, page, handle };
+  const { handle, nome } = await entrarNoApp(page, prefixo);
+  return { contexto, page, handle, nome };
 }
 
 /** Convida pela tela 18 e devolve quando o convite estiver no banco. */
@@ -77,12 +85,12 @@ test.describe("convidar e aceitar", () => {
     const outra = await outraSessao(browser, "aceita");
 
     try {
-      await convidar(page, `Pessoa aceita`, "vi sua resposta, bora conversar?");
+      await convidar(page, outra.nome, "vi sua resposta, bora conversar?");
 
       // Quem convidou ainda não tem conversa nenhuma: a Cabine não começou.
       await expect(page.getByText("Nenhuma conversa ainda")).toBeVisible();
       // Mas vê que o convite saiu, com a opção de cancelar (RN22).
-      await expect(page.getByText("Convite para Pessoa aceita")).toBeVisible();
+      await expect(page.getByText(`Convite para ${outra.nome}`)).toBeVisible();
 
       // Quem recebeu vê o convite, com a mensagem.
       await outra.page.goto("/cabines");
@@ -114,7 +122,7 @@ test.describe("convidar e aceitar", () => {
     const outra = await outraSessao(browser, "recusa");
 
     try {
-      await convidar(page, "Pessoa recusa", "oi");
+      await convidar(page, outra.nome, "oi");
 
       await outra.page.goto("/cabines");
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
@@ -143,7 +151,7 @@ test.describe("a conversa em tempo real", () => {
     const outra = await outraSessao(browser, "real");
 
     try {
-      await convidar(page, "Pessoa real", "bora");
+      await convidar(page, outra.nome, "bora");
 
       await outra.page.goto("/cabines");
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
@@ -182,7 +190,7 @@ test.describe("a conversa em tempo real", () => {
     const estranha = await outraSessao(browser, "fora");
 
     try {
-      await convidar(page, "Pessoa aceitou", "oi");
+      await convidar(page, outra.nome, "oi");
       await outra.page.goto("/cabines");
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Aceitar" }).click();
@@ -206,17 +214,15 @@ test.describe("RN23: quem pode te convidar", () => {
     page,
     browser,
   }) => {
-    await entrarNoApp(page, "fechada");
+    const eu = await entrarNoApp(page, "fechada");
     const outra = await outraSessao(browser, "tentando");
 
     try {
       // Antes: ela aparece para ser convidada.
       await outra.page.goto("/cabines/nova");
-      await outra.page.getByLabel("Buscar pessoas").fill("Pessoa fechada");
+      await outra.page.getByLabel("Buscar pessoas").fill(eu.nome);
       await expect(
-        outra.page.getByRole("group", { name: "Pessoas" }).getByRole("button", {
-          name: "Pessoa fechada",
-        }),
+        outra.page.getByRole("group", { name: "Pessoas" }).getByRole("button", { name: eu.nome }),
       ).toBeVisible();
 
       await page.goto("/configuracoes");
@@ -225,7 +231,7 @@ test.describe("RN23: quem pode te convidar", () => {
 
       // Depois: some da lista, em vez de recusar só na hora de enviar.
       await outra.page.goto("/cabines/nova");
-      await outra.page.getByLabel("Buscar pessoas").fill("Pessoa fechada");
+      await outra.page.getByLabel("Buscar pessoas").fill(eu.nome);
       await expect(outra.page.getByText("Nenhuma pessoa com esse nome.")).toBeVisible();
     } finally {
       await outra.contexto.close();

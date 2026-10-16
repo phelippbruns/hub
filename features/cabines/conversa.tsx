@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export type MensagemNaTela = {
@@ -48,6 +49,7 @@ export function Conversa({
   iniciais: MensagemNaTela[];
   meuId: string;
 }) {
+  const router = useRouter();
   const [mensagens, setMensagens] = useState(iniciais);
 
   /*
@@ -80,14 +82,28 @@ export function Conversa({
       if (!valeu) return;
       const token = data.session?.access_token;
       if (token) supabase.realtime.setAuth(token);
-      canal = assinar(supabase, cabinId, meuId, setMensagens);
+      canal = assinar(supabase, cabinId, meuId, setMensagens, () => {
+        /*
+         * Assinou: buscar de novo o que o servidor tem.
+         *
+         * Entre a tela abrir e o canal conectar existe uma fresta — ler a
+         * sessão do cookie e subir o WebSocket leva tempo. Mensagem enviada
+         * nessa fresta **não é reenviada**: o Realtime entrega o que
+         * acontece depois da assinatura, e o que passou sumiria até alguém
+         * recarregar a página.
+         *
+         * Uma ida ao servidor ao assinar fecha a fresta, e de quebra traz a
+         * imagem assinada e o autor resolvido.
+         */
+        router.refresh();
+      });
     });
 
     return () => {
       valeu = false;
       if (canal) void supabase.removeChannel(canal);
     };
-  }, [cabinId, meuId]);
+  }, [cabinId, meuId, router]);
 
   if (mensagens.length === 0) {
     return <p className="text-caption text-inkMuted">Nenhuma mensagem ainda. Diga alguma coisa.</p>;
@@ -108,6 +124,7 @@ function assinar(
   cabinId: string,
   meuId: string,
   setMensagens: Dispatch<SetStateAction<MensagemNaTela[]>>,
+  aoAssinar: () => void,
 ) {
   return supabase
     .channel(`cabine:${cabinId}`)
@@ -148,7 +165,9 @@ function assinar(
         });
       },
     )
-    .subscribe();
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") aoAssinar();
+    });
 }
 
 function LinhaDeMensagem({ mensagem }: { mensagem: MensagemNaTela }) {
