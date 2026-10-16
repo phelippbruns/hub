@@ -67,7 +67,13 @@ export async function meuHandle(viewer: Viewer): Promise<string> {
 }
 
 export async function getProfileByAuthId(authUserId: string) {
-  return prisma.profile.findUnique({ where: { id: authUserId } });
+  return prisma.profile.findUnique({
+    where: { id: authUserId },
+    // O banimento da plataforma vem junto, e não numa segunda consulta: ele
+    // é lido em toda requisição, e a sessão é o único lugar onde adianta
+    // conferir — barrar só nas escritas deixaria a pessoa banida circulando.
+    include: { platformBan: { select: { createdAt: true } } },
+  });
 }
 
 /**

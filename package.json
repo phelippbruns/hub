@@ -30,6 +30,7 @@
     "db:deploy:remoto": "node scripts/migrar-producao.mts",
     "conteudo:inicial": "node scripts/conteudo-inicial.mts",
     "moderacao:atribuir": "node scripts/atribuir-moderacao.mts",
+    "banir:plataforma": "node scripts/banir-plataforma.mts",
     "ciclo:rodar": "node --env-file-if-exists=.env.local scripts/rodar-ciclo.mts"
   },
   "dependencies": {

@@ -248,6 +248,19 @@ Para aplicar à mão num banco remoto, `npm run db:deploy:remoto`.
 
 **Comunidade sem moderador é um buraco.** A RN06 liga a moderação a quem criou, e as comunidades da plataforma nascem sem criador — ou seja, sem ninguém para atender denúncia. `npm run moderacao:atribuir` dá um dono às que estão órfãs, e só a elas. É a ponte até a plataforma ter um dono de moderação próprio.
 
+**Banir da plataforma é script, não tela.** `npm run banir:plataforma` grava
+(ou tira) a linha em `platform_bans`, e `getViewer()` passa a tratar a pessoa
+como visitante — ela não escreve em lugar nenhum, porque toda escrita começa
+por esse `Viewer`. A conta continua existindo: o histórico da moderação
+depende dela. Banir de uma comunidade é outra coisa, e essa tem tela
+(`/c/<comunidade>/moderar`).
+
+**Denúncia feita dentro da Cabine é sobre a pessoa, nunca sobre a conversa.**
+Nenhuma mensagem viaja para a moderação, nem como prova: o servidor não
+entrega conversa de Cabine a quem não participa (RN27), e abrir exceção para
+a moderação quebraria a promessa para todo mundo — inclusive para quem nunca
+denunciou nada. O alvo `message` do enum existe e fica sem uso de propósito.
+
 **Banco novo também precisa de conteúdo.** `npm run conteudo:inicial` acrescenta o Hubverso e as comunidades de partida. Diferente de `npm run db:seed`, que é de desenvolvimento e **trunca tudo**, este só acrescenta — roda quantas vezes quiser, em qualquer ambiente. Sem ele o onboarding é impossível de concluir, porque a RN31 exige escolher 3 comunidades.
 
 **`DIRECT_URL` é o pooler de sessão, não a conexão direta.** `db.PROJETO.supabase.co` só responde em IPv6, e ambientes de build como a Vercel são IPv4: de lá ela falha com `P1001: Can't reach database server`. Funciona da máquina de quem tem IPv6, que é como o erro passa despercebido.

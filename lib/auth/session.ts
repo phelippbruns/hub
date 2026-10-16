@@ -27,6 +27,12 @@ export const getViewer = cache(async (): Promise<Viewer> => {
   const profile = await getProfileByAuthId(user.id);
   if (!profile || profile.deletedAt) return anonymous;
 
+  // Banida da plataforma: para o Hub, é como não ter sessão. A conta
+  // continua existindo, porque o histórico da moderação depende dela, mas
+  // não age em lugar nenhum — e nenhuma escrita escapa, já que todas
+  // começam por este `Viewer`.
+  if (profile.platformBan) return anonymous;
+
   return viewerFor(profile.id);
 });
 

@@ -24,6 +24,8 @@ const TABLES = [
   "analytics_events",
   "notifications",
   "moderation_actions",
+  "moderator_invites",
+  "platform_bans",
   "reports",
   "blocks",
   "messages",

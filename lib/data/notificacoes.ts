@@ -24,7 +24,8 @@ export type TipoDeNotificacao =
   | "followed_topics_digest"
   | "new_topic_in_community"
   | "mention"
-  | "content_removed";
+  | "content_removed"
+  | "moderation_changed";
 
 type Preferencias = {
   notifyTopicBecameHot: boolean;
@@ -55,7 +56,10 @@ function querReceber(tipo: TipoDeNotificacao, prefs: Preferencias): boolean {
     case "mention":
       return prefs.notifyMention;
     case "content_removed":
-      // RN33: remoção pela moderação sempre avisa — é obrigação, não opção.
+    case "moderation_changed":
+      // RN33: o que a moderação faz com você sempre avisa — é obrigação,
+      // não opção. Descobrir sozinho que seu conteúdo sumiu, ou que você
+      // virou responsável por uma comunidade, é pior do que o aviso.
       return true;
   }
 }
@@ -177,6 +181,7 @@ const EH_PESSOAL = new Set<TipoDeNotificacao>([
   "cabin_message",
   "mention",
   "content_removed",
+  "moderation_changed",
 ]);
 
 type Resolvidos = {
@@ -202,8 +207,24 @@ function textoDe(tipo: TipoDeNotificacao, { topico, comunidade, quem, dados }: R
       return `${nomeDeQuem} marcou você em "${nomeDoTopico}".`;
     case "new_topic_in_community":
       return `Novo tópico em ${nomeDaComunidade}: "${nomeDoTopico}".`;
-    case "content_removed":
-      return `A moderação removeu seu conteúdo${dados.motivo ? `: ${dados.motivo}` : "."}`;
+    case "content_removed": {
+      // Dizer **o que** sumiu, e não "seu conteúdo": quem recebe precisa
+      // saber se perdeu a resposta de hoje ou o tópico que abriu na semana
+      // passada, senão vai procurar os dois.
+      const oQue =
+        dados.tipo === "topic"
+          ? "Seu tópico foi removido"
+          : dados.tipo === "answer"
+            ? "Sua resposta foi removida"
+            : "Algo seu foi removido";
+      return `${oQue} de ${nomeDaComunidade}${
+        dados.motivo ? `: ${dados.motivo.toLowerCase()}.` : "."
+      }`;
+    }
+    case "moderation_changed":
+      return dados.convite === "sim"
+        ? `Você foi convidado para moderar ${nomeDaComunidade}.`
+        : `Você não modera mais ${nomeDaComunidade}. Continua membro.`;
     case "followed_topics_digest": {
       const quantas = Number(dados.respostas ?? 0);
       const topicos = Number(dados.topicos ?? 0);

@@ -102,6 +102,8 @@ export type PaginaDaComunidade = {
   universo: { id: string; name: string; slug: string };
   souMembro: boolean;
   souModerador: boolean;
+  /** Banida daqui: a porta não se abre, e dizer isso é melhor que um erro. */
+  estouBanida: boolean;
   moderadores: { id: string; name: string; handle: string }[];
 };
 
@@ -154,6 +156,7 @@ export async function paginaDaComunidade(
     universo: comunidade.universe,
     souMembro: Boolean(minha && !minha.bannedAt),
     souModerador: minha?.role === "moderator" && !minha.bannedAt,
+    estouBanida: Boolean(minha?.bannedAt),
     moderadores: comunidade.memberships.map((m) => m.profile),
   };
 }
