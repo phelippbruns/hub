@@ -725,6 +725,29 @@ com razão, mesmo o valor sendo público e idêntico em toda máquina.
 
 🔒 **Barrado** — a proteção de push do GitHub recusa segredo no repositório.
 
+### Editar migration que já rodou
+
+Precisei de uma coluna nova e acrescentei o `ALTER TABLE` no fim da
+migration que eu tinha escrito dez minutos antes. `npm run db:deploy`
+respondeu **"No pending migrations to apply"** e seguiu em frente: o Prisma
+controla migration por **pasta**, não por conteúdo, então um arquivo já
+aplicado é ignorado para sempre.
+
+*Por que passou:* `typecheck` ficou verde, porque ele lê o `schema.prisma`,
+não o banco. O código compilava falando de uma coluna que não existia. Só
+um teste de banco pegaria — e eu ainda não tinha escrito o dessa parte.
+
+*Como resolvi:* migration nova, e conferência direta no
+`information_schema` para ver a coluna existindo de verdade, em vez de
+confiar no "aplicadas com sucesso".
+
+**Regra:** migration aplicada é imutável. Precisou de mais? Pasta nova. E
+depois de mexer no banco, pergunte **ao banco** se a mudança está lá — o
+schema é a intenção, não o fato.
+
+👁 **Atenção** — nada compara o schema com o banco. Um `prisma migrate diff`
+na CI viraria 🔒.
+
 ### `INSERT` cru esquecendo `updated_at`
 
 `@updatedAt` do Prisma é preenchido pelo cliente, então a coluna é `NOT NULL`
@@ -1081,6 +1104,52 @@ cada edição. É a prática 1 de novo, por outro caminho: não confiar no
 silêncio de um script.
 
 ---
+
+### Descontar no código o que o gatilho do banco já desconta
+
+Na F16, `removerMembro` apagava a linha de `memberships` **e** mandava
+`membersCount` diminuir um. O banco tem `memberships_count_sync` desde a F02,
+um gatilho que já desconta na exclusão. Resultado: cada remoção tirava **duas
+pessoas** da contagem da comunidade.
+
+*Por que passou:* lint, tipos e as 535 regras passaram. A contagem não quebra
+nada — ela só fica errada, descendo até zero sem ninguém reclamar. Quem pegou
+foi um teste de banco escrito no mesmo dia, que lia a contagem antes e depois.
+
+*Como resolvi:* o desconto ficou **só** onde o gatilho não enxerga. Remover
+apaga a linha e deixa o gatilho trabalhar; banir mantém a linha com a data —
+não é exclusão, o gatilho não dispara — e aí sim o código desconta, na mesma
+transação.
+
+**Regra:** antes de somar ou subtrair um contador, pergunte ao banco quem já
+mexe nele: `pg_trigger` sobre a tabela responde em dez segundos. Contador é o
+tipo de erro que não derruba nada e fica errado para sempre.
+
+👁 **Atenção** — hoje existem dois testes, um para cada caminho. Barreira de
+verdade seria a contagem viver só no gatilho.
+
+---
+
+### Oferecer a porta a quem está banido
+
+Depois de banir alguém da comunidade, a página dela continuava mostrando
+"Entrar em <comunidade>" para a pessoa banida. O servidor recusava, como
+devia — mas o que a pessoa via era um botão que só devolvia erro.
+
+*Por que passou:* a camada de dados estava certa e tinha teste ("banido não
+entra de novo", verde). O que faltava não era a regra: era a tela saber da
+regra. `paginaDaComunidade` devolvia `souMembro: false` para banido e para
+quem nunca entrou — dois estados diferentes com a mesma resposta.
+
+*Como resolvi:* `estouBanida` virou campo próprio, e no lugar da porta a tela
+diz "Você não pode entrar nesta comunidade." A jornada confere os dois: a
+frase aparece e a porta não.
+
+**Regra:** quando o servidor passa a recusar alguma coisa, procure a tela que
+ainda a oferece. Regra nova no banco quase sempre deixa um botão órfão.
+
+🔒 **Barrado** — a jornada da F16 falha se a porta voltar.
+
 
 ## 7. Placar
 

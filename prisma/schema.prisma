@@ -145,6 +145,8 @@ enum NotificationKind {
   content_removed
   /// F15: alguém te marcou com @ numa resposta ou num tópico.
   mention
+  /// F16: você entrou ou saiu da moderação de uma comunidade.
+  moderation_changed
 
   @@map("notification_kind")
 }
@@ -226,6 +228,9 @@ model Profile {
   mutesReceived      Mute[]            @relation("Muted")
   reports            Report[]
   moderationActions  ModerationEntry[]
+  modInvitesSent     ModeratorInvite[] @relation("ModInviter")
+  modInvitesReceived ModeratorInvite[] @relation("ModInvitee")
+  platformBan        PlatformBan?
   notifications      Notification[]
   analyticsEvents    AnalyticsEvent[]
 
@@ -280,6 +285,8 @@ model Community {
   hotTopics         HotTopic[]
   follows           Follow[]
   moderationActions ModerationEntry[]
+  modInvites        ModeratorInvite[]
+  reports           Report[]
   sharedInMessages  Message[]
 
   @@unique([nameNormalized])
@@ -531,9 +538,44 @@ model Block {
   @@map("blocks")
 }
 
+/// F16: convite para moderar, que precisa ser aceito.
+///
+/// Moderar é trabalho, e ninguém vira responsável por uma comunidade sem
+/// querer. Tabela própria porque `CabinInvite` aponta para uma Cabine.
+model ModeratorInvite {
+  id          String       @id @default(uuid()) @db.Uuid
+  communityId String       @map("community_id") @db.Uuid
+  inviterId   String?      @map("inviter_id") @db.Uuid
+  inviteeId   String       @map("invitee_id") @db.Uuid
+  status      InviteStatus @default(pending)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  respondedAt DateTime?    @map("responded_at") @db.Timestamptz(6)
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  inviter   Profile?  @relation("ModInviter", fields: [inviterId], references: [id], onDelete: SetNull)
+  invitee   Profile   @relation("ModInvitee", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@index([inviteeId, status])
+  @@map("moderator_invites")
+}
+
+/// Banimento da plataforma: ação exclusiva do Hub, operada por script.
+model PlatformBan {
+  profileId String   @id @map("profile_id") @db.Uuid
+  reason    String?  @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("platform_bans")
+}
+
 model Report {
   id         String       @id @default(uuid()) @db.Uuid
   reporterId String?      @map("reporter_id") @db.Uuid
+  /// RN06: a moderação é por comunidade. Resolvida ao denunciar, porque o
+  /// conteúdo pode sumir depois e a denúncia não pode ficar órfã.
+  communityId String?     @map("community_id") @db.Uuid
   target     ReportTarget
   targetId   String       @map("target_id") @db.Uuid
   /// Motivo fixo, de uma lista; o texto livre fica em `details`.
@@ -542,9 +584,11 @@ model Report {
   status     ReportStatus @default(open)
   createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  reporter Profile? @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  reporter  Profile?   @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  community Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
 
   @@index([target, targetId])
+  @@index([communityId, status, createdAt])
   @@index([status, createdAt])
   @@map("reports")
 }

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ContentColumn, EmptyState, PageTitle, SectionTitle } from "@/design/components";
 import { getViewer } from "@/lib/auth/session";
 import { listarNotificacoes, marcarNotificacoesComoLidas } from "@/lib/data/notificacoes";
+import { convitesParaModerar } from "@/lib/data/moderacao";
+import { ConvitesParaModerar } from "@/features/moderacao/convites";
 import { haQuantoTempo } from "@/lib/tempo";
 
 export const metadata: Metadata = { title: "Notificações · Hub" };
@@ -20,6 +22,9 @@ export const metadata: Metadata = { title: "Notificações · Hub" };
 export default async function NotificacoesPage() {
   const viewer = await getViewer();
   const notificacoes = await listarNotificacoes(viewer);
+  // Convite de moderação precisa de resposta, e o aviso sozinho não tem
+  // onde responder: ele aparece em cima, com os dois botões.
+  const convites = viewer.kind === "member" ? await convitesParaModerar(viewer) : [];
 
   // Sem `await`: marcar não pode atrasar a tela, e se falhar o pior que
   // acontece é o ponto continuar lá na próxima visita.
@@ -37,7 +42,11 @@ export default async function NotificacoesPage() {
     <ContentColumn>
       <PageTitle>Notificações</PageTitle>
 
-      {notificacoes.length === 0 ? (
+      <ConvitesParaModerar
+        convites={convites.map((c) => ({ id: c.id, comunidade: c.community.name }))}
+      />
+
+      {notificacoes.length === 0 && convites.length === 0 ? (
         <EmptyState
           title="Nada por aqui"
           description="Avisos sobre o seu tópico, convites de Cabine e quando alguém te marca aparecem nesta tela."

@@ -6,7 +6,7 @@ import { BottomSheet, Button, ConfirmSheet, RoundIconButton } from "@/design/com
 import { MoreOptionsIcon } from "@/design/icons";
 import { bloquearDaCabine, sairDaCabine } from "./actions";
 
-export type ParticipanteNoMenu = { id: string; nome: string; souEu: boolean };
+export type ParticipanteNoMenu = { id: string; nome: string; handle: string; souEu: boolean };
 
 /**
  * O menu da Cabine (tela 20).
@@ -49,12 +49,19 @@ export function MenuDaCabine({
               </Button>
             </Link>
 
-            {/* Ligado na F16, como nas outras telas. */}
-            <Link href={`/denuncia?cabine=${cabinId}`}>
-              <Button variant="secondary" className="w-full">
-                Denunciar
-              </Button>
-            </Link>
+            {/*
+             * Denunciar aqui é sobre **a pessoa**, nunca sobre a conversa.
+             * Nem o servidor entrega mensagem de Cabine a quem não participa
+             * (RN27), e abrir exceção para a moderação quebraria a promessa
+             * para todo mundo — inclusive para quem nunca denunciou nada.
+             */}
+            {outros.map((pessoa) => (
+              <Link key={`d-${pessoa.id}`} href={`/denuncia?perfil=${pessoa.handle}`}>
+                <Button variant="secondary" className="w-full">
+                  Denunciar {pessoa.nome}
+                </Button>
+              </Link>
+            ))}
 
             {outros.map((pessoa) => (
               <Button

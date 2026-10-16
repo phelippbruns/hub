@@ -502,13 +502,12 @@ banco — só trocar o número dele.
 
 ## 5. Fila de features
 
-Feito: **F00 a F15**, contando a F12.1. Faltam 6 — e o Web Push, que saiu da
+Feito: **F00 a F16**, contando a F12.1. Faltam 5 — e o Web Push, que saiu da
 F15 e virou rodada própria (seção 4.7).
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
 
-| F16 | Denúncia, bloqueio e moderação | F09, F13 | Segurança |
 | F17 | Configurações e LGPD | F15 | Exportar e excluir conta |
 | F18 | Termos e privacidade | F03 | Texto completo — **já destravada**, só falta o texto |
 | F19 | Métricas e eventos | F14 | Saber se funciona |

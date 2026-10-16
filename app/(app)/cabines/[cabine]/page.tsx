@@ -53,6 +53,7 @@ export default async function CabinePage({ params }: { params: Params }) {
           participantes={cabine.participantes.map((p) => ({
             id: p.id,
             nome: p.nome,
+            handle: p.handle,
             souEu: p.souEu,
           }))}
         />

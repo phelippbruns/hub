@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import {
   AnswerCard,
@@ -45,6 +46,7 @@ export function LinhaDeResposta({
   const [aberto, setAberto] = useState<"nenhum" | "menu" | "apagar">("nenhum");
   const [pendente, iniciar] = useTransition();
   const idDoMenu = useId();
+  const caminho = usePathname();
 
   const autor = resposta.autor;
   const nome = autor?.nome ?? "Pessoa que saiu do Hub";
@@ -135,13 +137,14 @@ export function LinhaDeResposta({
             </>
           ) : (
             <div className="flex flex-col gap-1">
-              {/* Ligados na F16. */}
-              <Link href={`/denuncia?resposta=${resposta.id}`}>
+              {/* Ligados na F16. O `voltar` traz a pessoa de volta ao
+                  tópico: denunciar não é motivo para perder o lugar. */}
+              <Link href={`/denuncia?resposta=${resposta.id}&voltar=${caminho}`}>
                 <Button variant="secondary" className="w-full">
                   Denunciar
                 </Button>
               </Link>
-              <Link href={`/denuncia?bloquear=${handle}`}>
+              <Link href={`/denuncia?bloquear=${handle}&voltar=${caminho}`}>
                 <Button variant="secondary" className="w-full">
                   Bloquear {nome}
                 </Button>

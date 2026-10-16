@@ -40,6 +40,7 @@ import {
   Skeleton,
   SectionTitle,
   Segmented,
+  RadioGroup,
   SortToggle,
   Steps,
   SuccessMessage,
@@ -173,6 +174,7 @@ export function DesignGallery() {
   const [agree, setAgree] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(true);
   const [filtro, setFiltro] = useState("tudo");
+  const [motivo, setMotivo] = useState<string | null>(null);
   const [seguindo, setSeguindo] = useState(false);
   const [ordem, setOrdem] = useState<"atividade" | "recentes">("atividade");
   const [fixada, setFixada] = useState(false);
@@ -416,6 +418,21 @@ export function DesignGallery() {
               { id: "comunidades", label: "Comunidades" },
               { id: "topicos", label: "Tópicos" },
               { id: "pessoas", label: "Pessoas" },
+            ]}
+          />
+        </Card>
+
+        <Card title="Escolha única" wide>
+          {/* Os motivos da denúncia (tela 26). Chip é filtro e aceita vários;
+              aqui a escolha é uma só, e o leitor de tela precisa ouvir isso. */}
+          <RadioGroup
+            label="Motivo da denúncia"
+            valor={motivo}
+            onEscolher={setMotivo}
+            opcoes={[
+              { id: "assedio", label: "Assédio ou ódio" },
+              { id: "spam", label: "Spam ou golpe" },
+              { id: "outro", label: "Outro motivo" },
             ]}
           />
         </Card>

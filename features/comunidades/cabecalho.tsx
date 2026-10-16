@@ -126,11 +126,17 @@ export function CabecalhoDaComunidade({
           </>
         }
       >
-        <CommunityDoor
-          member={membro}
-          oQue={comunidade.name}
-          onToggle={pendente ? undefined : tocarNaPorta}
-        />
+        {/* Banida: nenhuma porta. Oferecer "Entrar" a quem não pode entrar
+            é pedir um clique que só devolve erro. */}
+        {comunidade.estouBanida ? (
+          <span className="text-bodyStrong text-paper">Você não pode entrar nesta comunidade.</span>
+        ) : (
+          <CommunityDoor
+            member={membro}
+            oQue={comunidade.name}
+            onToggle={pendente ? undefined : tocarNaPorta}
+          />
+        )}
         <span className="text-caption text-paper">
           {numero(membros)} {membros === 1 ? "membro" : "membros"}
         </span>
