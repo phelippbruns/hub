@@ -15,6 +15,8 @@ import { createAnswerSchema, createTopicSchema } from "./validation";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { assertNotBlocked, requireActiveMembership } from "./access";
 import { comAvatar, comAvatares, enderecosDeMidia } from "@/lib/midia/deposito";
+import { avisar, avisarMarcados, handlesQueExistem } from "./notificacoes";
+import { handlesMencionados } from "@/lib/texto/mencoes";
 
 /**
  * RN08: a partir de quantas respostas de outras pessoas o autor não apaga.
@@ -227,11 +229,23 @@ async function listAnswers(me: string, topicId: string) {
   // A foto de quem respondeu também é caminho, e também precisa ser assinada.
   const autores = await comAvatares(respostas.map((r) => r.author));
 
+  /*
+   * Quais @ do texto existem de verdade, para a tela saber o que vira link.
+   *
+   * De uma vez para a lista inteira, e não por resposta: vinte respostas
+   * com marcação virariam vinte consultas em fila.
+   */
+  const mencionados = await handlesQueExistem(
+    respostas.flatMap((resposta) => handlesMencionados(resposta.text)),
+  );
+
   return respostas.map((resposta, i) => ({
     ...resposta,
     author: autores.at(i) ?? null,
     /** Endereço temporário da imagem; `mediaUrl` guarda só o caminho. */
     mediaHref: enderecos.at(i) ?? null,
+    /** Os @ desta resposta que existem: a tela desenha só esses como link. */
+    mencoes: handlesMencionados(resposta.text).filter((handle) => mencionados.has(handle)),
     souAutor: resposta.authorId === me,
   }));
 }
@@ -251,7 +265,7 @@ export async function createTopic(viewer: Viewer, input: unknown) {
   await requireActiveMembership(me, data.communityId);
 
   try {
-    return await prisma.topic.create({
+    const topico = await prisma.topic.create({
       data: {
         communityId: data.communityId,
         authorId: me,
@@ -263,9 +277,47 @@ export async function createTopic(viewer: Viewer, input: unknown) {
         cycleDate: new Date(),
       },
     });
+
+    await Promise.all([
+      avisarNovoTopico(topico.id, data.communityId, me),
+      avisarMarcados({
+        texto: data.description,
+        autorId: me,
+        communityId: data.communityId,
+        topicId: topico.id,
+      }),
+    ]);
+
+    return topico;
   } catch (error) {
     translateDatabaseError(error);
   }
+}
+
+/**
+ * RN34: "novos tópicos nas comunidades" é o único tipo **desligado por
+ * padrão**.
+ *
+ * E é o que mais cresce: uma comunidade ativa abre vários tópicos por dia,
+ * e avisar todo mundo de cada um transformaria o sino em ruído. Quem quiser
+ * liga nas Configurações.
+ */
+async function avisarNovoTopico(topicId: string, communityId: string, autorId: string) {
+  const membros = await prisma.membership.findMany({
+    where: { communityId, bannedAt: null, profileId: { not: autorId } },
+    select: { profileId: true },
+  });
+
+  await Promise.all(
+    membros.map((membro) =>
+      avisar(
+        membro.profileId,
+        "new_topic_in_community",
+        { topicId, communityId, autorId },
+        autorId,
+      ),
+    ),
+  );
 }
 
 /**
@@ -323,7 +375,7 @@ export async function createAnswer(viewer: Viewer, input: unknown) {
   if (topic.authorId) await assertNotBlocked(me, topic.authorId);
 
   try {
-    return await prisma.answer.create({
+    const resposta = await prisma.answer.create({
       data: {
         topicId: data.topicId,
         authorId: me,
@@ -332,10 +384,69 @@ export async function createAnswer(viewer: Viewer, input: unknown) {
         mediaKind: data.media?.kind ?? null,
       },
     });
+
+    await avisarMarcados({
+      texto: data.text,
+      autorId: me,
+      communityId: topic.communityId,
+      topicId: data.topicId,
+    });
+
+    return resposta;
   } catch (error) {
     // CHECK `answers_texto_ou_midia`: resposta vazia dos dois lados.
     translateDatabaseError(error);
   }
+}
+
+/**
+ * Quem dá para marcar com @ num tópico (F15, item 7).
+ *
+ * Só membros da comunidade, e sem quem bloqueou ou foi bloqueado (RN26) —
+ * as mesmas regras que decidem quem recebe o aviso. Sugerir alguém que o
+ * servidor vai ignorar seria prometer o que não dá para cumprir.
+ */
+export async function pessoasParaMarcar(
+  viewer: Viewer,
+  topicId: string,
+  termo: string,
+  limite = 8,
+): Promise<{ handle: string; nome: string }[]> {
+  const me = requireProfileId(viewer);
+  const procurado = termo.trim().toLowerCase();
+
+  const topico = await prisma.topic.findFirst({
+    where: { id: topicId, deletedAt: null },
+    select: { communityId: true },
+  });
+  if (!topico) return [];
+
+  const pessoas = await prisma.profile.findMany({
+    where: {
+      deletedAt: null,
+      id: { not: me },
+      memberships: { some: { communityId: topico.communityId, bannedAt: null } },
+      ...(procurado
+        ? {
+            OR: [
+              { handle: { startsWith: procurado } },
+              { name: { contains: procurado, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+      NOT: {
+        OR: [
+          { blocksReceived: { some: { blockerId: me } } },
+          { blocksMade: { some: { blockedId: me } } },
+        ],
+      },
+    },
+    select: { handle: true, name: true },
+    orderBy: { name: "asc" },
+    take: limite,
+  });
+
+  return pessoas.map((pessoa) => ({ handle: pessoa.handle, nome: pessoa.name }));
 }
 
 /**

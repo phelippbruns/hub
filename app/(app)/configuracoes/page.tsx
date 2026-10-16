@@ -3,7 +3,8 @@ import { Button, ContentColumn, PageTitle, SectionTitle } from "@/design/compone
 import { sair } from "@/features/autenticacao/actions";
 import { QuemPodeMeConvidar } from "@/features/cabines/quem-pode-me-convidar";
 import { getViewer } from "@/lib/auth/session";
-import { quemPodeMeConvidar } from "@/lib/data/profiles";
+import { preferenciasDeNotificacao, quemPodeMeConvidar } from "@/lib/data/profiles";
+import { PreferenciasDeNotificacao } from "@/features/notificacoes/preferencias";
 
 export const metadata: Metadata = { title: "Configurações · Hub" };
 
@@ -17,7 +18,10 @@ export const metadata: Metadata = { title: "Configurações · Hub" };
  */
 export default async function ConfiguracoesPage() {
   const viewer = await getViewer();
-  const politica = await quemPodeMeConvidar(viewer);
+  const [politica, preferencias] = await Promise.all([
+    quemPodeMeConvidar(viewer),
+    preferenciasDeNotificacao(viewer),
+  ]);
 
   return (
     <ContentColumn>
@@ -38,8 +42,13 @@ export default async function ConfiguracoesPage() {
       <SectionTitle>Privacidade</SectionTitle>
       <QuemPodeMeConvidar atual={politica} />
 
+      {/* RN34: cada tipo tem um interruptor, e ele vale na hora de criar. */}
+      <SectionTitle>Notificações</SectionTitle>
+      <PreferenciasDeNotificacao atuais={preferencias} />
+
       <p className="text-caption text-inkMuted">
-        Exportar seus dados, excluir a conta e as preferências de notificação chegam na F17.
+        Exportar seus dados e excluir a conta chegam na F17. Notificação no aparelho, com o app
+        instalado, vem logo depois desta.
       </p>
     </ContentColumn>
   );

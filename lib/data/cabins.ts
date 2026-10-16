@@ -15,6 +15,7 @@ import {
 import { inviteToCabinSchema } from "./validation";
 import { requireProfileId, type Viewer } from "./viewer";
 import { comunidadesEmComum, isBlockedBetween, sharesCommunity } from "./access";
+import { avisar } from "./notificacoes";
 import { comAvatar, comAvatares, enderecosDeMidia } from "@/lib/midia/deposito";
 
 /** RN20: de 2 a 5 pessoas. Quem convida conta. */
@@ -67,7 +68,7 @@ export async function inviteToCabin(viewer: Viewer, input: unknown) {
   }
 
   try {
-    return await prisma.$transaction(async (tx) => {
+    const convite = await prisma.$transaction(async (tx) => {
       let cabinId = data.cabinId;
 
       if (cabinId) {
@@ -112,6 +113,23 @@ export async function inviteToCabin(viewer: Viewer, input: unknown) {
         },
       });
     });
+
+    /*
+     * O aviso vem **depois** da transação, de propósito.
+     *
+     * Dentro dela, uma notificação que falhasse derrubaria o convite — e
+     * convite que não existe é pior do que convite sem aviso, porque a
+     * pessoa não tem nem o que aceitar. O aviso respeita o interruptor
+     * (RN34) e nunca volta para quem convidou.
+     */
+    await avisar(
+      convite.inviteeId,
+      "cabin_invite",
+      { inviteId: convite.id, cabinId: convite.cabinId, autorId: me },
+      me,
+    );
+
+    return convite;
   } catch (error) {
     translateDatabaseError(error);
   }
@@ -227,7 +245,7 @@ export async function sendMessage(
   });
   if (cabin?.closedAt) throw new ForbiddenError("Esta Cabine foi encerrada");
 
-  return prisma.message.create({
+  const mensagem = await prisma.message.create({
     data: {
       cabinId: input.cabinId,
       authorId: me,
@@ -238,6 +256,26 @@ export async function sendMessage(
       sharedTopicId: input.sharedTopicId ?? null,
     },
   });
+
+  /*
+   * Avisa quem está na Cabine, menos quem escreveu.
+   *
+   * Uma por mensagem é o que a tela 8 pede. Agrupar "3 mensagens na Cabine"
+   * seria melhor, e é trabalho de outra rodada: o agrupamento diário já
+   * existe para os tópicos seguidos e tem forma própria.
+   */
+  const outros = await prisma.cabinMember.findMany({
+    where: { cabinId: input.cabinId, leftAt: null, profileId: { not: me } },
+    select: { profileId: true },
+  });
+
+  await Promise.all(
+    outros.map((membro) =>
+      avisar(membro.profileId, "cabin_message", { cabinId: input.cabinId, autorId: me }, me),
+    ),
+  );
+
+  return mensagem;
 }
 
 /** Só participante lê a conversa. */

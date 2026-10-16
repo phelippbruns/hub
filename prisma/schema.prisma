@@ -143,6 +143,8 @@ enum NotificationKind {
   followed_topics_digest
   new_topic_in_community
   content_removed
+  /// F15: alguém te marcou com @ numa resposta ou num tópico.
+  mention
 
   @@map("notification_kind")
 }
@@ -192,6 +194,9 @@ model Profile {
   notifyTopicBecameHot      Boolean @default(true) @map("notify_topic_became_hot")
   notifyCabin               Boolean @default(true) @map("notify_cabin")
   notifyFollowedTopics      Boolean @default(true) @map("notify_followed_topics")
+  /// F15: ligado por padrão, e desligável — ser marcado é pessoal, mas ser
+  /// arrastado para uma conversa por qualquer pessoa é vetor de incômodo.
+  notifyMention             Boolean @default(true) @map("notify_mention")
 
   /// RN31: quando concluiu o onboarding. Nulo significa que ainda não passou.
   ///
