@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
-import { alerta, cadastroConcluido } from "./apoio-tela";
+import { alerta, cadastroConcluido, escolherComunidades } from "./apoio-tela";
 
 /**
  * Jornadas da entrada (F03).
@@ -89,13 +89,7 @@ async function criarContaESair(
   // RN31: sem concluir o onboarding a pessoa não chega ao Início, então o
   // caminho para sair passa por ele.
   await page.getByRole("link", { name: "Começar" }).click();
-  for (let i = 0; i < 3; i += 1) {
-    await page
-      .getByRole("group", { name: /^Comunidades de / })
-      .getByRole("button", { pressed: false })
-      .first()
-      .click();
-  }
+  await escolherComunidades(page);
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByRole("button", { name: "Agora não" }).click();
   await expect(page).toHaveURL(/\/inicio/);

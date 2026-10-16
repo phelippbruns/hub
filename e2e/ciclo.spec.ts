@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
-import { cadastroConcluido } from "./apoio-tela";
+import { cadastroConcluido, escolherComunidades, preencherNovaComunidade } from "./apoio-tela";
 
 /**
  * O ciclo do Hot Topic (F10), na tela.
@@ -29,13 +29,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
 
   await cadastroConcluido(page);
   await page.getByRole("link", { name: "Começar" }).click();
-  for (let i = 0; i < 3; i += 1) {
-    await page
-      .getByRole("group", { name: /^Comunidades de / })
-      .getByRole("button", { pressed: false })
-      .first()
-      .click();
-  }
+  await escolherComunidades(page);
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByRole("button", { name: "Agora não" }).click();
   await expect(page).toHaveURL(/\/inicio/);
@@ -43,11 +37,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
 
 /** Uma comunidade minha, com um tópico, e o endereço da comunidade. */
 async function minhaComunidadeComTopico(page: Page, prefixo: string) {
-  await page.goto("/comunidades/nova");
-  await page.getByLabel("Nome").fill(`${prefixo} ${Date.now()}`);
-  await page.getByLabel("Intro").fill("Comunidade do teste do ciclo.");
-  await page.getByLabel("Universo").selectOption({ index: 1 });
-  await page.getByRole("button", { name: "Criar comunidade" }).click();
+  await preencherNovaComunidade(page, `${prefixo} ${Date.now()}`, "Comunidade do teste do ciclo.");
   await page.waitForURL(/\/c\/[^/]+$/);
   const comunidade = new URL(page.url()).pathname;
 

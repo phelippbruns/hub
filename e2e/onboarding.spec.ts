@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { topicoDoSeed } from "./apoio-banco";
-import { cadastroConcluido } from "./apoio-tela";
+import { cadastroConcluido, escolherComunidades } from "./apoio-tela";
 
 /**
  * Onboarding (RN31, RN34).
@@ -34,21 +34,8 @@ async function criarContaEChegarNoOnboarding(page: Page, prefixo: string) {
   return email;
 }
 
-/**
- * Marca N comunidades ainda não escolhidas.
- *
- * Busca só dentro dos grupos de comunidade: por papel solto pegaria também os
- * chips de Universo, que filtram em vez de escolher.
- */
-async function escolher(page: Page, quantas: number) {
-  for (let i = 0; i < quantas; i += 1) {
-    await page
-      .getByRole("group", { name: /^Comunidades de / })
-      .getByRole("button", { pressed: false })
-      .first()
-      .click();
-  }
-}
+/** Marca N comunidades ainda não escolhidas. O seletor mora em apoio-tela. */
+const escolher = escolherComunidades;
 
 /**
  * Marca o aceite dos Termos e **confirma** que marcou.

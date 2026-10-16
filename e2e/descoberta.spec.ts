@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
-import { cadastroConcluido } from "./apoio-tela";
+import { cadastroConcluido, escolherComunidades } from "./apoio-tela";
 
 /**
  * Descoberta: Explorar, busca e Universos (F06).
@@ -36,13 +36,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
 
   await cadastroConcluido(page);
   await page.getByRole("link", { name: "Começar" }).click();
-  for (let i = 0; i < 3; i += 1) {
-    await page
-      .getByRole("group", { name: /^Comunidades de / })
-      .getByRole("button", { pressed: false })
-      .first()
-      .click();
-  }
+  await escolherComunidades(page);
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByRole("button", { name: "Agora não" }).click();
   await expect(page).toHaveURL(/\/inicio/);
@@ -113,28 +107,48 @@ test.describe("busca", () => {
     await page.getByRole("searchbox", { name: /^Buscar/ }).fill("musica");
     await expect(page).toHaveURL(/\/busca\?q=musica/);
 
-    // O critério de aceite: "musica" encontra "Música Eletrônica".
-    const linha = page.getByRole("button", { name: "Entrar em Música Eletrônica" });
+    // O critério de aceite: "musica" sem acento encontra "Música Eletrônica".
+    await expect(page.getByText("Música Eletrônica", { exact: true })).toBeVisible();
+
+    /*
+     * Para entrar, uma comunidade de que a pessoa **ainda não é membro** — e
+     * ela é descoberta na hora, não escolhida à mão.
+     *
+     * Antes este teste entrava em "Música Eletrônica" pelo nome. A F12.1
+     * achatou a lista do onboarding e ela passou a oferecer as maiores
+     * primeiro: "Música Eletrônica" virou uma das três que a pessoa já
+     * escolhe ao se cadastrar, e o botão "Entrar em" não existia mais.
+     */
+    const linha = page.getByRole("button", { name: /^Entrar em / }).first();
     await expect(linha).toBeVisible();
 
-    const antes = await contagemDe(page, "Música Eletrônica");
+    const rotulo = (await linha.getAttribute("aria-label")) ?? "";
+    const nome = rotulo.replace(/^Entrar em /, "").trim();
+    expect(nome, "não achei uma comunidade fora das que o onboarding escolheu").not.toBe("");
+
+    const antes = await contagemDe(page, nome);
     await linha.click();
 
-    // O botão vira "Membro de" e o número sobe na hora.
-    await expect(page.getByRole("button", { name: /^Membro de Música Eletrônica/ })).toBeVisible();
-    await expect.poll(() => contagemDe(page, "Música Eletrônica")).toBe(antes + 1);
+    // O botão vira "Membro de" e o número sobe na hora. Nome exato, e não
+    // expressão montada com o nome: o lint recusa RegExp dinâmico, e com
+    // razão — um nome com parêntese viraria outro padrão.
+    const virouMembro = page.getByRole("button", {
+      name: `Membro de ${nome}. Toque para sair`,
+    });
+    await expect(virouMembro).toBeVisible();
+    await expect.poll(() => contagemDe(page, nome)).toBe(antes + 1);
 
     /*
      * Antes de recarregar, esperar o banco confirmar. Recarregar na hora
      * cancela a requisição que ainda está indo — o teste reprovaria por
      * corrida, não por defeito.
      */
-    await expect.poll(() => membrosNoBanco("Música Eletrônica")).toBe(antes + 1);
+    await expect.poll(() => membrosNoBanco(nome)).toBe(antes + 1);
 
     // E continua lá depois de recarregar: não foi só a tela.
     await page.reload();
-    await expect(page.getByRole("button", { name: /^Membro de Música Eletrônica/ })).toBeVisible();
-    expect(await contagemDe(page, "Música Eletrônica")).toBe(antes + 1);
+    await expect(virouMembro).toBeVisible();
+    expect(await contagemDe(page, nome)).toBe(antes + 1);
   });
 
   test("o filtro Pessoas esconde as comunidades", async ({ page }) => {

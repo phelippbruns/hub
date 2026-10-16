@@ -930,6 +930,31 @@ vezes.
 **Prática:** quando escrever um teste para um defeito, rodar o arquivo com e
 sem a correção. Nunca a suíte.
 
+### 12bis. Mudou rótulo de tela? Os testes entram por ele
+
+A F12.1 estourou o limite de 20 minutos da CI, e o relatório não disse qual
+teste travou — ele nem chegou a terminar. Eram **duas** mudanças minhas de
+tela, cada uma repetida em muitos arquivos de jornada:
+
+- o grupo do onboarding deixou de se chamar "Comunidades de &lt;Universo&gt;" e
+  passou a ser "Comunidades". **Dez** arquivos entravam no app por ali
+- o formulário de criar comunidade perdeu o campo Universo. **Seis** arquivos
+  ainda o escolhiam
+
+Cada clique ficava esperando um elemento que não existia mais, 30 segundos
+por vez. Somados, mais de vinte minutos.
+
+**Prática:** ao mudar rótulo, `aria-label` ou campo de formulário,
+`grep` o texto antigo em `e2e/` **antes** de commitar. E, quando o passo
+aparecer em mais de dois arquivos, ele vira função em `apoio-tela.ts` — foi o
+que aconteceu com `escolherComunidades()` e `preencherNovaComunidade()`, que
+se juntaram ao `alerta()` e ao `cadastroConcluido()` pela mesma razão.
+
+**Corolário para a CI:** quando ela estoura o tempo em vez de reprovar, ela
+não consegue decidir nada — é o caso previsto na prática 7 para rodar a suíte
+aqui. Rodar local **uma vez** custou menos que dois ciclos cegos de 20
+minutos.
+
 ### 12. `format:check` no repositório inteiro, uma vez, antes do commit
 
 A F12.1 reprovou na CI **só por formatação**: apagar uma função com script

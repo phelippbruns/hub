@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
-import { cadastroConcluido } from "./apoio-tela";
+import { cadastroConcluido, escolherComunidades, preencherNovaComunidade } from "./apoio-tela";
 
 /**
  * Meio-dia de ontem **no fuso do ciclo**, como instante.
@@ -43,13 +43,7 @@ async function criarConta(page: Page, prefixo: string) {
 async function entrarNoApp(page: Page, prefixo: string) {
   await criarConta(page, prefixo);
   await page.getByRole("link", { name: "Começar" }).click();
-  for (let i = 0; i < 3; i += 1) {
-    await page
-      .getByRole("group", { name: /^Comunidades de / })
-      .getByRole("button", { pressed: false })
-      .first()
-      .click();
-  }
+  await escolherComunidades(page);
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByRole("button", { name: "Agora não" }).click();
   await expect(page).toHaveURL(/\/inicio/);
@@ -105,11 +99,7 @@ test.describe("sem comunidade nenhuma", () => {
 test.describe("com conteúdo", () => {
   /** Uma comunidade minha, um tópico, e o ciclo virado em cima dele. */
   async function cenarioComDestaque(page: Page) {
-    await page.goto("/comunidades/nova");
-    await page.getByLabel("Nome").fill(`Início ${Date.now()}`);
-    await page.getByLabel("Intro").fill("Comunidade do teste do Início.");
-    await page.getByLabel("Universo").selectOption({ index: 1 });
-    await page.getByRole("button", { name: "Criar comunidade" }).click();
+    await preencherNovaComunidade(page, `Início ${Date.now()}`, "Comunidade do teste do Início.");
     await page.waitForURL(/\/c\/[^/]+$/);
     const comunidade = new URL(page.url()).pathname;
 
