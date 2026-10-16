@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
-import { cadastroConcluido } from "./apoio-tela";
+import { cadastroConcluido, escolherComunidades } from "./apoio-tela";
 
 /**
  * Descoberta: Explorar, busca e Universos (F06).
@@ -36,20 +36,14 @@ async function entrarNoApp(page: Page, prefixo: string) {
 
   await cadastroConcluido(page);
   await page.getByRole("link", { name: "Começar" }).click();
-  for (let i = 0; i < 3; i += 1) {
-    await page
-      .getByRole("group", { name: /^Comunidades de / })
-      .getByRole("button", { pressed: false })
-      .first()
-      .click();
-  }
+  await escolherComunidades(page);
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByRole("button", { name: "Agora não" }).click();
   await expect(page).toHaveURL(/\/inicio/);
 }
 
 test.describe("Explorar", () => {
-  test("a lupa leva aos Universos, e cada um abre a própria página", async ({ page }) => {
+  test("a lupa leva ao Explorar, que é busca e comunidades", async ({ page }) => {
     await entrarNoApp(page, "explorar");
 
     await page
@@ -58,19 +52,38 @@ test.describe("Explorar", () => {
       .click();
     await expect(page).toHaveURL(/\/comunidades$/);
 
-    // Os quatro Universos do seed, cada um com a contagem.
-    const universos = await consultar<{ name: string; slug: string }>(
-      `SELECT name, slug FROM universes ORDER BY name`,
+    await expect(page.getByRole("heading", { name: "Explorar", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Para você" })).toBeVisible();
+  });
+
+  test("F12.1: o Universo não aparece em lugar nenhum do Explorar", async ({ page }) => {
+    await entrarNoApp(page, "semuniverso");
+    await page.goto("/comunidades");
+
+    /*
+     * A conferência é pelo nome dos Universos que ainda existem no banco: a
+     * migration consolidou as comunidades no Hubverso mas **não apagou** as
+     * linhas antigas. Se alguma voltar a ser desenhada, este teste reprova.
+     */
+    const universos = await consultar<{ name: string }>(
+      `SELECT name FROM universes WHERE slug <> 'hubverso'`,
     );
-    expect(universos.length).toBeGreaterThan(0);
 
+    await expect(page.getByText("Universos", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Hubverso")).toHaveCount(0);
     for (const universo of universos) {
-      await expect(page.getByRole("link", { name: universo.name })).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: universo.name, exact: true }),
+        `o Universo ${universo.name} voltou a aparecer no Explorar`,
+      ).toHaveCount(0);
     }
+  });
 
-    await page.getByRole("link", { name: universos[0]!.name }).click();
-    await page.waitForURL(`**/u/${universos[0]!.slug}`);
-    await expect(page.getByRole("heading", { name: universos[0]!.name, level: 1 })).toBeVisible();
+  test("F12.1: o endereço antigo de Universo não existe mais", async ({ page }) => {
+    await entrarNoApp(page, "rotamorta");
+
+    const resposta = await page.goto("/u/musica");
+    expect(resposta?.status(), "a rota do Universo foi apagada").toBe(404);
   });
 
   test("Para você não sugere comunidade em que a pessoa já está", async ({ page }) => {
@@ -94,28 +107,48 @@ test.describe("busca", () => {
     await page.getByRole("searchbox", { name: /^Buscar/ }).fill("musica");
     await expect(page).toHaveURL(/\/busca\?q=musica/);
 
-    // O critério de aceite: "musica" encontra "Música Eletrônica".
-    const linha = page.getByRole("button", { name: "Entrar em Música Eletrônica" });
+    // O critério de aceite: "musica" sem acento encontra "Música Eletrônica".
+    await expect(page.getByText("Música Eletrônica", { exact: true })).toBeVisible();
+
+    /*
+     * Para entrar, uma comunidade de que a pessoa **ainda não é membro** — e
+     * ela é descoberta na hora, não escolhida à mão.
+     *
+     * Antes este teste entrava em "Música Eletrônica" pelo nome. A F12.1
+     * achatou a lista do onboarding e ela passou a oferecer as maiores
+     * primeiro: "Música Eletrônica" virou uma das três que a pessoa já
+     * escolhe ao se cadastrar, e o botão "Entrar em" não existia mais.
+     */
+    const linha = page.getByRole("button", { name: /^Entrar em / }).first();
     await expect(linha).toBeVisible();
 
-    const antes = await contagemDe(page, "Música Eletrônica");
+    const rotulo = (await linha.getAttribute("aria-label")) ?? "";
+    const nome = rotulo.replace(/^Entrar em /, "").trim();
+    expect(nome, "não achei uma comunidade fora das que o onboarding escolheu").not.toBe("");
+
+    const antes = await contagemDe(page, nome);
     await linha.click();
 
-    // O botão vira "Membro de" e o número sobe na hora.
-    await expect(page.getByRole("button", { name: /^Membro de Música Eletrônica/ })).toBeVisible();
-    await expect.poll(() => contagemDe(page, "Música Eletrônica")).toBe(antes + 1);
+    // O botão vira "Membro de" e o número sobe na hora. Nome exato, e não
+    // expressão montada com o nome: o lint recusa RegExp dinâmico, e com
+    // razão — um nome com parêntese viraria outro padrão.
+    const virouMembro = page.getByRole("button", {
+      name: `Membro de ${nome}. Toque para sair`,
+    });
+    await expect(virouMembro).toBeVisible();
+    await expect.poll(() => contagemDe(page, nome)).toBe(antes + 1);
 
     /*
      * Antes de recarregar, esperar o banco confirmar. Recarregar na hora
      * cancela a requisição que ainda está indo — o teste reprovaria por
      * corrida, não por defeito.
      */
-    await expect.poll(() => membrosNoBanco("Música Eletrônica")).toBe(antes + 1);
+    await expect.poll(() => membrosNoBanco(nome)).toBe(antes + 1);
 
     // E continua lá depois de recarregar: não foi só a tela.
     await page.reload();
-    await expect(page.getByRole("button", { name: /^Membro de Música Eletrônica/ })).toBeVisible();
-    expect(await contagemDe(page, "Música Eletrônica")).toBe(antes + 1);
+    await expect(virouMembro).toBeVisible();
+    expect(await contagemDe(page, nome)).toBe(antes + 1);
   });
 
   test("o filtro Pessoas esconde as comunidades", async ({ page }) => {
@@ -134,50 +167,6 @@ test.describe("busca", () => {
     await page.goto("/busca?q=xyzinexistente");
 
     await expect(page.getByText(/Nada encontrado para/)).toBeVisible();
-  });
-});
-
-test.describe("Universo", () => {
-  test("mostra respostas de hoje e deixa trocar a ordem", async ({ page }) => {
-    await entrarNoApp(page, "universo");
-
-    const [universo] = await consultar<{ slug: string }>(
-      `SELECT u.slug
-         FROM universes u
-         JOIN communities c ON c.universe_id = u.id
-        WHERE c.members_count >= 20 AND c.deleted_at IS NULL
-        GROUP BY u.slug LIMIT 1`,
-    );
-    expect(universo, "o seed precisa de uma comunidade acima do corte").toBeTruthy();
-
-    await page.goto(`/u/${universo!.slug}`);
-    await expect(page.getByText(/respostas? hoje/).first()).toBeVisible();
-
-    const maisRecentes = page.getByRole("button", { name: "Ordenar por mais recentes" });
-    await maisRecentes.click();
-    await expect(page).toHaveURL(/ordem=recentes/);
-    await expect(maisRecentes).toHaveAttribute("aria-pressed", "true");
-  });
-
-  /*
-   * O corte da RN05 vale 0 hoje: toda comunidade aparece, por menor que seja.
-   * Quem prova o mecanismo é `lib/data/descoberta.db.test.ts`, que o exercita
-   * com um corte explícito. Aqui o que importa é a consequência para quem usa
-   * — uma comunidade pequena está visível, e não só pela busca.
-   */
-  test("com o corte desligado, comunidade pequena aparece no Universo", async ({ page }) => {
-    await entrarNoApp(page, "cortezero");
-
-    const [pequena] = await consultar<{ name: string; slug: string }>(
-      `SELECT c.name, u.slug
-         FROM communities c JOIN universes u ON u.id = c.universe_id
-        WHERE c.members_count < 20 AND c.deleted_at IS NULL
-        LIMIT 1`,
-    );
-    expect(pequena, "o seed precisa de uma comunidade pequena").toBeTruthy();
-
-    await page.goto(`/u/${pequena!.slug}`);
-    await expect(page.getByText(pequena!.name, { exact: true }).first()).toBeVisible();
   });
 });
 

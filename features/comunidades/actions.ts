@@ -33,7 +33,7 @@ async function quemPede() {
 }
 
 export type EstadoDaCriacao = {
-  erros?: Partial<Record<"name" | "intro" | "universeId" | "coverUrl", string>>;
+  erros?: Partial<Record<"name" | "intro" | "coverUrl", string>>;
   erro?: string;
   /** Quando o nome já existe, a saída que o produto oferece é entrar nela. */
   jaExiste?: { name: string; slug: string };
@@ -55,8 +55,8 @@ export async function criarComunidade(
 ): Promise<EstadoDaCriacao> {
   const viewer = await quemPede();
 
+  // F12.1: não há Universo a escolher. A camada de dados põe no Hubverso.
   const entrada = {
-    universeId: String(formulario.get("universeId") ?? ""),
     name: String(formulario.get("name") ?? ""),
     intro: String(formulario.get("intro") ?? ""),
     coverUrl: null,
@@ -70,7 +70,6 @@ export async function criarComunidade(
       const campo = problema.path[0];
       if (campo === "name" && !erros.name) erros.name = problema.message;
       if (campo === "intro" && !erros.intro) erros.intro = problema.message;
-      if (campo === "universeId" && !erros.universeId) erros.universeId = problema.message;
     }
     return { erros };
   }

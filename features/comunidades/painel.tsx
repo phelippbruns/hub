@@ -34,11 +34,7 @@ export function PainelDaComunidade({
       <SectionTitle>Sobre a comunidade</SectionTitle>
       <p className="text-body text-ink">{comunidade.intro}</p>
       <p className="text-caption text-inkMuted">
-        {numero(comunidade.membersCount)} {comunidade.membersCount === 1 ? "membro" : "membros"} em{" "}
-        <Link href={`/u/${comunidade.universo.slug}`} className="underline">
-          {comunidade.universo.name}
-        </Link>
-        .
+        {numero(comunidade.membersCount)} {comunidade.membersCount === 1 ? "membro" : "membros"}.
       </p>
 
       <SectionTitle>Como o Hot Topic funciona</SectionTitle>

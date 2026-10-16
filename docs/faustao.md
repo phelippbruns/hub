@@ -879,6 +879,96 @@ quase sempre nomeia a causa.
 
 ---
 
+Phelipp pediu de novo em 15 de outubro, depois da rodada de acabamento: achar
+mais jeito de gastar menos **para sobrar orçamento para construir**. Estas
+cinco são o que aquela rodada cobrou caro.
+
+### 7. A suíte inteira roda na CI, não aqui e lá
+
+Rodei as jornadas completas na máquina (9 a 12 minutos) e a CI rodou as
+mesmas logo depois. **Duas execuções para um sinal só**, mais a saída longa de
+cada uma para ler.
+
+**Prática:** durante o trabalho, só o arquivo de teste afetado. O portão é a
+**CI** — rodar a suíte inteira localmente só quando a CI não puder decidir,
+como numa jornada que dependa de serviço que ela não tem.
+
+### 8. Conferir o ambiente antes de abrir a rodada, não no meio
+
+O Docker estava parado e eu só descobri **depois** de implementar. Foram para
+a CI duas regressões que um `test:db` local teria pego na hora: o 404 virando
+200 e o nome do botão de imagem. Custou dois ciclos de CI de 9 minutos, mais
+a correção, mais um terceiro ciclo.
+
+**Prática:** `docker info` antes de começar qualquer trabalho que precise de
+banco. Custa um segundo, e se estiver parado eu aviso **antes**, não depois.
+
+### 9. Log de CI se lê filtrado
+
+Saída de CI tem milhares de linhas e a parte que importa são duas.
+
+**Prática:** `gh run view --log-failed | grep -E "✘|Error:"`, e
+`gh run view --json jobs --jq '...conclusion=="failure"'` para saber qual
+passo caiu. Nunca despejar o arquivo inteiro.
+
+### 10. Ambiguidade se resolve no plano, não no código
+
+A troca das marcas de nível foi pedida, planejada, orçada — e cancelada. Saiu
+barato **porque ainda era texto**. Se eu tivesse implementado antes de
+confirmar, teria custado o código e o desfazimento.
+
+**Prática:** toda leitura dupla que eu perceber vira pergunta **antes** de
+existir código. Pergunta no plano custa uma frase; no código, custa a feature.
+
+### 11. Provar a correção uma vez, com o teste estreito
+
+Reverter o conserto do GIF e ver o teste reprovar — 480 esperado, 1070
+recebido — custou 20 segundos e deu certeza de que o teste guarda alguma
+coisa. Vale manter, e é diferente de rodar a suíte: é **um arquivo**, duas
+vezes.
+
+**Prática:** quando escrever um teste para um defeito, rodar o arquivo com e
+sem a correção. Nunca a suíte.
+
+### 12bis. Mudou rótulo de tela? Os testes entram por ele
+
+A F12.1 estourou o limite de 20 minutos da CI, e o relatório não disse qual
+teste travou — ele nem chegou a terminar. Eram **duas** mudanças minhas de
+tela, cada uma repetida em muitos arquivos de jornada:
+
+- o grupo do onboarding deixou de se chamar "Comunidades de &lt;Universo&gt;" e
+  passou a ser "Comunidades". **Dez** arquivos entravam no app por ali
+- o formulário de criar comunidade perdeu o campo Universo. **Seis** arquivos
+  ainda o escolhiam
+
+Cada clique ficava esperando um elemento que não existia mais, 30 segundos
+por vez. Somados, mais de vinte minutos.
+
+**Prática:** ao mudar rótulo, `aria-label` ou campo de formulário,
+`grep` o texto antigo em `e2e/` **antes** de commitar. E, quando o passo
+aparecer em mais de dois arquivos, ele vira função em `apoio-tela.ts` — foi o
+que aconteceu com `escolherComunidades()` e `preencherNovaComunidade()`, que
+se juntaram ao `alerta()` e ao `cadastroConcluido()` pela mesma razão.
+
+**Corolário para a CI:** quando ela estoura o tempo em vez de reprovar, ela
+não consegue decidir nada — é o caso previsto na prática 7 para rodar a suíte
+aqui. Rodar local **uma vez** custou menos que dois ciclos cegos de 20
+minutos.
+
+### 12. `format:check` no repositório inteiro, uma vez, antes do commit
+
+A F12.1 reprovou na CI **só por formatação**: apagar uma função com script
+deixou uma linha em branco a mais, e eu tinha rodado o Prettier só nos
+arquivos que lembrei de listar. Um ciclo de CI de 9 minutos por uma linha
+vazia.
+
+**Prática:** `npm run format:check` sem argumento, uma vez, antes de commitar.
+Conferir arquivo por arquivo depende de lembrar a lista — e a lista cresce a
+cada edição. É a prática 1 de novo, por outro caminho: não confiar no
+silêncio de um script.
+
+---
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

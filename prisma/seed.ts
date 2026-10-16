@@ -1,5 +1,5 @@
 /**
- * Seed de desenvolvimento, com os Universos, comunidades e pessoas do
+ * Seed de desenvolvimento, com as comunidades e as pessoas do
  * protótipo (docs/telas.html).
  *
  * Só para o banco local. Como `profiles.id` referencia `auth.users`, o seed
@@ -32,33 +32,34 @@ const PEOPLE = [
   { id: "66666666-6666-4666-8666-666666666666", handle: "analima", name: "Ana Lima" },
 ] as const;
 
-const UNIVERSES = [
-  { slug: "musica", name: "Música" },
-  { slug: "cinema", name: "Cinema" },
-  { slug: "fotografia", name: "Fotografia" },
-  { slug: "games", name: "Games" },
-] as const;
+/**
+ * O Universo único em que toda comunidade vive (F12.1).
+ *
+ * Os Universos temáticos saíram do produto. A coluna continua NOT NULL, e o
+ * seed precisa de um pai para as comunidades — este, invisível em tela.
+ */
+const HUBVERSO = { slug: "hubverso", name: "Hubverso" } as const;
 
 const COMMUNITIES = [
-  { universe: "musica", name: "Música Eletrônica", intro: "Pistas, sets e descobertas." },
-  { universe: "musica", name: "Vinil", intro: "Prensagens, sebos e o ritual da agulha." },
-  { universe: "musica", name: "Produção Musical", intro: "Do primeiro loop ao master." },
-  { universe: "musica", name: "Techno Minimal", intro: "Menos elementos, mais hipnose." },
-  { universe: "musica", name: "DJs", intro: "Transições, leitura de pista e seleção." },
-  { universe: "fotografia", name: "Fotografia de Paisagem", intro: "Luz, espera e horizonte." },
-  { universe: "fotografia", name: "Retrato", intro: "Quem olha de volta." },
-  { universe: "fotografia", name: "Analógica", intro: "Filme, revelação e paciência." },
-  { universe: "fotografia", name: "Fotografia de Rua", intro: "O instante que não se repete." },
-  { universe: "cinema", name: "Terror", intro: "O que assusta e por que a gente volta." },
-  { universe: "cinema", name: "Ficção Científica", intro: "Futuros possíveis e improváveis." },
-  { universe: "cinema", name: "Documentários", intro: "O real, recortado por alguém." },
-  { universe: "cinema", name: "Cinema Brasileiro", intro: "Do Cinema Novo ao que estreia agora." },
-  { universe: "cinema", name: "Animação", intro: "Desenho, stop motion e o que mais vier." },
-  { universe: "games", name: "Indie", intro: "Jogos pequenos com ideias grandes." },
-  { universe: "games", name: "RPG", intro: "Fichas, mesas e campanhas que não acabam." },
-  { universe: "games", name: "Speedrun", intro: "O jogo inteiro, o mais rápido possível." },
-  { universe: "games", name: "Retrô", intro: "Cartucho, fliperama e emulador." },
-  { universe: "games", name: "Jogos de Tabuleiro", intro: "Da mesa da cozinha ao campeonato." },
+  { name: "Música Eletrônica", intro: "Pistas, sets e descobertas." },
+  { name: "Vinil", intro: "Prensagens, sebos e o ritual da agulha." },
+  { name: "Produção Musical", intro: "Do primeiro loop ao master." },
+  { name: "Techno Minimal", intro: "Menos elementos, mais hipnose." },
+  { name: "DJs", intro: "Transições, leitura de pista e seleção." },
+  { name: "Fotografia de Paisagem", intro: "Luz, espera e horizonte." },
+  { name: "Retrato", intro: "Quem olha de volta." },
+  { name: "Analógica", intro: "Filme, revelação e paciência." },
+  { name: "Fotografia de Rua", intro: "O instante que não se repete." },
+  { name: "Terror", intro: "O que assusta e por que a gente volta." },
+  { name: "Ficção Científica", intro: "Futuros possíveis e improváveis." },
+  { name: "Documentários", intro: "O real, recortado por alguém." },
+  { name: "Cinema Brasileiro", intro: "Do Cinema Novo ao que estreia agora." },
+  { name: "Animação", intro: "Desenho, stop motion e o que mais vier." },
+  { name: "Indie", intro: "Jogos pequenos com ideias grandes." },
+  { name: "RPG", intro: "Fichas, mesas e campanhas que não acabam." },
+  { name: "Speedrun", intro: "O jogo inteiro, o mais rápido possível." },
+  { name: "Retrô", intro: "Cartucho, fliperama e emulador." },
+  { name: "Jogos de Tabuleiro", intro: "Da mesa da cozinha ao campeonato." },
 ] as const;
 
 async function main() {
@@ -100,19 +101,15 @@ async function main() {
     })),
   });
 
-  console.log("criando Universos…");
-  const universes = new Map<string, string>();
-  for (const universe of UNIVERSES) {
-    const created = await prisma.universe.create({ data: universe });
-    universes.set(universe.slug, created.id);
-  }
+  console.log("criando o Hubverso…");
+  const hubverso = await prisma.universe.create({ data: HUBVERSO });
 
   console.log("criando comunidades…");
   const communities = new Map<string, string>();
   for (const community of COMMUNITIES) {
     const created = await prisma.community.create({
       data: {
-        universeId: universes.get(community.universe)!,
+        universeId: hubverso.id,
         name: community.name,
         nameNormalized: community.name, // o gatilho do RN04 reescreve
         intro: community.intro,

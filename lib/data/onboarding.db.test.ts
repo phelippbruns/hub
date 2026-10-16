@@ -13,7 +13,7 @@ import {
   comunidadesSeguidas,
   concluirOnboarding,
   jaFezOnboarding,
-  listarUniversosComComunidades,
+  listarComunidadesParaEscolher,
   registrarEscolhaDeNotificacoes,
 } from "./onboarding";
 import { createTopic } from "./topics";
@@ -151,23 +151,39 @@ describe("RN31: quem chega por convite", () => {
 });
 
 describe("a tela de escolha", () => {
-  it("lista as comunidades por Universo, sem o corte de 20 membros do RN05", async () => {
+  it("lista as comunidades numa lista só, sem o corte de membros do RN05", async () => {
     const { dono, universo } = await cenario(0);
-    await makeCommunity(universo.id, dono.id, "Comunidade Pequena");
+    const pequena = await makeCommunity(universo.id, dono.id, "Comunidade Pequena");
 
-    const universos = await listarUniversosComComunidades();
-    const encontrado = universos.find((u) => u.id === universo.id);
+    const comunidades = await listarComunidadesParaEscolher();
 
     // Com o corte do Explorar aplicado aqui, uma comunidade de 1 membro não
     // apareceria e ninguém conseguiria escolher 3 num Hub recém-lançado.
-    expect(encontrado?.communities.length).toBeGreaterThan(0);
-    expect(encontrado?.communities[0]?.membersCount).toBeLessThan(20);
+    expect(comunidades.map((c) => c.id)).toContain(pequena.id);
   });
 
-  it("Universo sem comunidade não aparece", async () => {
-    const vazio = await makeUniverse("Universo Vazio");
-    const universos = await listarUniversosComComunidades();
-    expect(universos.map((u) => u.id)).not.toContain(vazio.id);
+  it("F12.1: a lista não vem agrupada — nenhum item carrega Universo", async () => {
+    const { dono, universo } = await cenario(0);
+    await makeCommunity(universo.id, dono.id, "Mais Uma");
+
+    const comunidades = await listarComunidadesParaEscolher();
+
+    expect(comunidades.length).toBeGreaterThan(0);
+    // O agrupamento por Universo saiu: o que volta é comunidade, direto.
+    for (const comunidade of comunidades) {
+      expect(comunidade).not.toHaveProperty("communities");
+      expect(comunidade).toHaveProperty("name");
+    }
+  });
+
+  it("as maiores vêm primeiro, que é onde há conversa", async () => {
+    const { dono, universo } = await cenario(0);
+    const grande = await makeCommunity(universo.id, dono.id, "Comunidade Grande");
+    await db.community.update({ where: { id: grande.id }, data: { membersCount: 500 } });
+
+    const comunidades = await listarComunidadesParaEscolher();
+
+    expect(comunidades[0]?.id).toBe(grande.id);
   });
 });
 

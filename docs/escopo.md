@@ -33,12 +33,13 @@ As pesquisas citadas estão no documento de conceito HUB v2 e ainda não têm re
 
 ## Estrutura
 
-O conteúdo se organiza em quatro níveis, e a Cabine fica fora da hierarquia como espaço privado. Universo organiza. Comunidade conecta. Tópico provoca. Resposta participa. Cabine aproxima.
+O conteúdo se organiza em três níveis, e a Cabine fica fora da hierarquia como espaço privado. Comunidade conecta. Tópico provoca. Resposta participa. Cabine aproxima.
+
+Havia um quarto nível acima, o Universo, que organizava as comunidades por grande área. Ele **saiu do produto na F12.1**, em 15 de outubro de 2026: cobrava de quem ia criar uma comunidade a escolha de uma gaveta antes de falar do assunto. Toda comunidade vive hoje num Universo único e invisível, o Hubverso, que existe só no banco.
 
 | Nível | Ícone | Cor | Quem cria | Exemplo |
 | --- | --- | --- | --- | --- |
-| Universo | { | Amarelo (sun) | Plataforma | Música |
-| Comunidade | # | Roxo (lavender) | Qualquer usuário, dentro de um Universo | Música Eletrônica |
+| Comunidade | # | Roxo (lavender) | Qualquer usuário | Música Eletrônica |
 | Tópico | \* | Preto (ink) | Qualquer membro da comunidade | primeira festa |
 | Resposta | sem ícone | Branco (paper) | Qualquer membro | Um set de 6 horas num galpão |
 | Cabine | ícone de conversa | sem cor fixa | Quem convida, com aceite | Lia e Jo |
@@ -49,7 +50,7 @@ Os ícones aparecem ao lado do nome, nunca dentro dele: "Música Eletrônica", n
 
 | Termo | Definição |
 | --- | --- |
-| Universo | Grande área de interesse que organiza comunidades. Criado e moderado pela plataforma. |
+| Hubverso | O Universo único e invisível em que toda comunidade vive. Existe só no banco, desde a F12.1, para a coluna `universe_id` continuar fazendo sentido. Não aparece em tela nenhuma. |
 | Comunidade | Unidade social principal. Espaço que o usuário segue e onde participa. |
 | Tópico | Discussão proposta por um membro dentro de uma comunidade, com nome e descrição. |
 | Resposta | Participação de uma pessoa em um tópico. É o conteúdo principal do Hub. |
@@ -119,7 +120,6 @@ O MVP cobre sete etapas da jornada, da entrada à segurança. Celular e web têm
 ### Descoberta
 
 1. Explorar, item próprio da navegação, com busca única e filtros Tudo, Comunidades, Tópicos e Pessoas. Cada comunidade da lista tem a marca # para entrar direto. A busca tem tela de resultado com comunidades e pessoas.
-2. Navegação por Universos. A página do Universo tem busca por nome e ordem por atividade ou por mais recentes.
 3. Página da comunidade: foto de capa no topo com o nome; abaixo, a marca # funciona como botão para entrar ou sair, ao lado do número de membros, descrição, Hot Topic e lista de tópicos. Sair pede confirmação. Se quem sai modera, a moderação passa para o membro mais ativo. A capa tem botão de compartilhar. Uma lupa ao lado da ordenação abre a busca de tópicos dentro da comunidade.
 4. Menu da comunidade com moderadores, denunciar e moderar. Não há ajuste de notificações por comunidade no MVP.
 
@@ -139,9 +139,9 @@ O MVP cobre sete etapas da jornada, da entrada à segurança. Celular e web têm
 
 ### Minha área
 
-1. Perfil próprio, com menu de três pontos para Editar perfil e Configurações, @, seguidores, descrição, contadores e abas Respostas, Comunidades e Coleção. A Coleção reúne todos os tópicos seguidos, inclusive os parados, só o dono vê e pode ser organizada por Universo, por comunidade ou em ordem cronológica.
+1. Perfil próprio, com menu de três pontos para Editar perfil e Configurações, @, seguidores, descrição, contadores e abas Respostas, Comunidades e Coleção. A Coleção reúne todos os tópicos seguidos, inclusive os parados, só o dono vê e pode ser organizada por comunidade ou em ordem cronológica.
 2. Minhas comunidades com miniatura da capa, membros e tópicos ativos de cada uma, busca por texto, ordem alfabética e comunidades fixadas no topo.
-3. Criar comunidade com nome, intro, foto de capa enviada pela pessoa e Universo.
+3. Criar comunidade com nome, intro e foto de capa enviada pela pessoa.
 4. Central de notificações.
 5. Configurações: conta, privacidade, ordem padrão, histórico de atividade, seus dados, notificações e excluir conta.
 
@@ -165,11 +165,11 @@ O MVP tem 28 telas e uma página de estados do sistema, organizadas por feature.
 | 6 | Início / Feed | Início | Hot Topics, tópicos seguidos, pessoas que você segue, últimas interações |
 | 7 | Início / Feed | Início vazio | Leva a entrar em comunidades |
 | 8 | Início / Feed | Central de notificações | Avisos do Hub |
-| 9 | Descoberta / Explorar | Explorar comunidades | Busca, filtros e Universos |
+| 9 | Descoberta / Explorar | Explorar comunidades | Busca, filtros e a lista de comunidades |
 | 10 | Descoberta / Explorar | Resultado da busca | Comunidades e pessoas |
-| 11 | Descoberta / Explorar | Página do Universo | Comunidades de um Universo, busca e ordem |
+| 11 | ~~Descoberta / Explorar~~ | ~~Página do Universo~~ | Apagada na F12.1. O número fica para não renumerar as outras |
 | 12 | Comunidades / Tópicos / Respostas | Minhas comunidades | Membros e tópicos ativos |
-| 13 | Comunidades / Tópicos / Respostas | Criar comunidade | Nome, intro, foto de capa, Universo |
+| 13 | Comunidades / Tópicos / Respostas | Criar comunidade | Nome, intro e foto de capa |
 | 14 | Comunidades / Tópicos / Respostas | Página da comunidade | Capa, entrar e sair, Hot Topic, tópicos, busca, compartilhar |
 | 15 | Comunidades / Tópicos / Respostas | Tópico | Descrição, respostas com foto ou GIF, apagar |
 | 16 | Comunidades / Tópicos / Respostas | Criar tópico | Nome, descrição, mídia |
@@ -193,9 +193,9 @@ São 34 regras. Elas substituem integralmente as RN01 a RN23 do escopo anterior.
 
 | Código | Regra | Área |
 | --- | --- | --- |
-| RN01 | A hierarquia é Universo, comunidade, tópico e resposta. Os ícones {, # e \* ficam ao lado do nome, nunca dentro dele. | Estrutura |
-| RN02 | Universos são criados e moderados somente pela plataforma. | Estrutura |
-| RN03 | Toda comunidade exige nome, intro de até 240 caracteres, capa e Universo. Sem capa enviada, usa a capa padrão do Universo. | Comunidades |
+| RN01 | A hierarquia é comunidade, tópico e resposta. Os ícones {, # e \* ficam ao lado do nome, nunca dentro dele. **O Universo saiu do produto na F12.1** (15 de outubro de 2026): toda comunidade vive num Universo único e invisível, o Hubverso, que existe só no banco para a coluna continuar fazendo sentido. | Estrutura |
+| RN02 | ~~Universos são criados e moderados somente pela plataforma.~~ **Sem efeito desde a F12.1**: não há Universo a criar nem a moderar. O número fica reservado para não renumerar as outras. | Estrutura |
+| RN03 | Toda comunidade exige nome, intro de até 240 caracteres e capa. Sem capa enviada, usa a capa padrão do Hub. Universo saiu da exigência na F12.1. | Comunidades |
 | RN04 | Não podem existir duas comunidades com o mesmo nome. A comparação ignora maiúsculas, acentos, espaços e plural simples. A checagem roda no envio. | Comunidades |
 | RN05 | A comunidade fica disponível em Explorar ao atingir 20 membros. Antes disso, só aparece na busca. | Comunidades |
 | RN06 | Quem cria a comunidade é moderador e pode nomear outros. Quando um moderador sai, a moderação passa automaticamente para o membro mais ativo da comunidade. | Moderação |
@@ -210,7 +210,7 @@ São 34 regras. Elas substituem integralmente as RN01 a RN23 do escopo anterior.
 | RN15 | Não há curtidas nem contador por resposta. Todo tópico mostra o número de pessoas e de respostas. | Respostas |
 | RN16 | Links são bloqueados em todo texto, inclusive endereços digitados por extenso. Compartilhar comunidades e tópicos é permitido: o botão de compartilhar envia para uma Cabine ou gera um link que abre o Hub. Quem abre o link sem conta vê a comunidade, os membros e o tópico; as respostas só aparecem depois do cadastro. | Todas |
 | RN17 | Todo conteúdo exibe nome real, @ e foto do autor, ou avatar padrão quando não há foto, com acesso ao perfil. O @ é único na plataforma. | Todas |
-| RN18 | Usuários seguem comunidades, tópicos e pessoas. Seguir um tópico usa o ícone de olho e salva o tópico na Coleção, aba privada do perfil próprio, que pode ser organizada por Universo, por comunidade ou em ordem cronológica. Seguir é sempre manual: responder não segue o tópico, e tópicos respondidos e não seguidos ficam só na aba Respostas. | Seguir |
+| RN18 | Usuários seguem comunidades, tópicos e pessoas. Seguir um tópico usa o ícone de olho e salva o tópico na Coleção, aba privada do perfil próprio, que pode ser organizada por comunidade ou em ordem cronológica. Seguir é sempre manual: responder não segue o tópico, e tópicos respondidos e não seguidos ficam só na aba Respostas. | Seguir |
 | RN19 | O Início mostra Hot Topics das comunidades seguidas, até 3 interações recentes de pessoas que você segue, suas últimas interações e tópicos seguidos, e termina em "Você está em dia". | Início |
 | RN20 | A Cabine é uma conversa privada de 2 a 5 pessoas e só começa quando o convidado aceita. | Cabine |
 | RN21 | Só é possível convidar quem divide ao menos uma comunidade com você. O limite é de 10 convites por dia, contando os pendentes. | Cabine |
@@ -219,11 +219,11 @@ São 34 regras. Elas substituem integralmente as RN01 a RN23 do escopo anterior.
 | RN24 | Qualquer participante pode sair da Cabine. Com uma pessoa restante, a Cabine se encerra. Quem sai volta só por novo convite. | Cabine |
 | RN25 | Cada mensagem de Cabine aceita GIF ou 1 imagem, além de comunidades e tópicos compartilhados. | Cabine |
 | RN26 | Bloquear alguém tira você das Cabines em comum, sem aviso, e impede novos convites. A lista de pessoas bloqueadas fica nas configurações, com opção de desbloquear. | Segurança |
-| RN27 | O perfil mostra foto, nome, @, número de seguidores, descrição de até 120 caracteres sem links, contadores e as abas Respostas e Comunidades, com as comunidades em comum marcadas. No perfil próprio há também a aba Coleção, privada. O número de pessoas seguidas aparece só no perfil próprio, ao lado dos seguidores, e abre a lista. A lista também abre por Ver todas, no Início. Cada resposta no perfil mostra o tópico e a pergunta. | Perfil |
+| RN27 | O perfil mostra foto, nome, @, número de seguidores, descrição de até 120 caracteres sem links, contadores e as abas Respostas e Comunidades, com as comunidades em comum marcadas. No perfil próprio há também a aba Coleção, privada, que organiza por comunidade ou em ordem cronológica (o agrupamento por Universo saiu na F12.1). O número de pessoas seguidas aparece só no perfil próprio, ao lado dos seguidores, e abre a lista. A lista também abre por Ver todas, no Início. Cada resposta no perfil mostra o tópico e a pergunta. | Perfil |
 | RN28 | Os contadores do perfil são respostas, comunidades e dias ativos. Dia ativo é o dia com ao menos uma resposta ou tópico. O número de seguidores é só informativo e não abre lista, para evitar comparação entre perfis. | Perfil |
 | RN29 | A idade mínima é de 16 anos, com verificação sem autodeclaração. Login com Google não substitui a verificação. O cadastro exige concordar com os Termos de uso e a Política de privacidade. | Conta |
 | RN30 | A foto de perfil é opcional. Sem foto, o Hub mostra um avatar padrão. O Google pode preencher nome e foto. | Conta |
-| RN31 | O onboarding exige ao menos 3 comunidades. Quem chega por convite já tem a comunidade do convite selecionada e volta ao tópico ao terminar. O onboarding termina pedindo permissão de notificações. | Conta |
+| RN31 | O onboarding exige ao menos 3 comunidades, escolhidas numa lista só — o agrupamento por Universo saiu na F12.1. Quem chega por convite já tem a comunidade do convite selecionada e volta ao tópico ao terminar. O onboarding termina pedindo permissão de notificações. | Conta |
 | RN32 | O usuário pode baixar uma cópia dos seus dados e excluir a conta pelas configurações. Ao excluir, escolhe entre manter respostas e tópicos como "Conta excluída" ou apagar tudo. Cabines, perfil e Coleção são apagados nos dois casos. | Conta |
 | RN33 | O moderador remove respostas e tópicos, remove membros (que podem voltar) e bane membros (que não podem voltar). Também adiciona moderadores entre os membros, por convite que precisa ser aceito, e remove moderadores, exceto quem criou a comunidade. Quem é removido da moderação continua membro e é avisado. Banir da plataforma é ação exclusiva do Hub. O autor recebe notificação com o motivo quando uma resposta ou tópico é removido. | Moderação |
 | RN34 | Notificações ligadas por padrão: seu tópico virou Hot Topic, convites e mensagens de Cabine, aviso diário dos tópicos seguidos. Desligada por padrão: novos tópicos nas comunidades. | Notificações |
@@ -239,7 +239,7 @@ A interface é calma e plana, com uma cor fixa por nível da hierarquia. As regr
 | paper | #FFFFFF | Cartões de resposta, campos |
 | surfacePage | #F1EEFF | Fundo de página |
 | lavender | #A69CFB | Comunidade, chip selecionado |
-| sun | #FFD95E | Universo, botão Responder do Hot Topic |
+| sun | #FFD95E | Botão Responder do Hot Topic (era também a cor do Universo, que saiu na F12.1) |
 | error | #B42318 | Erro e ações destrutivas |
 | success | #146C43 | Confirmações |
 
@@ -285,7 +285,7 @@ O maior risco é o Hot Topic premiar polêmica, porque contradiz a tese de uma r
 | Comunidades fantasmas | Criação livre espalha pouca gente em muitos lugares | RN05: 20 membros para Explorar e comunidades curadas no lançamento |
 | Cabine como canal de assédio | Sem seguir mútuo, qualquer um poderia convidar | RN21 a RN23 e RN26 |
 | Pouco sinal de afinidade | Sem curtidas, nenhuma ação explícita mostra interesse | Medir acessos ao perfil com origem registrada |
-| Universo e Hot Topic dividem o amarelo | O destaque perde exclusividade de cor | Título de seção "Hot Topics" identifica o destaque |
+| ~~Universo e Hot Topic dividem o amarelo~~ | Resolvido pela F12.1: o amarelo ficou só com o Hot Topic | — |
 | Moderação de imagens | GIF e imagem em todas as camadas custam mais que texto | Filtro automático e classificação restrita no GIPHY (confirmar opções da API) |
 | Links digitados | Endereços escritos por extenso escapam do bloqueio | Detecção de padrões de endereço em todo texto |
 | Idade e ECA Digital | A lei proíbe a autodeclaração de idade | RN29 e revisão jurídica |
@@ -323,7 +323,7 @@ Restam 16 pontos. Os três primeiros bloqueiam o lançamento.
 
 - [ ] Método de verificação de idade, a definir com revisão jurídica.
 - [ ] Idade mínima de 16 ou 17 anos: o ECA Digital fala em contas "de até 16 anos", o que pode incluir quem tem 16. Revisão jurídica.
-- [ ] Universos e comunidades curadas no lançamento.
+- [ ] Comunidades curadas no lançamento. (Universos saíram do produto na F12.1.)
 - [ ] Fuso horário do ciclo. Premissa: 00h no horário de Brasília.
 - [ ] Valores de corte de cada métrica, definidos antes do lançamento.
 - [ ] Como garantir nome real além do preenchimento pelo Google.

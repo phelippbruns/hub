@@ -40,14 +40,17 @@ ponto em aberto sobre 16 ou 17 por causa do ECA Digital.
 
 ### 1.3 Universos e comunidades curadas
 
-Hoje há 5 Universos e 23 comunidades como ponto de partida
-(`npm run conteudo:inicial`). Quais entram no lançamento é decisão de produto.
-Cerâmica foi pedida por você em 11 de outubro, com Torno, Esmaltes, Queima e
-Modelagem Manual — Universo sem comunidade nenhuma aparece no Explorar e não
-leva a lugar nenhum.
+Hoje há 19 comunidades como ponto de partida (`npm run conteudo:inicial`),
+todas no Hubverso. Quais entram no lançamento é decisão de produto.
+
+Cerâmica foi pedida em 11 de outubro **como Universo**, e cancelada em 15 com
+o fim dos Universos. As quatro comunidades que eu tinha acrescentado junto —
+Torno, Esmaltes, Queima e Modelagem Manual — saíram também: elas existiam só
+para o Universo não ficar vazio, e esse motivo acabou. Se cerâmica interessar
+como assunto, voltam como comunidades comuns, uma linha cada.
 
 Ligado a isto: **quem modera as comunidades da plataforma.** Hoje a resposta é
-"a conta do Phelipp", o que é um remendo — toda denúncia nas 23 cai no seu
+"a conta do Phelipp", o que é um remendo — toda denúncia nas 19 cai no seu
 colo. Precisa virar um papel de equipe.
 
 ### 1.4 O corte de membros está desligado

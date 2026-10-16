@@ -4,7 +4,7 @@
 
 O Hub é uma rede social que transforma interesses em relações: começa pelo interesse compartilhado, não pela pessoa.
 A cadeia que o produto sustenta é Interesse → Comunidade → Tópico → Resposta → Afinidade → Conversa → Relação.
-Universo organiza, comunidade conecta, tópico provoca, resposta participa, cabine aproxima.
+Comunidade conecta, tópico provoca, resposta participa, cabine aproxima.
 Não há curtidas, contador por resposta nem feed infinito: o Início termina em "Você está em dia".
 O motivo para voltar é o ciclo diário — às 00h, o tópico com mais pessoas diferentes respondendo vira o Hot Topic da comunidade.
 
@@ -130,7 +130,9 @@ it("RN07: recusa o segundo tópico do dia na mesma comunidade", async () => { �
 
 As regras RN01 a RN34 estão em [docs/escopo.md](docs/escopo.md).
 
-**As rotas vêm do protótipo.** A barra de endereço de cada tela em [docs/telas.html](docs/telas.html) define a URL: `/c/<comunidade>/<topico>`, `/u/<universo>`, `/perfil`, e o perfil de outra pessoa **na raiz** (`/lia`).
+**As rotas vêm do protótipo.** A barra de endereço de cada tela em [docs/telas.html](docs/telas.html) define a URL: `/c/<comunidade>/<topico>`, `/perfil`, e o perfil de outra pessoa **na raiz** (`/lia`). A `/u/<universo>` do protótipo foi apagada na F12.1, mas o `@u` **continua reservado**: endereço que já existiu nunca volta a ser livre.
+
+**Toda comunidade vive no Hubverso.** O Universo saiu do produto na F12.1: nenhuma tela o mostra e ninguém escolhe um ao criar comunidade. A coluna `universe_id` **continua NOT NULL** — a comunidade tem um pai, ele é que é invisível e único. Quem cria comunidade sem passar Universo cai no Hubverso, procurado pelo slug em `lib/data/communities.ts`. Arrancar a coluna seria semanas de risco por nenhum ganho; se um dia os Universos voltarem, a estrutura está lá.
 
 **Rota nova de primeiro nível exige @ reservado.** Como o perfil mora na raiz, quem registrasse `@inicio` ficaria inalcançável para sempre — o Next casa rota estática antes de dinâmica e nada avisaria. A lista está em [lib/data/validation.ts](lib/data/validation.ts) e [lib/data/rotas.test.ts](lib/data/rotas.test.ts) varre `app/` e falha se faltar alguma.
 
@@ -150,7 +152,7 @@ Não remova essa linha, e não marque rota como estática. O teste `todo script 
 
 **Rota que consulta o banco leva `loading.tsx` — menos a que pode dar 404.** Consequência direta do de cima: se toda navegação espera o servidor, sem `loading.tsx` o Next não tem o que desenhar na espera — a tela anterior fica parada, sem sinal nenhum, até a nova chegar inteira. Dois segundos sem resposta parecem dez, e foi assim que o Hub ganhou fama de lento sem ser. Use `<PaginaCarregando>` dentro de uma `<ContentColumn>`, como fazem as sete rotas que já têm. Formulário e tela de espaço reservado não precisam.
 
-**A exceção é obrigatória:** `loading.tsx` abre um limite de Suspense, e o Next começa a transmitir a resposta **antes** de a página rodar. Numa rota que chama `notFound()` o cabeçalho já foi enviado como 200, e o 404 vira 200 com a tela de não encontrado no meio do fluxo — endereço que não existe passa a dizer que existe. Por isso `/c/<comunidade>`, `/c/<comunidade>/<topico>`, `/<handle>` e `/u/<universo>` **não têm** `loading.tsx`. Para dar sinal de carregando nelas sem perder o 404, o caminho é outro: conferir a existência na página e envolver só os pedaços lentos em `<Suspense>`, depois da conferência.
+**A exceção é obrigatória:** `loading.tsx` abre um limite de Suspense, e o Next começa a transmitir a resposta **antes** de a página rodar. Numa rota que chama `notFound()` o cabeçalho já foi enviado como 200, e o 404 vira 200 com a tela de não encontrado no meio do fluxo — endereço que não existe passa a dizer que existe. Por isso `/c/<comunidade>`, `/c/<comunidade>/<topico>` e `/<handle>` **não têm** `loading.tsx`. Elas dão o sinal de outro jeito, e é o padrão a seguir em qualquer rota que possa dar 404: a conferência de existência roda na página, antes de tudo, e só os pedaços lentos ficam em `<Suspense>` com `<PaginaCarregando>`. Veja `app/(app)/c/[comunidade]/page.tsx`.
 
 **Só layout de computador até a F21.** Da F00 à F20, implemente apenas o layout acima de 768 px, seguindo a versão web de cada tela em [docs/telas.html](docs/telas.html). Não crie estilos de celular nem breakpoints.
 
@@ -229,7 +231,7 @@ Para aplicar à mão num banco remoto, `npm run db:deploy:remoto`.
 
 **Comunidade sem moderador é um buraco.** A RN06 liga a moderação a quem criou, e as comunidades da plataforma nascem sem criador — ou seja, sem ninguém para atender denúncia. `npm run moderacao:atribuir` dá um dono às que estão órfãs, e só a elas. É a ponte até a plataforma ter um dono de moderação próprio.
 
-**Banco novo também precisa de conteúdo.** `npm run conteudo:inicial` acrescenta os Universos e as comunidades de partida. Diferente de `npm run db:seed`, que é de desenvolvimento e **trunca tudo**, este só acrescenta — roda quantas vezes quiser, em qualquer ambiente. Sem ele o onboarding é impossível de concluir, porque a RN31 exige escolher 3 comunidades.
+**Banco novo também precisa de conteúdo.** `npm run conteudo:inicial` acrescenta o Hubverso e as comunidades de partida. Diferente de `npm run db:seed`, que é de desenvolvimento e **trunca tudo**, este só acrescenta — roda quantas vezes quiser, em qualquer ambiente. Sem ele o onboarding é impossível de concluir, porque a RN31 exige escolher 3 comunidades.
 
 **`DIRECT_URL` é o pooler de sessão, não a conexão direta.** `db.PROJETO.supabase.co` só responde em IPv6, e ambientes de build como a Vercel são IPv4: de lá ela falha com `P1001: Can't reach database server`. Funciona da máquina de quem tem IPv6, que é como o erro passa despercebido.
 

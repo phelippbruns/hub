@@ -68,6 +68,36 @@ ele na hora de criar.
 📌 **Fixado** — o escopo da F12.1 registra a decisão e o que fica fora dela
 (arrancar a coluna do banco, etiquetas no lugar do Universo).
 
+**Feito em 15 de outubro.** A migration consolidou as 19 comunidades no
+Hubverso, o Universo saiu de toda tela, e as linhas antigas de `universes`
+ficaram no banco, vazias — reversível de propósito.
+
+### A marca `{` ficou sem dono
+
+Com o Universo fora do produto, a marca amarela `{` perdeu o que
+representava. Você pediu a troca das marcas em 11 de outubro — `{` para
+comunidade, `#` para tópico, `*` para resposta — e voltou atrás em 15,
+mandando manter como está.
+
+*O que custou:* nada em código, porque a reversão veio ainda no plano. O que
+sobra é um ponto solto: `level="universe"` **não é usado por nenhuma tela**,
+mas continua no componente, na galeria e nos snapshots.
+
+*Por que não apareceu antes:* a troca das marcas e a remoção do Universo
+pareciam duas tarefas, e são a mesma. Só ficou claro quando o plano pôs as
+duas no mesmo lugar.
+
+*Como ficou:* as três telas que ensinavam a hierarquia — abertura,
+boas-vindas e o estado vazio do Início — pararam de mostrar a marca de
+Universo, porque ensinar um nível que não existe é prometer o que a pessoa
+não vai encontrar. O nível continua no código, intacto, pronto para voltar.
+
+**Regra:** quando um conceito sai do produto, a marca dele não se apaga em
+silêncio nem fica exibida por inércia. Ou some das telas, ou o conceito volta.
+
+💭 **Solto** — nada impede alguém de usar `level="universe"` de novo. Um dia
+vira 📌 com a troca das marcas, se você decidir fazê-la.
+
 ---
 
 ## 2. Regra escrita de um jeito, implementada de outro

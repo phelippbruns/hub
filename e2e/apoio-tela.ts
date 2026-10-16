@@ -50,3 +50,47 @@ export function respostaPublicada(escopo: Page, texto: string): Locator {
 export async function cadastroConcluido(page: Page): Promise<void> {
   await page.waitForURL(/\/boas-vindas/, { timeout: 30_000 });
 }
+
+/**
+ * Escolhe comunidades no onboarding (RN31 exige 3).
+ *
+ * Existe como função porque o seletor dela já quebrou a suíte inteira uma
+ * vez: o grupo se chamava "Comunidades de <Universo>", a F12.1 tirou o
+ * Universo e o rótulo virou "Comunidades". Os dez arquivos de jornada
+ * entravam no app por aqui, e cada um ficou esperando um grupo que não
+ * existia mais — vinte minutos de CI até estourar o limite, sem dizer qual
+ * teste travou.
+ *
+ * Um seletor repetido em dez arquivos é um seletor que vai quebrar dez
+ * vezes. Este é o mesmo remédio do `alerta()` e do `cadastroConcluido()`.
+ */
+export async function escolherComunidades(page: Page, quantas = 3): Promise<void> {
+  for (let i = 0; i < quantas; i += 1) {
+    await page
+      .getByRole("group", { name: "Comunidades", exact: true })
+      .getByRole("button", { pressed: false })
+      .first()
+      .click();
+  }
+}
+
+/**
+ * Preenche e envia a tela de criar comunidade (tela 13).
+ *
+ * Existe pelo mesmo motivo do `escolherComunidades()`: o passo estava
+ * copiado em seis arquivos, e quando a F12.1 tirou o campo Universo do
+ * formulário os seis ficaram esperando um `<select>` que não existe mais.
+ *
+ * Não espera a navegação: quem chama decide se quer o endereço novo ou se
+ * está testando a recusa por nome repetido.
+ */
+export async function preencherNovaComunidade(
+  page: Page,
+  nome: string,
+  intro = "Comunidade criada pelo teste de jornada.",
+): Promise<void> {
+  await page.goto("/comunidades/nova");
+  await page.getByLabel("Nome").fill(nome);
+  await page.getByLabel("Intro").fill(intro);
+  await page.getByRole("button", { name: "Criar comunidade" }).click();
+}

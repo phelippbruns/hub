@@ -22,8 +22,8 @@ export default async function BoasVindasPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-4 py-4">
+      {/* Duas marcas: o Universo saiu do produto na F12.1. */}
       <div className="flex gap-2">
-        <LevelMark level="universe" />
         <LevelMark level="community" />
         <LevelMark level="topic" />
       </div>

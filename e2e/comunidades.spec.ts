@@ -1,6 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
-import { alerta, cadastroConcluido } from "./apoio-tela";
+import {
+  alerta,
+  cadastroConcluido,
+  escolherComunidades,
+  preencherNovaComunidade,
+} from "./apoio-tela";
 
 /**
  * Comunidades (F07): criar, abrir, fixar e sair.
@@ -39,13 +44,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
 
   await cadastroConcluido(page);
   await page.getByRole("link", { name: "Começar" }).click();
-  for (let i = 0; i < 3; i += 1) {
-    await page
-      .getByRole("group", { name: /^Comunidades de / })
-      .getByRole("button", { pressed: false })
-      .first()
-      .click();
-  }
+  await escolherComunidades(page);
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByRole("button", { name: "Agora não" }).click();
   await expect(page).toHaveURL(/\/inicio/);
@@ -53,11 +52,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
 
 /** Preenche e envia o formulário da tela 13. */
 async function preencherNova(page: Page, nome: string) {
-  await page.goto("/comunidades/nova");
-  await page.getByLabel("Nome").fill(nome);
-  await page.getByLabel("Intro").fill("Uma comunidade criada pelo teste de jornada.");
-  await page.getByLabel("Universo").selectOption({ index: 1 });
-  await page.getByRole("button", { name: "Criar comunidade" }).click();
+  await preencherNovaComunidade(page, nome);
 }
 
 test.describe("criar comunidade", () => {

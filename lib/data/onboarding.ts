@@ -14,27 +14,24 @@ import { MINIMO_DE_COMUNIDADES } from "@/features/onboarding/shared";
 export { MINIMO_DE_COMUNIDADES } from "@/features/onboarding/shared";
 
 /**
- * Universos e suas comunidades, para a tela de escolha.
+ * As comunidades para a tela de escolha, numa lista só.
  *
- * **Não aplica o corte de 20 membros do RN05**, de propósito: aquele corte
- * vale para o Explorar. Aqui a pessoa precisa de opções — com o corte, um Hub
+ * Vinha agrupada por Universo até a F12.1. Com o Universo fora do produto, o
+ * agrupamento teria um grupo só — moldura em volta de nada.
+ *
+ * **Não aplica o corte de membros do RN05**, de propósito: aquele corte vale
+ * para o Explorar. Aqui a pessoa precisa de opções — com o corte, um Hub
  * recém-lançado não teria o que oferecer e ninguém conseguiria concluir o
  * onboarding.
+ *
+ * As maiores primeiro, porque é onde há conversa acontecendo.
  */
-export async function listarUniversosComComunidades() {
-  const universos = await prisma.universe.findMany({
-    orderBy: { name: "asc" },
-    include: {
-      communities: {
-        where: { deletedAt: null },
-        orderBy: [{ membersCount: "desc" }, { name: "asc" }],
-        select: { id: true, name: true, intro: true, coverUrl: true, membersCount: true },
-      },
-    },
+export async function listarComunidadesParaEscolher() {
+  return prisma.community.findMany({
+    where: { deletedAt: null },
+    orderBy: [{ membersCount: "desc" }, { name: "asc" }],
+    select: { id: true, name: true, intro: true, coverUrl: true, membersCount: true },
   });
-
-  // Universo sem comunidade nenhuma só ocupa espaço na tela.
-  return universos.filter((universo) => universo.communities.length > 0);
 }
 
 /** A comunidade do tópico que trouxe a pessoa, para vir marcada como "Do seu convite". */

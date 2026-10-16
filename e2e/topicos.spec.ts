@@ -1,6 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
-import { alerta, cadastroConcluido } from "./apoio-tela";
+import {
+  alerta,
+  cadastroConcluido,
+  escolherComunidades,
+  preencherNovaComunidade,
+} from "./apoio-tela";
 
 /**
  * Tópicos (F08): criar, abrir, seguir e apagar.
@@ -37,13 +42,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
 
   await cadastroConcluido(page);
   await page.getByRole("link", { name: "Começar" }).click();
-  for (let i = 0; i < 3; i += 1) {
-    await page
-      .getByRole("group", { name: /^Comunidades de / })
-      .getByRole("button", { pressed: false })
-      .first()
-      .click();
-  }
+  await escolherComunidades(page);
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByRole("button", { name: "Agora não" }).click();
   await expect(page).toHaveURL(/\/inicio/);
@@ -51,11 +50,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
 
 /** Cria uma comunidade só desta pessoa e devolve o endereço dela. */
 async function minhaComunidade(page: Page, prefixo: string): Promise<string> {
-  await page.goto("/comunidades/nova");
-  await page.getByLabel("Nome").fill(novoNome(prefixo));
-  await page.getByLabel("Intro").fill("Comunidade do teste de jornada.");
-  await page.getByLabel("Universo").selectOption({ index: 1 });
-  await page.getByRole("button", { name: "Criar comunidade" }).click();
+  await preencherNovaComunidade(page, novoNome(prefixo));
   await page.waitForURL(/\/c\/[^/]+$/);
   return new URL(page.url()).pathname;
 }

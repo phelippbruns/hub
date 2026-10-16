@@ -1,18 +1,64 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ContentColumn, EmptyState, TopicOpening } from "@/design/components";
+import { ContentColumn, EmptyState, PaginaCarregando, TopicOpening } from "@/design/components";
 import { CampoDeResposta } from "@/features/respostas/campo";
 import { LinhaDeResposta } from "@/features/respostas/linha";
 import { CabecalhoDoTopico } from "@/features/topicos/cabecalho";
 import { getViewer } from "@/lib/auth/session";
-import { LIMITE_RESPOSTAS_PARA_APAGAR, topicoPorEndereco } from "@/lib/data/topics";
+import {
+  LIMITE_RESPOSTAS_PARA_APAGAR,
+  respostasDoTopico,
+  topicoPorEndereco,
+} from "@/lib/data/topics";
 import { NotFoundError } from "@/lib/data/errors";
 import { haQuantoTempo } from "@/lib/tempo";
 import { marcarTopicoComoVisto } from "@/lib/data/inicio";
 import { serverEnv } from "@/lib/env";
 
 type Params = Promise<{ comunidade: string; topico: string }>;
+
+/** A lista de respostas, pedida depois do cabeçalho. */
+async function Respostas({ topicId, endereco }: { topicId: string; endereco: string }) {
+  const viewer = await getViewer();
+  const respostas = await respostasDoTopico(viewer, topicId);
+
+  if (!respostas || respostas.length === 0) {
+    return (
+      <EmptyState
+        title="Nenhuma resposta ainda"
+        description="Seja a primeira pessoa a responder."
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {respostas.map((resposta) => (
+        <LinhaDeResposta
+          key={resposta.id}
+          endereco={endereco}
+          resposta={{
+            id: resposta.id,
+            texto: resposta.text,
+            quando: haQuantoTempo(resposta.createdAt),
+            souAutor: resposta.souAutor,
+            imagem: resposta.mediaHref,
+            tipoDaMidia: resposta.mediaKind,
+            autor: resposta.author
+              ? {
+                  nome: resposta.author.name,
+                  handle: resposta.author.handle,
+                  avatarUrl: resposta.author.avatarUrl,
+                }
+              : null,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 async function carregar(params: Params) {
   const { comunidade, topico } = await params;
@@ -21,7 +67,17 @@ async function carregar(params: Params) {
     return {
       viewer,
       slugs: { comunidade, topico },
-      dados: await topicoPorEndereco(viewer, comunidade, topico),
+      /*
+       * Sem as respostas: elas são a parte lenta — uma assinatura no
+       * depósito por imagem e por foto de perfil — e escorrem depois, num
+       * `<Suspense>`. O cabeçalho aparece na hora.
+       *
+       * Não dá para usar `loading.tsx` aqui: ele abriria o limite **antes**
+       * de a página rodar, e esta rota chama `notFound()`. O cabeçalho sairia
+       * como 200 e o 404 do tópico inexistente viraria 200. Aconteceu em 15
+       * de outubro; está no Faustão.
+       */
+      dados: await topicoPorEndereco(viewer, comunidade, topico, { comRespostas: false }),
     };
   } catch (erro) {
     if (erro instanceof NotFoundError) notFound();
@@ -82,7 +138,7 @@ export default async function TopicoPage({ params }: { params: Params }) {
       />
 
       {/* RN16: sem conta, a lista de respostas não vem do servidor. */}
-      {dados.answers === null ? (
+      {!dados.podeVerRespostas ? (
         <EmptyState
           title="Entre para ver as respostas"
           description="As respostas aparecem para quem tem conta no Hub."
@@ -95,36 +151,13 @@ export default async function TopicoPage({ params }: { params: Params }) {
             gifLigado={Boolean(serverEnv().GIPHY_API_KEY)}
           />
 
-          {dados.answers.length === 0 ? (
-            <EmptyState
-              title="Nenhuma resposta ainda"
-              description="Seja a primeira pessoa a responder."
-            />
-          ) : (
-            <div className="flex flex-col gap-2">
-              {dados.answers.map((resposta) => (
-                <LinhaDeResposta
-                  key={resposta.id}
-                  endereco={endereco}
-                  resposta={{
-                    id: resposta.id,
-                    texto: resposta.text,
-                    quando: haQuantoTempo(resposta.createdAt),
-                    souAutor: resposta.souAutor,
-                    imagem: resposta.mediaHref,
-                    tipoDaMidia: resposta.mediaKind,
-                    autor: resposta.author
-                      ? {
-                          nome: resposta.author.name,
-                          handle: resposta.author.handle,
-                          avatarUrl: resposta.author.avatarUrl,
-                        }
-                      : null,
-                  }}
-                />
-              ))}
-            </div>
-          )}
+          <Suspense
+            fallback={
+              <PaginaCarregando titulo={false} linhas={2} label="Carregando as respostas" />
+            }
+          >
+            <Respostas topicId={dados.id} endereco={endereco} />
+          </Suspense>
         </>
       )}
     </ContentColumn>

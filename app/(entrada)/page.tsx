@@ -17,8 +17,12 @@ export default async function TelaInicial() {
   return (
     <main className="flex flex-1 flex-col items-center justify-between gap-4 py-4 text-center">
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
+        {/*
+          Duas marcas, não três: a F12.1 tirou o Universo do produto, e abrir
+          o Hub ensinando um nível que não existe em tela nenhuma seria
+          prometer uma estrutura que a pessoa não vai encontrar.
+        */}
         <div className="flex justify-center gap-2">
-          <LevelMark level="universe" />
           <LevelMark level="community" />
           <LevelMark level="topic" />
         </div>

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { cadastroConcluido } from "./apoio-tela";
+import { cadastroConcluido, escolherComunidades } from "./apoio-tela";
 
 /**
  * Navegação e layout (F05).
@@ -45,13 +45,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
 
   await cadastroConcluido(page);
   await page.getByRole("link", { name: "Começar" }).click();
-  for (let i = 0; i < 3; i += 1) {
-    await page
-      .getByRole("group", { name: /^Comunidades de / })
-      .getByRole("button", { pressed: false })
-      .first()
-      .click();
-  }
+  await escolherComunidades(page);
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByRole("button", { name: "Agora não" }).click();
   await expect(page).toHaveURL(/\/inicio/);

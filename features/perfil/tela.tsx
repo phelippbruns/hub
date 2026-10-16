@@ -40,8 +40,9 @@ export async function TelaDePerfil({
         ? "colecao"
         : "respostas";
 
-  const agrupamento: AgrupamentoDaColecao =
-    ordem === "universo" ? "universo" : ordem === "comunidade" ? "comunidade" : "recente";
+  // "universo" sumiu na F12.1; endereço antigo com ?ordem=universo cai no
+  // padrão em vez de quebrar.
+  const agrupamento: AgrupamentoDaColecao = ordem === "comunidade" ? "comunidade" : "recente";
 
   return (
     <ContentColumn>
@@ -135,7 +136,7 @@ async function colecaoPlana(
   const colecao = await getCollection(
     viewer,
     ownerId,
-    agrupamento === "recente" ? "recent" : agrupamento === "universo" ? "universe" : "community",
+    agrupamento === "recente" ? "recent" : "community",
   );
 
   return colecao.flatMap((item) => ("topics" in item ? item.topics : [item]));

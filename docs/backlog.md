@@ -105,7 +105,7 @@ São 23 features em 8 fases: a web primeiro (F00 a F20) e o celular depois (F21)
 | F10 | Ciclo do Hot Topic | F09 | 14 |
 | F11 | Início | F10 | 6, 7 |
 | F12 | Perfil, seguir e Coleção | F09 | 21, 22, 23, 24 |
-| F12.1 | Fim do Universo e marcas do nível | F12 | 9, 10, 11, 14, 23 |
+| F12.1 | Fim do Universo | F12 | 9, 10, 11, 14, 23 |
 | F13 | Cabine | F12 | 17, 18, 19, 20 |
 | F14 | Compartilhar e convite por link | F13 | 2, 14, 15 |
 | F15 | Notificações e marcar com @ | F13 | 8, 25 |
@@ -447,7 +447,7 @@ Testes: RN27, RN28 e privacidade da Coleção.
 Comece em modo de planejamento e só implemente depois da minha aprovação.
 ```
 
-### F12.1. Fim do Universo e marcas do nível
+### F12.1. Fim do Universo
 
 Decidido com o PO em 11 de outubro. Entra **antes da F13**, e o motivo é
 custo: a F20 (qualidade final da web) e a F21 (celular) passam por toda
@@ -478,7 +478,7 @@ Nos testes, 69 das 144 menções a Universo são andaime (`makeUniverse`,
 Hubverso, essas 69 não são tocadas.
 
 ```text
-Feature: F12.1 Fim do Universo e marcas do nível
+Feature: F12.1 Fim do Universo
 Leia CLAUDE.md, docs/escopo.md (RN01, RN02, RN03, RN31), docs/vacilos.md e as telas 9, 10, 11, 14 e 23 em docs/telas.html.
 
 Objetivo: tirar o Universo do produto sem perder a descoberta, e subir as marcas de nível um degrau.
@@ -491,11 +491,12 @@ Escopo:
 5. O onboarding escolhe comunidades de uma lista achatada, sem agrupamento por Universo, mantendo o mínimo de 3 (RN31).
 6. A Coleção perde o agrupamento por Universo e fica com comunidade e ordem cronológica (RN27 muda).
 7. Capa padrão: hoje a comunidade sem capa enviada herda a do Universo (RN03). O Hubverso precisa de uma capa padrão própria, que passa a ser a capa padrão do Hub.
-8. Marcas de nível: `{` em sun para comunidade, `#` em lavender para tópico, asterisco em paper sobre ink para resposta. O nível "universe" sai do tipo Level, e a galeria /design é atualizada junto.
+8. As marcas de nível **não mudam** (decisão do PO em 15 de outubro, revendo o pedido de 11). O que muda é que as três telas que ensinam a hierarquia — abertura, boas-vindas e o estado vazio do Início — param de mostrar a marca de Universo, porque ensinar um nível que não existe é prometer o que a pessoa não vai encontrar.
 9. RN01, RN02, RN03, RN27 e RN31 reescritas no escopo. A hierarquia passa a ser comunidade, tópico e resposta.
+10. Sinal de carregando nas telas pesadas sem perder o 404: a conferência de existência roda na página e só os pedaços lentos ficam em `<Suspense>`. `loading.tsx` não serve nelas — ele transmite antes de a página rodar e transforma 404 em 200.
 
 Fora do escopo: remover a coluna universe_id do banco; etiquetas no lugar de Universo; redesenhar a descoberta além de tirar a seção.
-Critérios de aceite: criar comunidade sem escolher Universo; comunidade nova cai no Hubverso; a palavra Universo não aparece em nenhuma tela; /u/<qualquer coisa> devolve 404 e o @ "u" segue recusado no cadastro; comunidade sem capa enviada mostra a capa padrão do Hub; onboarding ainda exige 3 comunidades; as marcas aparecem no nível novo em todas as telas e na galeria.
+Critérios de aceite: criar comunidade sem escolher Universo; comunidade nova cai no Hubverso; toda comunidade que já existia foi consolidada nele; a palavra Universo não aparece em nenhuma tela; /u/<qualquer coisa> devolve 404 e o @ "u" segue recusado no cadastro; onboarding ainda exige 3 comunidades; tópico inexistente continua devolvendo 404 depois do Suspense.
 Testes: o Explorar sem Universo; o Hubverso como destino de toda comunidade nova; a Coleção com dois agrupamentos; a capa padrão; as marcas na galeria; o @ reservado que sobrou de uma rota apagada.
 
 Comece em modo de planejamento e só implemente depois da minha aprovação.

@@ -6,7 +6,7 @@ import { lerConvite } from "@/lib/auth/convite";
 import {
   comunidadeDoConvite,
   jaFezOnboarding,
-  listarUniversosComComunidades,
+  listarComunidadesParaEscolher,
 } from "@/lib/data/onboarding";
 
 export const metadata: Metadata = { title: "Do que você gosta? · Hub" };
@@ -17,15 +17,15 @@ export default async function EscolherComunidadesPage() {
   if (await jaFezOnboarding(viewer.profileId)) redirect("/inicio");
 
   const topicId = await lerConvite();
-  const [universos, convite] = await Promise.all([
-    listarUniversosComComunidades(),
+  const [comunidades, convite] = await Promise.all([
+    listarComunidadesParaEscolher(),
     topicId ? comunidadeDoConvite(topicId) : null,
   ]);
 
   return (
     <main className="flex flex-col gap-4 py-4">
       <h1 className="text-title text-ink">Do que você gosta?</h1>
-      <EscolherComunidades universos={universos} convite={convite} />
+      <EscolherComunidades comunidades={comunidades} convite={convite} />
     </main>
   );
 }
