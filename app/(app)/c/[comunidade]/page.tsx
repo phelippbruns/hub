@@ -13,10 +13,13 @@ import {
 import { sizes, variants } from "@/design/components/button";
 import { cn } from "@/design/cn";
 import { CabecalhoDaComunidade } from "@/features/comunidades/cabecalho";
+import { TelaDeConvite } from "@/features/convite/tela";
+import { metadataCompartilhavel } from "@/features/convite/metadata";
 import { ControlesDeTopicos } from "@/features/comunidades/controles-de-topicos";
 import { comunidadeDaRota } from "@/features/comunidades/dados";
 import { painelEstaOculto, topicosDaComunidade } from "@/lib/data/comunidades";
 import { hotTopicDeHoje } from "@/lib/data/ciclo";
+import { sugestoesParaConvidar } from "@/lib/data/cabins";
 import { NotFoundError } from "@/lib/data/errors";
 import type { OrdemDosTopicos } from "@/lib/data/comunidades";
 
@@ -27,8 +30,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { comunidade } = await params;
   try {
-    const { comunidade: dados } = await comunidadeDaRota(comunidade);
-    return { title: `${dados.name} · Hub`, description: dados.intro };
+    const { comunidade: dados, viewer } = await comunidadeDaRota(comunidade);
+    return metadataCompartilhavel({
+      titulo: dados.name,
+      descricao: dados.intro,
+      capaUrl: dados.coverUrl,
+      semConta: viewer.kind !== "member",
+    });
   } catch {
     return { title: "Comunidade · Hub" };
   }
@@ -40,10 +48,10 @@ export default async function ComunidadePage({
   searchParams,
 }: {
   params: Promise<{ comunidade: string }>;
-  searchParams: Promise<{ q?: string; ordem?: string }>;
+  searchParams: Promise<{ q?: string; ordem?: string; convite?: string }>;
 }) {
   const { comunidade: slug } = await params;
-  const { q, ordem } = await searchParams;
+  const { q, ordem, convite } = await searchParams;
   const termo = q?.trim() ?? "";
   const ordemAtual: OrdemDosTopicos = ordem === "recentes" ? "recentes" : "respostas";
 
@@ -56,11 +64,35 @@ export default async function ComunidadePage({
     throw erro;
   }
 
-  const oculto = await painelEstaOculto(viewer);
+  // Sem conta: a tela 2, o convite (F14). RN16 — vê a comunidade, não as
+  // respostas dos tópicos dela.
+  if (viewer.kind !== "member") {
+    return (
+      <TelaDeConvite
+        comunidade={{
+          nome: dados.name,
+          slug: dados.slug,
+          intro: dados.intro,
+          membros: dados.membersCount,
+          capaUrl: dados.coverUrl,
+        }}
+        compartilhadoPor={convite}
+      />
+    );
+  }
+
+  const [oculto, paraCompartilhar] = await Promise.all([
+    painelEstaOculto(viewer),
+    sugestoesParaConvidar(viewer),
+  ]);
 
   return (
     <ContentColumn larga>
-      <CabecalhoDaComunidade comunidade={dados} painelOculto={oculto} />
+      <CabecalhoDaComunidade
+        comunidade={dados}
+        painelOculto={oculto}
+        paraCompartilhar={paraCompartilhar}
+      />
 
       {/*
         A descrição não entra aqui: na web ela mora no painel da direita, como

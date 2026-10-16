@@ -6,6 +6,9 @@ import { ContentColumn, EmptyState, PaginaCarregando, TopicOpening } from "@/des
 import { CampoDeResposta } from "@/features/respostas/campo";
 import { LinhaDeResposta } from "@/features/respostas/linha";
 import { CabecalhoDoTopico } from "@/features/topicos/cabecalho";
+import { TelaDeConvite } from "@/features/convite/tela";
+import { metadataCompartilhavel } from "@/features/convite/metadata";
+import { enderecoDeMidia } from "@/lib/midia/deposito";
 import { getViewer } from "@/lib/auth/session";
 import {
   LIMITE_RESPOSTAS_PARA_APAGAR,
@@ -15,6 +18,7 @@ import {
 import { NotFoundError } from "@/lib/data/errors";
 import { haQuantoTempo } from "@/lib/tempo";
 import { marcarTopicoComoVisto } from "@/lib/data/inicio";
+import { sugestoesParaConvidar } from "@/lib/data/cabins";
 import { serverEnv } from "@/lib/env";
 
 type Params = Promise<{ comunidade: string; topico: string }>;
@@ -86,8 +90,19 @@ async function carregar(params: Params) {
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const { dados } = await carregar(params);
-  return { title: `${dados.name} · ${dados.community.name} · Hub`, description: dados.description };
+  const { dados, viewer } = await carregar(params);
+
+  /*
+   * O nome do tópico **sem o asterisco** fora do Hub (item 6 do escopo): a
+   * marca de nível é linguagem de dentro, e num cartão do WhatsApp ela
+   * viraria só um símbolo estranho antes do nome.
+   */
+  return metadataCompartilhavel({
+    titulo: `${dados.name} · ${dados.community.name}`,
+    descricao: dados.description,
+    capaUrl: await enderecoDeMidia(dados.community.coverUrl),
+    semConta: viewer.kind !== "member",
+  });
 }
 
 /**
@@ -100,9 +115,45 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
  * Na web o tópico ocupa a largura toda, sem painel lateral — item 7 do
  * escopo da feature.
  */
-export default async function TopicoPage({ params }: { params: Params }) {
+export default async function TopicoPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Promise<{ convite?: string }>;
+}) {
   const { viewer, slugs, dados } = await carregar(params);
   const endereco = `/c/${slugs.comunidade}/${slugs.topico}`;
+
+  /*
+   * Sem conta: a tela 2, o convite (F14).
+   *
+   * O cookie que faz o onboarding marcar esta comunidade e devolver a
+   * pessoa a este tópico (RN31) é gravado pelo **proxy** — gravar cookie
+   * durante a renderização não é permitido no App Router.
+   */
+  if (viewer.kind !== "member") {
+    const { convite } = await searchParams;
+
+    return (
+      <TelaDeConvite
+        comunidade={{
+          nome: dados.community.name,
+          slug: dados.community.slug,
+          intro: dados.community.intro,
+          membros: dados.community.membersCount,
+          capaUrl: await enderecoDeMidia(dados.community.coverUrl),
+        }}
+        topico={{
+          nome: dados.name,
+          abertura: dados.description,
+          respostas: dados.answerCount,
+          pessoas: dados.peopleCount,
+        }}
+        compartilhadoPor={convite}
+      />
+    );
+  }
 
   /*
    * Abrir o tópico zera o "n novas" do Início (F11).
@@ -128,6 +179,7 @@ export default async function TopicoPage({ params }: { params: Params }) {
         podeApagar={dados.podeApagar}
         respostasDeOutros={dados.respostasDeOutros}
         limite={LIMITE_RESPOSTAS_PARA_APAGAR}
+        paraCompartilhar={await sugestoesParaConvidar(viewer)}
       />
 
       <TopicOpening

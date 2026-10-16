@@ -16,17 +16,19 @@ import { cookies } from "next/headers";
 const COOKIE = "hub_convite";
 const DURACAO_SEGUNDOS = 60 * 60 * 24; // um dia
 
-/** Chamado pela página de convite (tela 2, F06) quando alguém sem conta abre o link. */
-export async function guardarConvite(topicId: string) {
-  const jar = await cookies();
-  jar.set(COOKIE, topicId, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: DURACAO_SEGUNDOS,
-  });
-}
+/**
+ * Quem escreve é o **proxy**, não a página.
+ *
+ * Gravar cookie durante a renderização não é permitido no App Router — a
+ * página tentou e devolveu erro de servidor. O proxy roda antes de
+ * renderizar e já decide sobre sessão, então é onde isto cabe.
+ *
+ * O valor é o **caminho** do tópico, não o id: assim o fim do onboarding
+ * devolve a pessoa exatamente ao endereço que ela abriu, e não a um
+ * redirecionamento equivalente.
+ */
+export const COOKIE_DO_CONVITE = COOKIE;
+export const DURACAO_DO_CONVITE = DURACAO_SEGUNDOS;
 
 export async function lerConvite(): Promise<string | null> {
   const jar = await cookies();

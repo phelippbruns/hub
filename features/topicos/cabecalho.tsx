@@ -13,6 +13,7 @@ import {
 } from "@/design/components";
 import { BackIcon, MoreOptionsIcon, ShareIcon } from "@/design/icons";
 import { alternarSeguirTopico, apagarTopico } from "./actions";
+import { Compartilhar, type PessoaParaCompartilhar } from "@/features/convite/compartilhar";
 
 /**
  * O cabeçalho do tópico (tela 15): voltar, compartilhar, seguir e o menu.
@@ -30,6 +31,7 @@ export function CabecalhoDoTopico({
   podeApagar,
   respostasDeOutros,
   limite,
+  paraCompartilhar,
 }: {
   topicId: string;
   nome: string;
@@ -40,6 +42,8 @@ export function CabecalhoDoTopico({
   podeApagar: boolean;
   respostasDeOutros: number;
   limite: number;
+  /** Quem pode receber o link (F14). Vem pronto do servidor. */
+  paraCompartilhar: PessoaParaCompartilhar[];
 }) {
   const router = useRouter();
   const [aberto, setAberto] = useState<"nenhum" | "compartilhar" | "menu" | "apagar">("nenhum");
@@ -109,13 +113,17 @@ export function CabecalhoDoTopico({
 
       <div id={idDeCompartilhar}>
         <BottomSheet title={`Compartilhar ${nome}`} open={aberto === "compartilhar"}>
-          {/* Enviar para pessoas do Hub é a F14. */}
-          <p className="text-body text-inkMuted">
-            Enviar para pessoas do Hub chega na F14. Por enquanto, copie o endereço da página.
-          </p>
-          <Button variant="secondary" onClick={() => setAberto("nenhum")}>
-            Fechar
-          </Button>
+          {/* Montada só quando a folha abre: a busca é uma ida ao servidor. */}
+          {aberto === "compartilhar" ? (
+            <Compartilhar
+              tipo="topico"
+              id={topicId}
+              nome={nome}
+              endereco={endereco}
+              pessoas={paraCompartilhar}
+              aoFechar={() => setAberto("nenhum")}
+            />
+          ) : null}
         </BottomSheet>
       </div>
 

@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { esperarNoBanco } from "./apoio-banco";
-import { cadastroConcluido, escolherComunidades } from "./apoio-tela";
+import { cadastroConcluido, escolherComunidades, preencherNovaComunidade } from "./apoio-tela";
 
 /**
  * Cabine (F13): a conversa privada que começa por convite.
@@ -236,6 +236,54 @@ test.describe("a conversa em tempo real", () => {
     } finally {
       await outra.contexto.close();
       await estranha.contexto.close();
+    }
+  });
+});
+
+test.describe("compartilhar para a Cabine (F14)", () => {
+  test("o cartão do tópico chega na conversa e leva até ele", async ({ page, browser }) => {
+    await entrarNoApp(page, "compartilha");
+    const outra = await outraSessao(browser, "recebe");
+
+    try {
+      // Primeiro a Cabine, para o cartão ter onde cair.
+      await convidar(page, outra.nome, "oi");
+      await outra.page.goto("/cabines");
+      await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
+      await outra.page.getByRole("button", { name: "Aceitar" }).click();
+      await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
+      const cabine = new URL(outra.page.url()).pathname;
+
+      // Um tópico para compartilhar.
+      await preencherNovaComunidade(page, `Para Compartilhar ${Date.now()}`);
+      await page.waitForURL(/\/c\/[^/]+$/);
+      const comunidade = new URL(page.url()).pathname;
+
+      await page.goto(`${comunidade}/novo`);
+      await page.getByLabel("Nome").fill("assunto do teste");
+      await page.getByLabel("Descrição").fill("Uma pergunta de abertura.");
+      await page.getByRole("button", { name: "Criar tópico" }).click();
+      await page.waitForURL(/\/assunto-do-teste$/);
+      const endereco = new URL(page.url()).pathname;
+
+      await page.goto(endereco);
+      await page.getByRole("button", { name: /^Compartilhar/ }).click();
+      await page.getByLabel("Buscar pessoas").fill(outra.nome);
+      await page
+        .getByRole("group", { name: "Pessoas" })
+        .getByRole("button", { name: outra.nome })
+        .click();
+      await page.getByRole("button", { name: /^Enviar para 1 pessoa/ }).click();
+      await expect(page.getByText(/Enviado para 1 pessoa/)).toBeVisible();
+
+      // O cartão está na conversa que já existia, e leva ao tópico.
+      await outra.page.goto(cabine);
+      const cartao = outra.page.getByRole("link", { name: /assunto do teste/ });
+      await expect(cartao).toBeVisible();
+      await cartao.click();
+      await outra.page.waitForURL(`**${endereco}`);
+    } finally {
+      await outra.contexto.close();
     }
   });
 });

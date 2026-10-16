@@ -134,6 +134,10 @@ As regras RN01 a RN34 estão em [docs/escopo.md](docs/escopo.md).
 
 **Toda comunidade vive no Hubverso.** O Universo saiu do produto na F12.1: nenhuma tela o mostra e ninguém escolhe um ao criar comunidade. A coluna `universe_id` **continua NOT NULL** — a comunidade tem um pai, ele é que é invisível e único. Quem cria comunidade sem passar Universo cai no Hubverso, procurado pelo slug em `lib/data/communities.ts`. Arrancar a coluna seria semanas de risco por nenhum ganho; se um dia os Universos voltarem, a estrutura está lá.
 
+**`/c/...` abre sem conta, e vira convite.** Desde a F14 a comunidade e o tópico têm endereço público: quem abre sem sessão vê a capa, o nome, os membros, a intro e a pergunta — **nunca o texto das respostas** (RN16). O desfoque na tela é conteúdo de exemplo, não o texto real com um filtro: filtro é cortina, e o texto estaria no HTML.
+
+Três peças sustentam isso, e a lista de rotas mora em **um lugar só** ([lib/auth/rotas-publicas.ts](lib/auth/rotas-publicas.ts)) porque duas divergiriam: o [proxy.ts](proxy.ts) deixa passar e **sobrescreve** o cabeçalho `x-hub-rota` (sobrescrever é o que impede alguém de forjá-lo e se passar por visitante numa tela de dentro); o [app/(app)/layout.tsx](app/layout.tsx) lê esse cabeçalho e desenha a casca de convite, sem barra de navegação; e o proxy também grava o cookie do convite, porque **gravar cookie durante a renderização não é permitido no App Router** — a página tentou e devolveu erro de servidor.
+
 **Rota nova de primeiro nível exige @ reservado.** Como o perfil mora na raiz, quem registrasse `@inicio` ficaria inalcançável para sempre — o Next casa rota estática antes de dinâmica e nada avisaria. A lista está em [lib/data/validation.ts](lib/data/validation.ts) e [lib/data/rotas.test.ts](lib/data/rotas.test.ts) varre `app/` e falha se faltar alguma.
 
 **As jornadas rodam em série.** Elas compartilham um banco, um servidor Next e um Supabase com limite de autenticação de verdade; em paralelo falham por 429 ou tempo esgotado, nunca pelo que queriam verificar. `playwright.config.ts` fixa `workers: 1`.

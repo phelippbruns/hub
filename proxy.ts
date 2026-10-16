@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/session";
+import { CABECALHO_DA_ROTA, ehCaminhoDeTopico, ehPublica } from "@/lib/auth/rotas-publicas";
+import { COOKIE_DO_CONVITE, DURACAO_DO_CONVITE } from "@/lib/auth/convite";
 
 /**
  * Content Security Policy com nonce (regra de segurança 6).
@@ -71,6 +73,14 @@ export async function proxy(request: NextRequest) {
   // O nonce vai no header da requisição para o Next aplicá-lo aos seus scripts.
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+
+  /*
+   * O caminho pedido, para o layout saber se está desenhando uma tela de
+   * convite. `set` **sobrescreve** o que vier do navegador: sem isso,
+   * qualquer pessoa mandaria o cabeçalho à mão e se passaria por visitante
+   * numa tela de dentro.
+   */
+  requestHeaders.set(CABECALHO_DA_ROTA, request.nextUrl.pathname);
   requestHeaders.set("Content-Security-Policy", csp);
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
@@ -85,35 +95,38 @@ export async function proxy(request: NextRequest) {
    * só — em vez de cada página lembrar de conferir. O layout autenticado
    * confere de novo: isto lê o cookie, ele lê o perfil.
    */
-  if (!ROTAS_PUBLICAS.some((rota) => ehRota(request.nextUrl.pathname, rota))) {
+  if (!ehPublica(request.nextUrl.pathname)) {
     const { data } = await comSessao.supabase.auth.getUser();
     if (!data.user) {
       const destino = new URL("/", request.url);
       return NextResponse.redirect(destino);
     }
+  } else if (ehCaminhoDeTopico(request.nextUrl.pathname)) {
+    const { data } = await comSessao.supabase.auth.getUser();
+
+    /*
+     * Sem conta, abrindo um tópico: guarda o convite (RN31).
+     *
+     * Aqui, e não na página, porque gravar cookie durante a renderização
+     * não é permitido no App Router — a página tentou e devolveu erro de
+     * servidor. O proxy roda antes, e já está decidindo sobre sessão.
+     *
+     * Entre abrir o link e terminar o onboarding há um cadastro inteiro,
+     * com redirecionamentos do Supabase pelo caminho: parâmetro de URL não
+     * sobrevive a isso, cookie sobrevive.
+     */
+    if (!data.user) {
+      comSessao.response.cookies.set(COOKIE_DO_CONVITE, request.nextUrl.pathname, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: DURACAO_DO_CONVITE,
+      });
+    }
   }
 
   return comSessao.response;
-}
-
-/**
- * Telas que existem sem conta: a entrada, a recuperação de senha, o retorno
- * do Google e o convite por link (RN16 — quem abre um link sem conta vê a
- * comunidade e o tópico).
- */
-const ROTAS_PUBLICAS = [
-  "/",
-  "/entrar",
-  "/criar-conta",
-  "/completar-cadastro",
-  "/senha",
-  "/termos",
-  "/auth",
-  "/design",
-] as const;
-
-function ehRota(pathname: string, rota: string) {
-  return rota === "/" ? pathname === "/" : pathname === rota || pathname.startsWith(`${rota}/`);
 }
 
 export const config = {

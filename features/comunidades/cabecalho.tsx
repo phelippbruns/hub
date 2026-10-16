@@ -13,6 +13,7 @@ import {
 } from "@/design/components";
 import { BackIcon, MoreOptionsIcon, ShareIcon } from "@/design/icons";
 import { alternarMembro, alternarPainel } from "./actions";
+import { Compartilhar, type PessoaParaCompartilhar } from "@/features/convite/compartilhar";
 import type { PaginaDaComunidade } from "@/lib/data/comunidades";
 
 function numero(valor: number) {
@@ -29,9 +30,12 @@ function numero(valor: number) {
 export function CabecalhoDaComunidade({
   comunidade,
   painelOculto,
+  paraCompartilhar,
 }: {
   comunidade: PaginaDaComunidade;
   painelOculto: boolean;
+  /** Quem pode receber o link (F14). Vem pronto do servidor. */
+  paraCompartilhar: PessoaParaCompartilhar[];
 }) {
   const router = useRouter();
   const [aberto, setAberto] = useState<"nenhum" | "compartilhar" | "sair" | "menu">("nenhum");
@@ -134,13 +138,20 @@ export function CabecalhoDaComunidade({
 
       <div id={idDeCompartilhar}>
         <BottomSheet title={`Compartilhar ${comunidade.name}`} open={aberto === "compartilhar"}>
-          {/* Enviar para pessoas é da F14; copiar o link já serve hoje. */}
-          <p className="text-body text-inkMuted">
-            Enviar para pessoas do Hub chega na F14. Por enquanto, copie o endereço da página.
-          </p>
-          <Button variant="secondary" onClick={() => setAberto("nenhum")}>
-            Fechar
-          </Button>
+          {/*
+            Montada só quando a folha abre: a busca de pessoas é uma ida ao
+            servidor, e ninguém paga por ela sem ter pedido para compartilhar.
+          */}
+          {aberto === "compartilhar" ? (
+            <Compartilhar
+              tipo="comunidade"
+              id={comunidade.id}
+              nome={comunidade.name}
+              endereco={`/c/${comunidade.slug}`}
+              pessoas={paraCompartilhar}
+              aoFechar={() => setAberto("nenhum")}
+            />
+          ) : null}
         </BottomSheet>
       </div>
 
