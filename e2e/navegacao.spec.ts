@@ -182,3 +182,102 @@ test.describe("coluna de conteúdo", () => {
     expect(coluna.esquerda).toBeGreaterThan(72);
   });
 });
+
+/*
+ * A barra que recolhe e expande.
+ *
+ * Quatro coisas que só a tela prova, e que um teste de unidade não
+ * alcançaria: a largura nos dois estados, o conteúdo não se mexer, o
+ * teclado abrir sem mouse, e o eixo do ícone não sair do lugar.
+ */
+test.describe("a barra recolhe e expande", () => {
+  /** A largura que a barra tem agora, depois de a transição terminar. */
+  async function largura(page: Page): Promise<number> {
+    const caixa = await page.getByRole("navigation", { name: "Navegação principal" }).boundingBox();
+    return Math.round(caixa!.width);
+  }
+
+  /** O centro horizontal do ícone de uma área. */
+  async function eixoDoIcone(page: Page, nome: string): Promise<number> {
+    const caixa = await page
+      .getByRole("navigation", { name: "Navegação principal" })
+      .getByRole("link", { name: nome, exact: true })
+      .locator("svg")
+      .first()
+      .boundingBox();
+    return Math.round(caixa!.x + caixa!.width / 2);
+  }
+
+  test("84 px recolhida, 232 px com o mouse em cima", async ({ page }) => {
+    await entrarNoApp(page, "largura");
+    expect(await largura(page)).toBe(84);
+
+    await page.getByRole("navigation", { name: "Navegação principal" }).hover();
+    await expect.poll(() => largura(page)).toBe(232);
+  });
+
+  test("o conteúdo não se move quando a barra abre", async ({ page }) => {
+    await entrarNoApp(page, "parado");
+
+    const titulo = page.getByRole("heading", { level: 1 }).first();
+    const antes = (await titulo.boundingBox())!.x;
+
+    await page.getByRole("navigation", { name: "Navegação principal" }).hover();
+    await expect.poll(() => largura(page)).toBe(232);
+
+    // É isto que separa "a barra passa por cima" de "a barra empurra".
+    expect(Math.round((await titulo.boundingBox())!.x)).toBe(Math.round(antes));
+  });
+
+  test("o teclado abre a barra, sem mouse nenhum", async ({ page }) => {
+    await entrarNoApp(page, "teclado");
+    expect(await largura(page)).toBe(84);
+
+    // Quem navega por Tab não tem hover: sem isto, a barra ficaria com os
+    // rótulos escondidos justamente para quem mais precisa deles.
+    await page.keyboard.press("Tab");
+    await expect.poll(() => largura(page)).toBe(232);
+  });
+
+  test("o ícone fica no mesmo eixo nos dois estados", async ({ page }) => {
+    await entrarNoApp(page, "eixo");
+
+    const recolhida = await eixoDoIcone(page, "Início");
+    // Metade da barra recolhida: é o eixo que a referência pede.
+    expect(recolhida).toBe(42);
+
+    await page.getByRole("navigation", { name: "Navegação principal" }).hover();
+    await expect.poll(() => largura(page)).toBe(232);
+
+    expect(await eixoDoIcone(page, "Início")).toBe(recolhida);
+  });
+
+  test("com movimento reduzido, a barra abre sem animar", async ({ page }) => {
+    await entrarNoApp(page, "quieto");
+
+    // Quem pediu menos movimento no sistema não deve ver a barra deslizar.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const barra = page.getByRole("navigation", { name: "Navegação principal" });
+
+    /*
+     * `transition-property: none` é o que desliga de verdade.
+     *
+     * A duração continua declarada — `transition-duration` segue 0,15 s —
+     * e olhar para ela daria um teste vermelho com o código certo. Quem
+     * manda na animação é a propriedade em transição.
+     */
+    await expect(barra).toHaveCSS("transition-property", "none");
+
+    // E continua abrindo: desligar a animação não pode desligar a função.
+    await barra.hover();
+    await expect.poll(() => largura(page)).toBe(232);
+  });
+
+  test("Configurações fecha a barra, e leva à tela", async ({ page }) => {
+    await entrarNoApp(page, "config");
+    const barra = page.getByRole("navigation", { name: "Navegação principal" });
+
+    await barra.getByRole("link", { name: "Configurações" }).click();
+    await expect(page).toHaveURL(/\/configuracoes/);
+  });
+});

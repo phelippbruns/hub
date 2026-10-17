@@ -2,13 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import {
   CabinNavIcon,
   CommunitiesNavIcon,
+  CommunityHash,
   ExploreNavIcon,
   HomeNavIcon,
   NotificationsNavIcon,
   ProfileNavIcon,
+  SettingsIcon,
+  TopicStar,
 } from "../icons";
 import { LevelMark } from "./level-mark";
 import { cn } from "../cn";
@@ -16,8 +20,19 @@ import { cn } from "../cn";
 /**
  * Barra de navegação lateral, acima de 768 px.
  *
- * Só ícones, cada um com nome para quem usa leitor de tela — sem rótulo
- * visível a barra fica estreita e o conteúdo ganha espaço.
+ * Recolhida tem `navRail` e mostra só ícones; com o mouse em cima — ou com o
+ * foco do teclado dentro dela — abre para `navRailOpen` e mostra os rótulos.
+ * Só ícone obrigava a adivinhar o desenho ou esperar o balãozinho do
+ * navegador; rótulo sempre visível comeria a largura do conteúdo o tempo
+ * todo. Ela cresce **por cima** da tela, e nada se move embaixo.
+ *
+ * Tudo em CSS, sem estado: hover e foco são do navegador, e um menu que
+ * depende de JavaScript para abrir fica mudo enquanto a página hidrata.
+ *
+ * **O eixo dos ícones é o mesmo nos dois estados.** Cada linha começa por
+ * uma caixa de `navItemBox` com o conteúdo centrado: com o respiro de 16 px
+ * da barra, o centro dela cai em 42 px, que é metade de `navRail`. O rótulo
+ * entra depois da caixa, então abrir a barra não empurra ícone nenhum.
  *
  * A área atual leva `aria-current="page"` **e** o ícone preenchido: cor
  * sozinha não pode ser o único sinal de estado.
@@ -37,7 +52,7 @@ const AREAS = [
     telas: ["/inicio"],
   },
   {
-    // A lupa abre Explorar, que lista Universos e sugestões.
+    // A lupa abre Explorar, que lista as comunidades em alta e as sugestões.
     href: "/comunidades",
     nome: "Explorar",
     Icone: ExploreNavIcon,
@@ -82,6 +97,38 @@ function areaAtual(pathname: string): string | null {
   return escolhida?.href ?? null;
 }
 
+/**
+ * A caixa que fixa o eixo. Tudo que aparece recolhido mora dentro de uma.
+ *
+ * `shrink-0` porque ela não pode encolher quando o rótulo ao lado for longo:
+ * é justamente a largura dela que mantém o ícone no lugar.
+ */
+function Eixo({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <span className={cn("w-navItemBox grid shrink-0 place-items-center", className)}>
+      {children}
+    </span>
+  );
+}
+
+/**
+ * O rótulo, que só aparece com a barra aberta.
+ *
+ * Por opacidade, e não por `hidden`: o leitor de tela continua lendo o texto
+ * nos dois estados, e é ele que dá nome ao link — sem isso cada item
+ * precisaria de um `aria-label` repetindo o que já está escrito.
+ *
+ * `whitespace-nowrap` para o texto não quebrar em duas linhas durante os
+ * 150 ms em que a barra ainda está estreita.
+ */
+function Rotulo({ children }: { children: ReactNode }) {
+  return (
+    <span className="whitespace-nowrap opacity-0 transition-opacity duration-100 ease-in-out group-focus-within/nav:opacity-100 group-hover/nav:opacity-100 motion-reduce:transition-none">
+      {children}
+    </span>
+  );
+}
+
 export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
   const pathname = usePathname();
   const atualHref = areaAtual(pathname);
@@ -90,24 +137,38 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
     <nav
       aria-label="Navegação principal"
       /*
-       * `sticky` com a altura da janela: a barra fica onde está, por mais
-       * longa que a página seja.
+       * `absolute` dentro do encaixe de `navRail` que o AppShell desenha: é
+       * o que faz a barra aberta passar **por cima** do conteúdo em vez de
+       * empurrá-lo. O encaixe é quem segura a coluna e o `sticky`.
        *
-       * Antes ela era só uma coluna do grid, do tamanho do conteúdo. Numa
-       * tela comprida — o Início cheio, um tópico com muitas respostas —
-       * descer a página levava os botões de criar embora, porque eles moram
-       * no fim da barra. `self-start` é o que faz o `sticky` valer num item
-       * de grid, e `overflow-y-auto` guarda o caso de janela baixa.
+       * A borda da direita só ganha cor quando a barra abre — recolhida ela
+       * é uma faixa branca sem linha, como na referência. A borda existe
+       * sempre, transparente, para aparecer sem mudar a largura de nada.
        */
-      className="bg-paper border-ink w-navRail sticky top-0 flex h-screen flex-col items-center gap-1 self-start overflow-y-auto border-r-2 px-1 py-3"
-      style={{ paddingTop: "max(var(--spacing-3), env(safe-area-inset-top))" }}
+      className={cn(
+        "group/nav bg-paper border-r-line w-navRail hover:w-navRailOpen focus-within:w-navRailOpen",
+        "absolute inset-y-0 left-0 flex flex-col gap-1 overflow-hidden border-r border-r-transparent px-3 pb-4",
+        "hover:border-r-line focus-within:border-r-line transition-[width] duration-150 ease-in-out",
+        "motion-reduce:transition-none",
+      )}
+      style={{ paddingTop: "max(var(--spacing-5), env(safe-area-inset-top))" }}
     >
       {/* A marca leva ao Início, como em qualquer site. O rótulo é só "Hub":
           o item de navegação logo abaixo já se chama Início, e dois links com
-          o mesmo nome na mesma barra confundem quem usa leitor de tela. */}
-      <Link href="/inicio" aria-label="Hub" className="text-ink pb-2">
-        <span aria-hidden="true" className="text-subtitle font-extrabold">
-          H
+          o mesmo nome na mesma barra confundem quem usa leitor de tela.
+
+          O `{` era a marca do Universo e ficou sem dono quando ele saiu do
+          produto na F12.1 (docs/vacilos.md). Agora é a marca do Hub. */}
+      <Link
+        href="/inicio"
+        aria-label="Hub"
+        className="text-ink mb-4 flex items-center gap-2 no-underline"
+      >
+        <Eixo>
+          <LevelMark level="universe" />
+        </Eixo>
+        <span aria-hidden="true" className="text-title">
+          <Rotulo>Hub</Rotulo>
         </span>
       </Link>
 
@@ -117,50 +178,101 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
           <Link
             key={href}
             href={href}
-            title={nome}
+            /*
+             * O `aria-label` fica, mesmo com o rótulo visível ao lado.
+             *
+             * Sem ele, o nome do link passa a ser a soma do que há dentro —
+             * e em Notificações isso vira "Notificações Há novidade", que
+             * muda conforme o dia. O rótulo explícito mantém o nome fixo.
+             */
             aria-label={nome}
             aria-current={atual ? "page" : undefined}
             className={cn(
-              "size-navItem relative grid place-items-center rounded-sm",
-              atual ? "bg-ink text-paper" : "text-inkMuted",
+              "rounded-pill text-label h-navItem flex items-center gap-2 font-semibold no-underline",
+              atual ? "bg-surfacePage text-ink" : "text-inkMuted hover:bg-surfacePage",
             )}
           >
-            <Icone decorative active={atual} className="size-iconNav" />
+            <Eixo className="relative">
+              <Icone decorative active={atual} className="size-iconNav" />
+              {href === "/notificacoes" && temNovidade ? (
+                <span
+                  /*
+                   * "Há novidade", e não um número: o Hub sabe que existe
+                   * algo não lido, não quantos. Dizer "1 não lidas" seria
+                   * errado em português e impreciso ao mesmo tempo.
+                   *
+                   * Recolhida, a marca fica no canto do ícone; aberta, ela
+                   * sai daqui e reaparece no fim da linha, como o selo da
+                   * referência. São duas, e só uma está visível por vez.
+                   */
+                  aria-hidden="true"
+                  className="bg-sun rounded-pill absolute top-0 right-1 size-2 group-focus-within/nav:opacity-0 group-hover/nav:opacity-0"
+                />
+              ) : null}
+            </Eixo>
+            <Rotulo>{nome}</Rotulo>
             {href === "/notificacoes" && temNovidade ? (
               <span
-                /*
-                 * "Há novidade", e não um número: o Hub sabe que existe
-                 * algo não lido, não quantos. Dizer "1 não lidas" seria
-                 * errado em português e impreciso ao mesmo tempo.
-                 */
                 aria-label="Há novidade"
                 role="status"
-                className="bg-sun rounded-pill absolute top-1 right-1 size-2"
+                className="bg-sun rounded-pill ml-auto size-2 shrink-0 opacity-0 group-focus-within/nav:opacity-100 group-hover/nav:opacity-100"
               />
             ) : null}
           </Link>
         );
       })}
 
-      {/* Criar fica no fim da barra, separado da navegação: são ações, não lugares. */}
-      <div className="mt-auto flex flex-col gap-2">
-        <Link
-          href="/comunidades/nova"
-          title="Criar comunidade"
-          aria-label="Criar comunidade"
-          className="border-line size-navItem box-border grid place-items-center rounded-sm border-2"
-        >
-          <LevelMark level="community" className="scale-75" />
-        </Link>
+      {/* Criar fica no fim da barra, separado da navegação: são ações, não
+          lugares. Recolhidos são círculos de `control`; abertos viram pílula
+          com o nome, sem sair do eixo. */}
+      <div
+        className="mt-auto flex flex-col gap-2"
+        /*
+         * O recuo que põe o círculo de 42 px no mesmo eixo de 42 px dos
+         * ícones: a diferença entre a caixa do eixo e o botão, dividida por
+         * dois. Calculado a partir dos tokens, e não escrito como 5px, para
+         * continuar certo se alguma das duas medidas mudar.
+         */
+        style={{ paddingLeft: "calc((var(--spacing-navItemBox) - var(--spacing-control)) / 2)" }}
+      >
         <Link
           href="/criar-topico"
-          title="Criar tópico"
           aria-label="Criar tópico"
-          className="border-line size-navItem box-border grid place-items-center rounded-sm border-2"
+          className="bg-ink text-paper rounded-pill text-label h-control w-control flex items-center self-start overflow-hidden font-semibold whitespace-nowrap no-underline group-focus-within/nav:w-auto group-focus-within/nav:pr-3 group-hover/nav:w-auto group-hover/nav:pr-3"
         >
-          <LevelMark level="topic" className="scale-75" />
+          <span className="size-control grid shrink-0 place-items-center">
+            <TopicStar className="size-icon" />
+          </span>
+          <Rotulo>Criar tópico</Rotulo>
+        </Link>
+
+        <Link
+          href="/comunidades/nova"
+          aria-label="Criar comunidade"
+          className="border-ink text-ink rounded-pill text-label h-control w-control box-border flex items-center self-start overflow-hidden border-2 font-semibold whitespace-nowrap no-underline group-focus-within/nav:w-auto group-focus-within/nav:pr-3 group-hover/nav:w-auto group-hover/nav:pr-3"
+        >
+          <span className="size-control grid shrink-0 place-items-center">
+            <CommunityHash className="size-icon" />
+          </span>
+          <Rotulo>Criar comunidade</Rotulo>
         </Link>
       </div>
+
+      <Link
+        href="/configuracoes"
+        aria-current={pathname.startsWith("/configuracoes") ? "page" : undefined}
+        className={cn(
+          "rounded-pill text-label h-navItem mt-3 flex items-center gap-2 font-semibold no-underline",
+          pathname.startsWith("/configuracoes")
+            ? "bg-surfacePage text-ink"
+            : "text-inkMuted hover:bg-surfacePage",
+        )}
+      >
+        <Eixo>
+          <SettingsIcon decorative className="size-iconNav" />
+        </Eixo>
+        <Rotulo>Configurações</Rotulo>
+      </Link>
     </nav>
   );
 }
