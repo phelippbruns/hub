@@ -304,6 +304,15 @@ Produção e os previews de cada PR usam **o mesmo banco**. Um teste num PR mexe
 no mesmo lugar que os dados de verdade. Enquanto só há contas de teste, tudo
 bem; depois, não.
 
+**Isto já cobrou uma vez.** O `vercel-build` rodava as migrations em qualquer
+ambiente, então o build de preview de um PR aplicava a migration **no banco de
+produção**, minutos antes do merge e antes de qualquer revisão — inclusive a
+parte que apagava e fechava dados. Está no Faustão. O conserto foi barrar a
+migration fora da produção ([scripts/migrar-no-deploy.mts](../scripts/migrar-no-deploy.mts)),
+o que tapa o buraco maior e deixa o resto: o preview continua **lendo e
+escrevendo** nos dados de verdade, e agora também roda contra um banco que
+pode estar atrás do código dele.
+
 O caminho é um projeto Supabase separado para homologação.
 
 ### 4.2 `prisma migrate dev` não funciona
