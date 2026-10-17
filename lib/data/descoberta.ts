@@ -318,3 +318,106 @@ export async function buscarPessoas(viewer: Viewer, termo: string, limite = 20) 
     })),
   );
 }
+
+/**
+ * Comunidades em alta: onde a conversa está viva nos últimos 7 dias.
+ *
+ * Conta **pessoas diferentes respondendo**, não respostas — é a mesma régua
+ * da RN09 e pelo mesmo motivo: quem responde dez vezes sozinho não põe a
+ * comunidade em alta. Vale o corte da RN05, como no resto do Explorar.
+ *
+ * Quem já é membro fica de fora: "em alta" aqui é descoberta, e a lista
+ * serve para achar onde entrar. As que você já frequenta aparecem em
+ * Minhas Comunidades e no Início.
+ */
+export async function comunidadesEmAlta(
+  viewer: Viewer,
+  limite = 5,
+  minimoDeMembros = EXPLORE_MIN_MEMBERS,
+): Promise<ComunidadeNaLista[]> {
+  const me = viewerProfileId(viewer);
+
+  const linhas = await prisma.$queryRaw<LinhaCrua[]>`
+    SELECT c.id, c.slug, c.name, c.intro, c.cover_url, c.members_count,
+           u.id AS universe_id, u.name AS universe_name, u.slug AS universe_slug,
+           false AS sou_membro,
+           count(DISTINCT a.author_id)::text AS respostas_hoje
+      FROM communities c
+      JOIN universes u ON u.id = c.universe_id
+      JOIN topics t ON t.community_id = c.id AND t.deleted_at IS NULL
+      JOIN answers a ON a.topic_id = t.id AND a.deleted_at IS NULL
+                    AND a.created_at > now() - interval '7 days'
+     WHERE c.deleted_at IS NULL
+       AND c.members_count >= ${minimoDeMembros}
+       AND NOT EXISTS (
+         SELECT 1 FROM memberships m
+          WHERE m.community_id = c.id AND m.profile_id = ${me}::uuid
+       )
+     GROUP BY c.id, u.id
+     ORDER BY count(DISTINCT a.author_id) DESC, c.members_count DESC, c.name ASC
+     LIMIT ${limite}
+  `;
+
+  return comCapas(linhas.map(montar));
+}
+
+/**
+ * Tópicos em alta: mais pessoas diferentes respondendo nas últimas 24 horas.
+ *
+ * 24 horas no **fuso do ciclo** (`hub_cycle_timezone()`), e não no do
+ * servidor: dois conceitos de "hoje" no mesmo produto confundem quem usa e
+ * quem mantém.
+ *
+ * Diferente das comunidades, aqui entra tópico de comunidade que você já
+ * frequenta — o Explorar é onde se vê o que está acontecendo no Hub, e
+ * esconder a conversa mais viva porque você é membro seria esconder o
+ * melhor.
+ */
+export async function topicosEmAlta(viewer: Viewer, limite = 5): Promise<TopicoNaBusca[]> {
+  const me = viewerProfileId(viewer);
+
+  const linhas = await prisma.$queryRaw<
+    {
+      id: string;
+      slug: string;
+      name: string;
+      community_id: string;
+      community_name: string;
+      community_slug: string;
+      pessoas: string;
+      respostas: string;
+    }[]
+  >`
+    SELECT t.id, t.slug, t.name,
+           c.id AS community_id, c.name AS community_name, c.slug AS community_slug,
+           (SELECT count(DISTINCT a.author_id) FROM answers a
+             WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS pessoas,
+           (SELECT count(*) FROM answers a
+             WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS respostas
+      FROM topics t
+      JOIN communities c ON c.id = t.community_id
+      JOIN answers recentes ON recentes.topic_id = t.id
+                           AND recentes.deleted_at IS NULL
+                           AND recentes.created_at
+                               > (now() AT TIME ZONE hub_cycle_timezone()) - interval '24 hours'
+     WHERE t.deleted_at IS NULL AND c.deleted_at IS NULL
+       -- RN26: quem bloqueou, ou foi bloqueado, não aparece.
+       AND NOT EXISTS (
+         SELECT 1 FROM blocks b
+          WHERE (b.blocker_id = ${me}::uuid AND b.blocked_id = t.author_id)
+             OR (b.blocked_id = ${me}::uuid AND b.blocker_id = t.author_id)
+       )
+     GROUP BY t.id, c.id
+     ORDER BY count(DISTINCT recentes.author_id) DESC, max(recentes.created_at) DESC
+     LIMIT ${limite}
+  `;
+
+  return linhas.map((l): TopicoNaBusca => ({
+    id: l.id,
+    slug: l.slug,
+    name: l.name,
+    comunidade: { id: l.community_id, name: l.community_name, slug: l.community_slug },
+    pessoas: Number(l.pessoas),
+    respostas: Number(l.respostas),
+  }));
+}

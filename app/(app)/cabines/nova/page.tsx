@@ -30,8 +30,9 @@ export default async function NovaCabinePage({
     <ContentColumn>
       <PageTitle>{cabine ? "Convidar pessoas" : "Nova Cabine"}</PageTitle>
       <p className="text-caption text-inkMuted">
-        Elas precisam aceitar.{" "}
-        {cabine ? "Quem aceitar entra nesta Cabine." : "A Cabine só começa depois disso."}
+        {cabine
+          ? "Elas precisam aceitar. Quem aceitar entra nesta Cabine."
+          : "Com quem se segue com você, a conversa começa agora. As outras pessoas recebem um convite."}
       </p>
       <EscolherPessoas
         pessoas={pessoas.map((pessoa) => ({
@@ -39,6 +40,7 @@ export default async function NovaCabinePage({
           nome: pessoa.nome,
           handle: pessoa.handle,
           emComum: pessoa.emComum,
+          seSegue: pessoa.seSegue,
         }))}
         preSelecionada={preSelecionada}
         cabine={cabine}

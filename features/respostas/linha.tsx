@@ -12,13 +12,15 @@ import {
 } from "@/design/components";
 import { MoreOptionsIcon } from "@/design/icons";
 import { apagarResposta } from "./actions";
-import { TextoComMencoes } from "@/features/notificacoes/texto-com-mencoes";
+import { TextoMarcado, type MarcacoesDoTexto } from "@/features/notificacoes/texto-marcado";
 
 export type RespostaNaTela = {
   id: string;
   texto: string;
-  /** Os @ do texto que existem de verdade: só esses viram link (F15). */
-  mencoes: string[];
+  /** O que o texto marcou e existe de verdade: só isso vira link. */
+  marcacoes: MarcacoesDoTexto;
+  /** A comunidade desta resposta, para o endereço dos tópicos marcados. */
+  comunidade: string;
   quando: string;
   souAutor: boolean;
   imagem: string | null;
@@ -110,7 +112,11 @@ export function LinhaDeResposta({
             ) : null
           }
         >
-          <TextoComMencoes texto={resposta.texto} existentes={resposta.mencoes} />
+          <TextoMarcado
+            texto={resposta.texto}
+            existentes={resposta.marcacoes}
+            comunidade={resposta.comunidade}
+          />
         </AnswerCard>
       </div>
 

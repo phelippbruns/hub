@@ -146,6 +146,27 @@ Três peças sustentam isso, e a lista de rotas mora em **um lugar só** ([lib/a
 
 **O ciclo das 00h roda no banco, de hora em hora.** `hub_ciclo_pendente()` é chamada pelo `pg_cron` a cada hora e não faz nada quando o dia já virou. De hora em hora, e não só à meia-noite, por dois motivos: o `pg_cron` agenda no fuso do servidor (UTC) enquanto o fuso do ciclo é configuração (`hub_cycle_timezone()`), e um agendamento único que não roda **pula o dia inteiro em silêncio**. `hub_virar_ciclo(dia)` é idempotente, e `npm run ciclo:rodar` a chama à mão.
 
+**Quem se segue conversa sem convite, e só existe uma conversa por par.**
+A RN20 tem duas formas desde a rodada de acabamento: a Cabine começa quando
+o convidado aceita **ou** na hora, quando as duas pessoas já se seguem
+(`seSeguemMutuamente` em [lib/data/access.ts](lib/data/access.ts)). Bloqueio
+(RN26) e "ninguém pode me convidar" (RN23) continuam vencendo o laço mútuo —
+quem fechou a porta fechou para todos.
+
+A unicidade é do banco: `cabins.pair_key` guarda os dois ids em ordem, com
+índice único **enquanto a Cabine está aberta**. Conversa que vira grupo tem
+a chave zerada no mesmo instante — senão o par ficaria trancado para sempre
+— e grupo que encolhe para duas pessoas continua sem chave, porque é outra
+conversa, com história própria. `cabin_invites` tem a trava irmã: um convite
+pendente por pessoa.
+
+**Marcar é `@` para pessoa, `#` para comunidade e `*` para tópico.** Um
+analisador só, [lib/texto/marcacoes.ts](lib/texto/marcacoes.ts), e a mesma
+promessa nos três: **o que não existe continua texto**, nunca link quebrado.
+O `*` resolve **dentro da comunidade onde o texto está** — endereço de tópico
+é único por comunidade, não no Hub inteiro. E só o `@` notifica: referência
+não é convocação.
+
 **A Cabine é a única tela em que o navegador fala direto com o Supabase.** A conversa assina a tabela `messages` pelo Realtime, com a chave anônima, e **quem autoriza é o RLS** — não a camada de dados. É por isso que `messages_read_member` existe desde a F02: ali ela não é segunda barreira, é a única. Enviar continua sendo Server Action, para a mensagem passar pela validação, pelo bloqueio de links e pela limpeza da imagem antes de existir.
 
 Quatro coisas precisam estar de pé ao mesmo tempo, e a falta de qualquer uma dá o mesmo sintoma — "a mensagem não chega", sem erro nenhum:

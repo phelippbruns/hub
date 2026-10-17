@@ -95,7 +95,7 @@ export function Compartilhar({
       <div className="flex flex-col gap-2">
         <p role="status" className="text-body text-ink">
           Enviado para {estado.enviadoPara} {estado.enviadoPara === 1 ? "pessoa" : "pessoas"}. Quem
-          ainda não tem Cabine com você recebe um convite, e vê o que você mandou ao aceitar.
+          se segue com você recebe na hora; quem não, recebe um convite e vê ao aceitar.
         </p>
         <Button variant="secondary" onClick={aoFechar}>
           Fechar

@@ -18,6 +18,8 @@ import {
 } from "./testing/db";
 import {
   MAXIMO_DE_PESSOAS,
+  abrirCabine,
+  abrirConversaDireta,
   acceptInvite,
   cabinePorId,
   cancelarConvite,
@@ -361,5 +363,258 @@ describe("o Realtime é guardado pelo RLS, não pelo Prisma", () => {
        WHERE n.nspname = 'public' AND c.relname = 'messages'
     `;
     expect(identidade[0]?.relreplident, "messages precisa de REPLICA IDENTITY FULL").toBe("f");
+  });
+});
+
+/* ------------------------------------------------- a rodada de acabamento */
+
+/** Faz as duas se seguirem, que é o laço que dispensa o convite. */
+async function seSeguem(a: string, b: string) {
+  await db.follow.createMany({
+    data: [
+      { followerId: a, target: "profile", followedProfileId: b },
+      { followerId: b, target: "profile", followedProfileId: a },
+    ],
+  });
+}
+
+describe("quem se segue conversa sem convite", () => {
+  it("a conversa já começa valendo, com as duas dentro", async () => {
+    const { lia, jo } = await cenario();
+    await seSeguem(lia.id, jo.id);
+
+    const cabinId = await abrirConversaDireta(viewerFor(lia.id), jo.id);
+
+    const dentro = await db.cabinMember.findMany({ where: { cabinId, leftAt: null } });
+    expect(dentro.map((m) => m.profileId).sort()).toEqual([lia.id, jo.id].sort());
+    // E nenhum convite foi criado: não há o que aceitar.
+    expect(await db.cabinInvite.count({ where: { cabinId } })).toBe(0);
+  });
+
+  it("a conversa aparece para as duas na mesma hora", async () => {
+    const { lia, jo } = await cenario();
+    await seSeguem(lia.id, jo.id);
+    await abrirConversaDireta(viewerFor(lia.id), jo.id);
+
+    const doJo = await listarCabines(viewerFor(jo.id));
+    expect(doJo.cabines).toHaveLength(1);
+    expect(doJo.convites).toHaveLength(0);
+  });
+
+  it("sem laço mútuo, não tem atalho", async () => {
+    const { lia, jo } = await cenario();
+    // Só a Lia segue o Jo: seguir de um lado não é consentimento dos dois.
+    await db.follow.create({
+      data: { followerId: lia.id, target: "profile", followedProfileId: jo.id },
+    });
+
+    await expect(abrirConversaDireta(viewerFor(lia.id), jo.id)).rejects.toThrow(/se seguir/i);
+  });
+
+  it("bloqueio vence o laço mútuo", async () => {
+    const { lia, jo } = await cenario();
+    await seSeguem(lia.id, jo.id);
+    await db.block.create({ data: { blockerId: jo.id, blockedId: lia.id } });
+
+    // RN26: quem fechou a porta fechou para todos.
+    await expect(abrirConversaDireta(viewerFor(lia.id), jo.id)).rejects.toThrow();
+  });
+
+  it('"ninguém pode me convidar" também vence o laço mútuo', async () => {
+    const { lia, jo } = await cenario();
+    await seSeguem(lia.id, jo.id);
+    await db.profile.update({ where: { id: jo.id }, data: { invitePolicy: "nobody" } });
+
+    // RN23: a escolha de não receber convite não tem exceção para quem
+    // você segue — senão ela não seria uma escolha.
+    await expect(abrirConversaDireta(viewerFor(lia.id), jo.id)).rejects.toThrow();
+  });
+
+  it("sem comunidade em comum, o laço mútuo basta", async () => {
+    const { lia, dani } = await cenario();
+    await seSeguem(lia.id, dani.id);
+
+    // RN21 pede comunidade em comum para **convidar**. Seguir dos dois
+    // lados é um consentimento mais forte do que dividir uma comunidade.
+    const cabinId = await abrirConversaDireta(viewerFor(lia.id), dani.id);
+    expect(await db.cabinMember.count({ where: { cabinId, leftAt: null } })).toBe(2);
+  });
+});
+
+describe("uma conversa por pessoa", () => {
+  it("abrir de novo devolve a mesma conversa", async () => {
+    const { lia, jo } = await cenario();
+    await seSeguem(lia.id, jo.id);
+
+    const primeira = await abrirConversaDireta(viewerFor(lia.id), jo.id);
+    const segunda = await abrirConversaDireta(viewerFor(jo.id), lia.id);
+
+    expect(segunda).toBe(primeira);
+    expect(await db.cabin.count({ where: { closedAt: null } })).toBe(1);
+  });
+
+  it("o convite não abre uma segunda conversa com quem já conversa", async () => {
+    const { lia, jo } = await cenario();
+    const cabinId = await cabineEntre(lia.id, jo.id);
+
+    // O banco é quem garante: o par já tem conversa aberta.
+    await expect(
+      db.cabin.create({ data: { pairKey: [lia.id, jo.id].sort().join(":") } }),
+    ).rejects.toThrow();
+    expect(await db.cabin.count({ where: { closedAt: null } })).toBe(1);
+    expect(cabinId).toBeTruthy();
+  });
+
+  it("depois que alguém sai, dá para começar de novo", async () => {
+    const { lia, jo } = await cenario();
+    await seSeguem(lia.id, jo.id);
+    const primeira = await abrirConversaDireta(viewerFor(lia.id), jo.id);
+
+    // RN24: com uma pessoa restante a Cabine encerra — e aí o par fica
+    // livre. Travar isso seria tirar da pessoa o direito de voltar.
+    await leaveCabin(viewerFor(jo.id), primeira);
+
+    const segunda = await abrirConversaDireta(viewerFor(lia.id), jo.id);
+    expect(segunda).not.toBe(primeira);
+  });
+
+  it("convidar uma terceira solta o par", async () => {
+    const { lia, jo, rafa } = await cenario();
+    await seSeguem(lia.id, jo.id);
+    const grupo = await abrirConversaDireta(viewerFor(lia.id), jo.id);
+
+    await inviteToCabin(viewerFor(lia.id), { inviteeId: rafa.id, cabinId: grupo, message: null });
+
+    // Virou grupo: tem a própria história, e não ocupa mais o par. Sem
+    // isto, Lia e Jo nunca mais teriam uma conversa de duas.
+    const cabine = await db.cabin.findUniqueOrThrow({ where: { id: grupo } });
+    expect(cabine.pairKey).toBeNull();
+  });
+});
+
+describe("não dá para convidar a mesma pessoa duas vezes", () => {
+  it("o segundo convite é recusado", async () => {
+    const { lia, jo } = await cenario();
+    await inviteToCabin(viewerFor(lia.id), { inviteeId: jo.id, message: null });
+
+    await expect(
+      inviteToCabin(viewerFor(lia.id), { inviteeId: jo.id, message: null }),
+    ).rejects.toThrow(/em aberto/i);
+  });
+
+  it("o banco barra mesmo sem passar pela conferência", async () => {
+    const { lia, jo } = await cenario();
+    const convite = await inviteToCabin(viewerFor(lia.id), { inviteeId: jo.id, message: null });
+
+    await expect(
+      db.cabinInvite.create({
+        data: {
+          cabinId: convite!.cabinId,
+          inviterId: lia.id,
+          inviteeId: jo.id,
+          cycleDate: new Date(),
+        },
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("depois da recusa, dá para convidar de novo", async () => {
+    const { lia, jo } = await cenario();
+    const convite = await inviteToCabin(viewerFor(lia.id), { inviteeId: jo.id, message: null });
+    await declineInvite(viewerFor(jo.id), convite!.id);
+
+    // RN22: a recusa é silenciosa, e não é uma porta fechada para sempre.
+    await expect(
+      inviteToCabin(viewerFor(lia.id), { inviteeId: jo.id, message: null }),
+    ).resolves.toBeTruthy();
+  });
+});
+
+describe("grupo misto", () => {
+  it("quem se segue entra; quem não, fica pendente", async () => {
+    const { lia, jo, rafa } = await cenario();
+    await seSeguem(lia.id, jo.id);
+
+    const { cabinId, jaComecou } = await abrirCabine(viewerFor(lia.id), [jo.id, rafa.id], null);
+
+    expect(jaComecou).toBe(true);
+    const dentro = await db.cabinMember.findMany({ where: { cabinId, leftAt: null } });
+    expect(dentro.map((m) => m.profileId).sort()).toEqual([lia.id, jo.id].sort());
+
+    const pendentes = await db.cabinInvite.findMany({ where: { cabinId, status: "pending" } });
+    expect(pendentes.map((c) => c.inviteeId)).toEqual([rafa.id]);
+  });
+
+  it("grupo não ocupa o par de ninguém", async () => {
+    const { lia, jo, rafa } = await cenario();
+    await seSeguem(lia.id, jo.id);
+    const { cabinId } = await abrirCabine(viewerFor(lia.id), [jo.id, rafa.id], null);
+
+    const cabine = await db.cabin.findUniqueOrThrow({ where: { id: cabinId } });
+    expect(cabine.pairKey).toBeNull();
+
+    // E a conversa de duas com o Jo continua possível.
+    await expect(abrirConversaDireta(viewerFor(lia.id), jo.id)).resolves.toBeTruthy();
+  });
+
+  it("sem ninguém mútuo, é tudo convite, como antes", async () => {
+    const { lia, jo, rafa } = await cenario();
+
+    const { jaComecou, cabinId } = await abrirCabine(viewerFor(lia.id), [jo.id, rafa.id], null);
+
+    expect(jaComecou).toBe(false);
+    expect(await db.cabinMember.count({ where: { cabinId, leftAt: null } })).toBe(1);
+    expect(await db.cabinInvite.count({ where: { cabinId, status: "pending" } })).toBe(2);
+  });
+});
+
+describe("a lista põe as não lidas em cima", () => {
+  it("a conversa não lida sobe, mesmo sendo a mais antiga", async () => {
+    const { lia, jo, rafa } = await cenario();
+    const comJo = await cabineEntre(lia.id, jo.id);
+    const comRafa = await cabineEntre(lia.id, rafa.id);
+
+    // O Jo falou primeiro e a Lia não leu; depois a Lia falou com o Rafa.
+    await sendMessage(viewerFor(jo.id), { cabinId: comJo, text: "me responde", media: null });
+    await sendMessage(viewerFor(lia.id), { cabinId: comRafa, text: "falou", media: null });
+
+    const { cabines } = await listarCabines(viewerFor(lia.id));
+
+    // Ordenar só pelo movimento afundava justamente a que pedia atenção.
+    expect(cabines[0]?.id).toBe(comJo);
+    expect(cabines[0]?.naoLidas).toBe(1);
+    expect(cabines[1]?.id).toBe(comRafa);
+  });
+
+  it("depois de ler, ela volta para a ordem do movimento", async () => {
+    const { lia, jo, rafa } = await cenario();
+    const comJo = await cabineEntre(lia.id, jo.id);
+    const comRafa = await cabineEntre(lia.id, rafa.id);
+
+    await sendMessage(viewerFor(jo.id), { cabinId: comJo, text: "me responde", media: null });
+    await sendMessage(viewerFor(lia.id), { cabinId: comRafa, text: "falou", media: null });
+    await marcarCabineComoLida(viewerFor(lia.id), comJo);
+
+    const { cabines } = await listarCabines(viewerFor(lia.id));
+    expect(cabines[0]?.id).toBe(comRafa);
+  });
+});
+
+describe("a lista de quem convidar", () => {
+  it("mostra quem se segue mesmo sem comunidade em comum", async () => {
+    const { lia, dani } = await cenario();
+    await seSeguem(lia.id, dani.id);
+
+    const pessoas = await sugestoesParaConvidar(viewerFor(lia.id));
+    const achada = pessoas.find((p) => p.id === dani.id);
+
+    // Deixá-la de fora esconderia o caminho mais curto que existe.
+    expect(achada?.seSegue).toBe(true);
+  });
+
+  it("quem só divide comunidade aparece sem a marca", async () => {
+    const { lia, jo } = await cenario();
+    const pessoas = await sugestoesParaConvidar(viewerFor(lia.id));
+    expect(pessoas.find((p) => p.id === jo.id)?.seSegue).toBe(false);
   });
 });

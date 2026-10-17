@@ -10,7 +10,9 @@ import {
   buscarPessoas,
   buscarTopicos,
   comunidadesDoUniverso,
+  comunidadesEmAlta,
   paraVoce,
+  topicosEmAlta,
 } from "./descoberta";
 import { EXPLORE_MIN_MEMBERS, joinCommunity, listExploreCommunities } from "./communities";
 import { createTopic, createAnswer } from "./topics";
@@ -276,5 +278,129 @@ describe("o que cada tela mostra", () => {
     await joinCommunity(viewerFor(eu.id), comunidade.id);
 
     expect((await paraVoce(viewerFor(eu.id))).map((c) => c.name)).not.toContain("Já Estou");
+  });
+});
+
+/* ------------------------------------------------- a rodada de acabamento */
+
+describe("em alta conta pessoas, não respostas", () => {
+  /** Uma comunidade com um tópico e respostas de quem o teste disser. */
+  async function comMovimento(
+    universeId: string,
+    nome: string,
+    dona: { id: string },
+    quemResponde: { id: string }[],
+    respostasPorPessoa = 1,
+  ) {
+    const comunidade = await db.community.create({
+      data: { universeId, name: nome, nameNormalized: nome, intro: "intro", createdById: dona.id },
+    });
+    await db.membership.create({
+      data: { communityId: comunidade.id, profileId: dona.id, role: "moderator" },
+    });
+
+    const topico = await createTopic(viewerFor(dona.id), {
+      communityId: comunidade.id,
+      name: `assunto de ${nome}`,
+      description: "Conta aí.",
+      media: null,
+    });
+
+    for (const pessoa of quemResponde) {
+      await joinCommunity(viewerFor(pessoa.id), comunidade.id);
+      for (let i = 0; i < respostasPorPessoa; i += 1) {
+        await createAnswer(viewerFor(pessoa.id), {
+          topicId: topico!.id,
+          text: `resposta ${i} de ${pessoa.id.slice(0, 4)}`,
+          media: null,
+        });
+      }
+    }
+
+    return { comunidade, topico: topico! };
+  }
+
+  it("a comunidade com mais pessoas diferentes vem primeiro", async () => {
+    const universo = await makeUniverse("Som");
+    const dona = await makeProfile();
+    const quemOlha = await makeProfile();
+
+    const tres = [await makeProfile(), await makeProfile(), await makeProfile()];
+    const uma = [await makeProfile()];
+
+    // Uma pessoa respondendo dez vezes não põe nada em alta — é a mesma
+    // régua da RN09, e o motivo é o mesmo: ninguém infla sozinho.
+    const movimentada = await comMovimento(universo.id, "Com Tres", dona, tres);
+    const inflada = await comMovimento(universo.id, "Com Uma", dona, uma, 10);
+
+    const alta = await comunidadesEmAlta(viewerFor(quemOlha.id));
+    expect(alta.at(0)?.id).toBe(movimentada.comunidade.id);
+    expect(alta.at(1)?.id).toBe(inflada.comunidade.id);
+  });
+
+  it("comunidade sem resposta nenhuma fica de fora", async () => {
+    const universo = await makeUniverse("Som");
+    const dona = await makeProfile();
+    const quemOlha = await makeProfile();
+
+    await comunidadeCom(universo.id, "Parada", 30);
+    await comMovimento(universo.id, "Viva", dona, [await makeProfile()]);
+
+    const alta = await comunidadesEmAlta(viewerFor(quemOlha.id));
+    expect(alta.map((c) => c.name)).toEqual(["Viva"]);
+  });
+
+  it("a comunidade onde eu já estou não aparece", async () => {
+    const universo = await makeUniverse("Som");
+    const dona = await makeProfile();
+    const quemOlha = await makeProfile();
+
+    const { comunidade } = await comMovimento(universo.id, "Minha", dona, [await makeProfile()]);
+    await joinCommunity(viewerFor(quemOlha.id), comunidade.id);
+
+    // "Em alta" aqui é descoberta: serve para achar onde entrar.
+    expect(await comunidadesEmAlta(viewerFor(quemOlha.id))).toEqual([]);
+  });
+
+  it("resposta de mais de 7 dias não conta", async () => {
+    const universo = await makeUniverse("Som");
+    const dona = await makeProfile();
+    const quemOlha = await makeProfile();
+
+    const { comunidade } = await comMovimento(universo.id, "Antiga", dona, [await makeProfile()]);
+    await db.answer.updateMany({
+      data: { createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000) },
+    });
+    expect(await comunidadesEmAlta(viewerFor(quemOlha.id))).toEqual([]);
+    expect(comunidade.id).toBeTruthy();
+  });
+
+  it("o tópico com mais pessoas nas últimas 24h vem primeiro", async () => {
+    const universo = await makeUniverse("Som");
+    const dona = await makeProfile();
+    const quemOlha = await makeProfile();
+
+    const poucas = await comMovimento(universo.id, "Poucas", dona, [await makeProfile()], 5);
+    const muitas = await comMovimento(universo.id, "Muitas", dona, [
+      await makeProfile(),
+      await makeProfile(),
+    ]);
+
+    const alta = await topicosEmAlta(viewerFor(quemOlha.id));
+    expect(alta.at(0)?.id).toBe(muitas.topico.id);
+    expect(alta.at(1)?.id).toBe(poucas.topico.id);
+  });
+
+  it("tópico parado há mais de 24h sai da lista", async () => {
+    const universo = await makeUniverse("Som");
+    const dona = await makeProfile();
+    const quemOlha = await makeProfile();
+
+    await comMovimento(universo.id, "Ontem", dona, [await makeProfile()]);
+    await db.answer.updateMany({
+      data: { createdAt: new Date(Date.now() - 30 * 60 * 60 * 1000) },
+    });
+
+    expect(await topicosEmAlta(viewerFor(quemOlha.id))).toEqual([]);
   });
 });

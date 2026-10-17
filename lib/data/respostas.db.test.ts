@@ -7,7 +7,13 @@
  */
 import { beforeEach, describe, expect, it } from "vitest";
 import { db, makeProfile, makeUniverse, resetDatabase } from "./testing/db";
-import { createAnswer, createTopic, deleteAnswer, topicoPorEndereco } from "./topics";
+import {
+  createAnswer,
+  createTopic,
+  deleteAnswer,
+  respostasDoTopico,
+  topicoPorEndereco,
+} from "./topics";
 import { createCommunity, joinCommunity } from "./communities";
 import { trocarCapa } from "./comunidades";
 import { viewerFor } from "./viewer";
@@ -245,5 +251,108 @@ describe("RN06: a capa da comunidade", () => {
       "capas/propria.jpg",
     );
     expect(anteriorParaApagar).toBeNull();
+  });
+});
+
+/* ------------------------------------------------- a rodada de acabamento */
+
+describe("a ordem das respostas", () => {
+  it("a mais nova vem em cima, por padrão", async () => {
+    const { lia, jo, topico, comunidade } = await cenario();
+
+    await createAnswer(viewerFor(lia.id), { topicId: topico.id, text: "primeira", media: null });
+    await createAnswer(viewerFor(jo.id), { topicId: topico.id, text: "segunda", media: null });
+
+    const tela = await topicoPorEndereco(viewerFor(lia.id), comunidade.slug, topico.slug);
+
+    // Quem volta ao tópico quer o que chegou depois da última visita, não
+    // rolar quarenta respostas até o fim.
+    expect(tela.answers?.map((r) => r.text)).toEqual(["segunda", "primeira"]);
+  });
+
+  it("dá para ler como conversa, da primeira para a última", async () => {
+    const { lia, jo, topico } = await cenario();
+
+    await createAnswer(viewerFor(lia.id), { topicId: topico.id, text: "primeira", media: null });
+    await createAnswer(viewerFor(jo.id), { topicId: topico.id, text: "segunda", media: null });
+
+    const respostas = await respostasDoTopico(viewerFor(lia.id), topico.id, "antigas");
+    expect(respostas?.map((r) => r.text)).toEqual(["primeira", "segunda"]);
+  });
+});
+
+describe("marcar com #, * e @", () => {
+  it("comunidade e tópico que existem viram link; o resto é texto", async () => {
+    const { lia, jo, comunidade, topico } = await cenario();
+
+    const outro = await createTopic(viewerFor(jo.id), {
+      communityId: comunidade.id,
+      name: "melhor set",
+      description: "Qual?",
+      media: null,
+    });
+    const vizinho = await db.topic.findUniqueOrThrow({ where: { id: outro!.id } });
+
+    await createAnswer(viewerFor(lia.id), {
+      topicId: topico.id,
+      text: `olha @jo, isso é da #${comunidade.slug} e lembra *${vizinho.slug} — nada de #naoexiste`,
+      media: null,
+    });
+
+    const [resposta] = (await respostasDoTopico(viewerFor(lia.id), topico.id)) ?? [];
+
+    expect(resposta?.marcacoes.pessoas).toEqual(["jo"]);
+    expect(resposta?.marcacoes.comunidades).toEqual([comunidade.slug]);
+    expect(resposta?.marcacoes.topicos).toEqual([vizinho.slug]);
+  });
+
+  it("tópico de outra comunidade não vira link", async () => {
+    const { lia, topico } = await cenario();
+
+    // O `*` alcança só a comunidade desta resposta: o endereço de tópico é
+    // único por comunidade, e um `*` de fora abriria o tópico errado.
+    const outroUniverso = await makeUniverse("Barro");
+    const outraComunidade = await db.community.create({
+      data: {
+        universeId: outroUniverso.id,
+        name: "Cerâmica",
+        nameNormalized: "Ceramica",
+        intro: "i",
+      },
+    });
+    const deFora = await db.topic.create({
+      data: {
+        communityId: outraComunidade.id,
+        authorId: lia.id,
+        name: "forno a lenha",
+        slug: "forno-a-lenha",
+        description: "Como?",
+        cycleDate: new Date(),
+      },
+    });
+
+    await createAnswer(viewerFor(lia.id), {
+      topicId: topico.id,
+      text: `tem isso em *${deFora.slug} também`,
+      media: null,
+    });
+
+    const [resposta] = (await respostasDoTopico(viewerFor(lia.id), topico.id)) ?? [];
+    expect(resposta?.marcacoes.topicos).toEqual([]);
+  });
+
+  it("marcar comunidade ou tópico não avisa ninguém", async () => {
+    const { lia, jo, comunidade, topico } = await cenario();
+
+    await createAnswer(viewerFor(jo.id), {
+      topicId: topico.id,
+      text: `vem para a #${comunidade.slug}`,
+      media: null,
+    });
+
+    // Referência não é convocação: avisar a comunidade inteira porque
+    // alguém a citou seria a primeira fonte de barulho do Hub.
+    expect(await db.notification.count({ where: { kind: "mention" } })).toBe(0);
+    expect(lia.id).toBeTruthy();
   });
 });

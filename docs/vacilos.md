@@ -288,3 +288,66 @@ chegue nela clicando, não digitando o endereço.
 
 💭 **Solto** — nada varre `app/` procurando rota sem link que aponte para ela.
 Um teste assim tornaria isto 📌.
+
+---
+
+## 8. Regra que protegia demais
+
+### A Cabine pedia licença a quem já era próximo
+
+Até esta rodada, duas pessoas que **se seguem** precisavam de convite,
+aceite e espera para trocar uma frase. A RN20 dizia "a Cabine só começa
+quando o convidado aceita", sem exceção.
+
+*O que custou:* o caminho mais curto do produto era o mais longo. A cadeia
+que o Hub sustenta termina em Conversa, e o último passo tinha um pedágio
+justamente entre as pessoas que já haviam dito sim uma à outra — seguir é
+dizer sim. Quem testa o Hub com um amigo sentia o atrito logo na primeira
+tentativa.
+
+*Por que a regra estava assim:* ela protege de verdade, e contra o pior
+risco da feature — a Cabine virar canal de assédio. A tabela de riscos do
+próprio escopo já apontava o seguir mútuo como o caminho seguro ("sem seguir
+mútuo, qualquer um poderia convidar"), e mesmo assim a RN nasceu sem essa
+porta. O convite foi escrito como se fosse a única defesa possível.
+
+*Como ficou:* a RN20 ganhou a segunda forma — começa ao aceitar **ou** quando
+as duas se seguem. O que **não** mudou é o que importa: bloqueio (RN26) e
+"ninguém pode me convidar" (RN23) continuam valendo com laço mútuo. Quem
+fechou a porta fechou para todos.
+
+**Regra:** proteção que trata consentimento forte e consentimento nenhum do
+mesmo jeito não é proteção, é atrito. Quando uma regra exige permissão,
+pergunte se já não existe um sinal de permissão mais forte na mesa.
+
+📌 **Fixado** — a mudança está na RN20 e na RN21, e os testes de banco cobrem
+os dois lados: o atalho funciona, e bloqueio e RN23 continuam vencendo.
+
+---
+
+## 9. Ordem escolhida sem decidir
+
+### A resposta mais nova no fim da fila
+
+As respostas nasceram em ordem cronológica crescente na F09 — a mais velha
+em cima. Ninguém decidiu isso: é o padrão de quem escreve `orderBy: asc` sem
+pensar, e ficou.
+
+*O que custou:* num tópico com quarenta respostas, quem volta para ver o que
+chegou rola tudo. O Hub é feito para voltar todo dia — o ciclo das 00h existe
+para isso — e a tela premiava quem nunca tinha voltado.
+
+*Por que não apareceu antes:* nenhum tópico de teste passou de dez respostas.
+O defeito não quebra nada; ele só cansa, e cansaço não aparece em teste.
+
+*Como ficou:* a mais nova em cima, por padrão, com **Mais antigas** ao lado
+para quem quiser ler como conversa, do começo. As duas opções têm nome
+escrito, não ícone: a diferença entre elas é o sentido da leitura, e isso
+nenhum desenho de seta explica.
+
+**Regra:** ordem de lista é decisão de produto, não detalhe de consulta. Toda
+lista nova responde a uma pergunta antes de existir: quem chega aqui está
+procurando o quê?
+
+💭 **Solto** — a escolha não é lembrada por pessoa. Isso é a F17 ("Ordem
+padrão"), e guardar preferência agora duplicaria aquele trabalho.

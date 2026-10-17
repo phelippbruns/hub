@@ -78,3 +78,28 @@ export async function sharesCommunity(a: string, b: string): Promise<boolean> {
   });
   return shared !== null;
 }
+
+/**
+ * As duas pessoas se seguem?
+ *
+ * É o laço que dispensa o convite de Cabine: seguir dos dois lados é um
+ * consentimento mais forte do que dividir uma comunidade, e é o caminho
+ * que a própria tabela de riscos do escopo apontava como seguro contra a
+ * Cabine virar canal de assédio.
+ *
+ * Uma consulta só: duas linhas de `follows` em sentidos opostos.
+ */
+export async function seSeguemMutuamente(a: string, b: string): Promise<boolean> {
+  if (a === b) return false;
+
+  const lacos = await prisma.follow.count({
+    where: {
+      target: "profile",
+      OR: [
+        { followerId: a, followedProfileId: b },
+        { followerId: b, followedProfileId: a },
+      ],
+    },
+  });
+  return lacos === 2;
+}

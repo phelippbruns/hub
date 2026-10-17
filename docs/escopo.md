@@ -212,8 +212,8 @@ São 34 regras. Elas substituem integralmente as RN01 a RN23 do escopo anterior.
 | RN17 | Todo conteúdo exibe nome real, @ e foto do autor, ou avatar padrão quando não há foto, com acesso ao perfil. O @ é único na plataforma. | Todas |
 | RN18 | Usuários seguem comunidades, tópicos e pessoas. Seguir um tópico usa o ícone de olho e salva o tópico na Coleção, aba privada do perfil próprio, que pode ser organizada por comunidade ou em ordem cronológica. Seguir é sempre manual: responder não segue o tópico, e tópicos respondidos e não seguidos ficam só na aba Respostas. | Seguir |
 | RN19 | O Início mostra Hot Topics das comunidades seguidas, até 3 interações recentes de pessoas que você segue, suas últimas interações e tópicos seguidos, e termina em "Você está em dia". | Início |
-| RN20 | A Cabine é uma conversa privada de 2 a 5 pessoas e só começa quando o convidado aceita. | Cabine |
-| RN21 | Só é possível convidar quem divide ao menos uma comunidade com você. O limite é de 10 convites por dia, contando os pendentes. | Cabine |
+| RN20 | A Cabine é uma conversa privada de 2 a 5 pessoas. Começa quando o convidado aceita — **ou na hora, quando as duas pessoas já se seguem**. Só existe uma conversa aberta por par de pessoas. | Cabine |
+| RN21 | Só é possível convidar quem divide ao menos uma comunidade com você, ou quem se segue com você. O limite é de 10 convites por dia, contando os pendentes, e **um convite pendente por pessoa**. | Cabine |
 | RN22 | O convite pode levar uma mensagem de até 240 caracteres, sem links, que aparece para quem recebe. O convite fica aberto até ser aceito ou recusado. A recusa é silenciosa. Quem convidou pode cancelar. | Cabine |
 | RN23 | Cada pessoa define quem pode convidá-la: membros das suas comunidades ou ninguém. | Cabine |
 | RN24 | Qualquer participante pode sair da Cabine. Com uma pessoa restante, a Cabine se encerra. Quem sai volta só por novo convite. | Cabine |

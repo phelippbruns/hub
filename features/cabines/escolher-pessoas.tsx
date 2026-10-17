@@ -11,17 +11,20 @@ export type PessoaSugerida = {
   nome: string;
   handle: string;
   emComum: string[];
+  /** Vocês se seguem: com essa pessoa a conversa começa sem convite. */
+  seSegue: boolean;
 };
 
 /**
  * Tela 18: escolher quem convidar.
  *
  * A lista é só de gente que **pode** ser convidada: quem divide comunidade
- * (RN21), não bloqueou e aceita convites (RN23). Mostrar alguém que o
- * servidor vai recusar seria oferecer o que não dá para cumprir.
+ * (RN21) ou se segue com você, não bloqueou e aceita convites (RN23).
+ * Mostrar alguém que o servidor vai recusar seria oferecer o que não dá
+ * para cumprir.
  *
- * As comunidades em comum aparecem debaixo de cada nome porque são a razão
- * pela qual aquela pessoa está na lista.
+ * Debaixo de cada nome vem o porquê de ela estar na lista: "vocês se seguem"
+ * — e aí a conversa começa na hora — ou as comunidades em comum.
  */
 export function EscolherPessoas({
   pessoas,
@@ -147,7 +150,13 @@ export function EscolherPessoas({
                   // Cheia, só dá para tirar — não para pôr mais.
                   onClick={cheia && !escolhida ? undefined : () => alternar(pessoa.id)}
                 />
-                {pessoa.emComum.length > 0 ? (
+                {/* O laço mútuo vem primeiro: ele muda o que vai acontecer
+                    ao enviar, e as comunidades só explicam a presença. */}
+                {pessoa.seSegue ? (
+                  <span className="text-caption text-inkMuted min-w-0 truncate">
+                    Vocês se seguem · começa sem convite
+                  </span>
+                ) : pessoa.emComum.length > 0 ? (
                   <span className="text-caption text-inkMuted min-w-0 truncate">
                     {pessoa.emComum.join(", ")}
                   </span>
@@ -159,9 +168,7 @@ export function EscolherPessoas({
       )}
 
       <p aria-live="polite" className="text-caption text-inkMuted">
-        {escolhidas.length === 0
-          ? "Nenhuma pessoa escolhida."
-          : `${escolhidas.length} ${escolhidas.length === 1 ? "pessoa" : "pessoas"}. Cada uma recebe um convite e entra se aceitar.`}
+        {resumoDaEscolha(escolhidas, pessoas, resultado?.pessoas ?? [], Boolean(cabine))}
       </p>
 
       {estado.erro ? (
@@ -186,4 +193,39 @@ export function EscolherPessoas({
       </Button>
     </form>
   );
+}
+
+/**
+ * O que vai acontecer ao enviar, em uma frase.
+ *
+ * Importa dizer antes: com quem se segue a conversa **começa**, e com quem
+ * não, o convite fica esperando. Prometer "cada uma recebe um convite" para
+ * todo mundo era verdade até esta rodada e deixou de ser.
+ */
+function resumoDaEscolha(
+  escolhidas: string[],
+  sugeridas: PessoaSugerida[],
+  achadas: PessoaSugerida[],
+  paraCabineExistente: boolean,
+): string {
+  if (escolhidas.length === 0) return "Nenhuma pessoa escolhida.";
+
+  const todas = [...sugeridas, ...achadas];
+  const mutuas = escolhidas.filter((id) => todas.find((p) => p.id === id)?.seSegue).length;
+  const quantas = `${escolhidas.length} ${escolhidas.length === 1 ? "pessoa" : "pessoas"}`;
+
+  // Trazer gente para uma Cabine que já existe é sempre convite: as outras
+  // pessoas de lá não escolheram quem você segue.
+  if (paraCabineExistente) return `${quantas}. Cada uma recebe um convite e entra se aceitar.`;
+
+  if (mutuas === escolhidas.length) {
+    return escolhidas.length === 1
+      ? "Vocês se seguem: a conversa começa agora."
+      : `${quantas}. Todas se seguem com você: a conversa começa agora.`;
+  }
+  if (mutuas === 0) return `${quantas}. Cada uma recebe um convite e entra se aceitar.`;
+
+  return `${quantas}. ${mutuas} ${mutuas === 1 ? "entra" : "entram"} agora; ${
+    escolhidas.length - mutuas === 1 ? "a outra recebe convite" : "as outras recebem convite"
+  }.`;
 }

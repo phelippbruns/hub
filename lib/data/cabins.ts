@@ -14,12 +14,28 @@ import {
 } from "./errors";
 import { inviteToCabinSchema } from "./validation";
 import { requireProfileId, type Viewer } from "./viewer";
-import { comunidadesEmComum, isBlockedBetween, sharesCommunity } from "./access";
+import {
+  comunidadesEmComum,
+  isBlockedBetween,
+  seSeguemMutuamente,
+  sharesCommunity,
+} from "./access";
 import { avisar } from "./notificacoes";
 import { comAvatar, comAvatares, enderecosDeMidia } from "@/lib/midia/deposito";
 
 /** RN20: de 2 a 5 pessoas. Quem convida conta. */
 export const MAXIMO_DE_PESSOAS = 5;
+
+/**
+ * A chave do par: os dois ids em ordem.
+ *
+ * É ela que garante **uma conversa por pessoa** — com índice único no banco
+ * enquanto a Cabine está aberta. Em ordem porque o par (a, b) e o par (b, a)
+ * são a mesma conversa, e a ordem de quem começou não pode decidir isso.
+ */
+export function chaveDoPar(a: string, b: string): string {
+  return [a, b].sort().join(":");
+}
 
 async function requireCabinMember(cabinId: string, profileId: string) {
   const member = await prisma.cabinMember.findUnique({
@@ -59,12 +75,29 @@ export async function inviteToCabin(viewer: Viewer, input: unknown) {
     throw new ForbiddenError("Esta pessoa não aceita convites de Cabine");
   }
 
-  // RN21: precisa dividir ao menos uma comunidade.
-  if (!(await sharesCommunity(me, invitee.id))) {
+  // RN21: precisa dividir ao menos uma comunidade — ou já se seguirem, que
+  // é um laço mais forte do que estar na mesma comunidade.
+  if (!(await sharesCommunity(me, invitee.id)) && !(await seSeguemMutuamente(me, invitee.id))) {
     throw new RuleViolationError(
       "RN21",
       "Só dá para convidar quem divide ao menos uma comunidade com você",
     );
+  }
+
+  /*
+   * Um convite pendente por pessoa.
+   *
+   * Convidar de novo não acelera a resposta: só repete o mesmo pedido na
+   * tela de quem recebeu. A trava de verdade é o índice único do banco, que
+   * separa duas requisições simultâneas; esta conferência existe para a
+   * mensagem ser compreensível.
+   */
+  const jaConvidada = await prisma.cabinInvite.findFirst({
+    where: { inviterId: me, inviteeId: invitee.id, status: "pending" },
+    select: { id: true },
+  });
+  if (jaConvidada) {
+    throw new ForbiddenError("Você já tem um convite em aberto para esta pessoa");
   }
 
   try {
@@ -72,6 +105,17 @@ export async function inviteToCabin(viewer: Viewer, input: unknown) {
       let cabinId = data.cabinId;
 
       if (cabinId) {
+        /*
+         * A conversa deixa de ser "de duas pessoas" no instante em que uma
+         * terceira é convidada: a chave do par some, e o par fica livre
+         * para uma conversa de duas de novo. Sem isto, convidar alguém para
+         * uma conversa de duas trancaria o par para sempre.
+         */
+        await tx.cabin.updateMany({
+          where: { id: cabinId, pairKey: { not: null } },
+          data: { pairKey: null },
+        });
+
         // RN20: convidar para uma Cabine que já existe exige ser dela.
         const member = await tx.cabinMember.findUnique({
           where: { cabinId_profileId: { cabinId, profileId: me } },
@@ -98,7 +142,11 @@ export async function inviteToCabin(viewer: Viewer, input: unknown) {
         // RN20: a Cabine só começa quando o convidado aceita, mas a linha
         // precisa existir para o convite apontar para algo. Quem convida já
         // entra; o convidado entra ao aceitar.
-        const cabin = await tx.cabin.create({ data: {} });
+        const cabin = await tx.cabin.create({
+          // Nasce como conversa de duas: a chave do par é o que impede uma
+          // segunda conversa com a mesma pessoa.
+          data: { pairKey: chaveDoPar(me, invitee.id) },
+        });
         cabinId = cabin.id;
         await tx.cabinMember.create({ data: { cabinId, profileId: me } });
       }
@@ -133,6 +181,139 @@ export async function inviteToCabin(viewer: Viewer, input: unknown) {
   } catch (error) {
     translateDatabaseError(error);
   }
+}
+
+/**
+ * Abre a conversa direta com quem já te segue de volta.
+ *
+ * **Isto muda a RN20**, e de propósito: a Cabine passa a começar quando o
+ * convidado aceita *ou* quando as duas pessoas já se seguem. Convite existe
+ * para proteger quem não escolheu aquela pessoa; entre duas que se seguem
+ * ele só adiciona espera a uma conversa que as duas já quiseram.
+ *
+ * O que **não** muda: bloqueio (RN26) e "ninguém pode me convidar" (RN23)
+ * continuam valendo. Quem fechou a porta fechou para todos, inclusive para
+ * quem segue de volta.
+ *
+ * Devolve a conversa existente quando já há uma: não existem duas conversas
+ * com a mesma pessoa.
+ */
+export async function abrirConversaDireta(viewer: Viewer, outraPessoa: string): Promise<string> {
+  const me = requireProfileId(viewer);
+  if (me === outraPessoa) throw new ForbiddenError("Não dá para conversar consigo mesmo");
+
+  const outra = await prisma.profile.findFirst({
+    where: { id: outraPessoa, deletedAt: null },
+    select: { id: true, invitePolicy: true },
+  });
+  if (!outra) throw new NotFoundError("Pessoa");
+
+  if (await isBlockedBetween(me, outra.id)) {
+    throw new ForbiddenError("Não é possível conversar com esta pessoa");
+  }
+  // RN23: a porta fechada vale mesmo com laço mútuo.
+  if (outra.invitePolicy === "nobody") {
+    throw new ForbiddenError("Esta pessoa não aceita convites de Cabine");
+  }
+  if (!(await seSeguemMutuamente(me, outra.id))) {
+    throw new RuleViolationError("RN20", "Vocês precisam se seguir para conversar direto");
+  }
+
+  const existente = await cabineAbertaCom(viewer, outra.id);
+  if (existente) return existente;
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const cabine = await tx.cabin.create({ data: { pairKey: chaveDoPar(me, outra.id) } });
+      await tx.cabinMember.createMany({
+        data: [
+          { cabinId: cabine.id, profileId: me },
+          { cabinId: cabine.id, profileId: outra.id },
+        ],
+      });
+      return cabine.id;
+    });
+  } catch (error) {
+    /*
+     * Duas requisições ao mesmo tempo: o índice único do par barra a
+     * segunda, e aí a conversa certa é a que a primeira criou. Devolver a
+     * existente é melhor do que um erro que não diz nada a quem clicou.
+     */
+    const criadaAgora = await cabineAbertaCom(viewer, outra.id);
+    if (criadaAgora) return criadaAgora;
+    return translateDatabaseError(error);
+  }
+}
+
+/**
+ * Abre a Cabine com as pessoas escolhidas, cada uma pelo caminho dela.
+ *
+ * Quem **se segue** com você entra na hora; quem não, recebe convite. Num
+ * grupo misto a conversa começa com as mútuas e as outras aparecem como
+ * convite pendente — ninguém é posto numa conversa sem ter escolhido estar
+ * lá, e ninguém espera aceite de quem já disse sim seguindo.
+ *
+ * Devolve o id da Cabine, e se ela já está valendo.
+ */
+export async function abrirCabine(
+  viewer: Viewer,
+  escolhidas: string[],
+  mensagem: string | null,
+): Promise<{ cabinId: string; jaComecou: boolean }> {
+  const me = requireProfileId(viewer);
+  if (escolhidas.length === 0) throw new ForbiddenError("Escolha ao menos uma pessoa");
+
+  const mutuas: string[] = [];
+  const paraConvidar: string[] = [];
+  for (const pessoa of escolhidas) {
+    if (await seSeguemMutuamente(me, pessoa)) mutuas.push(pessoa);
+    else paraConvidar.push(pessoa);
+  }
+
+  // Uma pessoa só, e vocês se seguem: é a conversa direta, e ela reaproveita
+  // a que já existir.
+  if (mutuas.length === 1 && paraConvidar.length === 0) {
+    return { cabinId: await abrirConversaDireta(viewer, mutuas[0]!), jaComecou: true };
+  }
+
+  // Ninguém se segue: o caminho de sempre, pelo convite.
+  if (mutuas.length === 0) {
+    let cabinId: string | undefined;
+    for (const pessoa of paraConvidar) {
+      const convite = await inviteToCabin(viewer, {
+        inviteeId: pessoa,
+        cabinId,
+        message: mensagem,
+      });
+      cabinId = convite?.cabinId;
+    }
+    return { cabinId: cabinId!, jaComecou: false };
+  }
+
+  /*
+   * Grupo: as mútuas entram de uma vez e as outras são convidadas para esta
+   * mesma Cabine. Sem `pairKey` — grupo não é par, nem quando só uma pessoa
+   * aceitar depois.
+   */
+  for (const pessoa of mutuas) {
+    if (await isBlockedBetween(me, pessoa)) {
+      throw new ForbiddenError("Não é possível conversar com uma das pessoas escolhidas");
+    }
+  }
+
+  const cabine = await prisma.$transaction(async (tx) => {
+    const criada = await tx.cabin.create({ data: {} });
+    await tx.cabinMember.createMany({
+      data: [me, ...mutuas].map((profileId) => ({ cabinId: criada.id, profileId })),
+    });
+    return criada;
+  });
+
+  for (const pessoa of paraConvidar) {
+    await inviteToCabin(viewer, { inviteeId: pessoa, cabinId: cabine.id, message: mensagem });
+  }
+
+  return { cabinId: cabine.id, jaComecou: true };
 }
 
 /** RN20: a Cabine começa de verdade quando o convidado aceita. */
@@ -508,8 +689,18 @@ export async function listarCabines(viewer: Viewer): Promise<{
     }),
   );
 
-  // A conversa com movimento mais recente primeiro; as vazias no fim.
-  cabines.sort((a, b) => (b.quando?.getTime() ?? 0) - (a.quando?.getTime() ?? 0));
+  /*
+   * Não lidas em cima; dentro de cada grupo, o movimento mais recente
+   * primeiro, e as vazias no fim.
+   *
+   * Ordenar só pelo movimento afundava a conversa que você ainda não leu
+   * assim que qualquer outra se mexia — justamente a que pedia atenção.
+   */
+  cabines.sort((a, b) => {
+    const porLer = Number(b.naoLidas > 0) - Number(a.naoLidas > 0);
+    if (porLer !== 0) return porLer;
+    return (b.quando?.getTime() ?? 0) - (a.quando?.getTime() ?? 0);
+  });
 
   return {
     enviados: enviados.map((convite) => ({
@@ -719,6 +910,8 @@ export type PessoaParaConvidar = {
   handle: string;
   avatarUrl: string | null;
   emComum: string[];
+  /** Vocês se seguem: a conversa com esta pessoa começa sem convite. */
+  seSegue: boolean;
 };
 
 /**
@@ -736,20 +929,50 @@ export async function sugestoesParaConvidar(
   const me = requireProfileId(viewer);
   const procurado = termo.trim();
 
+  /*
+   * Quem aparece: as pessoas das minhas comunidades (RN21) **e** as que se
+   * seguem comigo, mesmo sem comunidade em comum — para essas o convite nem
+   * existe, a conversa começa direto, e deixá-las fora da lista esconderia
+   * justamente o caminho mais curto.
+   */
+  const mutuas = await prisma.follow.findMany({
+    where: {
+      target: "profile",
+      followerId: me,
+      followedProfile: {
+        follows: {
+          some: {
+            target: "profile",
+            followedProfileId: me,
+          },
+        },
+      },
+    },
+    select: { followedProfileId: true },
+  });
+  const idsMutuos = mutuas
+    .map((f) => f.followedProfileId)
+    .filter((id): id is string => id !== null);
+
   const pessoas = await prisma.profile.findMany({
     where: {
       deletedAt: null,
       id: { not: me },
       invitePolicy: { not: "nobody" },
-      memberships: {
-        some: {
-          bannedAt: null,
-          community: {
-            deletedAt: null,
-            memberships: { some: { profileId: me, bannedAt: null } },
+      OR: [
+        {
+          memberships: {
+            some: {
+              bannedAt: null,
+              community: {
+                deletedAt: null,
+                memberships: { some: { profileId: me, bannedAt: null } },
+              },
+            },
           },
         },
-      },
+        ...(idsMutuos.length > 0 ? [{ id: { in: idsMutuos } }] : []),
+      ],
       ...(procurado
         ? {
             OR: [
@@ -789,11 +1012,14 @@ export async function sugestoesParaConvidar(
 
   const comFoto = await comAvatares(pessoas);
 
+  const mutuosRapido = new Set(idsMutuos);
+
   return pessoas.map((pessoa, i) => ({
     id: pessoa.id,
     nome: pessoa.name,
     handle: pessoa.handle,
     avatarUrl: comFoto.at(i)?.avatarUrl ?? null,
     emComum: pessoa.memberships.map((m) => m.community.name),
+    seSegue: mutuosRapido.has(pessoa.id),
   }));
 }

@@ -9,7 +9,7 @@
 import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/auth/session";
 import { UnauthenticatedError } from "@/lib/data/errors";
-import { cabineAbertaCom, inviteToCabin, sendMessage } from "@/lib/data/cabins";
+import { abrirCabine, cabineAbertaCom, sendMessage } from "@/lib/data/cabins";
 import { MAXIMO_DE_CONVIDADOS } from "@/features/cabines/shared";
 
 async function quemPede() {
@@ -23,9 +23,10 @@ export type EstadoDoCompartilhamento = { erro?: string; enviadoPara?: number };
 /**
  * Manda o cartão da comunidade ou do tópico para quem você escolheu.
  *
- * Com Cabine aberta, o cartão vai para ela. Sem Cabine, cria uma e convida,
- * com o cartão como primeira mensagem — ela aparece quando a pessoa aceitar,
- * porque a RN20 diz que a Cabine só começa aí.
+ * Com Cabine aberta, o cartão vai para ela. Sem Cabine, `abrirCabine` decide
+ * o caminho: com quem se segue a conversa começa na hora e o cartão chega
+ * junto; com quem não, vai um convite e o cartão aparece quando a pessoa
+ * aceitar — é a RN20 nas suas duas formas.
  *
  * Uma Cabine por pessoa, e não uma com todo mundo junto: compartilhar não é
  * criar um grupo. Quem quer conversa de grupo abre uma Cabine.
@@ -54,9 +55,7 @@ export async function compartilhar(
   try {
     for (const pessoaId of pessoas) {
       const existente = await cabineAbertaCom(viewer, pessoaId);
-
-      const cabinId =
-        existente ?? (await inviteToCabin(viewer, { inviteeId: pessoaId, message: null }))?.cabinId;
+      const cabinId = existente ?? (await abrirCabine(viewer, [pessoaId], null)).cabinId;
 
       if (!cabinId) continue;
 

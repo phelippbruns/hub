@@ -15,8 +15,9 @@ import { createAnswerSchema, createTopicSchema } from "./validation";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { assertNotBlocked, requireActiveMembership } from "./access";
 import { comAvatar, comAvatares, enderecosDeMidia } from "@/lib/midia/deposito";
-import { avisar, avisarMarcados, handlesQueExistem } from "./notificacoes";
-import { handlesMencionados } from "@/lib/texto/mencoes";
+import { avisar, avisarMarcados } from "./notificacoes";
+import { marcacoesDoTexto, marcacoesQueExistem } from "./marcacoes";
+import { EXPLORE_MIN_MEMBERS } from "./communities";
 
 /**
  * RN08: a partir de quantas respostas de outras pessoas o autor não apaga.
@@ -83,6 +84,14 @@ export async function enderecoDoTopico(topicId: string): Promise<string | null> 
  * está desativado — a tela precisa da razão, não só do booleano, porque o
  * protótipo explica para a pessoa o motivo.
  */
+/**
+ * Ordem das respostas (tela 15).
+ *
+ * `recentes` é o padrão: quem abre um tópico de volta quer o que chegou
+ * depois da última visita. Quem quer ler como conversa escolhe `antigas`.
+ */
+export type OrdemDasRespostas = "recentes" | "antigas";
+
 export async function topicoPorEndereco(
   viewer: Viewer,
   comunidade: string,
@@ -191,10 +200,14 @@ export async function getTopicForViewer(
  *
  * RN16: sem conta, não vem lista nenhuma.
  */
-export async function respostasDoTopico(viewer: Viewer, topicId: string) {
+export async function respostasDoTopico(
+  viewer: Viewer,
+  topicId: string,
+  ordem: OrdemDasRespostas = "recentes",
+) {
   const me = viewerProfileId(viewer);
   if (me === null) return null;
-  return listAnswers(me, topicId);
+  return listAnswers(me, topicId, ordem);
 }
 
 /**
@@ -203,7 +216,7 @@ export async function respostasDoTopico(viewer: Viewer, topicId: string) {
  * As imagens são assinadas aqui, no momento de montar a lista: o depósito é
  * privado, então o endereço é temporário e não pode ser guardado no banco.
  */
-async function listAnswers(me: string, topicId: string) {
+async function listAnswers(me: string, topicId: string, ordem: OrdemDasRespostas = "recentes") {
   const blocked = await prisma.block.findMany({
     where: { OR: [{ blockerId: me }, { blockedId: me }] },
     select: { blockerId: true, blockedId: true },
@@ -217,7 +230,9 @@ async function listAnswers(me: string, topicId: string) {
       deletedAt: null,
       ...(hidden.size > 0 ? { authorId: { notIn: [...hidden] } } : {}),
     },
-    orderBy: { createdAt: "asc" },
+    // A mais nova em cima por padrão: num tópico com quarenta respostas,
+    // quem volta para ver o que chegou não deveria ter de rolar tudo.
+    orderBy: { createdAt: ordem === "antigas" ? "asc" : "desc" },
     include: {
       author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
     },
@@ -230,13 +245,20 @@ async function listAnswers(me: string, topicId: string) {
   const autores = await comAvatares(respostas.map((r) => r.author));
 
   /*
-   * Quais @ do texto existem de verdade, para a tela saber o que vira link.
+   * Quais marcações do texto existem de verdade, para a tela saber o que
+   * vira link. De uma vez para a lista inteira, e não por resposta: vinte
+   * respostas com marcação virariam sessenta consultas em fila.
    *
-   * De uma vez para a lista inteira, e não por resposta: vinte respostas
-   * com marcação virariam vinte consultas em fila.
+   * O `*` é resolvido **dentro desta comunidade**: o endereço de tópico é
+   * único por comunidade, não no Hub inteiro.
    */
-  const mencionados = await handlesQueExistem(
-    respostas.flatMap((resposta) => handlesMencionados(resposta.text)),
+  const daComunidade = await prisma.topic.findUnique({
+    where: { id: topicId },
+    select: { communityId: true, community: { select: { slug: true } } },
+  });
+  const existentes = await marcacoesQueExistem(
+    respostas.map((resposta) => resposta.text),
+    daComunidade?.communityId ?? null,
   );
 
   return respostas.map((resposta, i) => ({
@@ -244,8 +266,10 @@ async function listAnswers(me: string, topicId: string) {
     author: autores.at(i) ?? null,
     /** Endereço temporário da imagem; `mediaUrl` guarda só o caminho. */
     mediaHref: enderecos.at(i) ?? null,
-    /** Os @ desta resposta que existem: a tela desenha só esses como link. */
-    mencoes: handlesMencionados(resposta.text).filter((handle) => mencionados.has(handle)),
+    /** O que esta resposta marcou e existe: a tela desenha só isso como link. */
+    marcacoes: marcacoesDoTexto(resposta.text, existentes),
+    /** Para montar o endereço dos tópicos marcados com `*`. */
+    comunidadeDoTopico: daComunidade?.community.slug ?? "",
     souAutor: resposta.authorId === me,
   }));
 }
@@ -510,3 +534,83 @@ async function isCommunityModerator(profileId: string, communityId: string) {
 
 export { isCommunityModerator };
 export { RuleViolationError };
+
+/**
+ * Comunidades para marcar com `#`.
+ *
+ * Busca no Hub inteiro, e não só nas minhas: marcar comunidade é indicar
+ * ("vem para a #ceramica"), e indicar só o que já frequento esvaziaria o
+ * sentido. Vale o corte da RN05 — comunidade que o Explorar ainda não mostra
+ * também não é indicada aqui.
+ */
+export async function comunidadesParaMarcar(
+  viewer: Viewer,
+  termo: string,
+  limite = 8,
+): Promise<{ slug: string; nome: string }[]> {
+  requireProfileId(viewer);
+  const procurado = termo.trim().toLowerCase();
+
+  const comunidades = await prisma.community.findMany({
+    where: {
+      deletedAt: null,
+      membersCount: { gte: EXPLORE_MIN_MEMBERS },
+      ...(procurado
+        ? {
+            OR: [
+              { slug: { startsWith: procurado } },
+              { name: { contains: procurado, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    },
+    select: { slug: true, name: true },
+    orderBy: [{ membersCount: "desc" }, { name: "asc" }],
+    take: limite,
+  });
+
+  return comunidades.map((c) => ({ slug: c.slug, nome: c.name }));
+}
+
+/**
+ * Tópicos para marcar com `*`, **da mesma comunidade**.
+ *
+ * O endereço de tópico é único por comunidade, não no Hub inteiro: sugerir
+ * de fora criaria um `*` que a tela não conseguiria transformar em link.
+ */
+export async function topicosParaMarcar(
+  viewer: Viewer,
+  topicId: string,
+  termo: string,
+  limite = 8,
+): Promise<{ slug: string; nome: string }[]> {
+  requireProfileId(viewer);
+  const procurado = termo.trim().toLowerCase();
+
+  const atual = await prisma.topic.findFirst({
+    where: { id: topicId, deletedAt: null },
+    select: { communityId: true },
+  });
+  if (!atual) return [];
+
+  const topicos = await prisma.topic.findMany({
+    where: {
+      communityId: atual.communityId,
+      deletedAt: null,
+      id: { not: topicId },
+      ...(procurado
+        ? {
+            OR: [
+              { slug: { startsWith: procurado } },
+              { name: { contains: procurado, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    },
+    select: { slug: true, name: true },
+    orderBy: { createdAt: "desc" },
+    take: limite,
+  });
+
+  return topicos.map((t) => ({ slug: t.slug, nome: t.name }));
+}

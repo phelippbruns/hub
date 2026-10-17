@@ -344,6 +344,80 @@ não mexeu ali. Ou leio o arquivo antes, ou confiro depois.
 
 👁 **Atenção** — nada avisa quando uma substituição não casa.
 
+**Repetiu na rodada de acabamento.** Troquei o filtro de um teste logo depois
+de rodar o Prettier, sem `assert`: ele tinha juntado as linhas, a troca não
+casou, e eu passei uma rodada inteira de 3 minutos analisando a falha de um
+conserto que nunca entrou no arquivo. O hábito que fecha isso é mecânico —
+**toda substituição por texto leva `assert` ou `grep` depois**, e um script
+que troca vários trechos só grava o arquivo se todos casarem. Quando um
+deles falhou no meio, o script abortou antes de gravar e desfez em silêncio
+as trocas anteriores: foi a segunda rodada perdida pelo mesmo motivo.
+
+---
+
+### "A mensagem não chegou pelo Realtime" era um envio que nunca aconteceu
+
+A jornada do tempo real reprovava com a frase mais clara possível — "a
+mensagem não chegou pelo Realtime" — e o Realtime estava inteiro. O banco
+não tinha a linha: **a mensagem nunca foi enviada**. O teste clicava em
+Enviar na aba que envia **antes de ela hidratar**, e um clique em formulário
+de cliente não hidratado não faz nada.
+
+A aba errada estava sendo esperada: o teste aguardava o botão aparecer na
+aba que **recebe**, que é a que ele queria observar.
+
+*Por que passou tanto tempo:* a mensagem de erro era convincente e apontava
+para o suspeito certo de outras vezes — a CSP, a publicação, o reinício do
+serviço. Passei por todos antes de perguntar ao banco se a linha existia.
+
+*Como resolvi:* esperar o botão **na aba que envia**. E a lição de
+diagnóstico: quando um teste diz "não chegou", a primeira pergunta é se
+chegou a sair — uma consulta ao banco responde em dez segundos e teria
+poupado meia hora.
+
+🔒 **Barrado** — a espera está no teste, e o mesmo cuidado entrou na jornada
+nova da Cabine.
+
+---
+
+### Esperar um endereço que o próprio formulário já satisfaz
+
+Num teste novo, depois de criar o tópico, esperei "qualquer endereço dentro
+da comunidade". Só que o formulário de criar vive em `/c/<slug>/novo`, que
+também começa assim: a espera terminava **no mesmo instante**, ainda no
+formulário, e o teste seguia com o endereço errado na mão. O sintoma era
+"o campo de resposta não existe", que parece defeito da tela do tópico.
+
+*Como resolvi:* esperar o endereço exato do tópico, montado a partir do nome
+que o teste escolheu.
+
+**Regra:** espera de navegação tem de ser falsa antes de ser verdadeira. Se
+a condição já vale quando a espera começa, ela não está esperando nada.
+
+👁 **Atenção** — vale para todo `waitForURL` com prefixo.
+
+---
+
+### Confirmar um envio com o texto que ainda está na caixa
+
+Confirmei "a mensagem foi enviada" com `getByText(texto)` — e `getByText`
+casa com o conteúdo de um `<textarea>`. O envio tinha falhado, o texto
+continuava no campo, e o teste ficou verde.
+
+É exatamente o erro que o `respostaPublicada()` existe para evitar desde a
+F09 — e eu não usei o remédio na Cabine, porque ele estava escrito para
+respostas.
+
+*Como resolvi:* a confirmação passou a ser o **campo esvaziar**, que só
+acontece quando o servidor aceita.
+
+**Regra:** nunca confirme uma escrita pelo texto que a pessoa digitou.
+Confirme por algo que só o servidor produz — o campo limpo, a linha nova, o
+endereço que mudou.
+
+👁 **Atenção** — o `respostaPublicada()` cobre as respostas; na Cabine é
+cuidado de quem escreve o teste.
+
 ---
 
 ### Recarregar antes de o servidor confirmar, de novo
