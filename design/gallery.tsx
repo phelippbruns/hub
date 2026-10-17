@@ -75,6 +75,7 @@ import {
   ReportIcon,
   SearchIcon,
   SendIcon,
+  CommunityHash,
   SettingsIcon,
   PinIcon,
   ShareIcon,
@@ -245,6 +246,15 @@ export function DesignGallery() {
                   <span className="text-caption text-inkMuted text-center">{label}</span>
                 </div>
               ))}
+              {/* O `#` desenhado, para quando ele é ícone de botão e não
+                  marca ao lado de um nome — é o do botão de criar
+                  comunidade na barra lateral. */}
+              <div className="bg-paper flex flex-col items-center gap-1 rounded-sm p-2">
+                <span className="size-mark text-ink grid place-items-center">
+                  <CommunityHash className="size-icon" />
+                </span>
+                <span className="text-caption text-inkMuted text-center">Comunidade, em traço</span>
+              </div>
               <div className="bg-paper flex flex-col items-center gap-1 rounded-sm p-2">
                 <CommunityDoor member={false} />
                 <span className="text-caption text-inkMuted text-center">Entrar</span>

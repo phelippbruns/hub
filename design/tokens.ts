@@ -151,8 +151,12 @@ export const size = {
   contentColumn: "720px",
   /** Coluna das telas de entrada (login, cadastro, recuperação de senha), mais estreita que a de conteúdo. */
   authColumn: "420px",
-  /** Largura da barra de navegação lateral na web. */
-  navRail: "72px",
+  /** Largura da barra de navegação lateral recolhida. A metade dela, 42 px, é o eixo em que todo ícone da barra fica centrado. */
+  navRail: "84px",
+  /** Largura da barra expandida, com os rótulos. Ela cresce por cima do conteúdo: a coluna do layout continua com navRail. */
+  navRailOpen: "232px",
+  /** Caixa que abre cada linha da barra. Centrada nela, a marca, o ícone e o botão de criar caem sempre no mesmo eixo, recolhida ou expandida. */
+  navItemBox: "52px",
   /** Alvo de toque de cada ícone da navegação e dos botões de criar. */
   navItem: "44px",
   /** Painel de contexto à direita, nas telas que têm um. */

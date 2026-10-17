@@ -79,7 +79,9 @@
   --spacing-checkbox: 20px;
   --spacing-contentColumn: 720px;
   --spacing-authColumn: 420px;
-  --spacing-navRail: 72px;
+  --spacing-navRail: 84px;
+  --spacing-navRailOpen: 232px;
+  --spacing-navItemBox: 52px;
   --spacing-navItem: 44px;
   --spacing-contextPanel: 260px;
   --spacing-cover: 180px;

@@ -33,7 +33,17 @@ export function AppShell({
           : "grid-cols-[auto_minmax(0,1fr)_auto]",
       )}
     >
-      {nav}
+      {/*
+        O encaixe da barra: largura fixa de `navRail`, e é ele que fica
+        `sticky`. A barra mora dentro em posição absoluta e cresce por cima
+        do conteúdo ao abrir — se ela fosse a coluna, abrir empurraria a
+        tela inteira para a direita.
+
+        `z-20` põe a barra aberta acima do conteúdo; `h-screen` com o
+        `sticky` é o que mantém os botões de criar na tela quando a página
+        é comprida, que é o que a jornada da F05 guarda.
+      */}
+      <div className="w-navRail sticky top-0 z-20 h-screen self-start">{nav}</div>
       <main className="min-w-0">{children}</main>
       {painel === undefined ? null : (
         <aside

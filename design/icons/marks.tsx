@@ -36,3 +36,27 @@ export function TopicStar({ className }: { className?: string }) {
 export function TopicStarInline({ className }: { className?: string }) {
   return <TopicStar className={["inline-block size-[1em] align-[-0.12em]", className].join(" ")} />;
 }
+
+/**
+ * O `#` da comunidade desenhado, para quando ele é ícone de botão.
+ *
+ * O `LevelMark` põe o caractere tipográfico dentro do quadrado colorido, que
+ * é a marca ao lado de um nome. Aqui é outra coisa: o símbolo sozinho, em
+ * `currentColor`, dentro de um botão — e desenhado o traço fica com o mesmo
+ * peso em qualquer tamanho, como já acontece com o asterisco do tópico.
+ */
+export function CommunityHash({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.4}
+      strokeLinecap="round"
+      className={className}
+    >
+      <path d="M10 4 8 20M16 4l-2 16M4.5 9h16M3.5 15h16" />
+    </svg>
+  );
+}
