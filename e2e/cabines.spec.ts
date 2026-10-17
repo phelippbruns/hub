@@ -213,9 +213,15 @@ test.describe("a conversa em tempo real", () => {
        * Realtime não estiver publicado, a assinatura conecta, não dá erro
        * nenhum e nada chega — este teste é o que separa os dois casos.
        */
-      await expect(page.getByText(texto), "a mensagem não chegou pelo Realtime").toBeVisible({
-        timeout: 2000,
-      });
+      /*
+       * Dentro da conversa, não na tela toda: desde que a lista passou a
+       * ficar ao lado, o mesmo texto aparece duas vezes — na prévia da
+       * linha e no balão.
+       */
+      await expect(
+        page.getByRole("region", { name: "Conversa" }).getByText(texto),
+        "a mensagem não chegou pelo Realtime",
+      ).toBeVisible({ timeout: 2000 });
     } finally {
       await outra.contexto.close();
     }
@@ -321,6 +327,108 @@ test.describe("RN23: quem pode te convidar", () => {
       await outra.page.goto("/cabines/nova");
       await outra.page.getByLabel("Buscar pessoas").fill(eu.nome);
       await expect(outra.page.getByText("Nenhuma pessoa com esse nome.")).toBeVisible();
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+});
+
+/*
+ * O visual da Cabine (rodada de acabamento).
+ *
+ * Três medidas que a tela promete e que só o navegador prova: a lista ao
+ * lado da conversa, o contador legível, e o campo alinhado com os botões.
+ */
+test.describe("a Cabine de duas colunas", () => {
+  test("a lista fica ao lado da conversa, com 340 px", async ({ page, browser }) => {
+    await entrarNoApp(page, "duas");
+    const outra = await outraSessao(browser, "colunas");
+
+    try {
+      await convidar(page, outra.nome, "bora");
+      await outra.page.goto("/cabines");
+      await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
+      await outra.page.getByRole("button", { name: "Aceitar" }).click();
+      await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
+
+      const lista = outra.page.getByRole("region", { name: "Suas Cabines" });
+      const conversa = outra.page.getByRole("region", { name: "Conversa" });
+
+      // As duas ao mesmo tempo: é o que diferencia esta tela da de antes,
+      // em que ler uma conversa escondia a lista.
+      await expect(lista).toBeVisible();
+      await expect(conversa).toBeVisible();
+
+      const caixa = await lista.boundingBox();
+      expect(Math.round(caixa!.width)).toBe(340);
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("o número de não lidas é claro sobre fundo escuro", async ({ page, browser }) => {
+    await entrarNoApp(page, "contador");
+    const outra = await outraSessao(browser, "naolidas");
+
+    try {
+      await convidar(page, outra.nome, "bora");
+      await outra.page.goto("/cabines");
+      await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
+      await outra.page.getByRole("button", { name: "Aceitar" }).click();
+      await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
+
+      const caixa = outra.page.getByRole("textbox", { name: "Mensagem" });
+      await expect(outra.page.getByRole("button", { name: "Enviar" })).toBeVisible();
+      await caixa.fill("chegou mensagem");
+      await outra.page.getByRole("button", { name: "Enviar" }).click();
+      await expect(caixa).toHaveValue("", { timeout: 15_000 });
+
+      // Quem não abriu a conversa vê o número na lista.
+      await page.goto("/cabines");
+      const contador = page.getByLabel(/não lida/);
+      await expect(contador).toBeVisible({ timeout: 15_000 });
+
+      /*
+       * Na referência, uma regra do texto da prévia pintava este número de
+       * ink — e ele sumia no próprio fundo. A cor tem de vir da pílula.
+       */
+      await expect(contador).toHaveCSS("color", "rgb(255, 255, 255)");
+      await expect(contador).toHaveCSS("background-color", "rgb(30, 26, 51)");
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("o campo e os três botões ficam no mesmo eixo", async ({ page, browser }) => {
+    await entrarNoApp(page, "eixo");
+    const outra = await outraSessao(browser, "campo");
+
+    try {
+      await convidar(page, outra.nome, "bora");
+      await outra.page.goto("/cabines");
+      await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
+      await outra.page.getByRole("button", { name: "Aceitar" }).click();
+      await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
+
+      /*
+       * Os quatro centros na mesma linha.
+       *
+       * É o que mais escapa num campo que cresce: basta um botão alinhado
+       * pelo topo para ele subir sozinho quando o texto vira duas linhas.
+       */
+      const meio = async (nome: string) => {
+        // `exact`: o campo de arquivo escondido se chama "Adicionar imagem
+        // à mensagem", e sem isto o seletor pega os dois.
+        const caixa = await outra.page
+          .getByRole(nome === "Mensagem" ? "textbox" : "button", { name: nome, exact: true })
+          .boundingBox();
+        return caixa!.y + caixa!.height / 2;
+      };
+
+      const campo = await meio("Mensagem");
+      for (const botao of ["Adicionar imagem", "Adicionar GIF", "Enviar"]) {
+        expect(Math.abs((await meio(botao)) - campo), `${botao} fora do eixo`).toBeLessThan(1);
+      }
     } finally {
       await outra.contexto.close();
     }

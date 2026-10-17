@@ -106,6 +106,8 @@ export const radius = {
   radiusSm: "12px",
   /** Cartão da pergunta e cartões de destaque. */
   radiusMd: "18px",
+  /** Campo de escrever da Cabine, que cresce junto com o texto. */
+  radiusLg: "24px",
   /** Botões, busca, abas da Cabine. */
   radiusPill: "999px",
   /** Caixa de seleção. radiusSm (12px) num quadrado de 20px vira círculo, e caixa redonda se confunde com botão de opção. */
@@ -123,6 +125,8 @@ export const size = {
   icon: "22px",
   /** Ícone da barra de navegação. É também a grade em que todos os ícones são desenhados. */
   iconNav: "24px",
+  /** Ícone dos botões que ficam dentro do campo de escrever da Cabine. */
+  iconTool: "20px",
   /** Ícone grande, em estado vazio e cabeçalho. */
   iconLg: "34px",
   /** Marca de nível ({, #, asterisco) e o botão # de entrar e sair da comunidade. */
@@ -161,6 +165,14 @@ export const size = {
   navItem: "44px",
   /** Painel de contexto à direita, nas telas que têm um. */
   contextPanel: "260px",
+  /** Altura máxima do campo de escrever da Cabine: depois disso ele rola em vez de crescer. */
+  composeMax: "132px",
+  /** Coluna da lista de Cabines, ao lado da conversa. */
+  cabinList: "340px",
+  /** Foto de perfil pequena: a pilha do cabeçalho da Cabine e a do lado do balão. */
+  avatarSm: "32px",
+  /** Botão miúdo: enviar mensagem na Cabine e as respostas de um convite. */
+  controlXs: "32px",
   /** Altura da capa da comunidade, no topo da página dela. */
   cover: "180px",
 } as const;
