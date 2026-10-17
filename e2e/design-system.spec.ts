@@ -138,3 +138,109 @@ test("ícone sem texto tem rótulo de acessibilidade", async ({ page }) => {
   // A marca # da comunidade diz o que faz e em que estado está.
   await expect(page.getByRole("button", { name: "Entrar na comunidade" }).first()).toBeVisible();
 });
+
+/*
+ * As marcas da abertura se inclinam sozinhas (tela 1).
+ *
+ * O movimento é CSS puro, então o que dá para provar é o que o navegador
+ * calculou: que há animação, que são três animações diferentes, e que elas
+ * somem quando o sistema pede menos movimento.
+ */
+test.describe("as marcas da abertura", () => {
+  const MARCAS = ["hub-marca-balanca-1", "hub-marca-balanca-2", "hub-marca-balanca-3"];
+
+  test("as três se movem, cada uma com o seu tempo", async ({ page }) => {
+    await page.goto("/");
+
+    const nomes: string[] = [];
+    for (const classe of MARCAS) {
+      const marca = page.locator(`.${classe}`);
+      await expect(marca).toHaveCount(1);
+      nomes.push(await marca.evaluate((el) => getComputedStyle(el).animationName));
+    }
+
+    // Três animações distintas: é o que faz a inclinação virar onda em vez
+    // de as três marcas pularem juntas.
+    expect(new Set(nomes).size).toBe(3);
+    expect(nomes.every((nome) => nome !== "none")).toBe(true);
+  });
+
+  test("com movimento reduzido, nenhuma se move", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+
+    for (const classe of MARCAS) {
+      await expect(page.locator(`.${classe}`)).toHaveCSS("animation-name", "none");
+    }
+  });
+
+  test("a chave fica centrada no quadrado", async ({ page }) => {
+    await page.goto("/");
+
+    /*
+     * Medir a **tinta**, não a caixa do texto.
+     *
+     * O grid já centra a caixa; o que estava torto era o desenho dentro
+     * dela, 1,2 px abaixo do meio. Medir a caixa daria o contrário do que
+     * se quer provar — ela agora está deslocada de propósito.
+     *
+     * A linha de base sai de uma sonda de altura zero, que todo navegador
+     * alinha por ela; a extensão da tinta sai do `measureText` com a mesma
+     * fonte calculada da marca.
+     */
+    const desvio = await page.locator(".hub-marca-balanca-1").evaluate(async (marca) => {
+      /*
+       * Esperar a fonte antes de medir.
+       *
+       * Sem isto o `measureText` usa a fonte substituta enquanto a
+       * Bricolage carrega, e a conta sai sobre um `{` que não é o que está
+       * na tela. Na minha máquina ela já estava em cache e o teste passava;
+       * na CI, fria, deu 0,70 px e reprovou — medida errada, tela certa.
+       */
+      await document.fonts.ready;
+
+      const interno = marca.firstElementChild as HTMLElement;
+      const quadrado = marca.getBoundingClientRect();
+
+      const sonda = document.createElement("span");
+      sonda.style.cssText = "display:inline-block;width:0;height:0";
+      interno.appendChild(sonda);
+      const linhaDeBase = sonda.getBoundingClientRect().top;
+      sonda.remove();
+
+      const estilo = getComputedStyle(interno.parentElement!);
+      const ctx = document.createElement("canvas").getContext("2d")!;
+      ctx.font = `${estilo.fontWeight} ${estilo.fontSize} ${estilo.fontFamily}`;
+      const tinta = ctx.measureText("{");
+
+      const meioDaTinta =
+        linhaDeBase - (tinta.actualBoundingBoxAscent - tinta.actualBoundingBoxDescent) / 2;
+      const caixa = interno.getBoundingClientRect();
+      const meioHorizontalDaTinta =
+        caixa.x + (tinta.actualBoundingBoxRight - tinta.actualBoundingBoxLeft) / 2;
+
+      return {
+        horizontal: meioHorizontalDaTinta - (quadrado.x + quadrado.width / 2),
+        vertical: meioDaTinta - (quadrado.y + quadrado.height / 2),
+      };
+    });
+
+    /*
+     * Um pixel de folga, e não meio.
+     *
+     * A posição da letra dentro da linha vem das métricas verticais que
+     * **cada sistema** lê da fonte: o mesmo `{`, na mesma Bricolage, cai
+     * 1,17 px abaixo do centro no macOS e perto de 1,9 px no Linux. O
+     * ajuste em `em` é um só, então ele zera num e deixa 0,7 px no outro.
+     *
+     * O limite de 1 px é o que separa os dois mundos: com o ajuste, os
+     * dois passam; sem ele, os dois reprovam. Tentei desenhar a chave em
+     * SVG para o centro virar geometria, e o desenho à mão ficou pior que
+     * a letra ao lado do `#` e do asterisco — não valia a troca.
+     */
+    expect(Math.abs(desvio.vertical), "a chave está fora do centro na vertical").toBeLessThan(1);
+    expect(Math.abs(desvio.horizontal), "a chave está fora do centro na horizontal").toBeLessThan(
+      1,
+    );
+  });
+});
