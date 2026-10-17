@@ -70,7 +70,7 @@ jobs:
         # imagem, e sem o serviço de arquivos o envio falha só aqui — a
         # máquina de quem desenvolve tem tudo ligado. `imgproxy` fica de
         # fora porque é transformação de imagem, recurso pago que não usamos.
-        run: npx supabase start -x ,imgproxy,studio,edge-runtime,logflare,vector,supavisor
+        run: npx supabase start -x imgproxy,studio,edge-runtime,logflare,vector,supavisor,postgres-meta
 
       # O CLI imprime as chaves do ambiente local; lê-las daqui evita escrever
       # qualquer coisa parecida com segredo dentro do repositório.
