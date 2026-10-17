@@ -188,7 +188,17 @@ test.describe("as marcas da abertura", () => {
      * alinha por ela; a extensão da tinta sai do `measureText` com a mesma
      * fonte calculada da marca.
      */
-    const desvio = await page.locator(".hub-marca-balanca-1").evaluate((marca) => {
+    const desvio = await page.locator(".hub-marca-balanca-1").evaluate(async (marca) => {
+      /*
+       * Esperar a fonte antes de medir.
+       *
+       * Sem isto o `measureText` usa a fonte substituta enquanto a
+       * Bricolage carrega, e a conta sai sobre um `{` que não é o que está
+       * na tela. Na minha máquina ela já estava em cache e o teste passava;
+       * na CI, fria, deu 0,70 px e reprovou — medida errada, tela certa.
+       */
+      await document.fonts.ready;
+
       const interno = marca.firstElementChild as HTMLElement;
       const quadrado = marca.getBoundingClientRect();
 
