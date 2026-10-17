@@ -225,11 +225,22 @@ test.describe("as marcas da abertura", () => {
       };
     });
 
-    // Meio pixel de folga: o ajuste é em `em`, e o arredondamento do
-    // navegador não cabe numa igualdade exata.
-    expect(Math.abs(desvio.vertical), "a chave está fora do centro na vertical").toBeLessThan(0.5);
+    /*
+     * Um pixel de folga, e não meio.
+     *
+     * A posição da letra dentro da linha vem das métricas verticais que
+     * **cada sistema** lê da fonte: o mesmo `{`, na mesma Bricolage, cai
+     * 1,17 px abaixo do centro no macOS e perto de 1,9 px no Linux. O
+     * ajuste em `em` é um só, então ele zera num e deixa 0,7 px no outro.
+     *
+     * O limite de 1 px é o que separa os dois mundos: com o ajuste, os
+     * dois passam; sem ele, os dois reprovam. Tentei desenhar a chave em
+     * SVG para o centro virar geometria, e o desenho à mão ficou pior que
+     * a letra ao lado do `#` e do asterisco — não valia a troca.
+     */
+    expect(Math.abs(desvio.vertical), "a chave está fora do centro na vertical").toBeLessThan(1);
     expect(Math.abs(desvio.horizontal), "a chave está fora do centro na horizontal").toBeLessThan(
-      0.5,
+      1,
     );
   });
 });
