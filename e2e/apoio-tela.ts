@@ -74,6 +74,42 @@ export async function escolherComunidades(page: Page, quantas = 3): Promise<void
   }
 }
 
+/** Quantos cards tem a apresentação. O último é o da escolha de comunidades. */
+export const CARDS_DA_APRESENTACAO = 7;
+
+/**
+ * Anda a apresentação até o último card, o da escolha de comunidades.
+ *
+ * Os chips só existem lá, e os cards fora da tela são `inert` — tentar
+ * clicar antes de chegar falha com "elemento não recebe eventos", que não
+ * diz nada sobre o que estava errado.
+ */
+export async function avancarApresentacao(page: Page): Promise<void> {
+  const proximo = page.getByRole("button", { name: "Próximo card" });
+  for (let i = 1; i < CARDS_DA_APRESENTACAO; i += 1) {
+    await proximo.click();
+  }
+}
+
+/**
+ * Atravessa o onboarding inteiro: os sete cards, as 3 comunidades, "Iniciar
+ * Jornada" e o pedido de notificações.
+ *
+ * É a porta de entrada das jornadas. Existe como função única porque o
+ * caminho já mudou duas vezes — a F12.1 trocou o rótulo do grupo de chips, e
+ * a apresentação em carrossel trocou a tela inteira. Nas duas vezes o passo
+ * estava copiado em quinze arquivos.
+ *
+ * Não espera o destino: quem chama decide se é o Início ou o tópico do
+ * convite.
+ */
+export async function concluirOnboarding(page: Page, quantas = 3): Promise<void> {
+  await avancarApresentacao(page);
+  await escolherComunidades(page, quantas);
+  await page.getByRole("button", { name: "Iniciar Jornada" }).click();
+  await page.getByRole("button", { name: "Agora não" }).click();
+}
+
 /**
  * Preenche e envia a tela de criar comunidade (tela 13).
  *

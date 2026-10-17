@@ -116,3 +116,805 @@
 .hub-campo-cabine textarea:focus-visible {
   outline: none;
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * A apresentação do onboarding (/boas-vindas)
+ * ---------------------------------------------------------------------------
+ *
+ * Cada card tem uma demonstração que se move sozinha, e ela **só roda no
+ * card que está na tela**: `.hub-card.is-active`. Fora dali o nome da
+ * animação é apagado, não só pausado — assim, ao voltar a um card, ele
+ * recomeça do zero em vez de continuar de onde parou, e um card que ninguém
+ * está vendo não gasta processador.
+ *
+ * Todas as peças de um mesmo card compartilham a duração, porque é o que
+ * faz os tempos baterem entre si. Com movimento reduzido nada anima: cada
+ * card fica parado num quadro escolhido, pelo atraso negativo, em que a
+ * demonstração ainda conta a história inteira.
+ */
+.hub-card .hub-anima {
+  animation-fill-mode: both;
+  animation-timing-function: ease;
+  animation-iteration-count: infinite;
+  animation-play-state: paused;
+}
+
+.hub-card.is-active .hub-anima {
+  animation-play-state: running;
+}
+
+.hub-card:not(.is-active) .hub-anima {
+  animation-name: none !important;
+}
+
+.hub-card-1 .hub-anima {
+  animation-duration: 5s;
+}
+.hub-card-2 .hub-anima {
+  animation-duration: 8s;
+}
+.hub-card-3 .hub-anima {
+  animation-duration: 10s;
+}
+.hub-card-4 .hub-anima {
+  animation-duration: 10s;
+}
+.hub-card-5 .hub-anima {
+  animation-duration: 9s;
+}
+.hub-card-6 .hub-anima {
+  animation-duration: 10s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-card.is-active .hub-anima {
+    animation-play-state: paused;
+  }
+  .hub-card-1 .hub-anima {
+    animation-delay: -1s;
+  }
+  .hub-card-2 .hub-anima {
+    animation-delay: -6.4s;
+  }
+  .hub-card-3 .hub-anima {
+    animation-delay: -7.2s;
+  }
+  .hub-card-4 .hub-anima {
+    animation-delay: -8.2s;
+  }
+  .hub-card-5 .hub-anima {
+    animation-delay: -7.5s;
+  }
+  .hub-card-6 .hub-anima {
+    animation-delay: -3s;
+  }
+}
+
+/* Card 1: a logo dá um pequeno salto no fim de cada ciclo. */
+.hub-card-1 .hub-logo {
+  animation-name: hub-logo-salta;
+}
+
+@keyframes hub-logo-salta {
+  0%,
+  82%,
+  98%,
+  100% {
+    transform: none;
+  }
+  86% {
+    transform: translateY(calc(var(--spacing-2) * -1.25)) rotate(-8deg) scale(1.06);
+  }
+  90% {
+    transform: translateY(0) rotate(4deg) scale(0.98);
+  }
+  94% {
+    transform: rotate(-2deg);
+  }
+}
+
+/* Card 2: entrar numa comunidade, depois criar uma. */
+.hub-card-2 .hub-depois {
+  animation-name: hub-c2-depois;
+}
+.hub-card-2 .hub-antes {
+  animation-name: hub-c2-antes;
+}
+.hub-card-2 .hub-toque-a {
+  animation-name: hub-c2-toque-a;
+}
+.hub-card-2 .hub-toque-b {
+  animation-name: hub-c2-toque-b;
+}
+.hub-card-2 .hub-aperta {
+  animation-name: hub-c2-aperta;
+}
+.hub-card-2 .hub-nova {
+  animation-name: hub-c2-nova;
+}
+
+@keyframes hub-c2-depois {
+  0%,
+  28% {
+    opacity: 0;
+  }
+  32%,
+  94% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c2-antes {
+  0%,
+  28% {
+    opacity: 1;
+  }
+  32%,
+  94% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes hub-c2-toque-a {
+  0%,
+  22% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  25% {
+    opacity: 0.6;
+  }
+  33%,
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes hub-c2-toque-b {
+  0%,
+  50% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  53% {
+    opacity: 0.6;
+  }
+  61%,
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes hub-c2-aperta {
+  0%,
+  51% {
+    background-color: var(--color-ink);
+    color: var(--color-paper);
+  }
+  53%,
+  57% {
+    background-color: var(--color-sun);
+    color: var(--color-ink);
+  }
+  60%,
+  100% {
+    background-color: var(--color-ink);
+    color: var(--color-paper);
+  }
+}
+
+@keyframes hub-c2-nova {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translateY(var(--spacing-2));
+  }
+  64%,
+  94% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Card 3: abrir o Hot Topic, escrever e enviar uma resposta. */
+.hub-card-3 .hub-toque-a {
+  animation-name: hub-c3-toque-a;
+}
+.hub-card-3 .hub-toque-b {
+  animation-name: hub-c3-toque-b;
+}
+.hub-card-3 .hub-campo {
+  animation-name: hub-c3-campo;
+}
+.hub-card-3 .hub-digita {
+  animation-name: hub-c3-digita;
+  animation-timing-function: steps(22, end);
+}
+.hub-card-3 .hub-cursor {
+  animation-name: hub-c3-cursor;
+}
+.hub-card-3 .hub-aviso {
+  animation-name: hub-c3-aviso;
+}
+.hub-card-3 .hub-depois {
+  animation-name: hub-c3-depois;
+}
+.hub-card-3 .hub-antes {
+  animation-name: hub-c3-antes;
+}
+
+@keyframes hub-c3-toque-a {
+  0%,
+  12% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  15% {
+    opacity: 0.6;
+  }
+  23%,
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes hub-c3-toque-b {
+  0%,
+  52% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  55% {
+    opacity: 0.6;
+  }
+  63%,
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes hub-c3-campo {
+  0%,
+  16% {
+    opacity: 0;
+    transform: translateY(var(--spacing-2));
+  }
+  21%,
+  95% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c3-digita {
+  0%,
+  24% {
+    clip-path: inset(0 100% 0 0);
+  }
+  48%,
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes hub-c3-cursor {
+  0%,
+  24% {
+    opacity: 1;
+  }
+  48%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c3-aviso {
+  0%,
+  56% {
+    opacity: 0;
+    transform: translateY(var(--spacing-2));
+  }
+  60%,
+  92% {
+    opacity: 1;
+    transform: none;
+  }
+  96%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c3-depois {
+  0%,
+  56% {
+    opacity: 0;
+  }
+  59%,
+  95% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c3-antes {
+  0%,
+  56% {
+    opacity: 1;
+  }
+  59%,
+  95% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Card 4: o convite vira conversa. */
+.hub-card-4 .hub-convite {
+  animation-name: hub-c4-convite;
+}
+.hub-card-4 .hub-toque-a {
+  animation-name: hub-c4-toque;
+}
+.hub-card-4 .hub-aperta {
+  animation-name: hub-c4-aperta;
+}
+.hub-card-4 .hub-conversa {
+  animation-name: hub-c4-conversa;
+}
+.hub-card-4 .hub-balao-1 {
+  animation-name: hub-c4-balao-1;
+}
+.hub-card-4 .hub-balao-2 {
+  animation-name: hub-c4-balao-2;
+}
+.hub-card-4 .hub-balao-3 {
+  animation-name: hub-c4-balao-3;
+}
+
+@keyframes hub-c4-convite {
+  0%,
+  22% {
+    opacity: 1;
+    transform: none;
+  }
+  27%,
+  100% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes hub-c4-toque {
+  0%,
+  16% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  19% {
+    opacity: 0.6;
+  }
+  26%,
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes hub-c4-aperta {
+  0%,
+  17% {
+    background-color: var(--color-ink);
+    color: var(--color-paper);
+  }
+  19%,
+  23% {
+    background-color: var(--color-sun);
+    color: var(--color-ink);
+  }
+  26%,
+  100% {
+    background-color: var(--color-ink);
+    color: var(--color-paper);
+  }
+}
+
+@keyframes hub-c4-conversa {
+  0%,
+  26% {
+    opacity: 0;
+  }
+  30%,
+  95% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c4-balao-1 {
+  0%,
+  33% {
+    opacity: 0;
+    transform: translateY(var(--spacing-2));
+  }
+  37%,
+  95% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c4-balao-2 {
+  0%,
+  49% {
+    opacity: 0;
+    transform: translateY(var(--spacing-2));
+  }
+  53%,
+  95% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c4-balao-3 {
+  0%,
+  65% {
+    opacity: 0;
+    transform: translateY(var(--spacing-2));
+  }
+  69%,
+  95% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Card 5: as três abas do perfil se revezam. */
+.hub-card-5 .hub-aba-1 {
+  animation-name: hub-c5-aba-1;
+}
+.hub-card-5 .hub-aba-2 {
+  animation-name: hub-c5-aba-2;
+}
+.hub-card-5 .hub-aba-3 {
+  animation-name: hub-c5-aba-3;
+}
+.hub-card-5 .hub-painel-1 {
+  animation-name: hub-c5-painel-1;
+}
+.hub-card-5 .hub-painel-2 {
+  animation-name: hub-c5-painel-2;
+}
+.hub-card-5 .hub-painel-3 {
+  animation-name: hub-c5-painel-3;
+}
+
+@keyframes hub-c5-aba-1 {
+  0%,
+  31%,
+  100% {
+    color: var(--color-ink);
+    border-bottom-color: var(--color-ink);
+  }
+  34%,
+  97% {
+    color: var(--color-inkMuted);
+    border-bottom-color: transparent;
+  }
+}
+
+@keyframes hub-c5-aba-2 {
+  0%,
+  31% {
+    color: var(--color-inkMuted);
+    border-bottom-color: transparent;
+  }
+  34%,
+  64% {
+    color: var(--color-ink);
+    border-bottom-color: var(--color-ink);
+  }
+  67%,
+  100% {
+    color: var(--color-inkMuted);
+    border-bottom-color: transparent;
+  }
+}
+
+@keyframes hub-c5-aba-3 {
+  0%,
+  64% {
+    color: var(--color-inkMuted);
+    border-bottom-color: transparent;
+  }
+  67%,
+  97% {
+    color: var(--color-ink);
+    border-bottom-color: var(--color-ink);
+  }
+  100% {
+    color: var(--color-inkMuted);
+    border-bottom-color: transparent;
+  }
+}
+
+@keyframes hub-c5-painel-1 {
+  0%,
+  31%,
+  100% {
+    opacity: 1;
+  }
+  34%,
+  97% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c5-painel-2 {
+  0%,
+  31% {
+    opacity: 0;
+  }
+  34%,
+  64% {
+    opacity: 1;
+  }
+  67%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c5-painel-3 {
+  0%,
+  64% {
+    opacity: 0;
+  }
+  67%,
+  97% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Card 6: o Início enche, termina em "Você está em dia", e o Explorar busca. */
+.hub-card-6 .hub-nav-a {
+  animation-name: hub-c6-nav-a;
+}
+.hub-card-6 .hub-nav-b {
+  animation-name: hub-c6-nav-b;
+}
+.hub-card-6 .hub-painel-a {
+  animation-name: hub-c6-painel-a;
+}
+.hub-card-6 .hub-painel-b {
+  animation-name: hub-c6-painel-b;
+}
+.hub-card-6 .hub-linha-1 {
+  animation-name: hub-c6-linha-1;
+}
+.hub-card-6 .hub-linha-2 {
+  animation-name: hub-c6-linha-2;
+}
+.hub-card-6 .hub-linha-3 {
+  animation-name: hub-c6-linha-3;
+}
+.hub-card-6 .hub-fim {
+  animation-name: hub-c6-fim;
+}
+.hub-card-6 .hub-toque-a {
+  animation-name: hub-c6-toque;
+}
+.hub-card-6 .hub-digita {
+  animation-name: hub-c6-digita;
+  animation-timing-function: steps(5, end);
+}
+.hub-card-6 .hub-cartao {
+  animation-name: hub-c6-cartao;
+}
+
+@keyframes hub-c6-nav-a {
+  0%,
+  46%,
+  100% {
+    color: var(--color-ink);
+    background-color: var(--color-surfacePage);
+    font-weight: 700;
+  }
+  50%,
+  96% {
+    color: var(--color-inkMuted);
+    background-color: transparent;
+    font-weight: 500;
+  }
+}
+
+@keyframes hub-c6-nav-b {
+  0%,
+  46% {
+    color: var(--color-inkMuted);
+    background-color: transparent;
+    font-weight: 500;
+  }
+  50%,
+  96% {
+    color: var(--color-ink);
+    background-color: var(--color-surfacePage);
+    font-weight: 700;
+  }
+  100% {
+    color: var(--color-inkMuted);
+    background-color: transparent;
+    font-weight: 500;
+  }
+}
+
+@keyframes hub-c6-painel-a {
+  0%,
+  46%,
+  100% {
+    opacity: 1;
+  }
+  50%,
+  97% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c6-painel-b {
+  0%,
+  46% {
+    opacity: 0;
+  }
+  50%,
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c6-linha-1 {
+  0%,
+  3% {
+    opacity: 0;
+    transform: translateY(var(--spacing-2));
+  }
+  8%,
+  46% {
+    opacity: 1;
+    transform: none;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c6-linha-2 {
+  0%,
+  9% {
+    opacity: 0;
+    transform: translateY(var(--spacing-2));
+  }
+  14%,
+  46% {
+    opacity: 1;
+    transform: none;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c6-linha-3 {
+  0%,
+  15% {
+    opacity: 0;
+    transform: translateY(var(--spacing-2));
+  }
+  20%,
+  46% {
+    opacity: 1;
+    transform: none;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c6-fim {
+  0%,
+  23% {
+    opacity: 0;
+  }
+  28%,
+  46% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hub-c6-toque {
+  0%,
+  40% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  43% {
+    opacity: 0.6;
+  }
+  50%,
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes hub-c6-digita {
+  0%,
+  54% {
+    clip-path: inset(0 100% 0 0);
+  }
+  64%,
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes hub-c6-cartao {
+  0%,
+  64% {
+    opacity: 0;
+    transform: translateY(var(--spacing-2));
+  }
+  70%,
+  96% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}

@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { esperarNoBanco } from "./apoio-banco";
-import { cadastroConcluido, escolherComunidades, preencherNovaComunidade } from "./apoio-tela";
+import { cadastroConcluido, concluirOnboarding, preencherNovaComunidade } from "./apoio-tela";
 
 /**
  * Cabine (F13): a conversa privada que começa por convite.
@@ -66,16 +66,13 @@ async function entrarNoApp(page: Page, prefixo: string): Promise<{ handle: strin
   await page.getByRole("button", { name: "Continuar" }).click();
 
   await cadastroConcluido(page);
-  await page.getByRole("link", { name: "Começar" }).click();
 
   /*
    * As duas pessoas do teste escolhem pelo mesmo caminho — os primeiros
    * chips da lista — então caem nas mesmas comunidades. É isso que faz a
    * RN21 ser satisfeita: convidar exige comunidade em comum.
    */
-  await escolherComunidades(page);
-  await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByRole("button", { name: "Agora não" }).click();
+  await concluirOnboarding(page);
   await expect(page).toHaveURL(/\/inicio/);
 
   return { handle, nome };

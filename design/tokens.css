@@ -90,6 +90,10 @@
   --spacing-avatarSm: 32px;
   --spacing-controlXs: 32px;
   --spacing-cover: 180px;
+  --spacing-stageColumn: 1120px;
+  --spacing-demoCard: 500px;
+  --spacing-demoPanel: 400px;
+  --spacing-markLg: 88px;
 
   --radius-sm: 12px;
   --radius-md: 18px;

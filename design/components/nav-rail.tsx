@@ -159,14 +159,15 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
       )}
       style={{ paddingTop: "max(var(--spacing-5), env(safe-area-inset-top))" }}
     >
-      {/* A marca leva ao Início, como em qualquer site. O rótulo é só "Hub":
-          o item de navegação logo abaixo já se chama Início, e dois links com
-          o mesmo nome na mesma barra confundem quem usa leitor de tela.
+      {/* A marca leva à apresentação do Hub, não ao Início: é o caminho para
+          rever como o produto funciona, e o Início já é o item logo abaixo.
+          O rótulo é só "Hub" — dois links com o mesmo nome na mesma barra
+          confundem quem usa leitor de tela.
 
           O `{` era a marca do Universo e ficou sem dono quando ele saiu do
           produto na F12.1 (docs/vacilos.md). Agora é a marca do Hub. */}
       <Link
-        href="/inicio"
+        href="/boas-vindas"
         aria-label="Hub"
         className="text-ink mb-4 flex items-center gap-2 no-underline"
       >

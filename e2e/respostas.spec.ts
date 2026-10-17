@@ -3,7 +3,7 @@ import { consultar, esperarNoBanco } from "./apoio-banco";
 import {
   alerta,
   cadastroConcluido,
-  escolherComunidades,
+  concluirOnboarding,
   preencherNovaComunidade,
   respostaPublicada,
 } from "./apoio-tela";
@@ -33,10 +33,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
   await page.getByRole("button", { name: "Continuar" }).click();
 
   await cadastroConcluido(page);
-  await page.getByRole("link", { name: "Começar" }).click();
-  await escolherComunidades(page);
-  await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByRole("button", { name: "Agora não" }).click();
+  await concluirOnboarding(page);
   await expect(page).toHaveURL(/\/inicio/);
 }
 
