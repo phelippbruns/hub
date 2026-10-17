@@ -175,6 +175,14 @@ export const size = {
   controlXs: "32px",
   /** Altura da capa da comunidade, no topo da página dela. */
   cover: "180px",
+  /** Largura máxima da apresentação do onboarding, mais larga que a coluna de conteúdo porque o card tem duas colunas. */
+  stageColumn: "1120px",
+  /** Altura mínima de um card da apresentação do onboarding. */
+  demoCard: "500px",
+  /** Altura do painel de demonstração, à direita dentro de cada card da apresentação. */
+  demoPanel: "400px",
+  /** Marca de nível em tamanho de abertura: a logo do Hub na apresentação do onboarding. */
+  markLg: "88px",
 } as const;
 
 export const fontFamily =

@@ -43,6 +43,7 @@ import {
   Segmented,
   RadioGroup,
   SortToggle,
+  Paginador,
   Steps,
   SuccessMessage,
   SuggestionRow,
@@ -182,6 +183,7 @@ export function DesignGallery() {
   const [ordem, setOrdem] = useState<"atividade" | "recentes">("atividade");
   const [fixada, setFixada] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
+  const [cardDaGaleria, setCardDaGaleria] = useState(0);
   const [codigo, setCodigo] = useState("12");
 
   return (
@@ -742,6 +744,20 @@ export function DesignGallery() {
         <Card title="Código de 6 dígitos" wide>
           <div className="w-full">
             <CodeInput label="Código" value={codigo} onChange={setCodigo} />
+          </div>
+        </Card>
+
+        <Card title="Paginador" wide>
+          <div className="flex w-full flex-col items-center gap-2">
+            <Paginador
+              total={7}
+              atual={cardDaGaleria}
+              onIr={setCardDaGaleria}
+              rotulo="Exemplo de paginador"
+            />
+            <span className="text-caption text-inkMuted">
+              Card {cardDaGaleria + 1} de 7. A atual muda de forma, não só de cor.
+            </span>
           </div>
         </Card>
 

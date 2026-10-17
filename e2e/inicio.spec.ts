@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
-import { cadastroConcluido, escolherComunidades, preencherNovaComunidade } from "./apoio-tela";
+import { cadastroConcluido, concluirOnboarding, preencherNovaComunidade } from "./apoio-tela";
 
 /**
  * Meio-dia de ontem **no fuso do ciclo**, como instante.
@@ -42,10 +42,7 @@ async function criarConta(page: Page, prefixo: string) {
 
 async function entrarNoApp(page: Page, prefixo: string) {
   await criarConta(page, prefixo);
-  await page.getByRole("link", { name: "Começar" }).click();
-  await escolherComunidades(page);
-  await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByRole("button", { name: "Agora não" }).click();
+  await concluirOnboarding(page);
   await expect(page).toHaveURL(/\/inicio/);
 }
 

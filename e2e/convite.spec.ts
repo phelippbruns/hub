@@ -1,6 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
-import { cadastroConcluido, escolherComunidades, preencherNovaComunidade } from "./apoio-tela";
+import {
+  avancarApresentacao,
+  cadastroConcluido,
+  concluirOnboarding,
+  escolherComunidades,
+  preencherNovaComunidade,
+} from "./apoio-tela";
 
 /**
  * Convite por link (F14): o que acontece quando alguém de fora abre um
@@ -29,10 +35,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
   await page.getByRole("button", { name: "Continuar" }).click();
 
   await cadastroConcluido(page);
-  await page.getByRole("link", { name: "Começar" }).click();
-  await escolherComunidades(page);
-  await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByRole("button", { name: "Agora não" }).click();
+  await concluirOnboarding(page);
   await expect(page).toHaveURL(/\/inicio/);
 }
 
@@ -217,7 +220,7 @@ test.describe("RN31: do link ao tópico, passando pelo cadastro", () => {
       await nova.getByRole("button", { name: "Continuar" }).click();
 
       await cadastroConcluido(nova);
-      await nova.getByRole("link", { name: "Começar" }).click();
+      await avancarApresentacao(nova);
 
       // RN31: a comunidade do convite vem marcada, e conta como uma das três.
       await expect(nova.getByText("Do seu convite")).toBeVisible();
@@ -226,7 +229,7 @@ test.describe("RN31: do link ao tópico, passando pelo cadastro", () => {
       ).toBeVisible();
 
       await escolherComunidades(nova, 2);
-      await nova.getByRole("button", { name: "Continuar" }).click();
+      await nova.getByRole("button", { name: "Iniciar Jornada" }).click();
       await nova.getByRole("button", { name: "Agora não" }).click();
 
       // E o fim do caminho é o tópico que trouxe a pessoa.

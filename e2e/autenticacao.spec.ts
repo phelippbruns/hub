@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
-import { alerta, cadastroConcluido, escolherComunidades } from "./apoio-tela";
+import { alerta, cadastroConcluido, concluirOnboarding } from "./apoio-tela";
 
 /**
  * Jornadas da entrada (F03).
@@ -88,10 +88,7 @@ async function criarContaESair(
 
   // RN31: sem concluir o onboarding a pessoa não chega ao Início, então o
   // caminho para sair passa por ele.
-  await page.getByRole("link", { name: "Começar" }).click();
-  await escolherComunidades(page);
-  await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByRole("button", { name: "Agora não" }).click();
+  await concluirOnboarding(page);
   await expect(page).toHaveURL(/\/inicio/);
 
   // O botão de sair mora em Configurações desde a F11.

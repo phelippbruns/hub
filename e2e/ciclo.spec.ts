@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
-import { cadastroConcluido, escolherComunidades, preencherNovaComunidade } from "./apoio-tela";
+import { cadastroConcluido, concluirOnboarding, preencherNovaComunidade } from "./apoio-tela";
 
 /**
  * O ciclo do Hot Topic (F10), na tela.
@@ -28,10 +28,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
   await page.getByRole("button", { name: "Continuar" }).click();
 
   await cadastroConcluido(page);
-  await page.getByRole("link", { name: "Começar" }).click();
-  await escolherComunidades(page);
-  await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByRole("button", { name: "Agora não" }).click();
+  await concluirOnboarding(page);
   await expect(page).toHaveURL(/\/inicio/);
 }
 

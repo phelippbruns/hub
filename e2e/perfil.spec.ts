@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
-import { alerta, cadastroConcluido, escolherComunidades } from "./apoio-tela";
+import { alerta, cadastroConcluido, concluirOnboarding } from "./apoio-tela";
 
 /**
  * Perfil (F12).
@@ -30,10 +30,7 @@ async function entrarNoApp(page: Page, prefixo: string): Promise<string> {
   await page.getByRole("button", { name: "Continuar" }).click();
 
   await cadastroConcluido(page);
-  await page.getByRole("link", { name: "Começar" }).click();
-  await escolherComunidades(page);
-  await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByRole("button", { name: "Agora não" }).click();
+  await concluirOnboarding(page);
   await expect(page).toHaveURL(/\/inicio/);
 
   return handle;

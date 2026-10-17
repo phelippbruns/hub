@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { cadastroConcluido, escolherComunidades, preencherNovaComunidade } from "./apoio-tela";
+import { cadastroConcluido, concluirOnboarding, preencherNovaComunidade } from "./apoio-tela";
 
 /**
  * Notificações e marcar com @ (F15).
@@ -30,10 +30,7 @@ async function entrarNoApp(page: Page, prefixo: string) {
   await page.getByRole("button", { name: "Continuar" }).click();
 
   await cadastroConcluido(page);
-  await page.getByRole("link", { name: "Começar" }).click();
-  await escolherComunidades(page);
-  await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByRole("button", { name: "Agora não" }).click();
+  await concluirOnboarding(page);
   await expect(page).toHaveURL(/\/inicio/);
 
   return { handle, nome };

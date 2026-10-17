@@ -385,3 +385,46 @@ trouxe, e fica menor a cada visita.
 
 📌 **Fixado** — está na RN19 e em teste de banco: a seção existe, respeita
 quem já é membro e some quando não há nada novo.
+
+---
+
+## 11. Atalho que leva a uma porta fechada
+
+### A marca do Hub ia para uma tela que se recusava a abrir
+
+A apresentação em carrossel trouxe um pedido junto: a marca do Hub, no topo
+da barra lateral, deve levar a ela. Feito — `/inicio` virou `/boas-vindas`,
+o teste passou, o build passou.
+
+Só que `/boas-vindas` tinha, desde a F03, uma guarda: quem já concluiu o
+onboarding é mandado para o Início. E **todo mundo que vê a barra lateral
+já concluiu o onboarding** — a barra só existe dentro do app. O clique na
+marca saía de `/inicio`, passava por `/boas-vindas` e voltava para
+`/inicio`. O atalho novo fazia exatamente o que o antigo fazia, com um
+redirecionamento no meio.
+
+*O que custou:* nada ainda — apareceu ao percorrer a tela à mão, no último
+passo da verificação, depois de a suíte inteira passar verde.
+
+*Por que não apareceu antes:* nenhum teste olhava o destino. O que se
+pediu foi "a marca leva ao carrossel", e era isso que o código fazia: o
+`href` estava certo. Quem redirecionava era a outra ponta, que ninguém
+tinha motivo para reler — ela não mudou.
+
+*Como ficou:* `/boas-vindas` deixou de expulsar quem já concluiu. Para essa
+pessoa a tela vira **revisão**: os mesmos seis cards de apresentação, sem o
+sétimo (escolher comunidades de novo seria desfazer o que ela escolheu
+desde então), e o fim é um caminho de volta ao Início. É também o que o
+protótipo já dizia, com o botão "Rever como o Hub funciona".
+
+E vale dizer em voz alta o que mudou para quem usa: **a marca não é mais o
+atalho para a home.** Em quase todo site ela é, e é o que a pessoa clica
+quando se perde. O Início continua um item abaixo, mas quem tem o hábito
+vai estranhar.
+
+**Regra:** mudar para onde um link aponta é metade da mudança. A outra
+metade é abrir o destino e conferir que ele recebe quem chega — guarda de
+rota é invisível de fora, e nenhum teste de `href` a enxerga.
+
+👁 **Solto** — o novo destino tem teste de jornada, mas nada impede que uma
+guarda futura volte a fechar a porta sem ninguém notar.

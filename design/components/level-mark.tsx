@@ -10,18 +10,54 @@ import { cn } from "../cn";
  */
 export type Level = "universe" | "community" | "topic";
 
+/** `lg` é a marca de abertura: a logo do Hub na apresentação do onboarding. */
+export type LevelMarkSize = "md" | "lg";
+
 const tones: Record<Level, string> = {
   universe: "bg-sun text-ink",
   community: "bg-lavender text-ink",
   topic: "bg-ink text-paper",
 };
 
-export function LevelMark({ level, className }: { level: Level; className?: string }) {
+/*
+ * O quadrado e o tamanho do texto andam juntos: em md o símbolo ocupa 20 de
+ * 32 px, e em lg a proporção é a mesma, escrita em `em` a partir da
+ * tipografia da caixa. É o que mantém o desenho idêntico nos dois tamanhos
+ * em vez de dois ajustes que se desencontram quando um deles muda.
+ */
+const boxes: Record<LevelMarkSize, string> = {
+  md: "size-mark text-subtitle rounded-sm",
+  lg: "size-markLg text-brand rounded-lg",
+};
+
+/** O asterisco é desenho, não letra: 22 de 32 px em md, a mesma razão em lg. */
+const desenhos: Record<LevelMarkSize, string> = {
+  md: "size-icon",
+  lg: "size-[0.6875em]",
+};
+
+export function LevelMark({
+  level,
+  tamanho = "md",
+  className,
+}: {
+  level: Level;
+  tamanho?: LevelMarkSize;
+  className?: string;
+}) {
+  const simbolo =
+    level === "universe" ? (
+      <span className="translate-x-[0.02em] -translate-y-[0.06em]">{"{"}</span>
+    ) : (
+      "#"
+    );
+
   return (
     <span
       aria-hidden="true"
       className={cn(
-        "size-mark text-subtitle inline-grid place-items-center rounded-sm font-extrabold",
+        boxes[tamanho],
+        "inline-grid place-items-center font-extrabold",
         tones[level],
         className,
       )}
@@ -38,11 +74,19 @@ export function LevelMark({ level, className }: { level: Level; className?: stri
         O ajuste é em `em` para acompanhar qualquer tamanho da marca. O `#`
         não precisa: a tinta dele já cai a 0,4 px do centro.
       */}
-      {level === "universe" ? (
-        <span className="translate-x-[0.02em] -translate-y-[0.06em]">{"{"}</span>
-      ) : null}
-      {level === "community" ? "#" : null}
-      {level === "topic" ? <TopicStar className="size-icon" /> : null}
+      {level === "topic" ? (
+        <TopicStar className={desenhos[tamanho]} />
+      ) : tamanho === "lg" ? (
+        /*
+         * Em md a tipografia da caixa **é** o tamanho do símbolo: 20 de
+         * 32 px. Em lg a caixa carrega o token `brand` (88 px, que é o lado
+         * do quadrado), e o símbolo desce para a mesma proporção, escrita
+         * em `em`. Assim os dois tamanhos desenham a mesma marca.
+         */
+        <span className="text-[0.625em] leading-none">{simbolo}</span>
+      ) : (
+        simbolo
+      )}
     </span>
   );
 }
