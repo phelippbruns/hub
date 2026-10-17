@@ -3,6 +3,7 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { cn } from "@/design/cn";
 import { createClient } from "@/lib/supabase/client";
 
 export type MensagemNaTela = {
@@ -12,7 +13,7 @@ export type MensagemNaTela = {
   tipoDaMidia: "image" | "gif" | null;
   quando: string;
   souAutor: boolean;
-  autor: { nome: string; handle: string } | null;
+  autor: { nome: string; handle: string; avatarUrl: string | null } | null;
   compartilhado: {
     tipo: "comunidade" | "topico";
     nome: string;
@@ -110,7 +111,7 @@ export function Conversa({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="max-w-contentColumn mx-auto flex w-full flex-col gap-2">
       {mensagens.map((mensagem) => (
         <LinhaDeMensagem key={mensagem.id} mensagem={mensagem} />
       ))}
@@ -172,47 +173,87 @@ function assinar(
 
 function LinhaDeMensagem({ mensagem }: { mensagem: MensagemNaTela }) {
   const nome = mensagem.souAutor ? "Você" : (mensagem.autor?.nome ?? "Pessoa que saiu do Hub");
+  const minha = mensagem.souAutor;
 
+  /*
+   * Balão, e não cartão.
+   *
+   * O meu à direita em lavender, o das outras pessoas à esquerda em paper:
+   * é o formato que qualquer pessoa já sabe ler sem explicação, e o lado
+   * diz de quem é antes do nome. A conversa deixa de parecer uma lista de
+   * respostas de tópico, que é o que ela era.
+   *
+   * A largura para em 72%: balão que atravessa a tela inteira perde a
+   * silhueta que faz a conversa ser legível de longe.
+   */
   return (
-    <article className="bg-paper flex flex-col gap-1 rounded-sm p-2">
-      <span className="flex items-baseline gap-2">
-        <span className="text-bodyStrong text-ink">{nome}</span>
-        <span className="text-caption text-inkMuted">{mensagem.quando}</span>
-      </span>
-
-      {mensagem.texto ? <p className="text-body text-ink">{mensagem.texto}</p> : null}
-
-      {mensagem.imagem ? (
-        /*
-         * `<img>` e não `next/image`, pelo mesmo motivo da resposta: a URL é
-         * assinada e expira em dez minutos, então o cache do otimizador
-         * nunca acerta e uma URL vencida serviria erro no lugar da imagem.
-         *
-         * `self-start` porque o cartão é flex em coluna, e item de flex em
-         * coluna estica na largura — foi assim que o GIF da resposta saiu
-         * espichado em produção.
-         */
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={mensagem.imagem}
-          alt={mensagem.tipoDaMidia === "gif" ? `GIF de ${nome}` : `Imagem de ${nome}`}
-          className="block h-auto w-auto max-w-full self-start rounded-sm"
-        />
-      ) : null}
-
-      {/*
-        RN25: cartão de comunidade ou tópico compartilhado. Criar um vem da
-        F14; aqui a conversa sabe desenhar o que já existir.
-      */}
-      {mensagem.compartilhado ? (
-        <Link
-          href={mensagem.compartilhado.href}
-          className="border-line box-border flex flex-col gap-1 rounded-sm border-2 p-2"
+    <article className={cn("flex items-end gap-2", minha && "flex-row-reverse")}>
+      {minha ? null : (
+        <span
+          aria-hidden="true"
+          className="size-avatarSm rounded-pill bg-lavender text-ink text-caption grid shrink-0 place-items-center bg-cover bg-center font-bold"
+          style={
+            mensagem.autor?.avatarUrl
+              ? { backgroundImage: `url(${mensagem.autor.avatarUrl})` }
+              : undefined
+          }
         >
-          <span className="text-bodyStrong text-ink">{mensagem.compartilhado.nome}</span>
-          <span className="text-caption text-inkMuted">{mensagem.compartilhado.apoio}</span>
-        </Link>
-      ) : null}
+          {mensagem.autor?.avatarUrl ? null : nome.slice(0, 1)}
+        </span>
+      )}
+
+      <div className={cn("flex max-w-[72%] min-w-0 flex-col gap-1", minha && "items-end")}>
+        <span className={cn("text-caption text-inkMuted px-1", minha && "text-right")}>
+          {minha ? null : <b className="text-label text-ink mr-1 font-bold">{nome}</b>}
+          {mensagem.quando}
+        </span>
+
+        {mensagem.texto ? (
+          <p
+            className={cn(
+              "text-body text-ink rounded-sm px-3 py-2 wrap-anywhere",
+              minha ? "bg-lavender" : "bg-paper",
+            )}
+          >
+            {mensagem.texto}
+          </p>
+        ) : null}
+
+        {mensagem.imagem ? (
+          /*
+           * `<img>` e não `next/image`, pelo mesmo motivo da resposta: a URL
+           * é assinada e expira em dez minutos, então o cache do otimizador
+           * nunca acerta e uma URL vencida serviria erro no lugar da imagem.
+           *
+           * `self-start` porque a coluna é flex, e item de flex em coluna
+           * estica na largura — foi assim que o GIF da resposta saiu
+           * espichado em produção.
+           */
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={mensagem.imagem}
+            alt={mensagem.tipoDaMidia === "gif" ? `GIF de ${nome}` : `Imagem de ${nome}`}
+            className={cn(
+              "block h-auto w-auto max-w-full rounded-sm",
+              minha ? "self-end" : "self-start",
+            )}
+          />
+        ) : null}
+
+        {/*
+          RN25: cartão de comunidade ou tópico compartilhado. Criar um vem da
+          F14; aqui a conversa sabe desenhar o que já existir.
+        */}
+        {mensagem.compartilhado ? (
+          <Link
+            href={mensagem.compartilhado.href}
+            className="bg-paper border-line box-border flex flex-col gap-1 rounded-sm border p-2"
+          >
+            <span className="text-bodyStrong text-ink">{mensagem.compartilhado.nome}</span>
+            <span className="text-caption text-inkMuted">{mensagem.compartilhado.apoio}</span>
+          </Link>
+        ) : null}
+      </div>
     </article>
   );
 }

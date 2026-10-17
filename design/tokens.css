@@ -65,6 +65,7 @@
   --spacing-iconSm: 16px;
   --spacing-icon: 22px;
   --spacing-iconNav: 24px;
+  --spacing-iconTool: 20px;
   --spacing-iconLg: 34px;
   --spacing-mark: 32px;
   --spacing-control: 42px;
@@ -84,10 +85,15 @@
   --spacing-navItemBox: 52px;
   --spacing-navItem: 44px;
   --spacing-contextPanel: 260px;
+  --spacing-composeMax: 132px;
+  --spacing-cabinList: 340px;
+  --spacing-avatarSm: 32px;
+  --spacing-controlXs: 32px;
   --spacing-cover: 180px;
 
   --radius-sm: 12px;
   --radius-md: 18px;
+  --radius-lg: 24px;
   --radius-pill: 999px;
   --radius-control: 6px;
 
