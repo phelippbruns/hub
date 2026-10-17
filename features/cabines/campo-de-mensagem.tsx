@@ -67,7 +67,15 @@ export function CampoDeMensagem({ cabinId }: { cabinId: string }) {
     <form action={acao} className="max-w-contentColumn mx-auto flex w-full flex-col">
       <input type="hidden" name="cabinId" value={cabinId} />
 
-      <div className="bg-paper border-inkMuted focus-within:border-ink box-border flex items-end gap-2 rounded-lg border py-1 pr-2 pl-3 focus-within:border-2">
+      {/*
+        O foco aparece na **pílula inteira**, não no campo.
+
+        O contorno de 3 px em ink do Hub caía no `<textarea>`, que é um
+        retângulo dentro da pílula — e o que se via era um retângulo preto
+        atravessando o desenho arredondado. A regra está em globals.css,
+        com os mesmos 3 px e o mesmo ink de todo foco do app.
+      */}
+      <div className="hub-campo-cabine bg-paper border-inkMuted box-border flex items-end gap-2 rounded-lg border py-1 pr-2 pl-3">
         <label htmlFor={idDoCampo} className="sr-only">
           Mensagem
         </label>
@@ -84,8 +92,12 @@ export function CampoDeMensagem({ cabinId }: { cabinId: string }) {
            * `field-sizing-content` cresce o campo com o texto sem uma linha
            * de JavaScript. Onde o navegador não entende, ele fica na
            * altura base e rola — que é o comportamento de antes.
+           *
+           * `content-center` põe a linha no meio dos 36 px de altura. Sem
+           * isso ela encosta no topo, porque o respiro é de 4 px — foi o
+           * que sobrou quando alinhei os botões.
            */
-          className="text-body text-ink placeholder:text-inkMuted min-h-controlSm max-h-composeMax field-sizing-content w-full flex-1 resize-none bg-transparent py-1"
+          className="text-body text-ink placeholder:text-inkMuted min-h-controlSm max-h-composeMax field-sizing-content w-full flex-1 resize-none content-center bg-transparent py-1"
         />
 
         {/* `key` muda a cada envio aceito: campo de arquivo não se limpa

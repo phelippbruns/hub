@@ -13,6 +13,7 @@ export { CommunityRow } from "./community-row";
 export { TopicRow } from "./topic-row";
 export { Tabs, type Tab } from "./tabs";
 export { BottomSheet } from "./bottom-sheet";
+export { MenuSuspenso } from "./menu-suspenso";
 export { Checkbox } from "./checkbox";
 export { Switch } from "./switch";
 export {

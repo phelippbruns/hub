@@ -434,3 +434,123 @@ test.describe("a Cabine de duas colunas", () => {
     }
   });
 });
+
+/*
+ * Os acertos que você apontou nas telas novas.
+ *
+ * Cinco medidas, todas de coisas que somem em silêncio: um contorno no
+ * lugar errado, um texto fora do centro, um menu que empurra a página, e
+ * uma busca que promete o que o servidor recusa.
+ */
+test.describe("os acertos da Cabine", () => {
+  /** Duas pessoas que se seguem, que é quem pode conversar. */
+  async function duasQueSeSeguem(page: Page, browser: Browser, prefixo: string) {
+    const eu = await entrarNoApp(page, `${prefixo}a`);
+    const outra = await outraSessao(browser, `${prefixo}b`);
+
+    await page.goto(`/${outra.handle}`);
+    await page.getByRole("button", { name: "Seguir", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Seguindo" })).toBeVisible();
+
+    await outra.page.goto(`/${eu.handle}`);
+    await outra.page.getByRole("button", { name: "Seguir", exact: true }).click();
+    await expect(outra.page.getByRole("button", { name: "Seguindo" })).toBeVisible();
+
+    return { eu, outra };
+  }
+
+  test("buscar e clicar num nome abre a conversa, na mesma tela", async ({ page, browser }) => {
+    const { outra } = await duasQueSeSeguem(page, browser, "busca");
+
+    try {
+      await page.goto("/cabines");
+      await page.getByLabel("Buscar Cabines").fill(outra.handle);
+
+      const achada = page
+        .getByRole("group", { name: "Pessoas para conversar" })
+        .getByText(`@${outra.handle}`);
+      await expect(achada).toBeVisible({ timeout: 15_000 });
+
+      await achada.click();
+
+      // Sem passar por convite: as duas se seguem, então a conversa começa.
+      await page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
+      await expect(page.getByRole("region", { name: "Conversa" })).toBeVisible();
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("quem não te segue de volta não aparece na busca", async ({ page, browser }) => {
+    await entrarNoApp(page, "semlaco");
+    const outra = await outraSessao(browser, "naosegue");
+
+    try {
+      // Só eu sigo: seguir de um lado não abre conversa, e a RN20 recusaria.
+      await page.goto(`/${outra.handle}`);
+      await page.getByRole("button", { name: "Seguir", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Seguindo" })).toBeVisible();
+
+      await page.goto("/cabines");
+      await page.getByLabel("Buscar Cabines").fill(outra.handle);
+
+      // Dois segundos é mais do que a busca leva; se aparecesse, apareceria.
+      await page.waitForTimeout(2000);
+      await expect(page.getByText(`@${outra.handle}`)).toHaveCount(0);
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("o campo de escrever mostra o foco na pílula, não num retângulo", async ({
+    page,
+    browser,
+  }) => {
+    const { outra } = await duasQueSeSeguem(page, browser, "foco");
+
+    try {
+      await page.goto("/cabines");
+      await page.getByLabel("Buscar Cabines").fill(outra.handle);
+      await page
+        .getByRole("group", { name: "Pessoas para conversar" })
+        .getByText(`@${outra.handle}`)
+        .click();
+      await page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
+
+      const campo = page.getByRole("textbox", { name: "Mensagem" });
+      await campo.click();
+
+      // O contorno de 3 px desenhava um retângulo dentro da pílula. Agora
+      // ele é da pílula, e o campo não desenha nada.
+      await expect(campo).toHaveCSS("outline-style", "none");
+      await expect(page.locator(".hub-campo-cabine")).toHaveCSS("outline-width", "3px");
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("o menu de opções não empurra a conversa", async ({ page, browser }) => {
+    const { outra } = await duasQueSeSeguem(page, browser, "menu");
+
+    try {
+      await page.goto("/cabines");
+      await page.getByLabel("Buscar Cabines").fill(outra.handle);
+      await page
+        .getByRole("group", { name: "Pessoas para conversar" })
+        .getByText(`@${outra.handle}`)
+        .click();
+      await page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
+
+      const campo = page.getByRole("textbox", { name: "Mensagem" });
+      const antes = (await campo.boundingBox())!.y;
+
+      await page.getByRole("button", { name: "Opções da Cabine" }).click();
+      await expect(page.getByRole("button", { name: "Convidar pessoas" })).toBeVisible();
+
+      // O menu abre por cima: nada embaixo dele se move.
+      expect(Math.round((await campo.boundingBox())!.y)).toBe(Math.round(antes));
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+});

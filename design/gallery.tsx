@@ -14,6 +14,7 @@ import {
   ActivityRow,
   AnswerCard,
   BottomSheet,
+  MenuSuspenso,
   Button,
   Checkbox,
   Chip,
@@ -75,7 +76,6 @@ import {
   ReportIcon,
   SearchIcon,
   SendIcon,
-  CommunityHash,
   SettingsIcon,
   PinIcon,
   ShareIcon,
@@ -174,6 +174,7 @@ export function DesignGallery() {
   const [notify, setNotify] = useState(true);
   const [agree, setAgree] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(true);
+  const [menuAberto, setMenuAberto] = useState(false);
   const [filtro, setFiltro] = useState("tudo");
   const [motivo, setMotivo] = useState<string | null>(null);
   const [seguindo, setSeguindo] = useState(false);
@@ -246,15 +247,6 @@ export function DesignGallery() {
                   <span className="text-caption text-inkMuted text-center">{label}</span>
                 </div>
               ))}
-              {/* O `#` desenhado, para quando ele é ícone de botão e não
-                  marca ao lado de um nome — é o do botão de criar
-                  comunidade na barra lateral. */}
-              <div className="bg-paper flex flex-col items-center gap-1 rounded-sm p-2">
-                <span className="size-mark text-ink grid place-items-center">
-                  <CommunityHash className="size-icon" />
-                </span>
-                <span className="text-caption text-inkMuted text-center">Comunidade, em traço</span>
-              </div>
               <div className="bg-paper flex flex-col items-center gap-1 rounded-sm p-2">
                 <CommunityDoor member={false} />
                 <span className="text-caption text-inkMuted text-center">Entrar</span>
@@ -766,6 +758,30 @@ export function DesignGallery() {
                 </Button>
               </div>
             </BottomSheet>
+          </div>
+        </Card>
+
+        <Card title="Menu suspenso" wide>
+          {/* O irmão da folha para quando ela não serve: a folha é desenhada
+              no fluxo da página, então abrir empurra tudo que está embaixo.
+              Este abre por cima, ancorado em quem o abriu — é o menu de três
+              pontos da Cabine. */}
+          <div className="relative flex w-full justify-end">
+            <Button size="sm" variant="secondary" onClick={() => setMenuAberto((v) => !v)}>
+              {menuAberto ? "Fechar" : "Abrir"}
+            </Button>
+            <MenuSuspenso
+              titulo="Opções de exemplo"
+              aberto={menuAberto}
+              onFechar={() => setMenuAberto(false)}
+            >
+              <Button variant="secondary" size="sm">
+                Convidar pessoas
+              </Button>
+              <Button variant="danger" size="sm">
+                Sair da Cabine
+              </Button>
+            </MenuSuspenso>
           </div>
         </Card>
       </Section>

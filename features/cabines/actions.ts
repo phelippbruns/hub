@@ -17,6 +17,7 @@ import { getViewer } from "@/lib/auth/session";
 import { RuleViolationError, UnauthenticatedError } from "@/lib/data/errors";
 import {
   abrirCabine,
+  abrirConversaDireta,
   acceptInvite,
   cancelarConvite,
   declineInvite,
@@ -24,6 +25,7 @@ import {
   leaveCabin,
   marcarCabineComoLida,
   sendMessage,
+  pessoasParaConversar,
   sugestoesParaConvidar,
 } from "@/lib/data/cabins";
 import { blockProfile } from "@/lib/data/cabins";
@@ -267,4 +269,32 @@ export async function salvarQuemPodeConvidar(formulario: FormData) {
 
   await definirQuemPodeConvidar(viewer, escolha);
   revalidatePath("/configuracoes");
+}
+
+export type PessoaNaBusca = { id: string; nome: string; handle: string; avatarUrl: string | null };
+
+/**
+ * A busca da lista de Cabines: quem se segue com você.
+ *
+ * No servidor, e não filtrando no navegador: a lista de quem você segue
+ * não cabe na tela, e filtrar o que já veio é uma busca que mente — foi o
+ * que aconteceu com a busca de pessoas para convidar.
+ */
+export async function procurarParaConversar(termo: string): Promise<PessoaNaBusca[]> {
+  const viewer = await quemPede();
+  return pessoasParaConversar(viewer, termo);
+}
+
+/**
+ * Abre a conversa com quem foi escolhido na busca.
+ *
+ * Se já existir uma, vai para ela: não existem duas conversas com a mesma
+ * pessoa. Quem não se segue com você nem aparece na busca, então aqui a
+ * recusa da RN20 é só a segunda barreira.
+ */
+export async function conversarCom(profileId: string) {
+  const viewer = await quemPede();
+  const cabinId = await abrirConversaDireta(viewer, profileId);
+  revalidatePath("/cabines");
+  redirect(`/cabines/${cabinId}`);
 }

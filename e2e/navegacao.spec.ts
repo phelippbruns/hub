@@ -281,3 +281,57 @@ test.describe("a barra recolhe e expande", () => {
     await expect(page).toHaveURL(/\/configuracoes/);
   });
 });
+
+/*
+ * O que a barra faz **depois** do clique.
+ *
+ * Abrir com qualquer foco deixava a barra aberta por cima da tela recém
+ * aberta: o clique põe o foco no link, o mouse sai, e ela ficava lá.
+ */
+test.describe("a barra fecha sozinha", () => {
+  test("clicar num item não deixa a barra aberta", async ({ page }) => {
+    await entrarNoApp(page, "fecha");
+    const barra = page.getByRole("navigation", { name: "Navegação principal" });
+
+    await barra.getByRole("link", { name: "Explorar", exact: true }).click();
+    await expect(page).toHaveURL(/\/comunidades$/);
+
+    // Tira o ponteiro de cima e confere: sem o `focus-visible`, o foco que
+    // ficou no link a manteria aberta.
+    await page.mouse.move(900, 400);
+    await expect.poll(async () => Math.round((await barra.boundingBox())!.width)).toBe(84);
+  });
+
+  test("os três botões do rodapé têm ícones do mesmo tamanho", async ({ page }) => {
+    await entrarNoApp(page, "tamanhos");
+    const barra = page.getByRole("navigation", { name: "Navegação principal" });
+
+    const medir = async (nome: string) => {
+      const caixa = await barra
+        .getByRole("link", { name: nome, exact: true })
+        .locator("svg, span[aria-hidden='true']")
+        .first()
+        .boundingBox();
+      return Math.round(caixa!.width);
+    };
+
+    // Três tamanhos diferentes em três botões empilhados é o tipo de coisa
+    // que se nota antes de saber o que é.
+    const engrenagem = await medir("Configurações");
+    expect(await medir("Criar tópico")).toBe(engrenagem);
+    expect(await medir("Criar comunidade")).toBe(engrenagem);
+  });
+
+  test("abertos, os dois botões de criar têm a mesma largura", async ({ page }) => {
+    await entrarNoApp(page, "larguras");
+    const barra = page.getByRole("navigation", { name: "Navegação principal" });
+
+    await barra.hover();
+    await expect.poll(async () => Math.round((await barra.boundingBox())!.width)).toBe(232);
+
+    const largura = async (nome: string) =>
+      Math.round((await barra.getByRole("link", { name: nome, exact: true }).boundingBox())!.width);
+
+    expect(await largura("Criar tópico")).toBe(await largura("Criar comunidade"));
+  });
+});
