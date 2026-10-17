@@ -89,6 +89,18 @@ async function outraSessao(browser: Browser, prefixo: string) {
   return { contexto, page, handle, nome };
 }
 
+/**
+ * Abre a aba Convites da lista.
+ *
+ * Os convites deixaram de ficar empilhados com as conversas: eles moram
+ * numa aba, com o número ao lado. Sem este passo, procurar por um convite
+ * procura numa aba que não está aberta — e o erro que aparece é "não
+ * encontrei o link", que parece defeito do convite.
+ */
+async function abrirConvites(page: Page) {
+  await page.getByRole("tab", { name: /^Convites/ }).click();
+}
+
 /** Convida pela tela 18 e devolve quando o convite estiver no banco. */
 async function convidar(page: Page, nomeDaPessoa: string, mensagem: string) {
   await page.goto("/cabines/nova");
@@ -116,10 +128,12 @@ test.describe("convidar e aceitar", () => {
       // Quem convidou ainda não tem conversa nenhuma: a Cabine não começou.
       await expect(page.getByText("Nenhuma conversa ainda")).toBeVisible();
       // Mas vê que o convite saiu, com a opção de cancelar (RN22).
+      await abrirConvites(page);
       await expect(page.getByText(`Convite para ${outra.nome}`)).toBeVisible();
 
       // Quem recebeu vê o convite, com a mensagem.
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await expect(outra.page.getByText("vi sua resposta, bora conversar?")).toBeVisible();
 
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
@@ -151,6 +165,7 @@ test.describe("convidar e aceitar", () => {
       await convidar(page, outra.nome, "oi");
 
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Recusar" }).click();
       await outra.page.waitForURL(/\/cabines$/);
@@ -185,6 +200,7 @@ test.describe("a conversa em tempo real", () => {
       await convidar(page, outra.nome, "bora");
 
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Aceitar" }).click();
       await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
@@ -238,6 +254,7 @@ test.describe("a conversa em tempo real", () => {
     try {
       await convidar(page, outra.nome, "oi");
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Aceitar" }).click();
       await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
@@ -264,6 +281,7 @@ test.describe("compartilhar para a Cabine (F14)", () => {
       // Primeiro a Cabine, para o cartão ter onde cair.
       await convidar(page, outra.nome, "oi");
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Aceitar" }).click();
       await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
@@ -347,6 +365,7 @@ test.describe("a Cabine de duas colunas", () => {
     try {
       await convidar(page, outra.nome, "bora");
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Aceitar" }).click();
       await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
@@ -373,6 +392,7 @@ test.describe("a Cabine de duas colunas", () => {
     try {
       await convidar(page, outra.nome, "bora");
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Aceitar" }).click();
       await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
@@ -406,6 +426,7 @@ test.describe("a Cabine de duas colunas", () => {
     try {
       await convidar(page, outra.nome, "bora");
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Aceitar" }).click();
       await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);

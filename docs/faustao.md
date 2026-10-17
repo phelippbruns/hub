@@ -1262,6 +1262,55 @@ de configuração que alguém possa esquecer. A solução definitiva é um banco
 separado para o preview (branch database no Supabase), e continua pendente.
 
 
+### O Playwright reaproveitou um servidor com o código velho
+
+Rodei 36 jornadas na máquina, todas verdes, e subi. A CI reprovou em cinco
+delas. O código era o mesmo; o servidor é que não era: `playwright.config.ts`
+tem `reuseExistingServer: !process.env.CI`, e um `npm run start` deixado de
+pé por uma execução anterior é reaproveitado **sem rebuild**. Eu estava
+testando a tela de antes da minha própria mudança.
+
+*Por que passou:* o verde é indistinguível. O relatório não diz de onde o
+servidor veio, e a mudança era de marcação — nada quebra, tudo passa,
+porque a tela testada ainda era a antiga.
+
+*Como resolvi:* rodei de novo com a porta livre e as cinco reprovaram aqui
+também. O hábito que fica: **antes de confiar numa rodada de jornadas,
+conferir que nada está escutando a porta** (`lsof -ti:3000`), ou matar o
+servidor entre rodadas. Em caso de dúvida, a CI é quem decide, porque lá o
+reaproveitamento é desligado.
+
+**Regra:** teste de interface só vale sobre o build que eu acabei de fazer.
+Verde de servidor velho é a forma mais convincente de falso verde que este
+projeto já produziu.
+
+👁 **Atenção** — nada avisa. A configuração é proposital (acelera o ciclo),
+e desligá-la custaria um build por execução.
+
+---
+
+### Esconder atrás de uma aba o que outras telas esperavam encontrar
+
+A lista da Cabine ganhou abas, e os convites foram para dentro de uma. Cinco
+jornadas que procuravam o convite logo depois de abrir `/cabines` passaram a
+não achar nada — e o erro era "não encontrei o link do convite", que parece
+defeito do convite, não da aba.
+
+*Por que passou:* a mudança foi pedida e implementada como visual. Mover
+uma coisa para trás de um clique **não é visual**: é um passo a mais no
+caminho de quem usa, e todo teste que conhecia o caminho antigo quebra.
+
+*Como resolvi:* as jornadas abrem a aba antes de procurar, por um ajudante
+só (`abrirConvites`), para o próximo arquivo não repetir o seletor — é o
+mesmo remédio do `escolherComunidades()`.
+
+**Regra:** antes de mover um elemento para dentro de aba, acordeão ou menu,
+`grep` pelo texto dele em `e2e/`. Quem o procura hoje vai precisar do clique
+novo — e, se forem muitos, talvez ele não devesse se esconder.
+
+👁 **Atenção** — o `grep` é hábito, não barreira.
+
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
