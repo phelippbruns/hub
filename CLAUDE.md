@@ -223,7 +223,7 @@ npm run test:e2e     # Playwright: jornadas (sobe o build sozinho)
 
 ```bash
 npm run supabase:start   # Supabase local (exige o Docker Desktop aberto)
-npm run supabase:stop
+npm run supabase:stop    # desligue ao terminar: ele não precisa ficar de pé
 npm run db:generate      # gerar o cliente Prisma
 npm run db:migrate       # aplicar migrations em desenvolvimento
 npm run db:deploy        # aplicar migrations no banco local
@@ -233,6 +233,19 @@ npm run db:deploy:remoto # aplicar migrations num banco remoto, pedindo a
 npm run db:seed          # popular com os dados do protótipo (só banco local)
 npm run db:studio        # inspecionar os dados
 ```
+
+**O Supabase local sobe só o que o Hub usa.** `supabase:start` exclui
+`imgproxy`, `studio`, `edge-runtime`, `logflare`, `vector`, `supavisor` e
+`postgres-meta` — a mesma lista da CI. São 7 contêineres e ~630 MB, em vez
+de 11 e ~2,2 GB; o de analytics ainda consumia processador parado. Nenhum
+teste depende dos excluídos: os 356 de banco e as jornadas passam assim.
+
+Para abrir o Studio do Supabase quando quiser olhar os dados pela web,
+`npm run supabase:start:tudo` sobe o conjunto completo. Para o dia a dia,
+`npm run db:studio` (Prisma Studio) resolve sem contêiner nenhum.
+
+**E desligue ao terminar.** `npm run supabase:stop` devolve a memória
+inteira; subir de novo leva cerca de um minuto, e o banco é preservado.
 
 ### Migrations são escritas à mão
 
