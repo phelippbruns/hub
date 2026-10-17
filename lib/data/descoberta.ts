@@ -421,3 +421,36 @@ export async function topicosEmAlta(viewer: Viewer, limite = 5): Promise<TopicoN
     respostas: Number(l.respostas),
   }));
 }
+
+/**
+ * As comunidades que acabaram de nascer, para o Início.
+ *
+ * Só as que a pessoa **não** frequenta: a seção é para descobrir, e o que
+ * ela já tem aparece no resto da tela.
+ *
+ * **Ignora o corte de membros da RN05, de propósito.** O corte existe para
+ * o Explorar não virar cemitério de comunidade vazia; aqui o assunto é
+ * justamente o que acabou de ser criado, e toda comunidade nasce com uma
+ * pessoa só. Aplicar o corte aqui esvaziaria a seção no dia em que ele
+ * subir de zero.
+ */
+export async function comunidadesNovas(viewer: Viewer, limite = 5): Promise<ComunidadeNaLista[]> {
+  const me = viewerProfileId(viewer);
+
+  const linhas = await prisma.$queryRaw<LinhaCrua[]>`
+    SELECT c.id, c.slug, c.name, c.intro, c.cover_url, c.members_count,
+           u.id AS universe_id, u.name AS universe_name, u.slug AS universe_slug,
+           false AS sou_membro, NULL AS respostas_hoje
+      FROM communities c
+      JOIN universes u ON u.id = c.universe_id
+     WHERE c.deleted_at IS NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM memberships m
+          WHERE m.community_id = c.id AND m.profile_id = ${me}::uuid
+       )
+     ORDER BY c.created_at DESC
+     LIMIT ${limite}
+  `;
+
+  return comCapas(linhas.map(montar));
+}

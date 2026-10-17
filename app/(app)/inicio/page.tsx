@@ -20,7 +20,8 @@ import {
   topicosQueSigoComNovas,
 } from "@/lib/data/inicio";
 import { minhasComunidades } from "@/lib/data/comunidades";
-import { paraVoce } from "@/lib/data/descoberta";
+import { comunidadesNovas, paraVoce } from "@/lib/data/descoberta";
+import { LinhaComunidade } from "@/features/descoberta/linhas";
 import { haQuantoTempo } from "@/lib/tempo";
 
 export const metadata: Metadata = { title: "Hoje · Hub" };
@@ -44,12 +45,13 @@ function contagem(pessoas: number, respostas: number) {
 export default async function InicioPage() {
   const viewer = await getViewer();
 
-  const [destaques, seguidos, deQuemSigo, minhas, comunidades] = await Promise.all([
+  const [destaques, seguidos, deQuemSigo, minhas, comunidades, novas] = await Promise.all([
     hotTopicsParaMim(viewer),
     topicosQueSigoComNovas(viewer),
     interacoesDeQuemSigo(viewer),
     minhasUltimasInteracoes(viewer),
     minhasComunidades(viewer),
+    comunidadesNovas(viewer),
   ]);
 
   // Tela 7: quem ainda não entrou em nenhuma comunidade não tem o que ver.
@@ -199,6 +201,31 @@ export default async function InicioPage() {
                 topico.depoisDaMinha > 0 ? `. ${topico.depoisDaMinha} depois da sua` : ""
               }`}
             />
+          ))}
+        </>
+      ) : null}
+
+      {/*
+        O que nasceu no Hub.
+
+        O resto do Início é sobre o que você já segue; esta é a única
+        janela para fora disso, e por isso fica no fim — depois do que é
+        seu, antes do "você está em dia". Some quando não há comunidade
+        nova: seção avisando que não há nada é pior do que seção nenhuma.
+      */}
+      {novas.length > 0 ? (
+        <>
+          <SectionTitle
+            acao={
+              <Link href="/comunidades" className="text-caption text-inkMuted underline">
+                Explorar
+              </Link>
+            }
+          >
+            Novas no Hub
+          </SectionTitle>
+          {novas.map((comunidade) => (
+            <LinhaComunidade key={comunidade.id} comunidade={comunidade} />
           ))}
         </>
       ) : null}

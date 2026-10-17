@@ -351,3 +351,37 @@ procurando o quê?
 
 💭 **Solto** — a escolha não é lembrada por pessoa. Isso é a F17 ("Ordem
 padrão"), e guardar preferência agora duplicaria aquele trabalho.
+
+---
+
+## 10. Tela que só fala do que você já tem
+
+### O Início não mostrava nada que viesse de fora
+
+Hot Topics das suas comunidades, o que as pessoas que você segue fizeram,
+as suas últimas interações, os tópicos que você segue. Tudo verdadeiro,
+tudo útil — e tudo de dentro do que a pessoa já escolheu. A tela que o Hub
+pede para abrir todo dia não tinha **nenhuma** porta para o que apareceu
+no Hub desde ontem.
+
+*O que custou:* comunidade nova nascia invisível. Quem criava dependia de
+mandar o link; quem poderia entrar só encontrava se fosse procurar no
+Explorar — e ninguém abre o Explorar para descobrir o que não sabe que
+existe. O Hub tem uma cadeia que começa no interesse, e o primeiro elo
+dela não tinha vitrine.
+
+*Por que não apareceu antes:* a RN19 lista o conteúdo do Início, e a lista
+estava sendo cumprida à risca. Regra cumprida não chama atenção — ela só
+congela a decisão de quem a escreveu, e aquela decisão era sobre uma rede
+que ainda não tinha comunidades sendo criadas.
+
+*Como ficou:* "Novas no Hub" no fim da tela, depois do que é seu e antes do
+"você está em dia", com até cinco comunidades que você não frequenta. A
+RN19 foi reescrita.
+
+**Regra:** tela de retorno diária precisa de pelo menos uma janela para
+fora do que a pessoa já segue — senão o produto só devolve o que ela já
+trouxe, e fica menor a cada visita.
+
+📌 **Fixado** — está na RN19 e em teste de banco: a seção existe, respeita
+quem já é membro e some quando não há nada novo.
