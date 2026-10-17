@@ -125,12 +125,12 @@ export function CampoDeResposta({
         topicId={topicId}
         texto={texto}
         posicaoDoCursor={cursor ?? texto.length}
-        aoEscolher={(handle, inicio, fim) => {
-          // Substitui o pedaço digitado pelo @ inteiro, com um espaço:
-          // sem ele a próxima palavra gruda na marcação.
-          const novo = `${texto.slice(0, inicio)}@${handle} ${texto.slice(fim)}`;
+        aoEscolher={(trecho, inicio, fim) => {
+          // Substitui o pedaço digitado pela marcação inteira, com um
+          // espaço: sem ele a próxima palavra gruda nela.
+          const novo = `${texto.slice(0, inicio)}${trecho} ${texto.slice(fim)}`;
           setTexto(novo);
-          setCursor(inicio + handle.length + 2);
+          setCursor(inicio + trecho.length + 1);
         }}
       />
 

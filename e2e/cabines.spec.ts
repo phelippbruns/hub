@@ -195,7 +195,16 @@ test.describe("a conversa em tempo real", () => {
       await page.goto(endereco);
       await expect(page.getByRole("button", { name: "Enviar" })).toBeVisible();
 
+      /*
+       * Esperar o botão **na aba que envia**, e não só na que recebe.
+       *
+       * O formulário é cliente: clicar antes de a tela hidratar não envia
+       * nada, a mensagem nunca chega a existir, e este teste acusava
+       * "a mensagem não chegou pelo Realtime" — culpando a entrega por um
+       * envio que não aconteceu. O banco ficava sem a linha.
+       */
       const texto = `mensagem de ${Date.now()}`;
+      await expect(outra.page.getByRole("button", { name: "Enviar" })).toBeVisible();
       await outra.page.getByRole("textbox", { name: "Mensagem" }).fill(texto);
       await outra.page.getByRole("button", { name: "Enviar" }).click();
 

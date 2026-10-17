@@ -432,6 +432,11 @@ model Cabin {
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   closedAt  DateTime? @map("closed_at") @db.Timestamptz(6)
 
+  /// Os dois ids em ordem, só para conversa de duas pessoas. Índice único
+  /// enquanto a Cabine está aberta: não existem duas conversas com a mesma
+  /// pessoa. Vira nulo quando uma terceira entra — aí é grupo.
+  pairKey String? @map("pair_key") @db.VarChar(80)
+
   members  CabinMember[]
   invites  CabinInvite[]
   messages Message[]

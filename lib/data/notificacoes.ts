@@ -15,7 +15,7 @@
 import { prisma } from "./prisma";
 import { viewerProfileId, requireProfileId, type Viewer } from "./viewer";
 import { comAvatares } from "@/lib/midia/deposito";
-import { handlesMencionados } from "@/lib/texto/mencoes";
+import { handlesMencionados } from "@/lib/texto/marcacoes";
 
 export type TipoDeNotificacao =
   | "topic_became_hot"

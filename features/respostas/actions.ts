@@ -8,10 +8,17 @@
  * servidor — o navegador não tem caminho até o depósito.
  */
 import { revalidatePath } from "next/cache";
-import { createAnswer, deleteAnswer, pessoasParaMarcar } from "@/lib/data/topics";
+import {
+  comunidadesParaMarcar,
+  createAnswer,
+  deleteAnswer,
+  pessoasParaMarcar,
+  topicosParaMarcar,
+} from "@/lib/data/topics";
 import { getViewer } from "@/lib/auth/session";
 import { UnauthenticatedError } from "@/lib/data/errors";
 import { acharLink } from "@/lib/texto/links";
+import type { TipoDeMarcacao } from "@/lib/texto/marcacoes";
 import { ImagemRecusada, TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB } from "@/lib/midia/imagem";
 import { guardarImagem } from "@/lib/midia/deposito";
 
@@ -123,20 +130,41 @@ export async function apagarResposta(answerId: string, endereco: string) {
   revalidatePath(endereco);
 }
 
-export type PessoaSugerida = { handle: string; nome: string };
+export type Sugestao = { valor: string; nome: string };
 
 /**
- * Quem dá para marcar neste tópico, a partir do que já foi digitado (F15).
+ * O que sugerir enquanto a pessoa escreve a marcação.
  *
- * **Só membros daquela comunidade** (item 7 do escopo): marcar é convite,
- * não intromissão, e sugerir alguém de fora seria oferecer um aviso que o
- * servidor não vai mandar.
+ * Cada sinal busca onde faz sentido:
  *
- * No servidor, e não filtrando no navegador: a lista de membros não cabe
- * na tela, e filtrar o que veio é uma busca que mente — foi o que aconteceu
- * com a busca de pessoas da Cabine.
+ * - `@` — **só membros daquela comunidade** (item 7 do escopo): marcar é
+ *   convite, não intromissão, e sugerir alguém de fora seria oferecer um
+ *   aviso que o servidor não vai mandar.
+ * - `#` — comunidades do Hub inteiro: marcar comunidade é indicar.
+ * - `*` — tópicos **da mesma comunidade**, porque o endereço de tópico é
+ *   único por comunidade e um `*` de fora nunca viraria link.
+ *
+ * No servidor, e não filtrando no navegador: a lista não cabe na tela, e
+ * filtrar o que veio é uma busca que mente — foi o que aconteceu com a
+ * busca de pessoas da Cabine.
  */
-export async function sugerirParaMarcar(topicId: string, termo: string): Promise<PessoaSugerida[]> {
+export async function sugerirParaMarcar(
+  topicId: string,
+  tipo: TipoDeMarcacao,
+  termo: string,
+): Promise<Sugestao[]> {
   const viewer = await quemPede();
-  return pessoasParaMarcar(viewer, topicId, termo);
+
+  if (tipo === "comunidade") {
+    const achadas = await comunidadesParaMarcar(viewer, termo);
+    return achadas.map((c) => ({ valor: c.slug, nome: c.nome }));
+  }
+
+  if (tipo === "topico") {
+    const achados = await topicosParaMarcar(viewer, topicId, termo);
+    return achados.map((t) => ({ valor: t.slug, nome: t.nome }));
+  }
+
+  const pessoas = await pessoasParaMarcar(viewer, topicId, termo);
+  return pessoas.map((p) => ({ valor: p.handle, nome: p.nome }));
 }

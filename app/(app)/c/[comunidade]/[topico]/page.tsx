@@ -5,11 +5,13 @@ import { notFound } from "next/navigation";
 import { ContentColumn, EmptyState, PaginaCarregando, TopicOpening } from "@/design/components";
 import { CampoDeResposta } from "@/features/respostas/campo";
 import { LinhaDeResposta } from "@/features/respostas/linha";
+import { OrdemDasRespostas as ControleDaOrdem } from "@/features/respostas/ordem";
 import { CabecalhoDoTopico } from "@/features/topicos/cabecalho";
 import { TelaDeConvite } from "@/features/convite/tela";
 import { metadataCompartilhavel } from "@/features/convite/metadata";
 import { enderecoDeMidia } from "@/lib/midia/deposito";
 import { getViewer } from "@/lib/auth/session";
+import type { OrdemDasRespostas } from "@/lib/data/topics";
 import {
   LIMITE_RESPOSTAS_PARA_APAGAR,
   respostasDoTopico,
@@ -24,9 +26,17 @@ import { serverEnv } from "@/lib/env";
 type Params = Promise<{ comunidade: string; topico: string }>;
 
 /** A lista de respostas, pedida depois do cabeçalho. */
-async function Respostas({ topicId, endereco }: { topicId: string; endereco: string }) {
+async function Respostas({
+  topicId,
+  endereco,
+  ordem,
+}: {
+  topicId: string;
+  endereco: string;
+  ordem: OrdemDasRespostas;
+}) {
   const viewer = await getViewer();
-  const respostas = await respostasDoTopico(viewer, topicId);
+  const respostas = await respostasDoTopico(viewer, topicId, ordem);
 
   if (!respostas || respostas.length === 0) {
     return (
@@ -46,7 +56,8 @@ async function Respostas({ topicId, endereco }: { topicId: string; endereco: str
           resposta={{
             id: resposta.id,
             texto: resposta.text,
-            mencoes: resposta.mencoes,
+            marcacoes: resposta.marcacoes,
+            comunidade: resposta.comunidadeDoTopico,
             quando: haQuantoTempo(resposta.createdAt),
             souAutor: resposta.souAutor,
             imagem: resposta.mediaHref,
@@ -121,10 +132,15 @@ export default async function TopicoPage({
   searchParams,
 }: {
   params: Params;
-  searchParams: Promise<{ convite?: string }>;
+  searchParams: Promise<{ convite?: string; ordem?: string }>;
 }) {
   const { viewer, slugs, dados } = await carregar(params);
   const endereco = `/c/${slugs.comunidade}/${slugs.topico}`;
+
+  // Qualquer valor estranho na URL cai no padrão, em vez de dar erro: o
+  // endereço é compartilhável, e endereço compartilhado é endereço editado.
+  const { ordem: pedida } = await searchParams;
+  const ordem: OrdemDasRespostas = pedida === "antigas" ? "antigas" : "recentes";
 
   /*
    * Sem conta: a tela 2, o convite (F14).
@@ -204,12 +220,17 @@ export default async function TopicoPage({
             gifLigado={Boolean(serverEnv().GIPHY_API_KEY)}
           />
 
+          <div className="flex justify-end">
+            <ControleDaOrdem endereco={endereco} atual={ordem} />
+          </div>
+
           <Suspense
+            key={ordem}
             fallback={
               <PaginaCarregando titulo={false} linhas={2} label="Carregando as respostas" />
             }
           >
-            <Respostas topicId={dados.id} endereco={endereco} />
+            <Respostas topicId={dados.id} endereco={endereco} ordem={ordem} />
           </Suspense>
         </>
       )}

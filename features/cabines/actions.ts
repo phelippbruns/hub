@@ -16,6 +16,7 @@ import { redirect } from "next/navigation";
 import { getViewer } from "@/lib/auth/session";
 import { RuleViolationError, UnauthenticatedError } from "@/lib/data/errors";
 import {
+  abrirCabine,
   acceptInvite,
   cancelarConvite,
   declineInvite,
@@ -45,6 +46,8 @@ export type PessoaEncontrada = {
   nome: string;
   handle: string;
   emComum: string[];
+  /** Vocês se seguem: a conversa com esta pessoa começa sem convite. */
+  seSegue: boolean;
 };
 
 /**
@@ -64,6 +67,7 @@ export async function procurarParaConvidar(termo: string): Promise<PessoaEncontr
     nome: pessoa.nome,
     handle: pessoa.handle,
     emComum: pessoa.emComum,
+    seSegue: pessoa.seSegue,
   }));
 }
 
@@ -103,16 +107,26 @@ export async function convidarParaCabine(
     return { erro: "Links não são aceitos no Hub.", trechoProibido: link.trecho };
   }
 
-  let cabinId: string | undefined = cabineExistente || undefined;
+  let destino = "/cabines";
 
   try {
-    for (const inviteeId of pessoas) {
-      const convite = await inviteToCabin(viewer, {
-        inviteeId,
-        cabinId,
-        message: mensagem || null,
-      });
-      cabinId = convite?.cabinId;
+    if (cabineExistente) {
+      // Trazer gente para uma Cabine que já existe é sempre convite: as
+      // outras pessoas de lá não escolheram quem você segue.
+      for (const inviteeId of pessoas) {
+        await inviteToCabin(viewer, {
+          inviteeId,
+          cabinId: cabineExistente,
+          message: mensagem || null,
+        });
+      }
+      destino = `/cabines/${cabineExistente}`;
+    } else {
+      // Quem se segue entra na hora; quem não, recebe convite. A conversa
+      // que já começou abre direto — esperar numa lista o que já está
+      // valendo seria um passo a toa.
+      const { cabinId, jaComecou } = await abrirCabine(viewer, pessoas, mensagem || null);
+      destino = jaComecou ? `/cabines/${cabinId}` : "/cabines";
     }
   } catch (erro) {
     if (erro instanceof RuleViolationError) return { erro: erro.message };
@@ -121,7 +135,7 @@ export async function convidarParaCabine(
   }
 
   revalidatePath("/cabines");
-  redirect(cabineExistente ? `/cabines/${cabineExistente}` : "/cabines");
+  redirect(destino);
 }
 
 /** RN20: aceitar é o que faz a Cabine começar. */
