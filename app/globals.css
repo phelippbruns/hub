@@ -24,3 +24,78 @@
     outline-offset: 2px;
   }
 }
+
+/*
+ * As marcas da tela de abertura se inclinam sozinhas (tela 1).
+ *
+ * Um ciclo de 5 s em que elas passam a maior parte do tempo paradas: a
+ * inclinação começa em uma, a segunda entra um pouco depois e a terceira
+ * fecha, como uma onda. Movimento constante vira ruído; este acontece,
+ * acaba, e espera.
+ *
+ * `transform` não ocupa espaço no layout, então a palavra "Hub" e a frase
+ * embaixo não se mexem enquanto as marcas giram. A subida vem do degrau de
+ * 4 px da escala, em vez de um pixel escrito à mão.
+ *
+ * Só dentro de `no-preference`, e não desligando em `reduce`: assim quem
+ * não respondeu nada ao sistema fica com a tela parada, que é a escolha
+ * segura.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .hub-marca-balanca-1 {
+    animation: hub-balanca-esquerda 5s ease-in-out infinite;
+  }
+
+  .hub-marca-balanca-2 {
+    animation: hub-balanca-meio 5s ease-in-out infinite;
+  }
+
+  .hub-marca-balanca-3 {
+    animation: hub-balanca-direita 5s ease-in-out infinite;
+  }
+}
+
+@keyframes hub-balanca-esquerda {
+  0%,
+  12%,
+  100% {
+    transform: rotate(0) scale(1) translateY(0);
+  }
+  25%,
+  38% {
+    transform: rotate(-14deg) scale(1.12) translateY(calc(var(--spacing-1) * -1));
+  }
+  52% {
+    transform: rotate(0) scale(1) translateY(0);
+  }
+}
+
+@keyframes hub-balanca-meio {
+  0%,
+  16%,
+  100% {
+    transform: rotate(0) scale(1) translateY(0);
+  }
+  29%,
+  42% {
+    transform: rotate(7deg) scale(1.1) translateY(calc(var(--spacing-1) * -1));
+  }
+  56% {
+    transform: rotate(0) scale(1) translateY(0);
+  }
+}
+
+@keyframes hub-balanca-direita {
+  0%,
+  20%,
+  100% {
+    transform: rotate(0) scale(1) translateY(0);
+  }
+  33%,
+  46% {
+    transform: rotate(14deg) scale(1.12) translateY(calc(var(--spacing-1) * -1));
+  }
+  60% {
+    transform: rotate(0) scale(1) translateY(0);
+  }
+}

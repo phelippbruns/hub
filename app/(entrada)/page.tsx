@@ -18,13 +18,22 @@ export default async function TelaInicial() {
     <main className="flex flex-1 flex-col items-center justify-between gap-4 py-4 text-center">
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         {/*
-          Duas marcas, não três: a F12.1 tirou o Universo do produto, e abrir
-          o Hub ensinando um nível que não existe em tela nenhuma seria
-          prometer uma estrutura que a pessoa não vai encontrar.
+          As três marcas, na ordem da cadeia do produto: Hub, comunidade,
+          tópico.
+
+          A terceira já foi do Universo, e saiu junto com ele na F12.1 —
+          abrir o Hub ensinando um nível que não existe em tela nenhuma
+          prometia uma estrutura que a pessoa não ia encontrar. O `{`
+          voltou com outro dono: é a marca do Hub, como na barra lateral.
+
+          Elas se inclinam sozinhas a cada cinco segundos; as animações
+          estão em app/globals.css e só ligam quando o sistema permite
+          movimento.
         */}
         <div className="flex justify-center gap-2">
-          <LevelMark level="community" />
-          <LevelMark level="topic" />
+          <LevelMark level="universe" className="hub-marca-balanca-1" />
+          <LevelMark level="community" className="hub-marca-balanca-2" />
+          <LevelMark level="topic" className="hub-marca-balanca-3" />
         </div>
 
         {/* A marca é maior que qualquer estilo do sistema: é a assinatura da

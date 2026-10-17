@@ -26,7 +26,21 @@ export function LevelMark({ level, className }: { level: Level; className?: stri
         className,
       )}
     >
-      {level === "universe" ? "{" : null}
+      {/*
+        A chave sobe um pouco para ficar **centrada de verdade**.
+
+        Medido na Bricolage Grotesque em 800: a tinta do `{` vai de 14,12
+        acima da linha de base a 2,46 abaixo, então o meio do desenho cai
+        1,2 px abaixo do meio do quadrado — e 0,4 px à esquerda. Centrar a
+        caixa do texto, que é o que `place-items-center` faz, não centra o
+        desenho da letra.
+
+        O ajuste é em `em` para acompanhar qualquer tamanho da marca. O `#`
+        não precisa: a tinta dele já cai a 0,4 px do centro.
+      */}
+      {level === "universe" ? (
+        <span className="translate-x-[0.02em] -translate-y-[0.06em]">{"{"}</span>
+      ) : null}
       {level === "community" ? "#" : null}
       {level === "topic" ? <TopicStar className="size-icon" /> : null}
     </span>
