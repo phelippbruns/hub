@@ -1225,6 +1225,43 @@ ainda a oferece. Regra nova no banco quase sempre deixa um botão órfão.
 🔒 **Barrado** — a jornada da F16 falha se a porta voltar.
 
 
+### O preview do pull request alterava o banco de produção
+
+Na rodada de acabamento, o build de produção disse "nenhuma migration
+pendente" logo depois do merge. Estranho, porque a rodada trazia uma. Os
+registros da Vercel explicaram: o build de **preview**, oito minutos antes
+do merge, já tinha aplicado — `Applying migration 20261017120000_cabine_unica`,
+às 04:51, com o merge às 04:59.
+
+O ambiente de Preview usa a **mesma** `DATABASE_URL` da produção, e o
+`vercel-build` rodava `prisma migrate deploy` sem perguntar onde estava. Na
+prática: **abrir um pull request mudava o banco de produção**, antes de
+qualquer revisão. E a parte destrutiva daquela migration — fechar conversas
+duplicadas, cancelar convites repetidos — rodou nos dados reais no instante
+em que o PR foi aberto.
+
+*Por que passou:* o sinal era bom demais. "Nenhuma migration pendente" num
+build de produção parece a frase de quem já está em dia, e eu quase a li
+como confirmação de sucesso. Foi só estranhar que ela aparecesse numa
+rodada **com** migration que o caminho apareceu. Nada reclamava: o preview
+migrava e dava verde, e o produto funcionava.
+
+*Como resolvi:* `scripts/migrar-no-deploy.mts` roda as migrations só quando
+`VERCEL_ENV=production`, e derruba o build se elas falharem. O preço, que é
+escolha consciente: o preview de um PR com migration roda contra o banco
+antigo e pode quebrar nas telas novas. Preview quebrado atrapalha uma
+revisão; banco de produção alterado por código não revisado é outra
+categoria de problema.
+
+**Regra:** antes de dar um comando poder sobre produção, pergunte **de
+quantos lugares** ele pode ser disparado. "Roda no deploy" não é um lugar
+só — a Vercel tem três ambientes e o mesmo script serve aos três.
+
+🔒 **Barrado** — o guarda está no script, e o ambiente é lido da Vercel, não
+de configuração que alguém possa esquecer. A solução definitiva é um banco
+separado para o preview (branch database no Supabase), e continua pendente.
+
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

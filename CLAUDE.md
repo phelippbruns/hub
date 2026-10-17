@@ -263,7 +263,10 @@ para dar para encontrar depois quem passou por autodeclaração.
 npm run verificar:deploy <url>   # confere que o site publicado responde
 ```
 
-**O deploy aplica as migrations sozinho.** `vercel-build` roda `prisma migrate deploy` antes do `next build`, e a Vercel prefere esse script ao `build`. Sem isso, mergear uma feature com migration deixava o banco remoto atrás do código, e o erro só aparecia quando alguém usava a tela — aconteceu duas vezes.
+**O deploy de produção aplica as migrations sozinho — e só ele.**
+`vercel-build` chama [scripts/migrar-no-deploy.mts](scripts/migrar-no-deploy.mts) antes do `next build`, e a Vercel prefere esse script ao `build`. Sem isso, mergear uma feature com migration deixava o banco remoto atrás do código, e o erro só aparecia quando alguém usava a tela — aconteceu duas vezes.
+
+O script confere `VERCEL_ENV`: **preview não migra**. O ambiente de Preview divide a `DATABASE_URL` com a produção, então rodar migration a partir dele muda o banco de produção no momento em que o pull request é aberto, antes de qualquer revisão — aconteceu uma vez, e está no Faustão. Em troca, o preview de um PR com migration roda contra o banco antigo e pode quebrar nas telas novas; é de propósito. A saída definitiva é um banco separado para o preview, e está em aberto.
 
 Para aplicar à mão num banco remoto, `npm run db:deploy:remoto`.
 
