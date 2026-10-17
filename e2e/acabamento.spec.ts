@@ -338,6 +338,8 @@ test.describe("Cabine entre quem se segue", () => {
       await page.waitForURL(/\/cabines$/);
 
       await outra.page.goto("/cabines");
+      // Os convites moram numa aba desde a rodada de acertos.
+      await outra.page.getByRole("tab", { name: /^Convites/ }).click();
       await expect(outra.page.getByRole("link", { name: /^Ver o convite de/ })).toBeVisible();
     } finally {
       await outra.contexto.close();

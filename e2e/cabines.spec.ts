@@ -89,6 +89,18 @@ async function outraSessao(browser: Browser, prefixo: string) {
   return { contexto, page, handle, nome };
 }
 
+/**
+ * Abre a aba Convites da lista.
+ *
+ * Os convites deixaram de ficar empilhados com as conversas: eles moram
+ * numa aba, com o número ao lado. Sem este passo, procurar por um convite
+ * procura numa aba que não está aberta — e o erro que aparece é "não
+ * encontrei o link", que parece defeito do convite.
+ */
+async function abrirConvites(page: Page) {
+  await page.getByRole("tab", { name: /^Convites/ }).click();
+}
+
 /** Convida pela tela 18 e devolve quando o convite estiver no banco. */
 async function convidar(page: Page, nomeDaPessoa: string, mensagem: string) {
   await page.goto("/cabines/nova");
@@ -116,10 +128,12 @@ test.describe("convidar e aceitar", () => {
       // Quem convidou ainda não tem conversa nenhuma: a Cabine não começou.
       await expect(page.getByText("Nenhuma conversa ainda")).toBeVisible();
       // Mas vê que o convite saiu, com a opção de cancelar (RN22).
+      await abrirConvites(page);
       await expect(page.getByText(`Convite para ${outra.nome}`)).toBeVisible();
 
       // Quem recebeu vê o convite, com a mensagem.
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await expect(outra.page.getByText("vi sua resposta, bora conversar?")).toBeVisible();
 
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
@@ -151,6 +165,7 @@ test.describe("convidar e aceitar", () => {
       await convidar(page, outra.nome, "oi");
 
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Recusar" }).click();
       await outra.page.waitForURL(/\/cabines$/);
@@ -185,6 +200,7 @@ test.describe("a conversa em tempo real", () => {
       await convidar(page, outra.nome, "bora");
 
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Aceitar" }).click();
       await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
@@ -238,6 +254,7 @@ test.describe("a conversa em tempo real", () => {
     try {
       await convidar(page, outra.nome, "oi");
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Aceitar" }).click();
       await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
@@ -264,6 +281,7 @@ test.describe("compartilhar para a Cabine (F14)", () => {
       // Primeiro a Cabine, para o cartão ter onde cair.
       await convidar(page, outra.nome, "oi");
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Aceitar" }).click();
       await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
@@ -347,6 +365,7 @@ test.describe("a Cabine de duas colunas", () => {
     try {
       await convidar(page, outra.nome, "bora");
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Aceitar" }).click();
       await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
@@ -373,6 +392,7 @@ test.describe("a Cabine de duas colunas", () => {
     try {
       await convidar(page, outra.nome, "bora");
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Aceitar" }).click();
       await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
@@ -406,6 +426,7 @@ test.describe("a Cabine de duas colunas", () => {
     try {
       await convidar(page, outra.nome, "bora");
       await outra.page.goto("/cabines");
+      await abrirConvites(outra.page);
       await outra.page.getByRole("link", { name: /^Ver o convite de/ }).click();
       await outra.page.getByRole("button", { name: "Aceitar" }).click();
       await outra.page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
@@ -429,6 +450,126 @@ test.describe("a Cabine de duas colunas", () => {
       for (const botao of ["Adicionar imagem", "Adicionar GIF", "Enviar"]) {
         expect(Math.abs((await meio(botao)) - campo), `${botao} fora do eixo`).toBeLessThan(1);
       }
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+});
+
+/*
+ * Os acertos que você apontou nas telas novas.
+ *
+ * Cinco medidas, todas de coisas que somem em silêncio: um contorno no
+ * lugar errado, um texto fora do centro, um menu que empurra a página, e
+ * uma busca que promete o que o servidor recusa.
+ */
+test.describe("os acertos da Cabine", () => {
+  /** Duas pessoas que se seguem, que é quem pode conversar. */
+  async function duasQueSeSeguem(page: Page, browser: Browser, prefixo: string) {
+    const eu = await entrarNoApp(page, `${prefixo}a`);
+    const outra = await outraSessao(browser, `${prefixo}b`);
+
+    await page.goto(`/${outra.handle}`);
+    await page.getByRole("button", { name: "Seguir", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Seguindo" })).toBeVisible();
+
+    await outra.page.goto(`/${eu.handle}`);
+    await outra.page.getByRole("button", { name: "Seguir", exact: true }).click();
+    await expect(outra.page.getByRole("button", { name: "Seguindo" })).toBeVisible();
+
+    return { eu, outra };
+  }
+
+  test("buscar e clicar num nome abre a conversa, na mesma tela", async ({ page, browser }) => {
+    const { outra } = await duasQueSeSeguem(page, browser, "busca");
+
+    try {
+      await page.goto("/cabines");
+      await page.getByLabel("Buscar Cabines").fill(outra.handle);
+
+      const achada = page
+        .getByRole("group", { name: "Pessoas para conversar" })
+        .getByText(`@${outra.handle}`);
+      await expect(achada).toBeVisible({ timeout: 15_000 });
+
+      await achada.click();
+
+      // Sem passar por convite: as duas se seguem, então a conversa começa.
+      await page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
+      await expect(page.getByRole("region", { name: "Conversa" })).toBeVisible();
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("quem não te segue de volta não aparece na busca", async ({ page, browser }) => {
+    await entrarNoApp(page, "semlaco");
+    const outra = await outraSessao(browser, "naosegue");
+
+    try {
+      // Só eu sigo: seguir de um lado não abre conversa, e a RN20 recusaria.
+      await page.goto(`/${outra.handle}`);
+      await page.getByRole("button", { name: "Seguir", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Seguindo" })).toBeVisible();
+
+      await page.goto("/cabines");
+      await page.getByLabel("Buscar Cabines").fill(outra.handle);
+
+      // Dois segundos é mais do que a busca leva; se aparecesse, apareceria.
+      await page.waitForTimeout(2000);
+      await expect(page.getByText(`@${outra.handle}`)).toHaveCount(0);
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("o campo de escrever mostra o foco na pílula, não num retângulo", async ({
+    page,
+    browser,
+  }) => {
+    const { outra } = await duasQueSeSeguem(page, browser, "foco");
+
+    try {
+      await page.goto("/cabines");
+      await page.getByLabel("Buscar Cabines").fill(outra.handle);
+      await page
+        .getByRole("group", { name: "Pessoas para conversar" })
+        .getByText(`@${outra.handle}`)
+        .click();
+      await page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
+
+      const campo = page.getByRole("textbox", { name: "Mensagem" });
+      await campo.click();
+
+      // O contorno de 3 px desenhava um retângulo dentro da pílula. Agora
+      // ele é da pílula, e o campo não desenha nada.
+      await expect(campo).toHaveCSS("outline-style", "none");
+      await expect(page.locator(".hub-campo-cabine")).toHaveCSS("outline-width", "3px");
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("o menu de opções não empurra a conversa", async ({ page, browser }) => {
+    const { outra } = await duasQueSeSeguem(page, browser, "menu");
+
+    try {
+      await page.goto("/cabines");
+      await page.getByLabel("Buscar Cabines").fill(outra.handle);
+      await page
+        .getByRole("group", { name: "Pessoas para conversar" })
+        .getByText(`@${outra.handle}`)
+        .click();
+      await page.waitForURL(/\/cabines\/[0-9a-f-]+$/);
+
+      const campo = page.getByRole("textbox", { name: "Mensagem" });
+      const antes = (await campo.boundingBox())!.y;
+
+      await page.getByRole("button", { name: "Opções da Cabine" }).click();
+      await expect(page.getByRole("button", { name: "Convidar pessoas" })).toBeVisible();
+
+      // O menu abre por cima: nada embaixo dele se move.
+      expect(Math.round((await campo.boundingBox())!.y)).toBe(Math.round(antes));
     } finally {
       await outra.contexto.close();
     }

@@ -142,6 +142,13 @@ Três peças sustentam isso, e a lista de rotas mora em **um lugar só** ([lib/a
 
 **Rota nova de primeiro nível exige @ reservado.** Como o perfil mora na raiz, quem registrasse `@inicio` ficaria inalcançável para sempre — o Next casa rota estática antes de dinâmica e nada avisaria. A lista está em [lib/data/validation.ts](lib/data/validation.ts) e [lib/data/rotas.test.ts](lib/data/rotas.test.ts) varre `app/` e falha se faltar alguma.
 
+**Jornada verde pode ser servidor velho.** `playwright.config.ts` traz
+`reuseExistingServer: !process.env.CI`: fora da CI, um `npm run start`
+deixado de pé por uma execução anterior é reaproveitado **sem rebuild** — e
+a rodada testa a tela de antes da mudança, toda verde. Antes de confiar numa
+rodada local, confira que nada escuta a porta (`lsof -ti:3000`). Aconteceu, e
+está no Faustão.
+
 **As jornadas rodam em série.** Elas compartilham um banco, um servidor Next e um Supabase com limite de autenticação de verdade; em paralelo falham por 429 ou tempo esgotado, nunca pelo que queriam verificar. `playwright.config.ts` fixa `workers: 1`.
 
 **O ciclo das 00h roda no banco, de hora em hora.** `hub_ciclo_pendente()` é chamada pelo `pg_cron` a cada hora e não faz nada quando o dia já virou. De hora em hora, e não só à meia-noite, por dois motivos: o `pg_cron` agenda no fuso do servidor (UTC) enquanto o fuso do ciclo é configuração (`hub_cycle_timezone()`), e um agendamento único que não roda **pula o dia inteiro em silêncio**. `hub_virar_ciclo(dia)` é idempotente, e `npm run ciclo:rodar` a chama à mão.

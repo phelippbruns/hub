@@ -99,3 +99,20 @@
     transform: rotate(0) scale(1) translateY(0);
   }
 }
+
+/*
+ * O campo de escrever da Cabine mostra o foco na pílula inteira.
+ *
+ * O contorno de 3 px do `:focus-visible` caía no `<textarea>`, que é um
+ * retângulo dentro dela: o que aparecia era um retângulo preto cortando o
+ * desenho arredondado. Mesmos 3 px, mesmo ink, mesma distância — só no
+ * elemento que a pessoa enxerga como campo.
+ */
+.hub-campo-cabine:focus-within {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.hub-campo-cabine textarea:focus-visible {
+  outline: none;
+}

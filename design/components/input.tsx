@@ -9,6 +9,14 @@ type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "className"> & {
   error?: string;
   /** Texto de apoio abaixo do campo. */
   hint?: string;
+  /**
+   * Esconde o rótulo da vista, mantendo-o para o leitor de tela.
+   *
+   * Para campo que já se explica pelo contexto e pelo texto de exemplo —
+   * a busca da Cabine, que fica sozinha no topo da coluna. O rótulo nunca
+   * some: sem ele, o campo fica mudo para quem não enxerga a tela.
+   */
+  rotuloOculto?: boolean;
   className?: string;
 };
 
@@ -18,7 +26,7 @@ type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "className"> & {
  * O `TextField` é textarea com contador, para resposta e abertura de tópico.
  * Email, senha e nome precisam de um campo simples — é este.
  */
-export function Input({ label, error, hint, className, id, ...props }: InputProps) {
+export function Input({ label, error, hint, rotuloOculto, className, id, ...props }: InputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const errorId = `${inputId}-erro`;
@@ -26,7 +34,10 @@ export function Input({ label, error, hint, className, id, ...props }: InputProp
 
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <label htmlFor={inputId} className="text-caption text-inkMuted font-bold">
+      <label
+        htmlFor={inputId}
+        className={cn("text-caption text-inkMuted font-bold", rotuloOculto && "sr-only")}
+      >
         {label}
       </label>
 

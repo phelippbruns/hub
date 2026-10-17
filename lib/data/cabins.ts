@@ -1023,3 +1023,65 @@ export async function sugestoesParaConvidar(
     seSegue: mutuosRapido.has(pessoa.id),
   }));
 }
+
+export type PessoaParaConversar = {
+  id: string;
+  nome: string;
+  handle: string;
+  avatarUrl: string | null;
+};
+
+/**
+ * Quem aparece na busca da Cabine: as pessoas que **se seguem com você**.
+ *
+ * Só elas, e não todo mundo que você segue, porque é com elas que a
+ * conversa pode começar no clique (RN20, na segunda forma). Mostrar quem
+ * não te segue de volta seria oferecer um caminho que o servidor recusa —
+ * para essas pessoas o caminho é o convite, no perfil delas.
+ *
+ * Bloqueio (RN26) e "ninguém pode me convidar" (RN23) tiram da lista: as
+ * duas barram a conversa, e aparecer aqui prometeria o contrário.
+ */
+export async function pessoasParaConversar(
+  viewer: Viewer,
+  termo: string,
+  limite = 8,
+): Promise<PessoaParaConversar[]> {
+  const me = requireProfileId(viewer);
+  const procurado = termo.trim();
+  if (!procurado) return [];
+
+  const pessoas = await prisma.profile.findMany({
+    where: {
+      deletedAt: null,
+      id: { not: me },
+      invitePolicy: { not: "nobody" },
+      // Eu sigo essa pessoa…
+      followers: { some: { followerId: me, target: "profile" } },
+      // …e ela me segue.
+      follows: { some: { followedProfileId: me, target: "profile" } },
+      OR: [
+        { name: { contains: procurado, mode: "insensitive" } },
+        { handle: { contains: procurado.toLowerCase().replace(/^@/, "") } },
+      ],
+      NOT: {
+        OR: [
+          { blocksReceived: { some: { blockerId: me } } },
+          { blocksMade: { some: { blockedId: me } } },
+        ],
+      },
+    },
+    select: { id: true, name: true, handle: true, avatarUrl: true },
+    orderBy: { name: "asc" },
+    take: limite,
+  });
+
+  const comFoto = await comAvatares(pessoas);
+
+  return pessoas.map((pessoa, i) => ({
+    id: pessoa.id,
+    nome: pessoa.name,
+    handle: pessoa.handle,
+    avatarUrl: comFoto.at(i)?.avatarUrl ?? null,
+  }));
+}

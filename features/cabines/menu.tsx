@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useId, useState, useTransition } from "react";
-import { BottomSheet, Button, ConfirmSheet, RoundIconButton } from "@/design/components";
+import { Button, ConfirmSheet, MenuSuspenso, RoundIconButton } from "@/design/components";
 import { MoreOptionsIcon } from "@/design/icons";
 import { bloquearDaCabine, sairDaCabine } from "./actions";
 
@@ -30,7 +30,12 @@ export function MenuDaCabine({
   const [paraBloquear, setParaBloquear] = useState<ParticipanteNoMenu | null>(null);
 
   return (
-    <>
+    /*
+     * `relative`: é este contêiner que ancora o menu suspenso. Antes era
+     * uma folha desenhada no fluxo da página, e abrir o "..." empurrava a
+     * conversa inteira para baixo.
+     */
+    <div className="relative">
       <RoundIconButton
         label="Opções da Cabine"
         ativo={aberto === "menu"}
@@ -41,7 +46,11 @@ export function MenuDaCabine({
       </RoundIconButton>
 
       <div id={idDoMenu}>
-        <BottomSheet title="Cabine" open={aberto === "menu"}>
+        <MenuSuspenso
+          titulo="Cabine"
+          aberto={aberto === "menu"}
+          onFechar={() => setAberto("nenhum")}
+        >
           <div className="flex flex-col gap-1">
             <Link href={`/cabines/nova?cabine=${cabinId}`}>
               <Button variant="secondary" className="w-full">
@@ -86,7 +95,7 @@ export function MenuDaCabine({
               Se só uma pessoa ficar, a Cabine se encerra.
             </p>
           </div>
-        </BottomSheet>
+        </MenuSuspenso>
       </div>
 
       <ConfirmSheet
@@ -108,6 +117,6 @@ export function MenuDaCabine({
         onConfirm={() => paraBloquear && iniciar(() => bloquearDaCabine(paraBloquear.id))}
         onCancel={() => setAberto("nenhum")}
       />
-    </>
+    </div>
   );
 }

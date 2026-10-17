@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import {
   CabinNavIcon,
   CommunitiesNavIcon,
-  CommunityHash,
   ExploreNavIcon,
   HomeNavIcon,
   NotificationsNavIcon,
@@ -28,6 +27,12 @@ import { cn } from "../cn";
  *
  * Tudo em CSS, sem estado: hover e foco são do navegador, e um menu que
  * depende de JavaScript para abrir fica mudo enquanto a página hidrata.
+ *
+ * O foco que abre é o **de teclado** (`:focus-visible`), não qualquer foco.
+ * Com `focus-within`, clicar num item deixava o foco nele: o mouse saía, a
+ * barra continuava aberta e ficava por cima da tela que a pessoa acabara
+ * de abrir. Quem navega com Tab continua abrindo a barra, que era o motivo
+ * da regra existir.
  *
  * **O eixo dos ícones é o mesmo nos dois estados.** Cada linha começa por
  * uma caixa de `navItemBox` com o conteúdo centrado: com o respiro de 16 px
@@ -123,7 +128,7 @@ function Eixo({ children, className }: { children: ReactNode; className?: string
  */
 function Rotulo({ children }: { children: ReactNode }) {
   return (
-    <span className="whitespace-nowrap opacity-0 transition-opacity duration-100 ease-in-out group-focus-within/nav:opacity-100 group-hover/nav:opacity-100 motion-reduce:transition-none">
+    <span className="whitespace-nowrap opacity-0 transition-opacity duration-100 ease-in-out group-hover/nav:opacity-100 group-has-[:focus-visible]/nav:opacity-100 motion-reduce:transition-none">
       {children}
     </span>
   );
@@ -146,9 +151,9 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
        * sempre, transparente, para aparecer sem mudar a largura de nada.
        */
       className={cn(
-        "group/nav bg-paper border-r-line w-navRail hover:w-navRailOpen focus-within:w-navRailOpen",
+        "group/nav bg-paper border-r-line w-navRail hover:w-navRailOpen has-[:focus-visible]:w-navRailOpen",
         "absolute inset-y-0 left-0 flex flex-col gap-1 overflow-hidden border-r border-r-transparent px-3 pb-4",
-        "hover:border-r-line focus-within:border-r-line transition-[width] duration-150 ease-in-out",
+        "hover:border-r-line has-[:focus-visible]:border-r-line transition-[width] duration-150 ease-in-out",
         "motion-reduce:transition-none",
       )}
       style={{ paddingTop: "max(var(--spacing-5), env(safe-area-inset-top))" }}
@@ -206,7 +211,7 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
                    * referência. São duas, e só uma está visível por vez.
                    */
                   aria-hidden="true"
-                  className="bg-sun rounded-pill absolute top-0 right-1 size-2 group-focus-within/nav:opacity-0 group-hover/nav:opacity-0"
+                  className="bg-sun rounded-pill absolute top-0 right-1 size-2 group-hover/nav:opacity-0 group-has-[:focus-visible]/nav:opacity-0"
                 />
               ) : null}
             </Eixo>
@@ -215,7 +220,7 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
               <span
                 aria-label="Há novidade"
                 role="status"
-                className="bg-sun rounded-pill ml-auto size-2 shrink-0 opacity-0 group-focus-within/nav:opacity-100 group-hover/nav:opacity-100"
+                className="bg-sun rounded-pill ml-auto size-2 shrink-0 opacity-0 group-hover/nav:opacity-100 group-has-[:focus-visible]/nav:opacity-100"
               />
             ) : null}
           </Link>
@@ -223,8 +228,13 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
       })}
 
       {/* Criar fica no fim da barra, separado da navegação: são ações, não
-          lugares. Recolhidos são círculos de `control`; abertos viram pílula
-          com o nome, sem sair do eixo. */}
+          lugares. Recolhidos são círculos de `control`; abertos viram
+          pílula com o nome, **da mesma largura**, sem sair do eixo.
+
+          Os dois ícones têm 24 px, como a engrenagem logo abaixo: três
+          tamanhos diferentes em três botões empilhados é o tipo de coisa
+          que se vê antes de saber o que é. O de comunidade é a marca do
+          design system, a mesma que acompanha todo nome de comunidade. */}
       <div
         className="mt-auto flex flex-col gap-2"
         /*
@@ -238,10 +248,10 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
         <Link
           href="/criar-topico"
           aria-label="Criar tópico"
-          className="bg-ink text-paper rounded-pill text-label h-control w-control flex items-center self-start overflow-hidden font-semibold whitespace-nowrap no-underline group-focus-within/nav:w-auto group-focus-within/nav:pr-3 group-hover/nav:w-auto group-hover/nav:pr-3"
+          className="bg-ink text-paper rounded-pill text-label h-control w-control flex items-center overflow-hidden font-semibold whitespace-nowrap no-underline group-hover/nav:w-full group-has-[:focus-visible]/nav:w-full"
         >
           <span className="size-control grid shrink-0 place-items-center">
-            <TopicStar className="size-icon" />
+            <TopicStar className="size-iconNav" />
           </span>
           <Rotulo>Criar tópico</Rotulo>
         </Link>
@@ -249,10 +259,10 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
         <Link
           href="/comunidades/nova"
           aria-label="Criar comunidade"
-          className="border-ink text-ink rounded-pill text-label h-control w-control box-border flex items-center self-start overflow-hidden border-2 font-semibold whitespace-nowrap no-underline group-focus-within/nav:w-auto group-focus-within/nav:pr-3 group-hover/nav:w-auto group-hover/nav:pr-3"
+          className="border-ink text-ink rounded-pill text-label h-control w-control box-border flex items-center overflow-hidden border-2 font-semibold whitespace-nowrap no-underline group-hover/nav:w-full group-has-[:focus-visible]/nav:w-full"
         >
           <span className="size-control grid shrink-0 place-items-center">
-            <CommunityHash className="size-icon" />
+            <LevelMark level="community" compacta />
           </span>
           <Rotulo>Criar comunidade</Rotulo>
         </Link>
