@@ -187,6 +187,27 @@ test.describe("a central", () => {
       await outra.page.goto("/inicio");
       await expect(barra.getByRole("status")).toBeVisible();
 
+      /*
+       * O ponto mora no sino, não na linha: com a barra aberta ele fica no
+       * mesmo lugar. Antes eram dois, trocando conforme a largura — o
+       * aviso não muda de endereço quando a barra muda de tamanho.
+       */
+      const noSino = async () => {
+        const sino = (await barra
+          .getByRole("link", { name: "Notificações", exact: true })
+          .locator("svg")
+          .boundingBox())!;
+        const ponto = (await barra.getByRole("status").boundingBox())!;
+        return (
+          ponto.x > sino.x && ponto.x < sino.x + sino.width + 4 && Math.abs(ponto.y - sino.y) < 12
+        );
+      };
+
+      expect(await noSino(), "o ponto saiu do sino com a barra fechada").toBe(true);
+      await barra.hover();
+      await expect.poll(async () => Math.round((await barra.boundingBox())!.width)).toBe(232);
+      expect(await noSino(), "o ponto saiu do sino com a barra aberta").toBe(true);
+
       await outra.page.goto("/notificacoes");
       await outra.page.goto("/inicio");
 

@@ -16,28 +16,12 @@ const tones: Record<Level, string> = {
   topic: "bg-ink text-paper",
 };
 
-export function LevelMark({
-  level,
-  compacta = false,
-  className,
-}: {
-  level: Level;
-  /**
-   * Versão de 24 px, do tamanho de um ícone.
-   *
-   * Serve a botão que mistura marca e ícone — o "Criar comunidade" da
-   * barra lateral, ao lado da engrenagem. A marca cheia tem 32 px e ao
-   * lado de um ícone de 24 parece de outra escala.
-   */
-  compacta?: boolean;
-  className?: string;
-}) {
+export function LevelMark({ level, className }: { level: Level; className?: string }) {
   return (
     <span
       aria-hidden="true"
       className={cn(
-        "inline-grid place-items-center rounded-sm font-extrabold",
-        compacta ? "size-iconNav text-label" : "size-mark text-subtitle",
+        "size-mark text-subtitle inline-grid place-items-center rounded-sm font-extrabold",
         tones[level],
         className,
       )}

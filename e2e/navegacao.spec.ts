@@ -322,6 +322,39 @@ test.describe("a barra fecha sozinha", () => {
     expect(await medir("Criar comunidade")).toBe(engrenagem);
   });
 
+  test("os dois botões de criar são cheios, cada um com a cor do seu nível", async ({ page }) => {
+    await entrarNoApp(page, "cheios");
+    const barra = page.getByRole("navigation", { name: "Navegação principal" });
+
+    /*
+     * Este botão já saiu errado duas vezes: uma cerquilha solta e, depois,
+     * um selo de 24 px dentro de um anel vazado de 42. O que o prende é a
+     * cor de fundo — se ele voltar a ser vazado, isto reprova.
+     */
+    await expect(barra.getByRole("link", { name: "Criar tópico", exact: true })).toHaveCSS(
+      "background-color",
+      "rgb(30, 26, 51)",
+    );
+    await expect(barra.getByRole("link", { name: "Criar comunidade", exact: true })).toHaveCSS(
+      "background-color",
+      "rgb(166, 156, 251)",
+    );
+  });
+
+  test("o glifo fica centrado no botão fechado", async ({ page }) => {
+    await entrarNoApp(page, "centro");
+    const barra = page.getByRole("navigation", { name: "Navegação principal" });
+
+    for (const nome of ["Criar tópico", "Criar comunidade"]) {
+      const botao = barra.getByRole("link", { name: nome, exact: true });
+      const fora = (await botao.boundingBox())!;
+      const dentro = (await botao.locator("svg").first().boundingBox())!;
+
+      const desvio = dentro.x + dentro.width / 2 - (fora.x + fora.width / 2);
+      expect(Math.abs(desvio), `${nome} com o desenho fora do centro`).toBeLessThan(1);
+    }
+  });
+
   test("abertos, os dois botões de criar têm a mesma largura", async ({ page }) => {
     await entrarNoApp(page, "larguras");
     const barra = page.getByRole("navigation", { name: "Navegação principal" });

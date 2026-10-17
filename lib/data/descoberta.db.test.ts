@@ -11,10 +11,16 @@ import {
   buscarTopicos,
   comunidadesDoUniverso,
   comunidadesEmAlta,
+  comunidadesNovas,
   paraVoce,
   topicosEmAlta,
 } from "./descoberta";
-import { EXPLORE_MIN_MEMBERS, joinCommunity, listExploreCommunities } from "./communities";
+import {
+  EXPLORE_MIN_MEMBERS,
+  createCommunity,
+  joinCommunity,
+  listExploreCommunities,
+} from "./communities";
 import { createTopic, createAnswer } from "./topics";
 import { viewerFor } from "./viewer";
 
@@ -402,5 +408,63 @@ describe("em alta conta pessoas, não respostas", () => {
     });
 
     expect(await topicosEmAlta(viewerFor(quemOlha.id))).toEqual([]);
+  });
+});
+
+describe("as comunidades novas do Início", () => {
+  it("vêm da mais recente para a mais antiga", async () => {
+    const universo = await makeUniverse("Som");
+    const quemOlha = await makeProfile();
+
+    const primeira = await comunidadeCom(universo.id, "Primeira", 1);
+    const segunda = await comunidadeCom(universo.id, "Segunda", 1);
+    const terceira = await comunidadeCom(universo.id, "Terceira", 1);
+
+    const novas = await comunidadesNovas(viewerFor(quemOlha.id));
+
+    expect(novas.map((c) => c.id).slice(0, 3)).toEqual([terceira.id, segunda.id, primeira.id]);
+  });
+
+  it("não mostra comunidade onde eu já estou", async () => {
+    const universo = await makeUniverse("Som");
+    const quemOlha = await makeProfile();
+    const minha = await comunidadeCom(universo.id, "Minha", 1);
+
+    await joinCommunity(viewerFor(quemOlha.id), minha.id);
+
+    // A seção é para descobrir: o que já é seu aparece no resto do Início.
+    expect((await comunidadesNovas(viewerFor(quemOlha.id))).map((c) => c.id)).not.toContain(
+      minha.id,
+    );
+  });
+
+  it("mostra a comunidade recém-criada, com um membro só", async () => {
+    const universo = await makeUniverse("Som");
+    const quemOlha = await makeProfile();
+    const dona = await makeProfile();
+
+    const criada = await createCommunity(viewerFor(dona.id), {
+      universeId: universo.id,
+      name: "Acabou de nascer",
+      intro: "intro",
+      coverUrl: null,
+    });
+
+    /*
+     * Sem o corte da RN05, de propósito: ele existe para o Explorar não
+     * virar cemitério de comunidade vazia, e aqui o assunto é justamente
+     * o que acabou de nascer.
+     */
+    expect((await comunidadesNovas(viewerFor(quemOlha.id))).map((c) => c.id)).toContain(criada!.id);
+  });
+
+  it("sem comunidade nenhuma de fora, a lista volta vazia", async () => {
+    const universo = await makeUniverse("Som");
+    const quemOlha = await makeProfile();
+    const unica = await comunidadeCom(universo.id, "A única", 1);
+    await joinCommunity(viewerFor(quemOlha.id), unica.id);
+
+    // A tela usa isto para **não desenhar** a seção.
+    expect(await comunidadesNovas(viewerFor(quemOlha.id))).toEqual([]);
   });
 });

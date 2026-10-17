@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import {
   CabinNavIcon,
   CommunitiesNavIcon,
+  CommunityHash,
   ExploreNavIcon,
   HomeNavIcon,
   NotificationsNavIcon,
@@ -206,23 +207,20 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
                    * algo não lido, não quantos. Dizer "1 não lidas" seria
                    * errado em português e impreciso ao mesmo tempo.
                    *
-                   * Recolhida, a marca fica no canto do ícone; aberta, ela
-                   * sai daqui e reaparece no fim da linha, como o selo da
-                   * referência. São duas, e só uma está visível por vez.
+                   * Fica **sempre no canto do sino**, aberta ou fechada a
+                   * barra. Antes ele trocava de lugar — canto do ícone
+                   * recolhido, fim da linha aberto —, copiado do selo da
+                   * referência; o que ele diz não muda com a largura da
+                   * barra, e procurar o aviso em dois lugares é trabalho
+                   * de quem lê.
                    */
-                  aria-hidden="true"
-                  className="bg-sun rounded-pill absolute top-0 right-1 size-2 group-hover/nav:opacity-0 group-has-[:focus-visible]/nav:opacity-0"
+                  aria-label="Há novidade"
+                  role="status"
+                  className="bg-sun rounded-pill absolute top-0 right-1 size-2"
                 />
               ) : null}
             </Eixo>
             <Rotulo>{nome}</Rotulo>
-            {href === "/notificacoes" && temNovidade ? (
-              <span
-                aria-label="Há novidade"
-                role="status"
-                className="bg-sun rounded-pill ml-auto size-2 shrink-0 opacity-0 group-hover/nav:opacity-100 group-has-[:focus-visible]/nav:opacity-100"
-              />
-            ) : null}
           </Link>
         );
       })}
@@ -231,10 +229,15 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
           lugares. Recolhidos são círculos de `control`; abertos viram
           pílula com o nome, **da mesma largura**, sem sair do eixo.
 
+          Cada um leva a cor do seu nível, cheia: tópico em ink com o
+          asterisco em paper, comunidade em lavanda com a cerquilha em ink.
+          É a mesma regra de cor das marcas do Hub, aplicada ao botão
+          inteiro — antes a de comunidade era um selo de 24 px solto dentro
+          de um anel vazado de 42, pequeno e fora do centro.
+
           Os dois ícones têm 24 px, como a engrenagem logo abaixo: três
           tamanhos diferentes em três botões empilhados é o tipo de coisa
-          que se vê antes de saber o que é. O de comunidade é a marca do
-          design system, a mesma que acompanha todo nome de comunidade. */}
+          que se vê antes de saber o que é. */}
       <div
         className="mt-auto flex flex-col gap-2"
         /*
@@ -259,10 +262,10 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
         <Link
           href="/comunidades/nova"
           aria-label="Criar comunidade"
-          className="border-ink text-ink rounded-pill text-label h-control w-control box-border flex items-center overflow-hidden border-2 font-semibold whitespace-nowrap no-underline group-hover/nav:w-full group-has-[:focus-visible]/nav:w-full"
+          className="bg-lavender text-ink rounded-pill text-label h-control w-control flex items-center overflow-hidden font-semibold whitespace-nowrap no-underline group-hover/nav:w-full group-has-[:focus-visible]/nav:w-full"
         >
           <span className="size-control grid shrink-0 place-items-center">
-            <LevelMark level="community" compacta />
+            <CommunityHash className="size-iconNav" />
           </span>
           <Rotulo>Criar comunidade</Rotulo>
         </Link>
