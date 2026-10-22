@@ -40,7 +40,7 @@ export function ListaDeCabines({
   conversas,
 }: {
   convites: ConviteNaLista[];
-  enviados: { id: string; paraQuem: string }[];
+  enviados: { id: string; cabinId: string; paraQuem: string }[];
   conversas: ConversaNaLista[];
 }) {
   const caminho = usePathname();
@@ -215,7 +215,11 @@ export function ListaDeCabines({
             <ul className="flex flex-col gap-2">
               {enviados.map((convite) => (
                 <li key={convite.id}>
-                  <ConviteEnviado id={convite.id} paraQuem={convite.paraQuem} />
+                  <ConviteEnviado
+                    id={convite.id}
+                    cabinId={convite.cabinId}
+                    paraQuem={convite.paraQuem}
+                  />
                 </li>
               ))}
             </ul>

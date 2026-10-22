@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Avatar } from "./avatar";
 import { CopyLinkIcon } from "../icons";
@@ -30,12 +31,12 @@ export function ProfileHeader({
   enquadramento,
   medidasDaFoto,
   seguidores,
+  seguidoresHref,
   seguindo,
   links = [],
   contribuicoes,
   comunidades,
   acoes,
-  comoTitulo = false,
 }: {
   nome: string;
   handle: string;
@@ -45,23 +46,22 @@ export function ProfileHeader({
   medidasDaFoto?: { largura: number; altura: number } | null;
   /** `null` quando a pessoa escondeu: o número não chega nem ao HTML. */
   seguidores: number | null;
+  /**
+   * Para onde o número de seguidores leva, quando leva.
+   *
+   * RN28: **só no perfil próprio.** No perfil de outra pessoa ele continua
+   * sendo número sem lista — ali a lista existiria para comparar perfis,
+   * que é o que o Princípio 2 recusa. No seu, são as pessoas que
+   * escolheram te acompanhar, e isso é seu dado.
+   */
+  seguidoresHref?: string;
   seguindo?: ReactNode;
   links?: LinkDoPerfil[];
   contribuicoes: number;
   comunidades: number;
   /** As ações do canto superior direito. */
   acoes?: ReactNode;
-  /**
-   * Quando o @ **é** o título da tela.
-   *
-   * No perfil de outra pessoa o protótipo não repete nada num título acima:
-   * o @ já é o título. Mas a tela precisa de um `h1`, senão quem usa leitor
-   * de tela perde a âncora da página.
-   */
-  comoTitulo?: boolean;
 }) {
-  const Identificador = comoTitulo ? "h1" : "span";
-
   return (
     <div className="relative flex flex-col gap-3">
       {/*
@@ -80,12 +80,23 @@ export function ProfileHeader({
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <Identificador className="text-title text-ink">{handle}</Identificador>
+          {/*
+            O @ é o `h1` da tela, no perfil próprio e no dos outros.
+            Havia um "Perfil" acima dele no perfil próprio, e ele dizia
+            menos do que o @ que vinha logo abaixo — a tela inteira já é o
+            perfil. Tirar o título deixaria a página sem âncora para quem
+            usa leitor de tela, então o @ assume o posto.
+          */}
+          <h1 className="text-title text-ink">{handle}</h1>
           <span className="text-body text-ink">{nome}</span>
 
           {seguidores === null && !seguindo ? null : (
             <span className="text-caption text-inkMuted mt-1 flex flex-wrap items-center gap-1">
-              {seguidores === null ? null : (
+              {seguidores === null ? null : seguidoresHref ? (
+                <Link href={seguidoresHref} className="underline underline-offset-2">
+                  {numero(seguidores)} {seguidores === 1 ? "seguidor" : "seguidores"}
+                </Link>
+              ) : (
                 <span>
                   {numero(seguidores)} {seguidores === 1 ? "seguidor" : "seguidores"}
                 </span>

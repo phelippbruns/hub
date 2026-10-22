@@ -31,6 +31,8 @@ export default async function SeguindoPage() {
             nome: f.followedProfile.name,
             handle: f.followedProfile.handle,
             avatarUrl: fotos.at(i) ?? null,
+            // É a lista de quem eu sigo: por definição, sigo todas.
+            euSigo: true,
           },
         ]
       : [],

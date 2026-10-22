@@ -6,16 +6,33 @@ import { Avatar } from "@/design/components";
 import { SearchIcon } from "@/design/icons";
 import { OlhoDeSeguir } from "./acoes-do-perfil";
 
-type Seguida = { id: string; nome: string; handle: string; avatarUrl: string | null };
+type Seguida = {
+  id: string;
+  nome: string;
+  handle: string;
+  avatarUrl: string | null;
+  /** Se **eu** sigo esta pessoa. Na lista de seguidores pode ser falso. */
+  euSigo: boolean;
+};
 
 /**
- * A lista de pessoas seguidas (tela 23), com busca.
+ * A lista de pessoas, com busca (telas 23 e seguidores).
  *
- * A busca é no cliente, sobre a lista que já veio: quem você segue é uma
- * lista curta por natureza, e uma ida ao servidor a cada tecla seria gasto
- * sem ganho.
+ * Serve às duas listas porque elas são a mesma coisa vista de dois lados, e
+ * duas cópias divergiriam no dia em que uma ganhasse um detalhe. O que muda
+ * é o texto e o estado do olho: na lista de seguidores eu posso não seguir
+ * de volta.
+ *
+ * A busca é no cliente, sobre a lista que já veio: são listas curtas por
+ * natureza, e uma ida ao servidor a cada tecla seria gasto sem ganho.
  */
-export function ListaDeSeguindo({ pessoas }: { pessoas: Seguida[] }) {
+export function ListaDeSeguindo({
+  pessoas,
+  ehSeguidores = false,
+}: {
+  pessoas: Seguida[];
+  ehSeguidores?: boolean;
+}) {
   const [termo, setTermo] = useState("");
 
   const busca = termo.trim().toLowerCase();
@@ -33,8 +50,8 @@ export function ListaDeSeguindo({ pessoas }: { pessoas: Seguida[] }) {
           type="search"
           value={termo}
           onChange={(evento) => setTermo(evento.target.value)}
-          aria-label="Buscar pessoas que você segue"
-          placeholder="Buscar pessoas que você segue"
+          aria-label={ehSeguidores ? "Buscar quem segue você" : "Buscar pessoas que você segue"}
+          placeholder={ehSeguidores ? "Buscar quem segue você" : "Buscar pessoas que você segue"}
           className="text-body text-ink min-w-0 flex-1 border-0 bg-transparent py-2 outline-none"
         />
       </div>
@@ -44,7 +61,11 @@ export function ListaDeSeguindo({ pessoas }: { pessoas: Seguida[] }) {
 
       {visiveis.length === 0 ? (
         <p className="text-body text-inkMuted">
-          {busca ? `Ninguém encontrado para "${termo.trim()}".` : "Você ainda não segue ninguém."}
+          {busca
+            ? `Ninguém encontrado para "${termo.trim()}".`
+            : ehSeguidores
+              ? "Ninguém segue você ainda."
+              : "Você ainda não segue ninguém."}
         </p>
       ) : (
         <div className="flex flex-col gap-2">
@@ -62,7 +83,7 @@ export function ListaDeSeguindo({ pessoas }: { pessoas: Seguida[] }) {
                 profileId={pessoa.id}
                 handle={pessoa.handle}
                 nome={pessoa.nome}
-                seguindoInicial
+                seguindoInicial={pessoa.euSigo}
               />
             </div>
           ))}

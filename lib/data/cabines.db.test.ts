@@ -23,6 +23,7 @@ import {
   acceptInvite,
   cabinePorId,
   cancelarConvite,
+  conversaComPessoa,
   convitePorId,
   declineInvite,
   inviteToCabin,
@@ -616,5 +617,140 @@ describe("a lista de quem convidar", () => {
     const { lia, jo } = await cenario();
     const pessoas = await sugestoesParaConvidar(viewerFor(lia.id));
     expect(pessoas.find((p) => p.id === jo.id)?.seSegue).toBe(false);
+  });
+});
+
+/**
+ * RN20/RN22: o ícone de Cabine no perfil leva direto à conversa.
+ *
+ * Um clique, um destino. O que muda é só qual conversa: a que já existe, a
+ * que começa agora, ou a nova com o convite pendente.
+ */
+describe("conversaComPessoa", () => {
+  it("quem se segue cai numa conversa que já começou", async () => {
+    const { lia, jo } = await cenario();
+    await seSeguem(lia.id, jo.id);
+
+    const cabine = await conversaComPessoa(viewerFor(lia.id), jo.id);
+
+    const membros = await db.cabinMember.count({ where: { cabinId: cabine, leftAt: null } });
+    const convites = await db.cabinInvite.count({ where: { cabinId: cabine } });
+    expect(membros).toBe(2);
+    expect(convites).toBe(0);
+  });
+
+  it("clicar duas vezes devolve a mesma conversa", async () => {
+    const { lia, jo } = await cenario();
+    await seSeguem(lia.id, jo.id);
+
+    const primeira = await conversaComPessoa(viewerFor(lia.id), jo.id);
+    const segunda = await conversaComPessoa(viewerFor(lia.id), jo.id);
+
+    expect(segunda).toBe(primeira);
+  });
+
+  it("quem não se segue ganha Cabine com convite pendente", async () => {
+    const { lia, jo } = await cenario();
+
+    const cabine = await conversaComPessoa(viewerFor(lia.id), jo.id);
+
+    // Quem convidou já é membro; quem foi convidado entra ao aceitar.
+    const membros = await db.cabinMember.findMany({ where: { cabinId: cabine } });
+    expect(membros.map((m) => m.profileId)).toEqual([lia.id]);
+
+    const convite = await db.cabinInvite.findFirstOrThrow({ where: { cabinId: cabine } });
+    expect(convite.inviteeId).toBe(jo.id);
+    expect(convite.status).toBe("pending");
+  });
+
+  /*
+   * Sem isto, clicar de novo esbarraria em "você já tem um convite em
+   * aberto" — verdade inútil para quem só queria voltar à conversa.
+   */
+  it("com convite pendente, clicar de novo volta à mesma Cabine", async () => {
+    const { lia, jo } = await cenario();
+
+    const primeira = await conversaComPessoa(viewerFor(lia.id), jo.id);
+    const segunda = await conversaComPessoa(viewerFor(lia.id), jo.id);
+
+    expect(segunda).toBe(primeira);
+    expect(await db.cabinInvite.count({ where: { inviterId: lia.id } })).toBe(1);
+  });
+
+  it("RN22: a primeira mensagem vira a mensagem do convite", async () => {
+    const { lia, jo } = await cenario();
+    const cabine = await conversaComPessoa(viewerFor(lia.id), jo.id);
+
+    await sendMessage(viewerFor(lia.id), { cabinId: cabine, text: "vi sua resposta sobre vinil" });
+
+    const convite = await db.cabinInvite.findFirstOrThrow({ where: { cabinId: cabine } });
+    expect(convite.message).toBe("vi sua resposta sobre vinil");
+  });
+
+  it("só a primeira: a segunda mensagem não reescreve o convite", async () => {
+    const { lia, jo } = await cenario();
+    const cabine = await conversaComPessoa(viewerFor(lia.id), jo.id);
+
+    await sendMessage(viewerFor(lia.id), { cabinId: cabine, text: "primeira" });
+    await sendMessage(viewerFor(lia.id), { cabinId: cabine, text: "segunda" });
+
+    const convite = await db.cabinInvite.findFirstOrThrow({ where: { cabinId: cabine } });
+    expect(convite.message).toBe("primeira");
+  });
+
+  it("RN26: bloqueio vence, e o clique não abre nada", async () => {
+    const { lia, jo } = await cenario();
+    await seSeguem(lia.id, jo.id);
+    await db.block.create({ data: { blockerId: jo.id, blockedId: lia.id } });
+
+    await expect(conversaComPessoa(viewerFor(lia.id), jo.id)).rejects.toThrow();
+  });
+
+  it("RN23: quem não aceita convites continua fechada ao laço mútuo", async () => {
+    const { lia, jo } = await cenario();
+    await seSeguem(lia.id, jo.id);
+    await db.profile.update({ where: { id: jo.id }, data: { invitePolicy: "nobody" } });
+
+    await expect(conversaComPessoa(viewerFor(lia.id), jo.id)).rejects.toThrow();
+  });
+});
+
+/**
+ * A conversa precisa dizer com quem é, mesmo antes do aceite.
+ *
+ * Numa Cabine que nasceu de um clique no perfil, a pessoa convidada é **a**
+ * pessoa da conversa — e ela não é membro ainda. Sem isto a tela dizia
+ * "Conversa, 1 pessoa na Cabine" e não nomeava ninguém.
+ */
+describe("quem aparece numa Cabine com convite pendente", () => {
+  it("a convidada dá nome à conversa antes de aceitar", async () => {
+    const { lia, jo } = await cenario();
+    const cabine = await conversaComPessoa(viewerFor(lia.id), jo.id);
+
+    const naTela = await cabinePorId(viewerFor(lia.id), cabine);
+
+    expect(naTela.nome).toContain("Jo");
+    expect(naTela.convidadas.map((c) => c.handle)).toEqual(["jo"]);
+  });
+
+  it("depois do aceite ela vira participante e some das convidadas", async () => {
+    const { lia, jo } = await cenario();
+    const cabine = await conversaComPessoa(viewerFor(lia.id), jo.id);
+    const convite = await db.cabinInvite.findFirstOrThrow({ where: { cabinId: cabine } });
+
+    await acceptInvite(viewerFor(jo.id), convite.id);
+
+    const naTela = await cabinePorId(viewerFor(lia.id), cabine);
+    expect(naTela.convidadas).toHaveLength(0);
+    expect(naTela.participantes).toHaveLength(2);
+  });
+
+  it("a foto da convidada vem como endereço, não como caminho", async () => {
+    const { lia, jo } = await cenario();
+    await db.profile.update({ where: { id: jo.id }, data: { avatarUrl: "perfis/x.jpg" } });
+    const cabine = await conversaComPessoa(viewerFor(lia.id), jo.id);
+
+    const naTela = await cabinePorId(viewerFor(lia.id), cabine);
+    expect(naTela.convidadas[0]?.avatarUrl).not.toBe("perfis/x.jpg");
   });
 });

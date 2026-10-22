@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ContentColumn, PageTitle, ProfileHeader } from "@/design/components";
+import { ContentColumn, ProfileHeader } from "@/design/components";
 import { AbasDoPerfil } from "./abas";
 import { AbaComunidades, AbaContribuicoes } from "./corpo";
 import { fundoDaPagina } from "./fundos";
@@ -55,12 +55,6 @@ export async function TelaDePerfil({
     */
     <div className={`${fundo.pagina} min-h-screen`}>
       <ContentColumn>
-        {/*
-          No perfil de outra pessoa o @ já é o título — repeti-lo acima
-          mostraria a mesma palavra duas vezes, como o protótipo não faz.
-        */}
-        {perfil.souEu ? <PageTitle>Perfil</PageTitle> : null}
-
         <ProfileHeader
           nome={perfil.name}
           handle={perfil.handle}
@@ -71,8 +65,8 @@ export async function TelaDePerfil({
           links={perfil.links}
           contribuicoes={perfil.contribuicoes}
           comunidades={perfil.comunidades}
-          comoTitulo={!perfil.souEu}
           seguidores={perfil.seguidores}
+          seguidoresHref={perfil.souEu ? "/perfil/seguidores" : undefined}
           seguindo={
             /*
               RN27: só o dono vê, e só para ele a lista abre. Continua sendo

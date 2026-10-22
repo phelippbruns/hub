@@ -470,3 +470,40 @@ servir ao caso que a justificou.
 📌 **Fixado** — a RN16 e a RN27 foram reescritas, e `lib/data/perfil.db.test.ts`
 cobre os dois lados: o que o campo aceita e o que ele recusa, inclusive
 `javascript:`, o quarto link e o endereço escondido no título.
+
+---
+
+## 13. Regra que protegia a pessoa dos próprios dados
+
+### "Seguidores não abre lista" valia até no seu próprio perfil
+
+A RN28 dizia que o número de seguidores é informativo e não abre lista,
+"para evitar comparação entre perfis". A regra é boa e o motivo é o
+Princípio 2: o Hub não tem curtida nem contador por resposta justamente
+para ninguém medir ninguém.
+
+Só que ela estava escrita sem sujeito, e por isso valia também **no seu
+próprio perfil** — onde não há perfil nenhum para comparar. A pessoa via
+"2 seguidores" e não tinha como saber quem eram. Quem ela seguia, sim,
+abria lista; quem a seguia, não.
+
+*O que custou:* nada grave, mas a assimetria não tinha explicação. Saber
+quem te acompanha é o tipo de coisa que qualquer pessoa espera poder ver, e
+a ausência parecia defeito, não decisão.
+
+*Por que passou:* a regra foi escrita olhando o perfil de outra pessoa, que
+é onde o risco mora, e generalizada sem reparar que o perfil próprio é o
+mesmo componente. O teste que a protegia conferia exatamente o caso certo
+("seguidores é número, e não abre lista" no perfil alheio) e por isso nunca
+acusou nada.
+
+*Como ficou:* no perfil próprio, seguidores e seguindo abrem lista; as duas
+são privadas e recusadas no servidor para qualquer outra pessoa. No perfil
+de outra, nada muda: número, sem lista.
+
+**Regra:** regra que diz "não mostre X" precisa dizer **para quem**. Sem
+sujeito ela acaba valendo contra o próprio dono — que é a única pessoa para
+quem o dado nunca foi perigoso.
+
+📌 **Fixado** — a RN28 foi reescrita, `getFollowers` recusa quem não é o
+dono, e há teste de banco e de jornada dos dois lados.

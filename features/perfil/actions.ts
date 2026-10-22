@@ -10,9 +10,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import { getViewer } from "@/lib/auth/session";
-import { RuleViolationError, UnauthenticatedError } from "@/lib/data/errors";
+import { ForbiddenError, RuleViolationError, UnauthenticatedError } from "@/lib/data/errors";
 import { followProfile, unfollowProfile } from "@/lib/data/follows";
 import { bloquear, desbloquear, dessilenciar, silenciar } from "@/lib/data/perfil";
+import { conversaComPessoa } from "@/lib/data/cabins";
 import { guardarMedidasDaFoto, medidasDaFotoAtual, updateProfile } from "@/lib/data/profiles";
 import { MAXIMO_DE_LINKS } from "@/lib/data/validation";
 import { acharLink } from "@/lib/texto/links";
@@ -205,4 +206,31 @@ function mensagemDeTamanho(bytes: number): string {
 /** A primeira reclamação do Zod, em português, para a tela mostrar. */
 function primeiroProblema(erro: ZodError): string {
   return erro.issues[0]?.message ?? "Confira os links.";
+}
+
+/**
+ * Abre a conversa com alguém, a partir do perfil dela.
+ *
+ * Um clique leva à conversa: se já existe, é ela; se vocês se seguem, ela
+ * começa agora; se não, ela nasce com o convite pendente e o que for
+ * escrito chega junto dele (RN20, RN21, RN22).
+ *
+ * O erro volta como texto para a tela mostrar, em vez de virar página de
+ * erro: "esta pessoa não aceita convites" e "você já atingiu o limite de
+ * hoje" são respostas normais do produto, não falhas.
+ */
+export async function abrirConversa(profileId: string): Promise<{ erro?: string }> {
+  const viewer = await quemPede();
+
+  let destino: string;
+  try {
+    destino = await conversaComPessoa(viewer, profileId);
+  } catch (erro) {
+    if (erro instanceof RuleViolationError || erro instanceof ForbiddenError) {
+      return { erro: erro.message };
+    }
+    throw erro;
+  }
+
+  redirect(`/cabines/${destino}`);
 }

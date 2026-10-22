@@ -30,7 +30,11 @@ export default async function CabinesPage() {
           mensagem: convite.mensagem ?? "Quer conversar com você",
           avatarUrl: convite.quem.avatarUrl,
         }))}
-        enviados={enviados.map((convite) => ({ id: convite.id, paraQuem: convite.paraQuem }))}
+        enviados={enviados.map((convite) => ({
+          id: convite.id,
+          cabinId: convite.cabinId,
+          paraQuem: convite.paraQuem,
+        }))}
         conversas={cabines.map((cabine) => ({
           id: cabine.id,
           nome: cabine.nome,
@@ -43,7 +47,10 @@ export default async function CabinesPage() {
       <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-2 p-5 text-center">
         <p className="text-subtitle text-ink">Escolha uma conversa</p>
         <p className="text-body text-inkMuted">
-          A Cabine começa por convite, e só existe depois que a outra pessoa aceita.
+          {/* RN20: desde a rodada de acabamento a Cabine tem dois começos, e
+              este texto só contava um deles. */}
+          Abra o perfil de alguém e toque na Cabine. Com quem se segue com você, a conversa começa
+          na hora; com as outras, vai um convite.
         </p>
       </div>
     </div>

@@ -149,3 +149,19 @@ export async function seguirNoPerfil(page: Page, handle: string): Promise<void> 
   await conteudo.getByRole("button", { name: /^Seguir / }).click();
   await expect(conteudo.getByRole("button", { name: /^Seguindo / })).toBeVisible();
 }
+
+/**
+ * Abre a aba Convites da lista.
+ *
+ * Os convites deixaram de ficar empilhados com as conversas: eles moram
+ * numa aba, com o número ao lado. Sem este passo, procurar por um convite
+ * procura numa aba que não está aberta — e o erro que aparece é "não
+ * encontrei o link", que parece defeito do convite.
+ *
+ * Subiu de `cabines.spec.ts` para cá quando um segundo arquivo precisou
+ * dele, pelo mesmo motivo de sempre: seletor repetido é seletor que quebra
+ * em vários lugares no dia em que a tela mudar.
+ */
+export async function abrirConvites(page: Page): Promise<void> {
+  await page.getByRole("tab", { name: /^Convites/ }).click();
+}

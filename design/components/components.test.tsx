@@ -170,6 +170,7 @@ const cases: Array<[string, React.ReactElement]> = [
       bio={null}
       avatarUrl={null}
       seguidores={128}
+      seguidoresHref="/perfil/seguidores"
       seguindo={<span>45 seguindo</span>}
       contribuicoes={1}
       comunidades={1}

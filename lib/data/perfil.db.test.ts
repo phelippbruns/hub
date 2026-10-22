@@ -18,7 +18,7 @@ import {
 } from "./perfil";
 import { createCommunity, joinCommunity } from "./communities";
 import { createAnswer, createTopic } from "./topics";
-import { followProfile, followTopic, getCollection, getFollowing } from "./follows";
+import { followProfile, followTopic, getCollection, getFollowers, getFollowing } from "./follows";
 import { interacoesDeQuemSigo } from "./inicio";
 import { updateProfile } from "./profiles";
 import { viewerFor } from "./viewer";
@@ -596,5 +596,47 @@ describe("RN27: tópicos ativos por comunidade", () => {
 
     const [depois] = await comunidadesDoPerfil(viewerFor(lia.id), lia.id);
     expect(depois?.topicosAtivos).toBe(1);
+  });
+});
+
+/**
+ * RN28: no perfil próprio, seguidores e seguindo abrem lista.
+ *
+ * As duas são privadas. No perfil de outra pessoa o número de seguidores
+ * continua sendo só número — ali a lista existiria para comparar perfis.
+ */
+describe("RN28: a lista de seguidores é do dono", () => {
+  it("o dono vê quem o segue", async () => {
+    const lia = await makeProfile({ handle: "lia" });
+    const jo = await makeProfile({ handle: "jo", name: "Jo Ramos" });
+    await followProfile(viewerFor(jo.id), lia.id);
+
+    const lista = await getFollowers(viewerFor(lia.id), lia.id);
+
+    expect(lista).toHaveLength(1);
+    expect(lista[0]?.follower?.handle).toBe("jo");
+  });
+
+  it("ninguém mais vê a lista de outra pessoa", async () => {
+    const lia = await makeProfile({ handle: "lia" });
+    const jo = await makeProfile({ handle: "jo" });
+    await followProfile(viewerFor(jo.id), lia.id);
+
+    // Nem quem está na lista pode pedi-la.
+    await expect(getFollowers(viewerFor(jo.id), lia.id)).rejects.toThrow();
+  });
+
+  /*
+   * O caminho do depósito nunca sai da camada de dados: a lista mostra
+   * foto, e foto é endereço assinado, não posição no depósito.
+   */
+  it("a foto vem como endereço, não como caminho", async () => {
+    const lia = await makeProfile({ handle: "lia" });
+    const jo = await makeProfile({ handle: "jo" });
+    await db.profile.update({ where: { id: jo.id }, data: { avatarUrl: "perfis/x.jpg" } });
+    await followProfile(viewerFor(jo.id), lia.id);
+
+    const lista = await getFollowers(viewerFor(lia.id), lia.id);
+    expect(lista[0]?.follower?.avatarUrl).not.toBe("perfis/x.jpg");
   });
 });
