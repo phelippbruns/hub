@@ -16,8 +16,10 @@ Tópico ativo é o tópico com ao menos uma resposta nas últimas 24 horas. É e
 
 ## Princípios
 
-1. **Participação, não popularidade.** Não há curtidas nem contador por resposta. Tópicos sempre mostram quantas pessoas e quantas respostas têm. O perfil conta respostas, comunidades e dias ativos (dias com ao menos uma resposta ou tópico).
-2. **Cada nível tem uma cor fixa, em toda a rede.** Universo é `sun`, comunidade é `lavender`, tópico é `ink`. A regra vale para marcas, chips selecionados e ícones de tipo. O botão Responder do cartão de Hot Topic também usa `sun`. O cartão não leva selo; quem identifica o Hot Topic é o título da seção.
+1. **Participação, não popularidade.** Não há curtidas nem contador por resposta. Tópicos sempre mostram quantas pessoas e quantas respostas têm. O perfil conta contribuições (respostas mais tópicos criados) e comunidades, numa linha de texto e não num placar de caixas. "Dias ativos" saiu na F18: media assiduidade, que é o oposto de participar no seu tempo.
+2. **Cada nível tem uma cor fixa, em toda a rede.** Universo é `sun`, comunidade é `lavender`, tópico é `ink`. A regra vale para marcas, chips selecionados e ícones de tipo. O cartão de Hot Topic não leva selo; quem o identifica é o título da seção.
+
+   O Universo saiu do produto na F12.1, e desde então **`sun` é a ação principal de uma tela**: o Responder dentro do cartão de Hot Topic, a pílula do card atual no Paginador, o "Iniciar Jornada" do onboarding, o Seguir no perfil, e a marca `{` do Hub. Uma por tela — duas competiriam, e aí nenhuma seria a principal.
 3. **Ícone de tipo, nome natural.** `{` marca Universo, `#` marca comunidade, `*` marca tópico, cada um na cor do seu nível. Os símbolos aparecem como ícones ao lado do nome, nunca dentro dele: "Música Eletrônica", não "#música eletrônica". Em listas, a comunidade aparece com uma miniatura da capa no lugar da marca #. Na página da comunidade, a marca # é o próprio botão de entrar e sair: contorno lavanda para visitante, preenchida em lavanda para membro.
 4. **Plano, sem sombra.** A hierarquia vem de cor de fundo e peso tipográfico.
 5. **Texto sobre cor é sempre `ink`,** exceto sobre `ink` e `error`, que levam `paper`.
@@ -50,7 +52,37 @@ Uma família, Bricolage Grotesque, pelo Google Fonts. Peso 800 em `title` e `que
 
 ## Limites de conteúdo
 
-Resposta e abertura de tópico: 240 caracteres, com GIF ou 1 imagem. Imagem e GIF têm ícones do mesmo tamanho nos campos de texto. Mensagem de Cabine: GIF ou 1 imagem por mensagem. Intro de comunidade: 240 caracteres. Descrição de perfil: 120 caracteres. Links são bloqueados em todo texto, inclusive endereços digitados. Uma resposta pode ser editada por 5 minutos.
+Resposta e abertura de tópico: 240 caracteres, com GIF ou 1 imagem. Imagem e GIF têm ícones do mesmo tamanho nos campos de texto. Mensagem de Cabine: GIF ou 1 imagem por mensagem. Intro de comunidade: 240 caracteres. Sobre mim do perfil: 120 caracteres. Uma resposta pode ser editada por 5 minutos.
+
+**Links são bloqueados em todo texto, inclusive endereços digitados — menos num lugar.** O campo Links do perfil aceita até 3 endereços http ou https, e é a única exceção em toda a rede. O título de cada link continua sendo texto comum e também não aceita endereço, senão ele seria a porta dos fundos da regra. Links do perfil abrem em outra aba, sempre com `rel="noopener noreferrer"`.
+
+## Cor de fundo do perfil
+
+Cada pessoa escolhe a cor da própria página de perfil entre 8: **Lavanda**
+(padrão, o mesmo `surfacePage`), Branco, Verde, Azul, Vermelho, Roxo,
+Amarelo e Preto. Elas ficam **fora da paleta** do sistema, numa seção
+própria do `tokens.json`: são variações claras de superfície, não cores com
+significado — e misturá-las com as nove faria `fundoVerde` parecer tão
+fundamental quanto `ink`.
+
+Três regras sustentam a escolha:
+
+1. **A cor pinta a área de conteúdo, nunca a barra de navegação.** A barra é
+   do Hub e é a mesma em toda tela; tingi-la faria a navegação mudar de cor
+   conforme o perfil visitado.
+2. **Os cartões continuam `paper` — menos sobre o fundo Branco**, onde
+   passam a ser `surfacePage`. Cartão branco sobre página branca tem 1,00 de
+   contraste, ou seja, não existe. Sobre o fundo Amarelo o cartão separa-se
+   pouco (1,08): ali quem organiza a tela é o espaço, não a borda.
+3. **Texto de erro e de sucesso aparecem sempre dentro de um cartão**, nunca
+   direto sobre o fundo da página. Todas as 8 passam 4,5:1 com `ink` e com
+   `inkMuted`, mas sobre `fundoPreto` o erro dá 4,15 e o sucesso 4,08 — e
+   dentro de um cartão `paper` os dois passam com folga.
+
+O perfil guarda a **chave** (`verde`), nunca o hex, para a paleta poder
+mudar sem migration. Chave desconhecida cai no padrão em vez de quebrar a
+tela. `design/contrast.test.ts` varre as 8 e reprova qualquer cor nova que
+não aguente o texto do perfil.
 
 ## Ritmo de espaçamento
 

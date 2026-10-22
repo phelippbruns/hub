@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar } from "@/design/components";
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -188,19 +189,7 @@ function LinhaDeMensagem({ mensagem }: { mensagem: MensagemNaTela }) {
    */
   return (
     <article className={cn("flex items-end gap-2", minha && "flex-row-reverse")}>
-      {minha ? null : (
-        <span
-          aria-hidden="true"
-          className="size-avatarSm rounded-pill bg-lavender text-ink text-caption grid shrink-0 place-items-center bg-cover bg-center font-bold"
-          style={
-            mensagem.autor?.avatarUrl
-              ? { backgroundImage: `url(${mensagem.autor.avatarUrl})` }
-              : undefined
-          }
-        >
-          {mensagem.autor?.avatarUrl ? null : nome.slice(0, 1)}
-        </span>
-      )}
+      {minha ? null : <Avatar nome={nome} url={mensagem.autor?.avatarUrl} tamanho="md" />}
 
       <div className={cn("flex max-w-[72%] min-w-0 flex-col gap-1", minha && "items-end")}>
         <span className={cn("text-caption text-inkMuted px-1", minha && "text-right")}>

@@ -10,8 +10,10 @@
  * apertar o chip, virar o interruptor e ver o estado mudar.
  */
 import { useState, type ReactNode } from "react";
+import { FUNDOS_DO_PERFIL } from "@/features/perfil/fundos";
 import {
   ActivityRow,
+  Avatar,
   AnswerCard,
   BottomSheet,
   MenuSuspenso,
@@ -36,7 +38,6 @@ import {
   PaginaCarregando,
   PasswordInput,
   PinButton,
-  ProfileCounters,
   ProfileHeader,
   Skeleton,
   SectionTitle,
@@ -541,6 +542,7 @@ export function DesignGallery() {
         </Card>
 
         <Card title="Topo do perfil" wide>
+          {/* RN28: participação, não popularidade — uma linha de texto, não um placar. */}
           <div className="w-full">
             <ProfileHeader
               nome="Lia Souza"
@@ -548,14 +550,42 @@ export function DesignGallery() {
               bio="Vinil, serras e pista desde 2010."
               avatarUrl={null}
               seguidores={214}
+              contribuicoes={141}
+              comunidades={9}
+              links={[
+                { title: "Instagram", url: "https://instagram.com/lia" },
+                { title: "Portfólio", url: "https://lia.com" },
+              ]}
             />
           </div>
         </Card>
 
-        <Card title="Contadores do perfil" wide>
-          {/* RN28: participação, não popularidade. Três caixas iguais. */}
-          <div className="w-full">
-            <ProfileCounters respostas={141} comunidades={9} diasAtivos={88} />
+        <Card title="Foto de perfil" wide>
+          {/* RN30: o hexágono orgânico, nos tamanhos que o Hub usa. */}
+          <div className="flex w-full flex-wrap items-end gap-3">
+            {(["sm", "md", "lg", "xl", "perfil"] as const).map((tamanho) => (
+              <div key={tamanho} className="flex flex-col items-center gap-1">
+                <Avatar nome="Lia Souza" tamanho={tamanho} />
+                <span className="text-caption text-inkMuted">{tamanho}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card title="Cores de fundo do perfil" wide>
+          {/* RN27: o dono escolhe. Todas passam 4,5:1 com ink e inkMuted. */}
+          <div className="flex w-full flex-wrap gap-2">
+            {FUNDOS_DO_PERFIL.map((fundo) => (
+              <div
+                key={fundo.chave}
+                className={`${fundo.pagina} border-line flex flex-col gap-1 rounded-sm border p-2`}
+              >
+                <span className="text-caption text-ink">{fundo.nome}</span>
+                <span className={`${fundo.cartao} text-caption text-inkMuted rounded-sm px-2 py-1`}>
+                  cartão
+                </span>
+              </div>
+            ))}
           </div>
         </Card>
 

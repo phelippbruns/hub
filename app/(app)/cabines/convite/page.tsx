@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ContentColumn, PageTitle, SectionTitle } from "@/design/components";
+import { Avatar, ContentColumn, PageTitle, SectionTitle } from "@/design/components";
 import { AcoesDoConvite } from "@/features/cabines/acoes-do-convite";
 import { getViewer } from "@/lib/auth/session";
 import { convitePorId } from "@/lib/data/cabins";
@@ -37,15 +37,7 @@ export default async function ConvitePage({
       <PageTitle>Convite</PageTitle>
 
       <div className="bg-paper flex flex-col items-center gap-3 rounded-md p-5 text-center">
-        <span
-          aria-hidden="true"
-          className="size-avatarLg rounded-pill bg-lavender block bg-cover bg-center"
-          style={
-            convite.quem.avatarUrl
-              ? { backgroundImage: `url(${convite.quem.avatarUrl})` }
-              : undefined
-          }
-        />
+        <Avatar nome={convite.quem.nome} url={convite.quem.avatarUrl} tamanho="xl" />
 
         <h2 className="text-subtitle text-ink">{convite.quem.nome} quer conversar com você</h2>
 

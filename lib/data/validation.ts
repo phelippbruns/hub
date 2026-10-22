@@ -152,6 +152,72 @@ export const createCommunitySchema = z.object({
   coverUrl: z.url().nullable().default(null),
 });
 
+/** RN27: até 3 links no perfil. */
+export const MAXIMO_DE_LINKS = 3;
+
+/**
+ * O endereço de um link do perfil.
+ *
+ * **É o único campo do Hub que aceita link** (RN16). Por isso ele não passa
+ * por `userText`, e por isso é o único lugar onde a conferência precisa ser
+ * no sentido contrário: em vez de recusar o que parece endereço, recusa o
+ * que não é um endereço seguro.
+ *
+ * Só `http` e `https`. O que importa não é o que a lista permite e sim o
+ * que ela barra: `javascript:` num `href` executa código na página de quem
+ * clica, e `data:` serve uma página falsa no nosso domínio.
+ */
+const enderecoDeLink = z
+  .string()
+  .trim()
+  .min(1, "O endereço não pode ficar em branco")
+  .max(300, "O endereço passa de 300 caracteres")
+  // "phelipp.com" é o que as pessoas digitam; vira https antes de qualquer
+  // conferência, senão `new URL` nem consegue lê-lo.
+  .transform((valor) => (/^[a-z][a-z0-9+.-]*:/i.test(valor) ? valor : `https://${valor}`))
+  .refine(
+    (valor) => {
+      try {
+        const url = new URL(valor);
+        return (
+          (url.protocol === "http:" || url.protocol === "https:") && url.hostname.includes(".")
+        );
+      } catch {
+        return false;
+      }
+    },
+    { message: "Use um endereço que comece com https://" },
+  );
+
+/**
+ * Um link do perfil: título curto e endereço.
+ *
+ * O título tem 12 caracteres porque ele fica numa fileira com os outros
+ * dois; e **não pode conter link**, senão o campo de texto viraria a porta
+ * dos fundos da RN16 — alguém escreveria o endereço no título, onde ele
+ * aparece como texto solto.
+ */
+export const profileLinkSchema = z.object({
+  title: userText(12, "O título do link"),
+  url: enderecoDeLink,
+});
+
+/**
+ * RN27: a cor de fundo do perfil é guardada como chave, nunca como hex.
+ *
+ * A lista vive no design system; aqui só se confere que a chave existe.
+ * Chave desconhecida **não é erro**: cai no padrão. Um perfil não pode
+ * deixar de abrir porque a paleta mudou embaixo dele.
+ */
+export const backgroundKeySchema = z.string().trim().max(20).catch("lavanda").default("lavanda");
+
+/** RN30: zoom de 1 a 3 e deslocamento em fração do quadro. */
+export const enquadramentoSchema = z.object({
+  zoom: z.coerce.number().catch(1).default(1),
+  ox: z.coerce.number().catch(0).default(0),
+  oy: z.coerce.number().catch(0).default(0),
+});
+
 /** RN27: descrição de perfil de até 120 caracteres, sem links. */
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -167,6 +233,20 @@ export const updateProfileSchema = z.object({
    * trocar a foto não pode apagá-la.
    */
   avatarCaminho: z.string().min(1).max(500).nullable().optional(),
+  /**
+   * RN27: a lista inteira, sempre — não um link de cada vez.
+   *
+   * Mandar a lista completa é o que deixa apagar e reordenar funcionarem
+   * sem nenhuma operação a mais: o servidor substitui o que havia. Ausente
+   * quer dizer "não mexer", como no caminho da foto.
+   */
+  links: z
+    .array(profileLinkSchema)
+    .max(MAXIMO_DE_LINKS, `São no máximo ${MAXIMO_DE_LINKS} links`)
+    .optional(),
+  backgroundKey: backgroundKeySchema.optional(),
+  hideFollowers: z.boolean().optional(),
+  enquadramento: enquadramentoSchema.optional(),
 });
 
 /** RN22: o convite pode levar uma mensagem de até 240 caracteres, sem links. */

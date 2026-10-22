@@ -2,12 +2,11 @@
  * Perfis (RN17, RN27, RN29, RN30).
  */
 import { prisma } from "./prisma";
-import { ForbiddenError, NotFoundError, translateDatabaseError } from "./errors";
+import { ForbiddenError, translateDatabaseError } from "./errors";
 import { updateProfileSchema } from "./validation";
-import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
+import { requireProfileId, type Viewer } from "./viewer";
 import { generateUniqueHandle, suggestHandle, withSuffix } from "@/lib/auth/handle";
 import type { AgeVerificationMethod } from "@/lib/auth/age-verifier";
-import { enderecoDeMidia } from "@/lib/midia/deposito";
 
 /** RN17: o @ é único. Exportado para a tela avisar antes de enviar. */
 export async function handleEmUso(handle: string): Promise<boolean> {
@@ -169,14 +168,49 @@ export async function updateProfile(viewer: Viewer, input: unknown) {
    * caminho.
    */
   try {
-    return await prisma.profile.update({
-      where: { id: me },
-      data: {
-        name: data.name,
-        ...(data.handle === undefined ? {} : { handle: data.handle }),
-        ...(data.bio === undefined ? {} : { bio: data.bio }),
-        ...(data.avatarCaminho === undefined ? {} : { avatarUrl: data.avatarCaminho }),
-      },
+    return await prisma.$transaction(async (tx) => {
+      const perfil = await tx.profile.update({
+        where: { id: me },
+        data: {
+          name: data.name,
+          ...(data.handle === undefined ? {} : { handle: data.handle }),
+          ...(data.bio === undefined ? {} : { bio: data.bio }),
+          ...(data.avatarCaminho === undefined ? {} : { avatarUrl: data.avatarCaminho }),
+          ...(data.backgroundKey === undefined ? {} : { backgroundKey: data.backgroundKey }),
+          ...(data.hideFollowers === undefined ? {} : { hideFollowers: data.hideFollowers }),
+          ...(data.enquadramento === undefined
+            ? {}
+            : {
+                avatarZoom: data.enquadramento.zoom,
+                avatarOffsetX: data.enquadramento.ox,
+                avatarOffsetY: data.enquadramento.oy,
+              }),
+        },
+      });
+
+      /*
+       * RN27: a lista de links chega inteira e substitui a que havia.
+       *
+       * Apagar e regravar, em vez de comparar item a item: assim apagar o
+       * do meio e reordenar funcionam sem nenhuma operação a mais, e a
+       * posição continua sendo o que ela diz ser — a ordem na tela. Dentro
+       * da transação, ninguém chega a ver o perfil sem links.
+       */
+      if (data.links !== undefined) {
+        await tx.profileLink.deleteMany({ where: { profileId: me } });
+        if (data.links.length > 0) {
+          await tx.profileLink.createMany({
+            data: data.links.map((link, position) => ({
+              profileId: me,
+              position,
+              title: link.title,
+              url: link.url,
+            })),
+          });
+        }
+      }
+
+      return perfil;
     });
   } catch (error) {
     // RN17: o @ é único. O índice é a garantia; aqui vira mensagem.
@@ -256,50 +290,41 @@ export async function definirQuemPodeConvidar(viewer: Viewer, escolha: string) {
   await prisma.profile.update({ where: { id: me }, data: { invitePolicy: escolha } });
 }
 
-/** RN27/RN28: o perfil público. Seguidores são informativos e não abrem lista. */
-export async function getProfileForViewer(viewer: Viewer, handle: string) {
-  const profile = await prisma.profile.findFirst({
-    where: { handle, deletedAt: null },
-    select: {
-      id: true,
-      handle: true,
-      name: true,
-      avatarUrl: true,
-      bio: true,
-      createdAt: true,
-    },
+/**
+ * As medidas da foto que já está guardada (RN30).
+ *
+ * A ação precisa delas para conferir o enquadramento quando a pessoa só
+ * reposiciona a foto, sem trocá-la: sem as proporções não há limite contra
+ * o que comparar.
+ */
+export async function medidasDaFotoAtual(
+  viewer: Viewer,
+): Promise<{ largura: number; altura: number } | null> {
+  const me = requireProfileId(viewer);
+  const perfil = await prisma.profile.findUnique({
+    where: { id: me },
+    select: { avatarWidth: true, avatarHeight: true },
   });
-  if (!profile) throw new NotFoundError("Perfil");
 
-  const me = viewerProfileId(viewer);
-
-  const [followers, answers, communities, activeDays] = await Promise.all([
-    prisma.follow.count({ where: { followedProfileId: profile.id } }),
-    // RN28: os contadores são respostas, comunidades e dias ativos.
-    prisma.answer.count({ where: { authorId: profile.id, deletedAt: null } }),
-    prisma.membership.count({ where: { profileId: profile.id, bannedAt: null } }),
-    countActiveDays(profile.id),
-  ]);
-
-  return {
-    ...profile,
-    // A foto vem como caminho no depósito; a tela precisa de endereço.
-    avatarUrl: await enderecoDeMidia(profile.avatarUrl),
-    isSelf: me === profile.id,
-    counts: { followers, answers, communities, activeDays },
-  };
+  return perfil?.avatarWidth && perfil.avatarHeight
+    ? { largura: perfil.avatarWidth, altura: perfil.avatarHeight }
+    : null;
 }
 
-/** RN28: dia ativo é o dia com ao menos uma resposta ou tópico. */
-async function countActiveDays(profileId: string): Promise<number> {
-  const rows = await prisma.$queryRaw<{ days: bigint }[]>`
-    SELECT count(DISTINCT dia)::bigint AS days FROM (
-      SELECT (created_at AT TIME ZONE hub_cycle_timezone())::date AS dia
-        FROM answers WHERE author_id = ${profileId}::uuid AND deleted_at IS NULL
-      UNION
-      SELECT (created_at AT TIME ZONE hub_cycle_timezone())::date AS dia
-        FROM topics  WHERE author_id = ${profileId}::uuid AND deleted_at IS NULL
-    ) AS dias
-  `;
-  return Number(rows[0]?.days ?? 0);
+/**
+ * Grava as medidas da foto nova.
+ *
+ * Separado de `updateProfile` porque pertence à foto, não ao formulário:
+ * só muda quando a imagem muda, e um arquivo que não dá para medir zera as
+ * duas — aí o avatar centraliza sozinho, que é o comportamento de antes.
+ */
+export async function guardarMedidasDaFoto(
+  viewer: Viewer,
+  medidas: { largura: number; altura: number } | null,
+): Promise<void> {
+  const me = requireProfileId(viewer);
+  await prisma.profile.update({
+    where: { id: me },
+    data: { avatarWidth: medidas?.largura ?? null, avatarHeight: medidas?.altura ?? null },
+  });
 }

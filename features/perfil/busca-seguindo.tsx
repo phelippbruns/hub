@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Avatar } from "@/design/components";
 import { SearchIcon } from "@/design/icons";
 import { OlhoDeSeguir } from "./acoes-do-perfil";
 
@@ -50,13 +51,7 @@ export function ListaDeSeguindo({ pessoas }: { pessoas: Seguida[] }) {
           {visiveis.map((pessoa) => (
             <div key={pessoa.id} className="bg-paper flex items-center gap-3 rounded-sm p-3">
               <Link href={`/${pessoa.handle}`} className="flex min-w-0 flex-1 items-center gap-3">
-                <span
-                  aria-hidden="true"
-                  className="size-avatar rounded-pill bg-lavender block shrink-0 bg-cover bg-center"
-                  style={
-                    pessoa.avatarUrl ? { backgroundImage: `url(${pessoa.avatarUrl})` } : undefined
-                  }
-                />
+                <Avatar nome={pessoa.nome} url={pessoa.avatarUrl} tamanho="sm" />
                 <span className="min-w-0">
                   <span className="text-bodyStrong text-ink block truncate">{pessoa.nome}</span>
                   <span className="text-caption text-inkMuted block">@{pessoa.handle}</span>

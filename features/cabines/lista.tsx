@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { cn } from "@/design/cn";
-import { EndOfList, Input } from "@/design/components";
+import { Avatar, EndOfList, Input } from "@/design/components";
 import { ConviteEnviado } from "./convite-enviado";
 import { conversarCom, procurarParaConversar, type PessoaNaBusca } from "./actions";
 
@@ -301,13 +301,5 @@ function Secao({ children }: { children: string }) {
 
 /** A foto de quem convidou, ou o lugar dela. */
 function Foto({ nome, avatarUrl }: { nome: string; avatarUrl: string | null }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="size-avatarMd rounded-pill bg-lavender text-ink text-label grid shrink-0 place-items-center bg-cover bg-center font-bold"
-      style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : undefined}
-    >
-      {avatarUrl ? null : nome.slice(0, 1)}
-    </span>
-  );
+  return <Avatar nome={nome} url={avatarUrl} tamanho="lg" />;
 }

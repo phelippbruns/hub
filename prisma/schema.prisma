@@ -165,6 +165,35 @@ model Profile {
   /// RN27: descrição de até 120 caracteres, sem links.
   bio       String? @db.VarChar(120)
 
+  /// RN30: o enquadramento da foto dentro do hexágono do perfil.
+  ///
+  /// A imagem é guardada inteira e recortada **na hora de desenhar**: nada é
+  /// reprocessado, então a pessoa pode reenquadrar quantas vezes quiser sem
+  /// perder qualidade. Zoom vai de 1 a 3, e o deslocamento é uma fração do
+  /// lado do quadro — por ser fração, o mesmo enquadramento vale no avatar de
+  /// 30 px e no de 100 px.
+  ///
+  /// A largura e a altura vêm **dos bytes da imagem, lidos no servidor**,
+  /// nunca do formulário: sem elas é impossível conferir que o recorte não
+  /// deixa buraco dentro da forma, e aceitá-las da tela seria deixar a
+  /// conferência nas mãos de quem ela deveria limitar.
+  avatarWidth   Int?  @map("avatar_width")
+  avatarHeight  Int?  @map("avatar_height")
+  avatarZoom    Float @default(1) @map("avatar_zoom")
+  avatarOffsetX Float @default(0) @map("avatar_offset_x")
+  avatarOffsetY Float @default(0) @map("avatar_offset_y")
+
+  /// RN27: a cor de fundo da página do perfil, escolhida por quem é dono.
+  ///
+  /// Guarda a **chave** (`verde`), nunca o hex: assim a paleta muda mexendo
+  /// só no design system. Sem CHECK no banco pelo mesmo motivo — um CHECK
+  /// obrigaria uma migration a cada cor nova. Quem valida é o Zod, e uma
+  /// chave desconhecida cai no padrão na hora de desenhar.
+  backgroundKey String @default("lavanda") @map("background_key") @db.VarChar(20)
+
+  /// RN27: esconde seguidores e seguindo de todo mundo, menos de mim.
+  hideFollowers Boolean @default(false) @map("hide_followers")
+
   /// Data de nascimento informada no cadastro.
   ///
   /// Guardada como `date`, sem hora nem fuso: nascimento é um dia do
@@ -186,7 +215,7 @@ model Profile {
   /// F07: painel de contexto oculto. Preferência da pessoa, não do aparelho.
   hideContextPanel Boolean @default(false) @map("hide_context_panel")
   /// Versão dos Termos aceita no cadastro (RN29).
-  termsVersion          String?                @map("terms_version") @db.VarChar(20)
+  termsVersion     String? @map("terms_version") @db.VarChar(20)
 
   /// RN23: quem pode me convidar para uma Cabine.
   invitePolicy InvitePolicy @default(community_members) @map("invite_policy")
@@ -212,6 +241,7 @@ model Profile {
   deletedAt     DateTime?             @map("deleted_at") @db.Timestamptz(6)
   deletedPolicy DeletedContentPolicy? @map("deleted_policy")
 
+  links              ProfileLink[]
   communitiesCreated Community[]       @relation("CommunityCreator")
   memberships        Membership[]
   topics             Topic[]
@@ -235,6 +265,27 @@ model Profile {
   analyticsEvents    AnalyticsEvent[]
 
   @@map("profiles")
+}
+
+/// RN16/RN27: os links do perfil — a única exceção ao bloqueio de links.
+///
+/// Até três por pessoa, e **o limite é a chave primária**: a posição vai de
+/// 0 a 2 e não se repete por perfil, então não existe como gravar o quarto.
+/// Contar antes de inserir deixaria a regra valer só enquanto alguém
+/// lembrasse de contar.
+model ProfileLink {
+  profileId String @map("profile_id") @db.Uuid
+  /// 0, 1 ou 2 — também a ordem em que aparecem na tela.
+  position  Int    @db.SmallInt
+  title     String @db.VarChar(12)
+  /// Só http e https, conferido no servidor. Endereço sem protocolo é
+  /// normalizado para https antes de chegar aqui.
+  url       String @db.VarChar(300)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, position])
+  @@map("profile_links")
 }
 
 // ------------------------------------------------------------ hierarquia
@@ -265,7 +316,7 @@ model Community {
   /// F07: o endereço em /c/<slug>. Quem preenche é o gatilho
   /// `communities_slug`; o default vazio existe só para o Prisma não exigir o
   /// valor em cada create. Se o gatilho falhar, o índice único denuncia.
-  slug           String  @default("") @unique @db.VarChar(80)
+  slug           String  @unique @default("") @db.VarChar(80)
   intro          String  @db.VarChar(240)
   coverUrl       String? @map("cover_url")
   createdById    String? @map("created_by_id") @db.Uuid
@@ -388,7 +439,7 @@ model Follow {
   topicId           String?      @map("topic_id") @db.Uuid
   followedProfileId String?      @map("followed_profile_id") @db.Uuid
 
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   /// F11: última visita ao tópico seguido. Base do "n novas" do Início.
   lastSeenAt DateTime? @map("last_seen_at") @db.Timestamptz(6)
 
@@ -445,11 +496,11 @@ model Cabin {
 }
 
 model CabinMember {
-  cabinId   String    @map("cabin_id") @db.Uuid
-  profileId String    @map("profile_id") @db.Uuid
-  joinedAt  DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
+  cabinId    String    @map("cabin_id") @db.Uuid
+  profileId  String    @map("profile_id") @db.Uuid
+  joinedAt   DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
   /// RN24: quem sai volta só por novo convite.
-  leftAt    DateTime? @map("left_at") @db.Timestamptz(6)
+  leftAt     DateTime? @map("left_at") @db.Timestamptz(6)
   /// Até quando esta pessoa leu. Nulo = nunca abriu, então tudo conta.
   lastReadAt DateTime? @map("last_read_at") @db.Timestamptz(6)
 
@@ -576,18 +627,18 @@ model PlatformBan {
 }
 
 model Report {
-  id         String       @id @default(uuid()) @db.Uuid
-  reporterId String?      @map("reporter_id") @db.Uuid
+  id          String       @id @default(uuid()) @db.Uuid
+  reporterId  String?      @map("reporter_id") @db.Uuid
   /// RN06: a moderação é por comunidade. Resolvida ao denunciar, porque o
   /// conteúdo pode sumir depois e a denúncia não pode ficar órfã.
-  communityId String?     @map("community_id") @db.Uuid
-  target     ReportTarget
-  targetId   String       @map("target_id") @db.Uuid
+  communityId String?      @map("community_id") @db.Uuid
+  target      ReportTarget
+  targetId    String       @map("target_id") @db.Uuid
   /// Motivo fixo, de uma lista; o texto livre fica em `details`.
-  reason     String       @db.VarChar(40)
-  details    String?      @db.VarChar(500)
-  status     ReportStatus @default(open)
-  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  reason      String       @db.VarChar(40)
+  details     String?      @db.VarChar(500)
+  status      ReportStatus @default(open)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
 
   reporter  Profile?   @relation(fields: [reporterId], references: [id], onDelete: SetNull)
   community Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)

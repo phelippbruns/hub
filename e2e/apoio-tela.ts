@@ -1,4 +1,4 @@
-import type { Locator, Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /**
  * O aviso da tela, sem o anunciador de rota do Next.
@@ -129,4 +129,23 @@ export async function preencherNovaComunidade(
   await page.getByLabel("Nome").fill(nome);
   await page.getByLabel("Intro").fill(intro);
   await page.getByRole("button", { name: "Criar comunidade" }).click();
+}
+
+/**
+ * Abre o perfil de alguém e segue.
+ *
+ * Existe porque o botão já mudou de forma: era um botão largo escrito
+ * "Seguir" e, na F18, virou um botão redondo só de ícone, cujo nome
+ * acessível é "Seguir <nome>". Três arquivos de jornada montavam cenário
+ * com o seletor antigo, e os três quebraram juntos — o mesmo remédio do
+ * `concluirOnboarding()` e do `escolherComunidades()`.
+ *
+ * Procura dentro do conteúdo: a barra de navegação tem os próprios botões.
+ */
+export async function seguirNoPerfil(page: Page, handle: string): Promise<void> {
+  await page.goto(`/${handle}`);
+
+  const conteudo = page.getByRole("main");
+  await conteudo.getByRole("button", { name: /^Seguir / }).click();
+  await expect(conteudo.getByRole("button", { name: /^Seguindo / })).toBeVisible();
 }

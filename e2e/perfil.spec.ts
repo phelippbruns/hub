@@ -57,17 +57,27 @@ test.describe("o perfil próprio", () => {
 
     await expect(page.getByText(/seguindo$/)).toBeVisible();
     await expect(page.getByRole("tab", { name: "Coleção" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Editar perfil" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Contribuições" })).toBeVisible();
   });
 
-  test("os três contadores aparecem", async ({ page }) => {
+  test("os dois contadores aparecem, numa linha de texto", async ({ page }) => {
     await entrarNoApp(page, "contadores");
     await page.goto("/perfil");
 
-    // RN28: participação, não popularidade.
-    for (const rotulo of ["respostas", "comunidades", "dias ativos"]) {
-      await expect(page.getByText(rotulo, { exact: true })).toBeVisible();
-    }
+    // RN28: participação, não popularidade — e "dias ativos" saiu na F18,
+    // porque media assiduidade.
+    await expect(page.getByText(/^\d+ contribuições$/)).toBeVisible();
+    await expect(page.getByText(/^\d+ comunidades$/)).toBeVisible();
+    await expect(page.getByText("dias ativos")).toHaveCount(0);
+  });
+
+  test("a engrenagem leva a Editar perfil", async ({ page }) => {
+    await entrarNoApp(page, "engrenagem");
+    await page.goto("/perfil");
+
+    // A engrenagem tomou o lugar dos dois links largos que havia aqui.
+    await page.getByRole("link", { name: "Editar perfil" }).click();
+    await page.waitForURL(/\/perfil\/editar/);
   });
 
   test("a Coleção diz que é privada", async ({ page }) => {
@@ -101,15 +111,18 @@ test.describe("o perfil de outra pessoa", () => {
     await expect(page.getByRole("link", { name: /seguidores?/ })).toHaveCount(0);
   });
 
-  test("tem Seguir e Cabine", async ({ page }) => {
+  test("tem Seguir e Cabine, como botões de ícone com rótulo", async ({ page }) => {
     await entrarNoApp(page, "acoes");
-    const { handle } = await outraPessoa();
+    const { handle, nome } = await outraPessoa();
 
     await page.goto(`/${handle}`);
-    // Dentro do conteúdo: a barra de navegação também tem um link "Cabine".
+
+    // Só ícone: sem `aria-label` eles seriam dois botões mudos.
     const conteudo = page.getByRole("main");
-    await expect(conteudo.getByRole("button", { name: "Seguir", exact: true })).toBeVisible();
-    await expect(conteudo.getByRole("link", { name: "Cabine" })).toBeVisible();
+    await expect(conteudo.getByRole("button", { name: `Seguir ${nome}` })).toBeVisible();
+    await expect(
+      conteudo.getByRole("link", { name: `Abrir uma Cabine com ${nome}` }),
+    ).toBeVisible();
   });
 
   test("abrir o próprio @ leva ao perfil próprio", async ({ page }) => {
@@ -128,8 +141,10 @@ test.describe("seguir", () => {
     const { handle, nome } = await outraPessoa();
 
     await page.goto(`/${handle}`);
-    await page.getByRole("button", { name: "Seguir", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Seguindo" })).toBeVisible();
+    await page.getByRole("button", { name: `Seguir ${nome}` }).click();
+    await expect(
+      page.getByRole("button", { name: `Seguindo ${nome}. Toque para deixar de seguir` }),
+    ).toBeVisible();
 
     await esperarNoBanco(`
       SELECT 1 FROM follows f
@@ -148,7 +163,7 @@ test.describe("editar o perfil", () => {
     await page.goto("/perfil/editar");
 
     await page.getByLabel("Nome").fill("Ana Lima");
-    await page.getByRole("textbox", { name: "Descrição" }).fill("Techno e fotografia de rua.");
+    await page.getByRole("textbox", { name: "Sobre mim" }).fill("Techno e fotografia de rua.");
     await page.getByRole("button", { name: "Salvar" }).click();
 
     await page.waitForURL(/\/perfil$/);
@@ -160,7 +175,7 @@ test.describe("editar o perfil", () => {
     await entrarNoApp(page, "linkbio");
     await page.goto("/perfil/editar");
 
-    await page.getByRole("textbox", { name: "Descrição" }).fill("me acha em meusite.com");
+    await page.getByRole("textbox", { name: "Sobre mim" }).fill("me acha em meusite.com");
 
     await expect(page.getByText('Tire o endereço: "meusite.com"')).toBeVisible();
     await expect(page.getByRole("button", { name: "Salvar" })).toBeDisabled();
@@ -192,10 +207,10 @@ test.describe("silenciar e bloquear", () => {
 
   test("bloquear avisa que desfaz o seguir, e desfaz", async ({ page }) => {
     await entrarNoApp(page, "bloquear");
-    const { handle } = await outraPessoa();
+    const { handle, nome } = await outraPessoa();
 
     await page.goto(`/${handle}`);
-    await page.getByRole("button", { name: "Seguir", exact: true }).click();
+    await page.getByRole("button", { name: `Seguir ${nome}` }).click();
     await esperarNoBanco(`
       SELECT 1 FROM follows f JOIN profiles p ON p.id = f.followed_profile_id
        WHERE f.target = 'profile' AND p.handle = '${handle}'`);
@@ -212,5 +227,104 @@ test.describe("silenciar e bloquear", () => {
 
     await page.goto("/perfil/seguindo");
     await expect(page.getByText("Você ainda não segue ninguém.")).toBeVisible();
+  });
+});
+
+/**
+ * RN16/RN27: o campo Links é a única exceção ao bloqueio de links.
+ *
+ * Por isso a jornada confere o que importa para quem clica: a aba nova e o
+ * `rel`. Sem `noopener`, a página aberta pode mexer na aba de onde veio.
+ */
+test.describe("os links do perfil", () => {
+  test("salva, aparece no perfil e abre em outra aba com segurança", async ({ page }) => {
+    await entrarNoApp(page, "links");
+    await page.goto("/perfil/editar");
+
+    await page.getByLabel("Título do link 1").fill("Instagram");
+    // Sem protocolo: o servidor normaliza para https.
+    await page.getByLabel("Endereço do link 1").fill("instagram.com/lia");
+    await page.getByRole("button", { name: "Salvar" }).click();
+
+    await page.waitForURL(/\/perfil$/);
+
+    const link = page.getByRole("link", { name: "Instagram" });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("href", "https://instagram.com/lia");
+    await expect(link).toHaveAttribute("target", "_blank");
+    await expect(link).toHaveAttribute("rel", /noopener/);
+    await expect(link).toHaveAttribute("rel", /noreferrer/);
+  });
+
+  test("link sem título é recusado com a razão", async ({ page }) => {
+    await entrarNoApp(page, "linksemtitulo");
+    await page.goto("/perfil/editar");
+
+    await page.getByLabel("Endereço do link 1").fill("https://exemplo.com");
+    await page.getByRole("button", { name: "Salvar" }).click();
+
+    await expect(alerta(page.locator("form"))).toContainText("Dê um título ao link.");
+  });
+});
+
+test.describe("a cor de fundo do perfil", () => {
+  test("a escolha pinta a tela de editar e depois o perfil", async ({ page }) => {
+    await entrarNoApp(page, "cor");
+    await page.goto("/perfil/editar");
+
+    const verde = page.getByRole("radio", { name: "Verde" });
+    await verde.click();
+    await expect(verde).toHaveAttribute("aria-checked", "true");
+
+    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.waitForURL(/\/perfil$/);
+
+    /*
+     * Esperar o conteúdo, e não só o endereço: a rota tem `loading.tsx`, e
+     * medir logo depois da navegação mede o esqueleto, que não é pintado.
+     */
+    await expect(page.getByRole("tab", { name: "Contribuições" })).toBeVisible();
+
+    // A cor pinta a área de conteúdo, não a barra de navegação.
+    const cores = await page.evaluate(() => {
+      const conteudo = document.querySelector("main > div");
+      const barra = document.querySelector("nav");
+      return {
+        conteudo: conteudo ? getComputedStyle(conteudo).backgroundColor : null,
+        barra: barra ? getComputedStyle(barra).backgroundColor : null,
+      };
+    });
+
+    expect(cores.conteudo).toBe("rgb(230, 244, 234)");
+    expect(cores.barra).not.toBe("rgb(230, 244, 234)");
+  });
+});
+
+test.describe("RN27: esconder seguidores", () => {
+  test("ligado, o número some para o visitante e some do HTML", async ({ page, browser }) => {
+    const handle = await entrarNoApp(page, "privado");
+
+    await page.goto("/perfil/editar");
+    await page.getByRole("switch", { name: "Ocultar seguidores e seguindo" }).click();
+    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.waitForURL(/\/perfil$/);
+
+    // O dono continua vendo.
+    await expect(page.getByText(/seguidores/)).toBeVisible();
+
+    const outra = await browser.newContext();
+    try {
+      const visitante = await outra.newPage();
+      await entrarNoApp(visitante, "privadovisita");
+      await visitante.goto(`/${handle}`);
+
+      await expect(visitante.getByText(/seguidores?/)).toHaveCount(0);
+
+      // Não basta sumir da tela: o número não pode estar no HTML.
+      const html = await visitante.content();
+      expect(html).not.toContain("seguidores");
+    } finally {
+      await outra.close();
+    }
   });
 });

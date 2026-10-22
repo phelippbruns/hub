@@ -1,3 +1,4 @@
+import { Avatar } from "@/design/components";
 import type { ReactNode } from "react";
 import { cn } from "@/design/cn";
 
@@ -32,16 +33,19 @@ export function CabecalhoDaCabine({
     <header className="border-line flex items-center gap-2 border-b px-5 py-4">
       <span aria-hidden="true" className="flex shrink-0">
         {participantes.slice(0, 3).map((pessoa, i) => (
-          <span
+          /*
+            Sem o anel branco que separava um do outro: a máscara da forma
+            recorta tudo que o elemento desenha, inclusive anel e sombra.
+            Quem separa agora é a sobreposição menor — os cantos do
+            hexágono já criam o respiro que o círculo não tinha.
+          */
+          <Avatar
             key={pessoa.id}
-            className={cn(
-              "size-avatarSm rounded-pill bg-lavender text-ink text-caption ring-paper grid place-items-center bg-cover bg-center font-bold ring-2",
-              i > 0 && "-ml-2",
-            )}
-            style={pessoa.avatarUrl ? { backgroundImage: `url(${pessoa.avatarUrl})` } : undefined}
-          >
-            {pessoa.avatarUrl ? null : pessoa.nome.slice(0, 1)}
-          </span>
+            nome={pessoa.nome}
+            url={pessoa.avatarUrl}
+            tamanho="md"
+            className={cn(i > 0 && "-ml-1")}
+          />
         ))}
       </span>
 

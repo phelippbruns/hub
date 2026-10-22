@@ -25,6 +25,8 @@ type SizeToken = { name: string; value: string; usage: string };
 
 type TokensFile = {
   color: { tokens: ColorToken[] };
+  /** Cores de fundo do perfil (RN27). Fora da paleta principal de propósito. */
+  fundoDePerfil: { tokens: ColorToken[] };
   type: { families: Record<string, string>; groups: { styles: TypeStyle[] }[] };
   spacing: { tokens: SizeToken[] };
   radius: { tokens: SizeToken[] };
@@ -36,6 +38,7 @@ const SOURCE = "docs/design-system/tokens.json";
 const tokens = JSON.parse(readFileSync(SOURCE, "utf8")) as TokensFile;
 
 const colors = tokens.color.tokens;
+const fundos = tokens.fundoDePerfil.tokens;
 const styles = tokens.type.groups.flatMap((group) => group.styles);
 const spacing = tokens.spacing.tokens;
 const radii = tokens.radius.tokens;
@@ -63,6 +66,20 @@ ${colors.map((c) => `  /** ${c.usage} */\n  ${c.name}: "${c.value}",`).join("\n"
 } as const;
 
 export type ColorName = keyof typeof color;
+
+/**
+ * Cor de fundo da página de perfil, escolhida por quem é dono (RN27).
+ *
+ * Separada da paleta porque é outra coisa: são variações claras de
+ * superfície, e misturá-las com as 9 cores do sistema faria \`fundoVerde\`
+ * parecer tão fundamental quanto \`ink\`. O perfil guarda a **chave**, nunca
+ * o hex — assim a paleta muda sem migration.
+ */
+export const fundoDePerfil = {
+${fundos.map((c) => `  /** ${c.usage} */\n  ${c.name}: "${c.value}",`).join("\n")}
+} as const;
+
+export type FundoDePerfil = keyof typeof fundoDePerfil;
 
 /** Escala tipográfica. Uma família só: Bricolage Grotesque. */
 export const typography = {
@@ -119,6 +136,8 @@ const css = `${header("css")}
 
 ${colors.map((c) => `  --color-${c.name}: ${c.value};`).join("\n")}
 
+${fundos.map((c) => `  --color-${c.name}: ${c.value};`).join("\n")}
+
 ${styles
   .map((s) =>
     [
@@ -174,6 +193,7 @@ if (checkOnly && stale.length > 0) {
   process.exit(1);
 }
 console.log(
-  `tokens${checkOnly ? " em dia" : ""}: ${colors.length} cores, ${styles.length} estilos de texto, ` +
+  `tokens${checkOnly ? " em dia" : ""}: ${colors.length} cores, ${fundos.length} fundos de perfil, ` +
+    `${styles.length} estilos de texto, ` +
     `${spacing.length} espaçamentos, ${radii.length} raios, ${sizes.length} medidas.`,
 );

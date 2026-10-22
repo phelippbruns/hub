@@ -2,42 +2,60 @@
 
 import Link from "next/link";
 import { useId, useState, useTransition } from "react";
+import { BottomSheet, Button, ConfirmSheet, FollowButton } from "@/design/components";
 import {
-  BottomSheet,
-  Button,
-  ConfirmSheet,
-  FollowButton,
-  RoundIconButton,
-} from "@/design/components";
-import { CabinNavIcon } from "@/design/icons";
-import { MoreOptionsIcon } from "@/design/icons";
+  CabinNavIcon,
+  FollowIcon,
+  FollowingIcon,
+  MoreOptionsIcon,
+  SettingsIcon,
+} from "@/design/icons";
+import { BotaoDoCanto } from "./botao-do-canto";
 import { alternarBloqueio, alternarSeguir, alternarSilencio } from "./actions";
 
 /**
- * Seguir, Cabine e o menu, no perfil de outra pessoa (tela 24).
+ * As ações do canto superior direito do perfil.
  *
- * Seguir e Cabine dividem a linha, como o protótipo mostra: são as duas
- * coisas que alguém quer fazer depois de ler uma resposta que gostou.
+ * Botões redondos só com ícone, como a v3 pede — e por isso **todos levam
+ * `aria-label`**: sem texto ao lado, o rótulo é a única coisa que diz o que
+ * o botão faz.
+ *
+ * Para o dono é um só, a engrenagem, que abre Editar perfil. Ela toma o
+ * lugar dos dois links largos que havia aqui ("Editar perfil" e
+ * "Configurações"); `/configuracoes` continua a um clique, na engrenagem do
+ * pé da barra lateral, onde moram conta, privacidade e notificações.
  */
 export function AcoesDoPerfil({
+  souEu,
   profileId,
   handle,
   nome,
   seguindoInicial,
   bloqueadoInicial,
   silenciadoInicial,
+  convitePendente = false,
 }: {
+  souEu: boolean;
   profileId: string;
   handle: string;
   nome: string;
   seguindoInicial: boolean;
   bloqueadoInicial: boolean;
   silenciadoInicial: boolean;
+  convitePendente?: boolean;
 }) {
   const [seguindo, setSeguindo] = useState(seguindoInicial);
   const [aberto, setAberto] = useState<"nenhum" | "menu" | "bloquear">("nenhum");
   const [pendente, iniciar] = useTransition();
   const idDoMenu = useId();
+
+  if (souEu) {
+    return (
+      <BotaoDoCanto como="link" href="/perfil/editar" rotulo="Editar perfil" tom="claro">
+        <SettingsIcon decorative className="size-icon" />
+      </BotaoDoCanto>
+    );
+  }
 
   function alternar() {
     const estava = seguindo;
@@ -52,56 +70,78 @@ export function AcoesDoPerfil({
     });
   }
 
+  /*
+   * Bloqueado: seguir e Cabine deixam de fazer sentido, e os botões somem em
+   * vez de aparecerem desativados — eles não voltariam a funcionar sem
+   * desbloquear, e um botão desativado sem explicação é pior que nenhum.
+   */
   return (
-    <div className="flex w-full flex-col gap-2">
-      <div className="flex items-center gap-2">
-        {/*
-          Bloqueado: seguir deixa de fazer sentido, e o botão some em vez de
-          aparecer desativado — ele não voltaria a funcionar sem desbloquear.
-        */}
-        {bloqueadoInicial ? (
-          <Button
-            variant="secondary"
-            className="flex-1"
-            disabled={pendente}
-            onClick={() => iniciar(() => alternarBloqueio(profileId, handle, true))}
-          >
-            Desbloquear
-          </Button>
-        ) : (
-          <>
-            <Button
-              variant={seguindo ? "secondary" : "primary"}
-              className="flex-1"
-              disabled={pendente}
-              onClick={alternar}
-            >
-              {seguindo ? "Seguindo" : "Seguir"}
-            </Button>
-
-            {/* A Cabine chega na F13; o botão já leva à tela dela. */}
-            <Link href={`/cabines/nova?com=${handle}`} className="flex-1">
-              <Button variant="secondary" className="w-full">
-                <CabinNavIcon decorative className="size-icon" /> Cabine
-              </Button>
-            </Link>
-          </>
-        )}
-
-        <RoundIconButton
-          label={`Mais opções sobre ${nome}`}
-          ativo={aberto === "menu"}
-          controla={idDoMenu}
-          onClick={() => setAberto((a) => (a === "menu" ? "nenhum" : "menu"))}
+    <div className="flex items-start gap-2">
+      {bloqueadoInicial ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={pendente}
+          onClick={() => iniciar(() => alternarBloqueio(profileId, handle, true))}
         >
-          <MoreOptionsIcon decorative className="size-icon" />
-        </RoundIconButton>
-      </div>
+          Desbloquear
+        </Button>
+      ) : (
+        <>
+          {/*
+            Seguir em sun, seguindo em ink: a forma do ícone muda junto (olho
+            vira olho com tique), porque cor sozinha não pode carregar estado.
+          */}
+          <BotaoDoCanto
+            como="botao"
+            rotulo={seguindo ? `Seguindo ${nome}. Toque para deixar de seguir` : `Seguir ${nome}`}
+            pressionado={seguindo}
+            tom={seguindo ? "escuro" : "destaque"}
+            desabilitado={pendente}
+            onClick={alternar}
+          >
+            {seguindo ? (
+              <FollowingIcon decorative className="size-icon" />
+            ) : (
+              <FollowIcon decorative className="size-icon" />
+            )}
+          </BotaoDoCanto>
+
+          {/*
+            A RN20 tem duas formas: se vocês já se seguem a conversa abre na
+            hora, senão vai convite. Quem decide é a tela de Cabine — este
+            botão só leva até lá, com a pessoa já escolhida.
+          */}
+          <BotaoDoCanto
+            como="link"
+            href={`/cabines/nova?com=${handle}`}
+            rotulo={
+              convitePendente
+                ? `Convite de Cabine para ${nome} esperando resposta`
+                : `Abrir uma Cabine com ${nome}`
+            }
+            tom="lavanda"
+            aviso={convitePendente}
+          >
+            <CabinNavIcon decorative className="size-icon" />
+          </BotaoDoCanto>
+        </>
+      )}
+
+      <BotaoDoCanto
+        como="botao"
+        rotulo={`Mais opções sobre ${nome}`}
+        tom="claro"
+        expandido={aberto === "menu"}
+        controla={idDoMenu}
+        onClick={() => setAberto((a) => (a === "menu" ? "nenhum" : "menu"))}
+      >
+        <MoreOptionsIcon decorative className="size-icon" />
+      </BotaoDoCanto>
 
       <div id={idDoMenu}>
         <BottomSheet title={nome} open={aberto === "menu"}>
           <div className="flex flex-col gap-1">
-            {/* Denunciar chega na F16, com o fluxo de moderação. */}
             <Link href={`/denuncia?perfil=${handle}`}>
               <Button variant="secondary" className="w-full">
                 Denunciar perfil

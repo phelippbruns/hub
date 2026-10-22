@@ -20,7 +20,6 @@ import { db, makeCommunity, makeProfile, makeUniverse, resetDatabase } from "./t
 import { getTopicForViewer, createTopic, createAnswer, listTopicsOfCommunity } from "./topics";
 import { joinCommunity } from "./communities";
 import { followProfile, getFollowing } from "./follows";
-import { getProfileForViewer } from "./profiles";
 import { perfilNaTela } from "./perfil";
 import { buscarPessoas } from "./descoberta";
 import { viewerFor } from "./viewer";
@@ -126,14 +125,14 @@ describe("nenhuma consulta devolve caminho cru de avatar", () => {
     naoVazouCaminho(seguindo[0]?.followedProfile?.avatarUrl, "getFollowing");
   });
 
-  it("o perfil, pelos dois caminhos que o leem", async () => {
+  // Havia dois caminhos até aqui: `perfilNaTela` e um `getProfileForViewer`
+  // que era uma segunda cópia esquecida dele, sem nenhuma rota chamando.
+  // A F18 apagou a cópia; sobrou o caminho de verdade.
+  it("o perfil", async () => {
     const { lia, jo } = await cenario();
 
     const pelaTela = await perfilNaTela(viewerFor(lia.id), "jofoto");
     naoVazouCaminho(pelaTela.avatarUrl, "perfilNaTela");
-
-    const peloOutro = await getProfileForViewer(viewerFor(lia.id), "jofoto");
-    naoVazouCaminho(peloOutro.avatarUrl, "getProfileForViewer");
     void jo;
   });
 });
