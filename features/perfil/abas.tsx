@@ -22,7 +22,7 @@ export function AbasDoPerfil({
   const params = useSearchParams();
 
   const abas = [
-    { id: "respostas", label: "Respostas" },
+    { id: "contribuicoes", label: "Contribuições" },
     { id: "comunidades", label: "Comunidades" },
     // RN27: a Coleção é privada. Para visitante a aba nem existe.
     ...(comColecao ? [{ id: "colecao", label: "Coleção" }] : []),

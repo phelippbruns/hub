@@ -1311,6 +1311,67 @@ novo — e, se forem muitos, talvez ele não devesse se esconder.
 👁 **Atenção** — o `grep` é hábito, não barreira.
 
 
+### Nenhuma imagem enviada aparecia em desenvolvimento
+
+*O que aconteceu:* ao conferir a foto de perfil nova, o hexágono aparecia
+preenchido de ink, como se não houvesse foto. O `<img>` estava lá, com o
+`src` certo, e `naturalWidth` era **0**.
+
+*A causa:* a CSP dizia `img-src 'self' blob: data: https:`. Em produção o
+Supabase é https e está coberto; em desenvolvimento ele é
+`http://127.0.0.1:54321`, que não é `self` nem https. O navegador bloqueava
+**toda** imagem vinda do depósito — foto de perfil, capa de comunidade e
+imagem de resposta —, sem erro na página e sem nada no terminal.
+
+*Por que passou por tudo:* porque ninguém mede pixel. O build passa, o lint
+passa, os testes de banco passam (a imagem é guardada de verdade, só não é
+desenhada), e as jornadas conferem que o `<img>` existe e que o endereço não
+vazou o caminho cru — nunca que a imagem **carregou**. Estava assim desde a
+F12, quando as fotos chegaram.
+
+*Como foi resolvido:* a origem do Supabase entra no `img-src`, pela mesma
+função que já a põe no `connect-src`. Em produção nada muda; em
+desenvolvimento as imagens passam a aparecer.
+
+👁 **Solto** — a barreira de verdade seria uma jornada que confere
+`naturalWidth > 0` numa imagem enviada. Fica anotado como dívida: hoje o que
+protege é esta página.
+
+**A lição maior:** três camadas de teste confirmavam que a imagem estava
+guardada e entregue. Nenhuma confirmava que ela aparecia. Quando o que
+importa é visual, alguma coisa tem de olhar o visual — nem que seja uma
+pessoa, uma vez, antes de dizer que está pronto.
+
+### A CI estourou o tempo, e não foi por causa de teste nenhum
+
+*O que aconteceu:* o job da CI do perfil v3 foi cancelado em 20m20s. A
+primeira leitura foi "a suíte cresceu demais" — 18 jornadas novas de perfil
+e 47 testes de banco no arquivo.
+
+*A causa real:* `npx playwright install --with-deps chromium` levou **9
+minutos e 47 segundos** naquela rodada, de um teto de 20. Sobraram 7
+minutos para as jornadas, que precisam de mais. Todo o resto do job é
+rápido: lint em 10 s, tipos em 8 s, testes de unidade em 3 s, testes de
+banco em 31 s, Supabase em 1m45.
+
+*Por que a leitura errada era tentadora:* o sintoma ("demorou demais")
+apontava para a coisa que eu tinha acabado de fazer crescer. A diferença
+entre as duas explicações só aparece olhando **o tempo de cada passo**, e
+isso a página do Actions não mostra de cara — é `gh api
+repos/OWNER/REPO/actions/jobs/<id>`.
+
+*Como foi resolvido:* cache de `~/.cache/ms-playwright`, com a chave no
+`package-lock.json`, e `install-deps` em vez do download completo quando o
+cache acerta. O teto subiu para 35 minutos, como folga para o dia em que o
+cache errar — não como solução.
+
+👁 **Solto** — nada impede o passo de voltar a inchar; o que protege é
+olhar o tempo por passo antes de culpar o que mudou.
+
+**A lição:** quando um limite de tempo estoura, a pergunta não é "o que
+ficou mais lento?" e sim **"qual passo levou o tempo?"**. Sem medir, a
+culpa cai no que mudou por último, que quase nunca é o culpado.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

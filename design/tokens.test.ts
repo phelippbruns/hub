@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { color, radius, size, spacing, typography } from "./tokens";
+import { color, fundoDePerfil, radius, size, spacing, typography } from "./tokens";
 
 /**
  * A regra "nenhuma cor ou tamanho fora dos tokens" tem duas defesas.
@@ -75,6 +75,7 @@ describe("nenhum tamanho fora dos tokens", () => {
 describe("os tokens vieram do JSON", () => {
   const json = JSON.parse(readFileSync("docs/design-system/tokens.json", "utf8")) as {
     color: { tokens: { name: string; value: string }[] };
+    fundoDePerfil: { tokens: { name: string; value: string }[] };
     spacing: { tokens: { name: string; value: string }[] };
     radius: { tokens: { name: string; value: string }[] };
     size: { tokens: { name: string; value: string }[] };
@@ -92,6 +93,16 @@ describe("os tokens vieram do JSON", () => {
   it("tem a escala tipográfica inteira", () => {
     const expected = json.type.groups.flatMap((g) => g.styles.map((s) => s.name));
     expect(Object.keys(typography)).toEqual(expected);
+  });
+
+  it("tem as cores de fundo do perfil, fora da paleta principal", () => {
+    expect(Object.keys(fundoDePerfil)).toEqual(json.fundoDePerfil.tokens.map((t) => t.name));
+    // A paleta do Hub continua com 9 cores: as de fundo não entram nela.
+    expect(Object.keys(color)).not.toContain("fundoVerde");
+  });
+
+  it.each(json.fundoDePerfil.tokens)("$name vale $value", ({ name, value }) => {
+    expect(fundoDePerfil[name as keyof typeof fundoDePerfil]).toBe(value);
   });
 
   it("tem os espaçamentos, os raios e as medidas de controle", () => {

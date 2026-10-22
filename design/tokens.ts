@@ -27,6 +27,35 @@ export const color = {
 
 export type ColorName = keyof typeof color;
 
+/**
+ * Cor de fundo da página de perfil, escolhida por quem é dono (RN27).
+ *
+ * Separada da paleta porque é outra coisa: são variações claras de
+ * superfície, e misturá-las com as 9 cores do sistema faria `fundoVerde`
+ * parecer tão fundamental quanto `ink`. O perfil guarda a **chave**, nunca
+ * o hex — assim a paleta muda sem migration.
+ */
+export const fundoDePerfil = {
+  /** Padrão. O mesmo surfacePage do resto do Hub. */
+  fundoLavanda: "#F1EEFF",
+  /** Com ele os cartões passam a usar surfacePage: cartão paper sobre fundo paper seria invisível. */
+  fundoBranco: "#FFFFFF",
+  /** Fundo de perfil. */
+  fundoVerde: "#E6F4EA",
+  /** Fundo de perfil. */
+  fundoAzul: "#E6EFFC",
+  /** Fundo de perfil. */
+  fundoVermelho: "#FCE8E8",
+  /** Fundo de perfil. */
+  fundoRoxo: "#F3E6FA",
+  /** Fundo de perfil. O cartão paper quase não se destaca sobre ele (1,08): quem separa os cartões é o espaço, não a borda. */
+  fundoAmarelo: "#FFF6D6",
+  /** O mais escuro que a paleta aceita: inkMuted ainda passa 4,5:1 (4,73), mas erro e sucesso não passariam. */
+  fundoPreto: "#CDCDD3",
+} as const;
+
+export type FundoDePerfil = keyof typeof fundoDePerfil;
+
 /** Escala tipográfica. Uma família só: Bricolage Grotesque. */
 export const typography = {
   /** A marca na tela de abertura. Só ali. */
@@ -175,6 +204,10 @@ export const size = {
   controlXs: "32px",
   /** Altura da capa da comunidade, no topo da página dela. */
   cover: "180px",
+  /** Foto no topo da página de perfil, no formato de hexágono orgânico. */
+  avatarPerfil: "100px",
+  /** Quadro em que a foto de perfil é arrastada e aproximada, em Editar perfil. */
+  fotoAjuste: "240px",
   /** Largura máxima da apresentação do onboarding, mais larga que a coluna de conteúdo porque o card tem duas colunas. */
   stageColumn: "1120px",
   /** Altura mínima de um card da apresentação do onboarding. */

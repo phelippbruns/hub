@@ -4,6 +4,7 @@ import {
   concluirOnboarding,
   preencherNovaComunidade,
   respostaPublicada,
+  seguirNoPerfil,
 } from "./apoio-tela";
 
 /**
@@ -263,13 +264,8 @@ test.describe("Cabine entre quem se segue", () => {
 
     try {
       // As duas se seguem: é o laço que dispensa o convite.
-      await page.goto(`/${outra.handle}`);
-      await page.getByRole("button", { name: "Seguir", exact: true }).click();
-      await expect(page.getByRole("button", { name: "Seguindo" })).toBeVisible();
-
-      await outra.page.goto(`/${eu.handle}`);
-      await outra.page.getByRole("button", { name: "Seguir", exact: true }).click();
-      await expect(outra.page.getByRole("button", { name: "Seguindo" })).toBeVisible();
+      await seguirNoPerfil(page, outra.handle);
+      await seguirNoPerfil(outra.page, eu.handle);
 
       await page.goto("/cabines/nova");
       await page.getByLabel("Buscar pessoas").fill(outra.nome);
@@ -317,9 +313,7 @@ test.describe("Cabine entre quem se segue", () => {
     const outra = await outraSessao(browser, "naoSegue");
 
     try {
-      await page.goto(`/${outra.handle}`);
-      await page.getByRole("button", { name: "Seguir", exact: true }).click();
-      await expect(page.getByRole("button", { name: "Seguindo" })).toBeVisible();
+      await seguirNoPerfil(page, outra.handle);
 
       await page.goto("/cabines/nova");
       await page.getByLabel("Buscar pessoas").fill(outra.nome);

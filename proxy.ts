@@ -29,6 +29,17 @@ import { COOKIE_DO_CONVITE, DURACAO_DO_CONVITE } from "@/lib/auth/convite";
  * O `wss` sai do mesmo endereço trocando o esquema: é a mesma origem, e é
  * por onde o Realtime fala.
  */
+function origemDoSupabase(): string[] {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) return [];
+
+  try {
+    return [new URL(url).origin];
+  } catch {
+    return [];
+  }
+}
+
 function origensDoSupabase(): string[] {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!url) return [];
@@ -56,7 +67,17 @@ function buildCsp(nonce: string, isDev: boolean): string {
     // O Next injeta <style> inline para o CSS crítico; nonce não cobre todos os casos.
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self' https://fonts.gstatic.com`,
-    `img-src 'self' blob: data: https:`,
+    /*
+     * O depósito de imagens entra pela origem, e não só pelo `https:`.
+     *
+     * Em produção o Supabase é https e já estaria coberto; em
+     * desenvolvimento ele é `http://127.0.0.1:54321`, que **não** é `self`
+     * nem https — e o navegador bloqueava toda imagem enviada, calado, com
+     * o `<img>` ficando 0×0. Capa de comunidade, imagem de resposta e foto
+     * de perfil: nenhuma aparecia na máquina de quem desenvolve, e nada na
+     * CI pegava isso porque as jornadas não olham pixel.
+     */
+    `img-src ${[`'self'`, "blob:", "data:", "https:", ...origemDoSupabase()].join(" ")}`,
     `connect-src ${[`'self'`, ...origensDoSupabase()].join(" ")}`,
     `frame-ancestors 'none'`,
     `base-uri 'self'`,

@@ -1,4 +1,5 @@
 export { Button } from "./button";
+export { Avatar, type TamanhoDeAvatar } from "./avatar";
 export { Chip } from "./chip";
 export { TextField } from "./text-field";
 export { Input } from "./input";
@@ -39,4 +40,4 @@ export { ConfirmSheet } from "./confirm-sheet";
 export { TopicName } from "./topic-name";
 export { TopicOpening } from "./topic-opening";
 export { ActivityRow, HomeRow, SuggestionRow } from "./home-rows";
-export { ProfileCounters, ProfileHeader } from "./profile-header";
+export { PerfilLinks, ProfileHeader, type LinkDoPerfil } from "./profile-header";

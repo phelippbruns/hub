@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ContentColumn, EmptyState, PageTitle, SectionTitle } from "@/design/components";
+import { Avatar, ContentColumn, EmptyState, PageTitle, SectionTitle } from "@/design/components";
 import { getViewer } from "@/lib/auth/session";
 import { listarNotificacoes, marcarNotificacoesComoLidas } from "@/lib/data/notificacoes";
 import { convitesParaModerar } from "@/lib/data/moderacao";
@@ -101,15 +101,7 @@ function Aviso({
   const conteudo = (
     <span className="flex items-center gap-2">
       {notificacao.autor ? (
-        <span
-          aria-hidden="true"
-          className="size-avatarMd rounded-pill bg-lavender block shrink-0 bg-cover bg-center"
-          style={
-            notificacao.autor.avatarUrl
-              ? { backgroundImage: `url(${notificacao.autor.avatarUrl})` }
-              : undefined
-          }
-        />
+        <Avatar nome={notificacao.autor.nome} url={notificacao.autor.avatarUrl} tamanho="lg" />
       ) : null}
       <span className="min-w-0 flex-1">
         <span className="text-body text-ink block">{notificacao.texto}</span>

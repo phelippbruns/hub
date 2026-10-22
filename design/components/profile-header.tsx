@@ -1,26 +1,39 @@
 import type { ReactNode } from "react";
+import { Avatar } from "./avatar";
+import { CopyLinkIcon } from "../icons";
+import type { Enquadramento } from "@/lib/midia/enquadramento";
 
 function numero(valor: number) {
   return valor.toLocaleString("pt-BR");
 }
 
+export type LinkDoPerfil = { title: string; url: string };
+
 /**
- * O topo do perfil: foto, nome, @, seguidores e descrição (RN27).
+ * O topo do perfil: foto, @, nome, seguidores, descrição, links e
+ * indicadores (RN27).
  *
- * Na web fica centralizado, como as telas 21 e 24 mostram.
+ * Alinhado à esquerda, com as ações soltas no canto superior direito — é o
+ * desenho da v3. O **@ vem primeiro e grande**, e o nome real embaixo em
+ * corpo de texto: no Hub a pessoa é encontrada e marcada pelo @, e ele é
+ * que precisa ser lido de longe.
  *
- * **Seguidores é texto, não link** (RN28). O escopo diz por quê: evitar
- * comparação entre perfis. O número de pessoas seguidas só aparece no perfil
- * próprio — por isso `seguindo` é opcional, e ausente quer dizer "não é da
- * sua conta", não "zero".
+ * **Seguidores é texto, não link** (RN28), e some por inteiro quando a
+ * pessoa escondeu — aí `seguidores` chega nulo, porque o número nem é
+ * consultado no servidor.
  */
 export function ProfileHeader({
   nome,
   handle,
   bio,
   avatarUrl,
+  enquadramento,
+  medidasDaFoto,
   seguidores,
   seguindo,
+  links = [],
+  contribuicoes,
+  comunidades,
   acoes,
   comoTitulo = false,
 }: {
@@ -28,75 +41,109 @@ export function ProfileHeader({
   handle: string;
   bio: string | null;
   avatarUrl: string | null;
-  seguidores: number;
+  enquadramento?: Enquadramento;
+  medidasDaFoto?: { largura: number; altura: number } | null;
+  /** `null` quando a pessoa escondeu: o número não chega nem ao HTML. */
+  seguidores: number | null;
   seguindo?: ReactNode;
+  links?: LinkDoPerfil[];
+  contribuicoes: number;
+  comunidades: number;
+  /** As ações do canto superior direito. */
   acoes?: ReactNode;
   /**
-   * Quando o nome **é** o título da tela.
+   * Quando o @ **é** o título da tela.
    *
-   * No perfil de outra pessoa o protótipo não repete o nome num título
-   * acima: o nome já é o título. Mas a tela precisa de um `h1`, senão quem
-   * usa leitor de tela perde a âncora da página.
+   * No perfil de outra pessoa o protótipo não repete nada num título acima:
+   * o @ já é o título. Mas a tela precisa de um `h1`, senão quem usa leitor
+   * de tela perde a âncora da página.
    */
   comoTitulo?: boolean;
 }) {
-  const Nome = comoTitulo ? "h1" : "span";
+  const Identificador = comoTitulo ? "h1" : "span";
+
   return (
-    <div className="flex flex-col items-center gap-2 text-center">
-      <span
-        aria-hidden="true"
-        className="size-avatarLg rounded-pill bg-lavender block bg-cover bg-center"
-        style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : undefined}
-      />
+    <div className="relative flex flex-col gap-3">
+      {/*
+        As ações flutuam no canto. `pr` no cabeçalho reserva o lugar delas:
+        sem isso, um @ comprido passa por baixo dos botões.
+      */}
+      {acoes ? <div className="absolute top-0 right-0 flex gap-2">{acoes}</div> : null}
 
-      <span>
-        <Nome className="text-title text-ink block">{nome}</Nome>
-        <span className="text-caption text-inkMuted block">@{handle}</span>
-      </span>
+      <div className="pr-navRailOpen flex flex-wrap items-center gap-3">
+        <Avatar
+          nome={nome}
+          url={avatarUrl}
+          tamanho="perfil"
+          enquadramento={enquadramento}
+          medidas={medidasDaFoto}
+        />
 
-      <span className="text-caption text-inkMuted flex items-center gap-3">
-        <span>
-          {numero(seguidores)} {seguidores === 1 ? "seguidor" : "seguidores"}
-        </span>
-        {seguindo}
-      </span>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Identificador className="text-title text-ink">{handle}</Identificador>
+          <span className="text-body text-ink">{nome}</span>
+
+          {seguidores === null && !seguindo ? null : (
+            <span className="text-caption text-inkMuted mt-1 flex flex-wrap items-center gap-1">
+              {seguidores === null ? null : (
+                <span>
+                  {numero(seguidores)} {seguidores === 1 ? "seguidor" : "seguidores"}
+                </span>
+              )}
+              {seguidores !== null && seguindo ? <span aria-hidden="true">·</span> : null}
+              {seguindo}
+            </span>
+          )}
+        </div>
+      </div>
 
       {bio ? <p className="text-body text-ink max-w-contentColumn">{bio}</p> : null}
 
-      {acoes ? <div className="flex w-full gap-2">{acoes}</div> : null}
+      <PerfilLinks links={links} />
+
+      {/*
+        Uma linha de texto, não três caixas (RN28). As caixas davam a
+        aparência de placar a dois números que medem participação, e o
+        princípio da rede é participação e não popularidade.
+      */}
+      <div className="text-caption text-inkMuted flex flex-wrap gap-3">
+        <span>
+          <b className="text-bodyStrong text-ink">{numero(contribuicoes)}</b>{" "}
+          {contribuicoes === 1 ? "contribuição" : "contribuições"}
+        </span>
+        <span>
+          <b className="text-bodyStrong text-ink">{numero(comunidades)}</b>{" "}
+          {comunidades === 1 ? "comunidade" : "comunidades"}
+        </span>
+      </div>
     </div>
   );
 }
 
 /**
- * Os três contadores, em caixas iguais (RN28).
+ * A fileira de links do perfil (RN16, RN27).
  *
- * Iguais de propósito: nenhum deles é mais importante que o outro, e todos
- * medem participação — respostas, comunidades e dias ativos. Não há
- * popularidade aqui.
+ * **É o único lugar do Hub com link para fora**, e por isso o único que abre
+ * em outra aba. `noopener` e `noreferrer` sempre: sem `noopener`, a página
+ * aberta pode mexer na aba que a abriu; sem `noreferrer`, o destino fica
+ * sabendo de qual perfil a pessoa veio.
  */
-export function ProfileCounters({
-  respostas,
-  comunidades,
-  diasAtivos,
-}: {
-  respostas: number;
-  comunidades: number;
-  diasAtivos: number;
-}) {
-  const caixas = [
-    { valor: respostas, rotulo: respostas === 1 ? "resposta" : "respostas" },
-    { valor: comunidades, rotulo: comunidades === 1 ? "comunidade" : "comunidades" },
-    { valor: diasAtivos, rotulo: diasAtivos === 1 ? "dia ativo" : "dias ativos" },
-  ];
+export function PerfilLinks({ links }: { links: LinkDoPerfil[] }) {
+  if (links.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-3 gap-2">
-      {caixas.map(({ valor, rotulo }) => (
-        <div key={rotulo} className="bg-paper flex flex-col items-center rounded-sm p-2">
-          <span className="text-subtitle text-ink">{numero(valor)}</span>
-          <span className="text-caption text-inkMuted">{rotulo}</span>
-        </div>
+    <div className="flex flex-wrap gap-x-3 gap-y-1">
+      {links.map((link) => (
+        <a
+          key={link.url}
+          href={link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-bodyStrong text-ink inline-flex items-center gap-1 underline underline-offset-2"
+        >
+          <CopyLinkIcon decorative className="size-iconSm" />
+          {link.title}
+        </a>
       ))}
     </div>
   );

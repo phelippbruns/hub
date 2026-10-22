@@ -195,3 +195,126 @@ export function prepararImagem(bytes: Uint8Array): ImagemLimpa {
 
   return { bytes: limpo, tipo, extensao };
 }
+
+/** Largura e altura em pixels, lidas do cabeçalho do arquivo. */
+export type Dimensoes = { largura: number; altura: number };
+
+/**
+ * As medidas reais da imagem, pelos bytes.
+ *
+ * Existe porque o enquadramento da foto de perfil (RN30) depende das
+ * proporções: sem elas não há como conferir que o recorte não deixa buraco
+ * dentro da forma. **Aceitar largura e altura do formulário seria entregar a
+ * conferência a quem ela deveria limitar** — bastaria mentir as proporções
+ * para o limite ficar frouxo.
+ *
+ * Mesma política do resto do arquivo: o que não for entendido devolve nulo,
+ * e quem chama decide. Aqui nulo quer dizer "não dá para enquadrar", e a
+ * foto fica centralizada sem zoom.
+ */
+export function dimensoesDaImagem(bytes: Uint8Array): Dimensoes | null {
+  const tipo = tipoPelosBytes(bytes);
+  if (!tipo) return null;
+
+  if (tipo === "image/png") return dimensoesPng(bytes);
+  if (tipo === "image/jpeg") return dimensoesJpeg(bytes);
+  return dimensoesWebp(bytes);
+}
+
+/** PNG: o bloco `IHDR` é sempre o primeiro, e traz largura e altura em 32 bits. */
+function dimensoesPng(bytes: Uint8Array): Dimensoes | null {
+  const inteiro32 = (posicao: number) =>
+    (byte(bytes, posicao) << 24) |
+    (byte(bytes, posicao + 1) << 16) |
+    (byte(bytes, posicao + 2) << 8) |
+    byte(bytes, posicao + 3);
+
+  if (bytes.length < 24) return null;
+  if (String.fromCharCode(...bytes.subarray(12, 16)) !== "IHDR") return null;
+
+  return valida(inteiro32(16), inteiro32(20));
+}
+
+/**
+ * JPEG: as medidas moram no `SOFn`, que pode estar depois de vários blocos.
+ *
+ * Percorre a mesma estrutura de `limparJpeg`: marcador, tamanho, conteúdo.
+ * Os `SOF` são 0xC0–0xCF menos 0xC4 (tabela de Huffman), 0xC8 (extensão) e
+ * 0xCC (codificação aritmética), que não descrevem o quadro.
+ */
+function dimensoesJpeg(bytes: Uint8Array): Dimensoes | null {
+  let i = 2;
+
+  while (i < bytes.length) {
+    if (byte(bytes, i) !== 0xff) return null;
+
+    let cabecalho = i;
+    let marcador = byte(bytes, cabecalho + 1);
+    while (marcador === 0xff) {
+      cabecalho += 1;
+      marcador = byte(bytes, cabecalho + 1);
+    }
+
+    // Começou a imagem comprimida sem passar por um SOF: não dá para saber.
+    if (marcador === 0xda || marcador === 0xd9 || marcador === -1) return null;
+
+    const tamanho = (byte(bytes, cabecalho + 2) << 8) | byte(bytes, cabecalho + 3);
+    if (tamanho < 2) return null;
+
+    const ehSof = marcador >= 0xc0 && marcador <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marcador);
+
+    if (ehSof) {
+      // Depois do tamanho vem 1 byte de precisão, depois altura e largura.
+      const altura = (byte(bytes, cabecalho + 5) << 8) | byte(bytes, cabecalho + 6);
+      const largura = (byte(bytes, cabecalho + 7) << 8) | byte(bytes, cabecalho + 8);
+      return valida(largura, altura);
+    }
+
+    i = cabecalho + 2 + tamanho;
+  }
+
+  return null;
+}
+
+/**
+ * WebP: três formatos debaixo do mesmo RIFF.
+ *
+ * `VP8 ` é com perda, `VP8L` sem perda e `VP8X` o estendido — cada um guarda
+ * as medidas num lugar e numa codificação diferentes.
+ */
+function dimensoesWebp(bytes: Uint8Array): Dimensoes | null {
+  const texto = (inicio: number, fim: number) =>
+    String.fromCharCode(...bytes.subarray(inicio, fim));
+
+  if (bytes.length < 30) return null;
+  const formato = texto(12, 16);
+
+  if (formato === "VP8X") {
+    // 24 bits little-endian, guardados como "tamanho menos 1".
+    const tres = (p: number) =>
+      byte(bytes, p) | (byte(bytes, p + 1) << 8) | (byte(bytes, p + 2) << 16);
+    return valida(tres(24) + 1, tres(27) + 1);
+  }
+
+  if (formato === "VP8 ") {
+    // Depois do código de início de quadro, 14 bits para cada medida.
+    const largura = ((byte(bytes, 27) << 8) | byte(bytes, 26)) & 0x3fff;
+    const altura = ((byte(bytes, 29) << 8) | byte(bytes, 28)) & 0x3fff;
+    return valida(largura, altura);
+  }
+
+  if (formato === "VP8L") {
+    // 14 bits para largura e 14 para altura, empacotados em 4 bytes.
+    const empacotado =
+      byte(bytes, 21) | (byte(bytes, 22) << 8) | (byte(bytes, 23) << 16) | (byte(bytes, 24) << 24);
+    return valida((empacotado & 0x3fff) + 1, ((empacotado >> 14) & 0x3fff) + 1);
+  }
+
+  return null;
+}
+
+/** Medida que não é um número positivo plausível não serve para enquadrar. */
+function valida(largura: number, altura: number): Dimensoes | null {
+  const ok = (n: number) => Number.isInteger(n) && n > 0 && n <= 65535;
+  return ok(largura) && ok(altura) ? { largura, altura } : null;
+}

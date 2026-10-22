@@ -26,6 +26,15 @@
   --color-error: #b42318;
   --color-success: #146c43;
 
+  --color-fundoLavanda: #f1eeff;
+  --color-fundoBranco: #ffffff;
+  --color-fundoVerde: #e6f4ea;
+  --color-fundoAzul: #e6effc;
+  --color-fundoVermelho: #fce8e8;
+  --color-fundoRoxo: #f3e6fa;
+  --color-fundoAmarelo: #fff6d6;
+  --color-fundoPreto: #cdcdd3;
+
   --text-brand: 88px;
   --text-brand--line-height: 80px;
   --text-brand--font-weight: 800;
@@ -90,6 +99,8 @@
   --spacing-avatarSm: 32px;
   --spacing-controlXs: 32px;
   --spacing-cover: 180px;
+  --spacing-avatarPerfil: 100px;
+  --spacing-fotoAjuste: 240px;
   --spacing-stageColumn: 1120px;
   --spacing-demoCard: 500px;
   --spacing-demoPanel: 400px;

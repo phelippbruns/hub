@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import {
   AnswerCard,
+  Avatar,
   BottomSheet,
   Button,
   ConfirmSheet,
@@ -54,17 +55,7 @@ export function LinhaDeResposta({
   const nome = autor?.nome ?? "Pessoa que saiu do Hub";
   const handle = autor?.handle ?? "removida";
 
-  /*
-   * `block` não é enfeite: dentro do link o `span` seria inline, e largura e
-   * altura não valem para elemento inline — o avatar some sem erro nenhum.
-   */
-  const avatar = (
-    <span
-      aria-hidden="true"
-      className="size-avatarMd rounded-pill bg-lavender block shrink-0 bg-cover bg-center"
-      style={autor?.avatarUrl ? { backgroundImage: `url(${autor.avatarUrl})` } : undefined}
-    />
-  );
+  const avatar = <Avatar nome={nome} url={autor?.avatarUrl} tamanho="lg" />;
 
   return (
     <div className="flex items-start gap-2">

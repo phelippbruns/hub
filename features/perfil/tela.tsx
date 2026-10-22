@@ -1,14 +1,15 @@
 import Link from "next/link";
-import { ContentColumn, PageTitle, ProfileCounters, ProfileHeader } from "@/design/components";
+import { ContentColumn, PageTitle, ProfileHeader } from "@/design/components";
 import { AbasDoPerfil } from "./abas";
-import { AbaComunidades, AbaRespostas } from "./corpo";
+import { AbaComunidades, AbaContribuicoes } from "./corpo";
+import { fundoDaPagina } from "./fundos";
 import { AcoesDoPerfil } from "./acoes-do-perfil";
 import { Colecao, type AgrupamentoDaColecao } from "./colecao";
 import { comunidadesDoPerfil, perfilNaTela, respostasDoPerfil } from "@/lib/data/perfil";
 import { getCollection } from "@/lib/data/follows";
 import { getViewer } from "@/lib/auth/session";
 
-type Aba = "respostas" | "comunidades" | "colecao";
+type Aba = "contribuicoes" | "comunidades" | "colecao";
 
 /**
  * A tela de perfil, própria ou de outra pessoa (telas 21 e 24).
@@ -38,86 +39,92 @@ export async function TelaDePerfil({
       ? "comunidades"
       : aba === "colecao" && perfil.souEu
         ? "colecao"
-        : "respostas";
+        : "contribuicoes";
 
   // "universo" sumiu na F12.1; endereço antigo com ?ordem=universo cai no
   // padrão em vez de quebrar.
   const agrupamento: AgrupamentoDaColecao = ordem === "comunidade" ? "comunidade" : "recente";
 
-  return (
-    <ContentColumn>
-      {/*
-        No perfil de outra pessoa o nome já é o título — repeti-lo acima
-        mostraria a mesma palavra duas vezes, como o protótipo não faz.
-      */}
-      {perfil.souEu ? <PageTitle>Perfil</PageTitle> : null}
+  const fundo = fundoDaPagina(perfil.backgroundKey);
 
-      <ProfileHeader
-        nome={perfil.name}
-        handle={perfil.handle}
-        bio={perfil.bio}
-        avatarUrl={perfil.avatarUrl}
-        comoTitulo={!perfil.souEu}
-        seguidores={perfil.seguidores}
-        seguindo={
-          /* RN27: só o dono vê, e só para ele a lista abre. */
-          perfil.seguindo === null ? null : (
-            <Link href="/perfil/seguindo" className="underline">
-              {perfil.seguindo.toLocaleString("pt-BR")} seguindo
-            </Link>
-          )
-        }
-        acoes={
-          perfil.souEu ? (
-            <div className="flex w-full gap-2">
-              <Link href="/perfil/editar" className="flex-1">
-                <span className="rounded-pill border-ink text-ink text-bodyStrong box-border block border-2 px-3 py-2 text-center">
-                  Editar perfil
-                </span>
+  return (
+    /*
+      A cor escolhida pinta a área de conteúdo, não a barra de navegação: a
+      barra é do Hub e é a mesma em toda tela, e tingi-la faria a navegação
+      mudar de cor conforme o perfil visitado.
+    */
+    <div className={`${fundo.pagina} min-h-screen`}>
+      <ContentColumn>
+        {/*
+          No perfil de outra pessoa o @ já é o título — repeti-lo acima
+          mostraria a mesma palavra duas vezes, como o protótipo não faz.
+        */}
+        {perfil.souEu ? <PageTitle>Perfil</PageTitle> : null}
+
+        <ProfileHeader
+          nome={perfil.name}
+          handle={perfil.handle}
+          bio={perfil.bio}
+          avatarUrl={perfil.avatarUrl}
+          enquadramento={perfil.enquadramento}
+          medidasDaFoto={perfil.medidasDaFoto}
+          links={perfil.links}
+          contribuicoes={perfil.contribuicoes}
+          comunidades={perfil.comunidades}
+          comoTitulo={!perfil.souEu}
+          seguidores={perfil.seguidores}
+          seguindo={
+            /*
+              RN27: só o dono vê, e só para ele a lista abre. Continua sendo
+              link: é o único caminho do perfil para `/perfil/seguindo`, e
+              transformá-lo em texto deixaria a tela sem porta de entrada.
+            */
+            perfil.seguindo === null ? null : (
+              <Link href="/perfil/seguindo" className="underline underline-offset-2">
+                {perfil.seguindo.toLocaleString("pt-BR")} seguindo
               </Link>
-              <Link href="/configuracoes" className="flex-1">
-                <span className="rounded-pill border-ink text-ink text-bodyStrong box-border block border-2 px-3 py-2 text-center">
-                  Configurações
-                </span>
-              </Link>
-            </div>
-          ) : (
+            )
+          }
+          acoes={
             <AcoesDoPerfil
+              souEu={perfil.souEu}
               profileId={perfil.id}
               handle={perfil.handle}
               nome={perfil.name}
               seguindoInicial={perfil.euSigo}
+              convitePendente={perfil.convitePendente}
               bloqueadoInicial={perfil.euBloqueei}
               silenciadoInicial={perfil.euSilenciei}
             />
-          )
-        }
-      />
-
-      <ProfileCounters
-        respostas={perfil.respostas}
-        comunidades={perfil.comunidades}
-        diasAtivos={perfil.diasAtivos}
-      />
-
-      <AbasDoPerfil base={base} atual={abaAtual} comColecao={perfil.souEu} />
-
-      {abaAtual === "respostas" ? (
-        <AbaRespostas itens={await respostasDoPerfil(viewer, perfil.id)} />
-      ) : null}
-
-      {abaAtual === "comunidades" ? (
-        <AbaComunidades itens={await comunidadesDoPerfil(viewer, perfil.id)} />
-      ) : null}
-
-      {abaAtual === "colecao" ? (
-        <Colecao
-          base={base}
-          agrupamento={agrupamento}
-          topicos={await colecaoPlana(viewer, perfil.id, agrupamento)}
+          }
         />
-      ) : null}
-    </ContentColumn>
+
+        <AbasDoPerfil base={base} atual={abaAtual} comColecao={perfil.souEu} />
+
+        {abaAtual === "contribuicoes" ? (
+          <AbaContribuicoes
+            itens={await respostasDoPerfil(viewer, perfil.id)}
+            cartao={fundo.cartao}
+          />
+        ) : null}
+
+        {abaAtual === "comunidades" ? (
+          <AbaComunidades
+            itens={await comunidadesDoPerfil(viewer, perfil.id)}
+            souEu={perfil.souEu}
+            cartao={fundo.cartao}
+          />
+        ) : null}
+
+        {abaAtual === "colecao" ? (
+          <Colecao
+            base={base}
+            agrupamento={agrupamento}
+            topicos={await colecaoPlana(viewer, perfil.id, agrupamento)}
+          />
+        ) : null}
+      </ContentColumn>
+    </div>
   );
 }
 

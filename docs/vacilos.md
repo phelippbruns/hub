@@ -428,3 +428,45 @@ rota é invisível de fora, e nenhum teste de `href` a enxerga.
 
 👁 **Solto** — o novo destino tem teste de jornada, mas nada impede que uma
 guarda futura volte a fechar a porta sem ninguém notar.
+
+---
+
+## 12. Regra absoluta que o produto precisava furar
+
+### "Links são bloqueados em todo texto" não tinha onde a pessoa dizer quem é
+
+A RN16 é uma das regras mais antigas do Hub, e é boa: sem ela, toda resposta
+vira anúncio, todo tópico vira isca, e a moderação passa a ser sobre spam em
+vez de ser sobre conversa.
+
+Só que ela era **absoluta**, e o perfil é o lugar onde uma pessoa diz quem
+é fora daqui. Sem nenhuma porta, o Hub pedia que as pessoas se conhecessem
+pelas respostas e ao mesmo tempo proibia a única frase que resolve isso:
+"meu trabalho está aqui".
+
+*O que custou:* o jeito de contornar já estava acontecendo — endereço
+escrito por extenso, com espaços, no Sobre mim. O bloqueio pega "site.com",
+e as pessoas escrevem "site ponto com". A regra não impedia o link; impedia
+que ele fosse clicável e seguro.
+
+*Por que estava assim:* a RN16 nasceu certa para resposta, tópico e
+mensagem, que é onde o spam mora, e foi escrita como "todo texto" porque na
+época não havia campo nenhum que fosse só da pessoa. A regra não envelheceu
+— o produto cresceu em volta dela.
+
+*Como ficou:* o campo Links do perfil, com até 3 endereços, é a **única**
+exceção da rede. E a exceção é estreita de propósito: só `http` e `https`
+(`javascript:` executa código na página de quem clica, `data:` serve uma
+página falsa no nosso domínio), o título continua sendo texto comum que
+**também** não aceita endereço — senão ele seria a porta dos fundos —, e o
+link abre em outra aba com `noopener` e `noreferrer`. O limite de 3 é a
+chave primária da tabela, não uma contagem no código.
+
+**Regra:** quando uma regra de segurança atrapalha o produto, a saída não é
+afrouxá-la em todo lugar nem mantê-la e ver as pessoas contornando. É abrir
+**um** lugar, escrever por que é aquele, e estreitar a exceção até ela só
+servir ao caso que a justificou.
+
+📌 **Fixado** — a RN16 e a RN27 foram reescritas, e `lib/data/perfil.db.test.ts`
+cobre os dois lados: o que o campo aceita e o que ele recusa, inclusive
+`javascript:`, o quarto link e o endereço escondido no título.

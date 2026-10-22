@@ -69,6 +69,25 @@ export function FollowIcon(props: IconProps) {
   );
 }
 
+/**
+ * O olho com um tique dentro: "você já segue".
+ *
+ * É o `FollowIcon` com a pupila trocada pelo tique — mesma amêndoa, mesmo
+ * traço. Importa que seja o mesmo desenho: ligado e desligado precisam ser
+ * reconhecíveis como **o mesmo botão em dois estados**, e não dois botões.
+ *
+ * Existe porque o estado de seguir, no perfil, virou um botão só de ícone:
+ * sem rótulo ao lado, a diferença não pode ser só a cor de fundo.
+ */
+export function FollowingIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+      <path d="m9.5 12 2 2 3.5-3.5" />
+    </IconBase>
+  );
+}
+
 /** Alfinete, para fixar uma comunidade no topo da lista. */
 export function PinIcon(props: IconProps) {
   return (

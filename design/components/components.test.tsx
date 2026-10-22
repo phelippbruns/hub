@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ActivityRow,
   AnswerCard,
+  Avatar,
   BottomSheet,
   Button,
   Checkbox,
@@ -19,7 +20,6 @@ import {
   HotTopicCard,
   LevelMark,
   PinButton,
-  ProfileCounters,
   ProfileHeader,
   SectionTitle,
   Segmented,
@@ -157,6 +157,9 @@ const cases: Array<[string, React.ReactElement]> = [
       bio="Vinil, serras e pista desde 2010."
       avatarUrl={null}
       seguidores={214}
+      contribuicoes={86}
+      comunidades={5}
+      links={[{ title: "Instagram", url: "https://instagram.com/lia" }]}
     />,
   ],
   [
@@ -168,10 +171,25 @@ const cases: Array<[string, React.ReactElement]> = [
       avatarUrl={null}
       seguidores={128}
       seguindo={<span>45 seguindo</span>}
+      contribuicoes={1}
+      comunidades={1}
     />,
   ],
-  ["contadores do perfil", <ProfileCounters respostas={86} comunidades={5} diasAtivos={41} />],
-  ["contadores no singular", <ProfileCounters respostas={1} comunidades={1} diasAtivos={1} />],
+  [
+    // RN27: escondeu os seguidores, então o número não chega nem ao HTML.
+    "topo do perfil, com seguidores escondidos",
+    <ProfileHeader
+      nome="Ana Lima"
+      handle="analima"
+      bio={null}
+      avatarUrl={null}
+      seguidores={null}
+      contribuicoes={12}
+      comunidades={18}
+    />,
+  ],
+  ["foto de perfil, sem foto", <Avatar nome="Lia Souza" tamanho="perfil" />],
+  ["foto de perfil, nome de uma palavra só", <Avatar nome="Jo" />],
   // F11: as linhas do Início.
   [
     "linha do Início, com novas",

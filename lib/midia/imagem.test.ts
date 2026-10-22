@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  dimensoesDaImagem,
   ImagemRecusada,
   TAMANHO_MAXIMO,
   TAMANHO_MAXIMO_EM_MB,
@@ -238,5 +239,126 @@ describe("a extensão acompanha o tipo de verdade", () => {
     [webpCom("XMP ", "x"), "webp"],
   ])("devolve %#", (bytes, extensao) => {
     expect(prepararImagem(bytes).extensao).toBe(extensao);
+  });
+});
+
+/**
+ * RN30: o enquadramento da foto depende das proporções da imagem, e elas são
+ * lidas aqui, não recebidas do formulário.
+ */
+describe("dimensoesDaImagem", () => {
+  function png(largura: number, altura: number): Uint8Array {
+    const be32 = (n: number) => [(n >> 24) & 0xff, (n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
+    const ihdr = [...be32(largura), ...be32(altura), 8, 6, 0, 0, 0];
+
+    return new Uint8Array([
+      0x89,
+      0x50,
+      0x4e,
+      0x47,
+      0x0d,
+      0x0a,
+      0x1a,
+      0x0a,
+      ...be32(ihdr.length),
+      ...[..."IHDR"].map((c) => c.charCodeAt(0)),
+      ...ihdr,
+      0,
+      0,
+      0,
+      0,
+    ]);
+  }
+
+  function jpeg(largura: number, altura: number): Uint8Array {
+    return new Uint8Array([
+      0xff,
+      0xd8,
+      // Um APP0 na frente, para o SOF não ser o primeiro bloco.
+      0xff,
+      0xe0,
+      0x00,
+      0x04,
+      0x00,
+      0x00,
+      // SOF0: tamanho 17, precisão 8, altura, largura, 3 componentes
+      0xff,
+      0xc0,
+      0x00,
+      0x11,
+      0x08,
+      (altura >> 8) & 0xff,
+      altura & 0xff,
+      (largura >> 8) & 0xff,
+      largura & 0xff,
+      0x03,
+      0x01,
+      0x11,
+      0x00,
+      0x02,
+      0x11,
+      0x01,
+      0x03,
+      0x11,
+      0x01,
+      0xff,
+      0xda,
+      0x00,
+      0x03,
+      0x01,
+      0xaa,
+    ]);
+  }
+
+  function webpVp8x(largura: number, altura: number): Uint8Array {
+    const tres = (n: number) => [(n - 1) & 0xff, ((n - 1) >> 8) & 0xff, ((n - 1) >> 16) & 0xff];
+    return new Uint8Array([
+      ...[..."RIFF"].map((c) => c.charCodeAt(0)),
+      0,
+      0,
+      0,
+      0,
+      ...[..."WEBP"].map((c) => c.charCodeAt(0)),
+      ...[..."VP8X"].map((c) => c.charCodeAt(0)),
+      10,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      ...tres(largura),
+      ...tres(altura),
+    ]);
+  }
+
+  it("lê um PNG", () => {
+    expect(dimensoesDaImagem(png(900, 600))).toEqual({ largura: 900, altura: 600 });
+  });
+
+  it("lê um JPEG mesmo com bloco antes do SOF", () => {
+    expect(dimensoesDaImagem(jpeg(1024, 768))).toEqual({ largura: 1024, altura: 768 });
+  });
+
+  it("lê um WebP estendido", () => {
+    expect(dimensoesDaImagem(webpVp8x(320, 240))).toEqual({ largura: 320, altura: 240 });
+  });
+
+  it("devolve nulo para o que não é imagem", () => {
+    expect(dimensoesDaImagem(new Uint8Array([1, 2, 3]))).toBeNull();
+  });
+
+  /*
+   * Arquivo cortado no meio é o caso que importa: devolver meia medida faria
+   * o enquadramento ser conferido contra proporções inventadas.
+   */
+  it("devolve nulo para arquivo cortado", () => {
+    expect(dimensoesDaImagem(png(900, 600).subarray(0, 18))).toBeNull();
+    expect(dimensoesDaImagem(jpeg(900, 600).subarray(0, 10))).toBeNull();
+  });
+
+  it("devolve nulo quando a medida é zero", () => {
+    expect(dimensoesDaImagem(png(0, 600))).toBeNull();
   });
 });

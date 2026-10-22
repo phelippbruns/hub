@@ -13,7 +13,11 @@ jobs:
   verificar:
     name: Lint, tipos, testes e auditoria
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 20 min não davam mais conta: a suíte de jornadas cresce a cada feature,
+    # e numa rodada o `playwright install` sozinho levou 10 dos 20 minutos.
+    # O cache abaixo ataca a causa; a folga aqui é para o dia em que o cache
+    # falhar não derrubar um PR que está certo.
+    timeout-minutes: 35
 
     env:
       # Endereços do Supabase local do CLI. As chaves não ficam aqui: são
@@ -89,8 +93,28 @@ jobs:
       - name: Testes de banco, regras e RLS
         run: npm run test:db
 
+      # O navegador são ~150 MB baixados, e `--with-deps` ainda roda apt.
+      # Sem cache isso variou de 1 a 10 minutos entre rodadas, e os 10
+      # minutos comeram o tempo das jornadas até o job estourar o limite.
+      # A chave é a versão do Playwright, que é o que decide qual navegador
+      # serve: o `package-lock.json` muda por qualquer dependência.
+      - name: Cache do navegador do Playwright
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
       - name: Instalar navegador do Playwright
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      # Com o navegador em cache, faltam só as bibliotecas do sistema. É
+      # rápido quando já estão lá, e é o que impede o cache de esconder uma
+      # imagem de runner que mudou.
+      - name: Bibliotecas do sistema para o navegador
+        if: steps.cache-playwright.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - name: Testes de jornada
         run: npm run test:e2e

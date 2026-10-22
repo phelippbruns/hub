@@ -1,7 +1,12 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { esperarNoBanco } from "./apoio-banco";
-import { cadastroConcluido, concluirOnboarding, preencherNovaComunidade } from "./apoio-tela";
+import {
+  cadastroConcluido,
+  concluirOnboarding,
+  preencherNovaComunidade,
+  seguirNoPerfil,
+} from "./apoio-tela";
 
 /**
  * Cabine (F13): a conversa privada que começa por convite.
@@ -466,13 +471,8 @@ test.describe("os acertos da Cabine", () => {
     const eu = await entrarNoApp(page, `${prefixo}a`);
     const outra = await outraSessao(browser, `${prefixo}b`);
 
-    await page.goto(`/${outra.handle}`);
-    await page.getByRole("button", { name: "Seguir", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Seguindo" })).toBeVisible();
-
-    await outra.page.goto(`/${eu.handle}`);
-    await outra.page.getByRole("button", { name: "Seguir", exact: true }).click();
-    await expect(outra.page.getByRole("button", { name: "Seguindo" })).toBeVisible();
+    await seguirNoPerfil(page, outra.handle);
+    await seguirNoPerfil(outra.page, eu.handle);
 
     return { eu, outra };
   }
@@ -505,9 +505,7 @@ test.describe("os acertos da Cabine", () => {
 
     try {
       // Só eu sigo: seguir de um lado não abre conversa, e a RN20 recusaria.
-      await page.goto(`/${outra.handle}`);
-      await page.getByRole("button", { name: "Seguir", exact: true }).click();
-      await expect(page.getByRole("button", { name: "Seguindo" })).toBeVisible();
+      await seguirNoPerfil(page, outra.handle);
 
       await page.goto("/cabines");
       await page.getByLabel("Buscar Cabines").fill(outra.handle);
