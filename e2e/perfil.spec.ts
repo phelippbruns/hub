@@ -1,6 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
-import { alerta, cadastroConcluido, concluirOnboarding } from "./apoio-tela";
+import {
+  abrirConvites,
+  alerta,
+  cadastroConcluido,
+  concluirOnboarding,
+  seguirNoPerfil,
+} from "./apoio-tela";
 
 /**
  * Perfil (F12).
@@ -58,6 +64,10 @@ test.describe("o perfil próprio", () => {
     await expect(page.getByText(/seguindo$/)).toBeVisible();
     await expect(page.getByRole("tab", { name: "Coleção" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Contribuições" })).toBeVisible();
+
+    // O @ é o h1: o título "Perfil" saiu, e a página não pode ficar sem âncora.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+    await expect(page.getByRole("heading", { name: "Perfil", exact: true })).toHaveCount(0);
   });
 
   test("os dois contadores aparecem, numa linha de texto", async ({ page }) => {
@@ -121,7 +131,7 @@ test.describe("o perfil de outra pessoa", () => {
     const conteudo = page.getByRole("main");
     await expect(conteudo.getByRole("button", { name: `Seguir ${nome}` })).toBeVisible();
     await expect(
-      conteudo.getByRole("link", { name: `Abrir uma Cabine com ${nome}` }),
+      conteudo.getByRole("button", { name: `Abrir uma Cabine com ${nome}` }),
     ).toBeVisible();
   });
 
@@ -323,6 +333,148 @@ test.describe("RN27: esconder seguidores", () => {
       // Não basta sumir da tela: o número não pode estar no HTML.
       const html = await visitante.content();
       expect(html).not.toContain("seguidores");
+    } finally {
+      await outra.close();
+    }
+  });
+});
+
+/**
+ * RN20: um clique no ícone de Cabine, um destino — a conversa.
+ *
+ * Antes isto abria a tela de escolher pessoas, com busca e sugestões na
+ * frente de quem já tinha escolhido com quem falar.
+ */
+test.describe("a Cabine a partir do perfil", () => {
+  test("quem divide comunidade cai na conversa, sem passar por formulário", async ({ page }) => {
+    await entrarNoApp(page, "cabineperfil");
+    const { handle, nome } = await outraPessoa();
+
+    await page.goto(`/${handle}`);
+    await page.getByRole("button", { name: `Abrir uma Cabine com ${nome}` }).click();
+
+    // Direto na conversa: nem passa por /cabines/nova.
+    await page.waitForURL(/\/cabines\/[0-9a-f-]+$/, { timeout: 20_000 });
+    await expect(page.getByRole("region", { name: "Conversa" })).toBeVisible();
+  });
+
+  test("clicar de novo volta à mesma conversa", async ({ page }) => {
+    await entrarNoApp(page, "cabinedenovo");
+    const { handle, nome } = await outraPessoa();
+
+    await page.goto(`/${handle}`);
+    await page.getByRole("button", { name: `Abrir uma Cabine com ${nome}` }).click();
+    await page.waitForURL(/\/cabines\/[0-9a-f-]+$/, { timeout: 20_000 });
+    const primeira = page.url();
+
+    await page.goto(`/${handle}`);
+    await page.getByRole("button", { name: /Cabine com|conversa com/ }).click();
+    await page.waitForURL(/\/cabines\/[0-9a-f-]+$/, { timeout: 20_000 });
+
+    expect(page.url()).toBe(primeira);
+  });
+});
+
+test.describe("o menu de opções do perfil", () => {
+  test("abre ancorado, sem empurrar a página, e fecha ao escolher", async ({ page }) => {
+    await entrarNoApp(page, "menuperfil");
+    const { handle, nome } = await outraPessoa();
+
+    await page.goto(`/${handle}`);
+
+    // Onde está o nome antes de abrir o menu.
+    const titulo = page.getByRole("heading", { level: 1 });
+    const antes = await titulo.boundingBox();
+
+    await page.getByRole("button", { name: `Mais opções sobre ${nome}` }).click();
+    const menu = page.getByRole("dialog", { name: `Opções sobre ${nome}` });
+    await expect(menu).toBeVisible();
+
+    // A folha inferior empurrava o perfil inteiro para baixo.
+    const depois = await titulo.boundingBox();
+    expect(Math.round(depois!.y)).toBe(Math.round(antes!.y));
+
+    // Escolher uma opção fecha o menu.
+    await page.getByRole("button", { name: "Silenciar no Início" }).click();
+    await expect(menu).toBeHidden();
+  });
+
+  test("fecha com Esc", async ({ page }) => {
+    await entrarNoApp(page, "menuesc");
+    const { handle, nome } = await outraPessoa();
+
+    await page.goto(`/${handle}`);
+    await page.getByRole("button", { name: `Mais opções sobre ${nome}` }).click();
+
+    const menu = page.getByRole("dialog", { name: `Opções sobre ${nome}` });
+    await expect(menu).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+  });
+});
+
+test.describe("RN28: as duas listas abrem no perfil próprio", () => {
+  test("seguidores abre a lista, e no perfil alheio continua só número", async ({
+    page,
+    browser,
+  }) => {
+    const meuHandle = await entrarNoApp(page, "listas");
+
+    const outra = await browser.newContext();
+    try {
+      // Alguém me segue, para a lista ter conteúdo.
+      const quemSegue = await outra.newPage();
+      await entrarNoApp(quemSegue, "quemsegue");
+      await seguirNoPerfil(quemSegue, meuHandle);
+
+      await page.goto("/perfil");
+      await page.getByRole("link", { name: /seguidor/ }).click();
+      await page.waitForURL(/\/perfil\/seguidores/);
+      await expect(page.getByText("Só você vê esta lista.")).toBeVisible();
+
+      // No perfil de outra pessoa, seguidores não é link.
+      const { handle } = await outraPessoa();
+      await page.goto(`/${handle}`);
+      await expect(page.getByRole("link", { name: /seguidores?/ })).toHaveCount(0);
+    } finally {
+      await outra.close();
+    }
+  });
+});
+
+/**
+ * RN22: a primeira coisa escrita vira a mensagem do convite.
+ *
+ * É a volta inteira: clico na Cabine do perfil, escrevo, e a pessoa do
+ * outro lado vê o convite **com o que escrevi**. Sem isto o convite
+ * chegaria mudo e a frase ficaria presa atrás do aceite.
+ */
+test.describe("a conversa que vira convite", () => {
+  test("o que escrevo chega como mensagem do convite", async ({ page, browser }) => {
+    await entrarNoApp(page, "viraconvite");
+
+    const outra = await browser.newContext();
+    try {
+      const convidada = await outra.newPage();
+      const handleDela = await entrarNoApp(convidada, "convidada");
+
+      await page.goto(`/${handleDela}`);
+      await page.getByRole("button", { name: /^Abrir uma Cabine com/ }).click();
+      await page.waitForURL(/\/cabines\/[0-9a-f-]+$/, { timeout: 20_000 });
+
+      // A conversa diz com quem é, e que está esperando.
+      await expect(page.getByText(/^Esperando /)).toBeVisible();
+
+      const campo = page.getByRole("textbox", { name: "Mensagem" });
+      await campo.fill("vi sua resposta sobre vinil");
+      await page.getByRole("button", { name: "Enviar" }).click();
+      await expect(campo).toHaveValue("", { timeout: 15_000 });
+
+      await convidada.goto("/cabines");
+      await abrirConvites(convidada);
+      await expect(convidada.getByText("vi sua resposta sobre vinil")).toBeVisible({
+        timeout: 15_000,
+      });
     } finally {
       await outra.close();
     }

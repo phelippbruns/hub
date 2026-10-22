@@ -316,6 +316,48 @@ export async function abrirCabine(
   return { cabinId: cabine.id, jaComecou: true };
 }
 
+/**
+ * A conversa com uma pessoa, pelo caminho que ela merece.
+ *
+ * É o que o ícone de Cabine no perfil chama. **Um clique, um destino**: a
+ * tela de escolher pessoas não tem o que fazer quando a pessoa já está
+ * escolhida — era ela que o botão abria antes, com a busca e as sugestões
+ * de novo na frente de quem já tinha decidido com quem falar.
+ *
+ * Três situações, e todas terminam numa conversa aberta:
+ *
+ * 1. Já existe conversa entre vocês: é ela, sempre. Não existem duas.
+ * 2. Vocês se seguem: a conversa começa agora (RN20).
+ * 3. Não se seguem: a Cabine nasce com um convite pendente. Quem convidou
+ *    já escreve; quem foi convidado vê o convite e lê o que foi escrito
+ *    quando aceitar.
+ *
+ * O caso 3 é o que faz o convite deixar de ser um formulário e virar o
+ * começo de uma conversa. Bloqueio (RN26), "ninguém pode me convidar"
+ * (RN23), comunidade em comum (RN21) e o limite diário continuam valendo —
+ * são eles que decidem se o clique vira conversa ou recusa.
+ */
+export async function conversaComPessoa(viewer: Viewer, outraPessoa: string): Promise<string> {
+  const me = requireProfileId(viewer);
+
+  const existente = await cabineAbertaCom(viewer, outraPessoa);
+  if (existente) return existente;
+
+  /*
+   * Convite meu ainda pendente: a Cabine dele já existe e eu já sou membro.
+   * Sem isto, clicar de novo esbarraria em "você já tem um convite em
+   * aberto" — verdade inútil para quem só queria voltar à conversa.
+   */
+  const pendente = await prisma.cabinInvite.findFirst({
+    where: { inviterId: me, inviteeId: outraPessoa, status: "pending" },
+    select: { cabinId: true },
+  });
+  if (pendente) return pendente.cabinId;
+
+  const { cabinId } = await abrirCabine(viewer, [outraPessoa], null);
+  return cabinId;
+}
+
 /** RN20: a Cabine começa de verdade quando o convidado aceita. */
 export async function acceptInvite(viewer: Viewer, inviteId: string) {
   const me = requireProfileId(viewer);
@@ -437,6 +479,26 @@ export async function sendMessage(
       sharedTopicId: input.sharedTopicId ?? null,
     },
   });
+
+  /*
+   * RN22: a primeira coisa escrita vira a mensagem do convite.
+   *
+   * Quando a Cabine nasce de um clique no perfil, o convite sai sem texto —
+   * não há o que escrever antes de a conversa existir. Então o que a pessoa
+   * escreve primeiro é justamente o que ela diria no convite, e é isso que
+   * quem recebeu precisa ver para decidir aceitar. Sem isto, o convite
+   * chegaria mudo e a frase ficaria presa atrás do aceite.
+   *
+   * Só a primeira, e só enquanto o convite está pendente: depois disso a
+   * conversa é conversa, e reescrever o convite a cada mensagem mudaria o
+   * que a pessoa já leu.
+   */
+  if (input.text?.trim()) {
+    await prisma.cabinInvite.updateMany({
+      where: { cabinId: input.cabinId, inviterId: me, status: "pending", message: null },
+      data: { message: input.text.trim().slice(0, 240) },
+    });
+  }
 
   /*
    * Avisa quem está na Cabine, menos quem escreveu.
@@ -593,6 +655,8 @@ export type CabineNaLista = {
 /** Convite que **eu** mandei e ainda não foi respondido (RN22). */
 export type ConviteEnviado = {
   id: string;
+  /** A conversa já existe do meu lado: é por aqui que se volta a ela. */
+  cabinId: string;
   paraQuem: string;
   quando: Date;
 };
@@ -705,6 +769,7 @@ export async function listarCabines(viewer: Viewer): Promise<{
   return {
     enviados: enviados.map((convite) => ({
       id: convite.id,
+      cabinId: convite.cabinId,
       paraQuem: convite.invitee.name,
       quando: convite.createdAt,
     })),
@@ -776,6 +841,16 @@ export type CabineNaTela = {
     avatarUrl: string | null;
     souEu: boolean;
   }[];
+  /**
+   * Quem foi convidado e ainda não respondeu.
+   *
+   * Precisa chegar à tela porque, numa Cabine que nasceu de um clique no
+   * perfil, essa pessoa é **a** pessoa da conversa — e ela não é membro
+   * ainda. Sem isto a tela dizia "Conversa, 1 pessoa na Cabine" e não
+   * nomeava ninguém: quem clicou em "abrir uma Cabine com Fulana" caía
+   * numa sala aparentemente vazia.
+   */
+  convidadas: { id: string; nome: string; handle: string; avatarUrl: string | null }[];
 };
 
 /** A tela 20. Recusa quem não participa — RN20, a Cabine é privada. */
@@ -795,11 +870,36 @@ export async function cabinePorId(viewer: Viewer, cabinId: string): Promise<Cabi
   });
   if (!cabin) throw new NotFoundError("Cabine");
 
-  const perfis = await comAvatares(cabin.members.map((m) => m.profile));
+  const pendentes = await prisma.cabinInvite.findMany({
+    where: { cabinId, status: "pending" },
+    include: { invitee: { select: { id: true, name: true, handle: true, avatarUrl: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const [perfis, convidadas] = await Promise.all([
+    comAvatares(cabin.members.map((m) => m.profile)),
+    comAvatares(pendentes.map((c) => c.invitee)),
+  ]);
+
+  /*
+   * O nome da conversa conta com quem ainda não aceitou. Enquanto o convite
+   * está de pé a conversa é com aquela pessoa; chamá-la de "Conversa" até o
+   * aceite esconderia justamente o que quem está ali precisa saber.
+   */
+  const outrosNomes = [
+    ...cabin.members.filter((m) => m.profileId !== me).map((m) => m.profile.name),
+    ...pendentes.map((c) => c.invitee.name),
+  ];
 
   return {
     id: cabin.id,
-    nome: nomeDaCabine(cabin.members.filter((m) => m.profileId !== me).map((m) => m.profile.name)),
+    nome: nomeDaCabine(outrosNomes),
+    convidadas: convidadas.map((pessoa) => ({
+      id: pessoa.id,
+      nome: pessoa.name,
+      handle: pessoa.handle,
+      avatarUrl: pessoa.avatarUrl,
+    })),
     encerrada: cabin.closedAt !== null,
     participantes: cabin.members.map((membro, i) => ({
       id: membro.profileId,

@@ -59,7 +59,11 @@ export default async function CabinePage({ params }: { params: Params }) {
           mensagem: convite.mensagem ?? "Quer conversar com você",
           avatarUrl: convite.quem.avatarUrl,
         }))}
-        enviados={enviados.map((convite) => ({ id: convite.id, paraQuem: convite.paraQuem }))}
+        enviados={enviados.map((convite) => ({
+          id: convite.id,
+          cabinId: convite.cabinId,
+          paraQuem: convite.paraQuem,
+        }))}
         conversas={cabines.map((daLista) => ({
           id: daLista.id,
           nome: daLista.nome,
@@ -79,6 +83,7 @@ export default async function CabinePage({ params }: { params: Params }) {
             nome: p.nome,
             avatarUrl: p.avatarUrl,
           }))}
+          convidadas={cabine.convidadas}
           menu={
             <MenuDaCabine
               cabinId={cabine.id}

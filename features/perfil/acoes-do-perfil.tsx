@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useId, useState, useTransition } from "react";
-import { BottomSheet, Button, ConfirmSheet, FollowButton } from "@/design/components";
+import { Button, ConfirmSheet, FollowButton, MenuSuspenso } from "@/design/components";
 import {
   CabinNavIcon,
   FollowIcon,
@@ -11,7 +11,7 @@ import {
   SettingsIcon,
 } from "@/design/icons";
 import { BotaoDoCanto } from "./botao-do-canto";
-import { alternarBloqueio, alternarSeguir, alternarSilencio } from "./actions";
+import { abrirConversa, alternarBloqueio, alternarSeguir, alternarSilencio } from "./actions";
 
 /**
  * As ações do canto superior direito do perfil.
@@ -46,6 +46,7 @@ export function AcoesDoPerfil({
 }) {
   const [seguindo, setSeguindo] = useState(seguindoInicial);
   const [aberto, setAberto] = useState<"nenhum" | "menu" | "bloquear">("nenhum");
+  const [erroDaCabine, setErroDaCabine] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
   const idDoMenu = useId();
 
@@ -108,48 +109,72 @@ export function AcoesDoPerfil({
           </BotaoDoCanto>
 
           {/*
-            A RN20 tem duas formas: se vocês já se seguem a conversa abre na
-            hora, senão vai convite. Quem decide é a tela de Cabine — este
-            botão só leva até lá, com a pessoa já escolhida.
+            Um clique, um destino: a conversa. Antes isto levava à tela de
+            escolher pessoas — com busca e sugestões na frente de quem já
+            tinha escolhido com quem falar. Quem resolve para onde ir é o
+            servidor: conversa que já existe, conversa que começa agora
+            (RN20) ou Cabine nova com o convite pendente.
           */}
           <BotaoDoCanto
-            como="link"
-            href={`/cabines/nova?com=${handle}`}
+            como="botao"
             rotulo={
               convitePendente
-                ? `Convite de Cabine para ${nome} esperando resposta`
+                ? `Continuar a conversa com ${nome}, que ainda não aceitou`
                 : `Abrir uma Cabine com ${nome}`
             }
             tom="lavanda"
             aviso={convitePendente}
+            desabilitado={pendente}
+            onClick={() => {
+              setErroDaCabine(null);
+              iniciar(async () => {
+                const resultado = await abrirConversa(profileId);
+                if (resultado?.erro) setErroDaCabine(resultado.erro);
+              });
+            }}
           >
             <CabinNavIcon decorative className="size-icon" />
           </BotaoDoCanto>
         </>
       )}
 
-      <BotaoDoCanto
-        como="botao"
-        rotulo={`Mais opções sobre ${nome}`}
-        tom="claro"
-        expandido={aberto === "menu"}
-        controla={idDoMenu}
-        onClick={() => setAberto((a) => (a === "menu" ? "nenhum" : "menu"))}
-      >
-        <MoreOptionsIcon decorative className="size-icon" />
-      </BotaoDoCanto>
+      {/*
+        Menu ancorado, e não folha inferior: a folha era desenhada no fluxo
+        da página e **empurrava o perfil inteiro para baixo** a cada clique
+        no "...". É o mesmo conserto que a Cabine já tinha recebido.
 
-      <div id={idDoMenu}>
-        <BottomSheet title={nome} open={aberto === "menu"}>
-          <div className="flex flex-col gap-1">
-            <Link href={`/denuncia?perfil=${handle}`}>
-              <Button variant="secondary" className="w-full">
+        O botão fica **dentro** do `relative`, e não ao lado: é a caixa dele
+        que o menu usa como âncora. Com o `relative` numa caixa vazia ao
+        lado, o menu subia e cobria os botões em vez de descer abaixo do
+        "..." — a caixa tinha altura zero, e "abaixo dela" é o topo da linha.
+      */}
+      <div className="relative">
+        <BotaoDoCanto
+          como="botao"
+          rotulo={`Mais opções sobre ${nome}`}
+          tom="claro"
+          expandido={aberto === "menu"}
+          controla={idDoMenu}
+          onClick={() => setAberto((a) => (a === "menu" ? "nenhum" : "menu"))}
+        >
+          <MoreOptionsIcon decorative className="size-icon" />
+        </BotaoDoCanto>
+
+        <div id={idDoMenu}>
+          <MenuSuspenso
+            titulo={`Opções sobre ${nome}`}
+            aberto={aberto === "menu"}
+            onFechar={() => setAberto("nenhum")}
+          >
+            <Link href={`/denuncia?perfil=${handle}`} onClick={() => setAberto("nenhum")}>
+              <Button variant="secondary" size="sm" className="w-full">
                 Denunciar perfil
               </Button>
             </Link>
 
             <Button
               variant="secondary"
+              size="sm"
               disabled={pendente}
               onClick={() => {
                 setAberto("nenhum");
@@ -163,12 +188,21 @@ export function AcoesDoPerfil({
               sabendo.
             </p>
 
-            <Button variant="danger" onClick={() => setAberto("bloquear")}>
+            <Button variant="danger" size="sm" onClick={() => setAberto("bloquear")}>
               {bloqueadoInicial ? "Desbloquear" : "Bloquear"}
             </Button>
-          </div>
-        </BottomSheet>
+          </MenuSuspenso>
+        </div>
       </div>
+
+      {erroDaCabine ? (
+        <p
+          role="alert"
+          className="bg-paper text-caption text-error top-navItem w-contextPanel absolute right-0 mt-1 rounded-sm p-2"
+        >
+          {erroDaCabine}
+        </p>
+      ) : null}
 
       <ConfirmSheet
         open={aberto === "bloquear"}

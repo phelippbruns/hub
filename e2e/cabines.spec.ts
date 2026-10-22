@@ -6,6 +6,7 @@ import {
   concluirOnboarding,
   preencherNovaComunidade,
   seguirNoPerfil,
+  abrirConvites,
 } from "./apoio-tela";
 
 /**
@@ -89,18 +90,6 @@ async function outraSessao(browser: Browser, prefixo: string) {
   const page = await contexto.newPage();
   const { handle, nome } = await entrarNoApp(page, prefixo);
   return { contexto, page, handle, nome };
-}
-
-/**
- * Abre a aba Convites da lista.
- *
- * Os convites deixaram de ficar empilhados com as conversas: eles moram
- * numa aba, com o número ao lado. Sem este passo, procurar por um convite
- * procura numa aba que não está aberta — e o erro que aparece é "não
- * encontrei o link", que parece defeito do convite.
- */
-async function abrirConvites(page: Page) {
-  await page.getByRole("tab", { name: /^Convites/ }).click();
 }
 
 /** Convida pela tela 18 e devolve quando o convite estiver no banco. */

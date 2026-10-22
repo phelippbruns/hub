@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useTransition } from "react";
 import { Button } from "@/design/components";
 import { cancelarMeuConvite } from "./actions";
@@ -14,18 +15,31 @@ import { cancelarMeuConvite } from "./actions";
  *
  * O que **não** aparece é se a pessoa já viu ou recusou: a recusa é
  * silenciosa, e um convite que some sozinho contaria a resposta.
+ *
+ * O cartão **leva de volta à conversa**: desde que a Cabine nasce de um
+ * clique no perfil, quem convidou já escreveu ali. Sem este caminho, a
+ * conversa só se reabria indo de novo ao perfil da pessoa — e quem não
+ * lembrasse disso perderia o que escreveu de vista.
  */
-export function ConviteEnviado({ id, paraQuem }: { id: string; paraQuem: string }) {
+export function ConviteEnviado({
+  id,
+  cabinId,
+  paraQuem,
+}: {
+  id: string;
+  cabinId: string;
+  paraQuem: string;
+}) {
   const [pendente, iniciar] = useTransition();
 
   return (
     <div className="bg-paper flex items-center gap-2 rounded-sm p-2">
-      <span className="min-w-0 flex-1">
+      <Link href={`/cabines/${cabinId}`} className="min-w-0 flex-1 no-underline">
         <span className="text-body text-ink block truncate">Convite para {paraQuem}</span>
         <span className="text-caption text-inkMuted block">
           A Cabine começa quando {paraQuem.split(" ")[0]} aceitar.
         </span>
-      </span>
+      </Link>
 
       <Button
         variant="secondary"

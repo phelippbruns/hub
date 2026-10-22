@@ -205,7 +205,7 @@ export const size = {
   /** Altura da capa da comunidade, no topo da página dela. */
   cover: "180px",
   /** Foto no topo da página de perfil, no formato de hexágono orgânico. */
-  avatarPerfil: "100px",
+  avatarPerfil: "125px",
   /** Quadro em que a foto de perfil é arrastada e aproximada, em Editar perfil. */
   fotoAjuste: "240px",
   /** Largura máxima da apresentação do onboarding, mais larga que a coluna de conteúdo porque o card tem duas colunas. */

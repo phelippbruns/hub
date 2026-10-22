@@ -113,7 +113,7 @@ export async function getCollection(
 
 /**
  * RN27: o número de pessoas seguidas aparece só no perfil próprio, e a lista
- * também. Seguidores são informativos e não abrem lista (RN28).
+ * também.
  */
 export async function getFollowing(viewer: Viewer, ownerId: string) {
   const me = requireProfileId(viewer);
@@ -135,4 +135,32 @@ export async function getFollowing(viewer: Viewer, ownerId: string) {
 /** RN28: o número de seguidores é informativo e público. */
 export async function countFollowers(profileId: string) {
   return prisma.follow.count({ where: { followedProfileId: profileId } });
+}
+
+/**
+ * RN28: quem segue você — **e só você vê**.
+ *
+ * O número de seguidores continua sem abrir lista no perfil de outra
+ * pessoa: ali ele existiria para comparar perfis, que é o que o Princípio 2
+ * recusa. No seu próprio perfil é outra coisa: são as pessoas que
+ * escolheram te acompanhar, e saber quem são é seu dado, não placar de
+ * ninguém.
+ *
+ * A recusa é a mesma do `getFollowing`, e pelo mesmo motivo: a lista é a
+ * informação, não o número.
+ */
+export async function getFollowers(viewer: Viewer, ownerId: string) {
+  const me = requireProfileId(viewer);
+  if (me !== ownerId) throw new ForbiddenError("A lista de seguidores é privada");
+
+  const seguidores = await prisma.follow.findMany({
+    where: { followedProfileId: ownerId, target: "profile" },
+    orderBy: { createdAt: "desc" },
+    include: { follower: { select: { id: true, name: true, handle: true, avatarUrl: true } } },
+  });
+
+  // A foto vem como caminho no depósito; a tela precisa de endereço.
+  const pessoas = await comAvatares(seguidores.map((f) => f.follower));
+
+  return seguidores.map((f, i) => ({ ...f, follower: pessoas.at(i) ?? null }));
 }
