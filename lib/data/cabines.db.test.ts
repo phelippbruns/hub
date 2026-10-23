@@ -19,6 +19,7 @@ import {
 import {
   MAXIMO_DE_PESSOAS,
   abrirCabine,
+  apagarConversa,
   abrirConversaDireta,
   acceptInvite,
   cabinePorId,
@@ -28,11 +29,13 @@ import {
   declineInvite,
   inviteToCabin,
   leaveCabin,
+  listMessages,
   listarCabines,
   marcarCabineComoLida,
   nomeDaCabine,
   sendMessage,
   sugestoesParaConvidar,
+  temCabineNova,
 } from "./cabins";
 import { viewerFor } from "./viewer";
 
@@ -752,5 +755,96 @@ describe("quem aparece numa Cabine com convite pendente", () => {
 
     const naTela = await cabinePorId(viewerFor(lia.id), cabine);
     expect(naTela.convidadas[0]?.avatarUrl).not.toBe("perfis/x.jpg");
+  });
+});
+
+/**
+ * RN24: apagar a conversa limpa **o meu lado**.
+ *
+ * A promessa da palavra é exatamente essa, e o que a protege é o corte por
+ * pessoa: a mensagem é uma linha só para as duas, e apagá-la de verdade
+ * levaria junto a cópia de quem não pediu nada.
+ */
+describe("apagar conversa", () => {
+  async function conversaCom2Mensagens() {
+    const { lia, jo } = await cenario();
+    const cabine = await cabineEntre(lia.id, jo.id);
+    await sendMessage(viewerFor(lia.id), { cabinId: cabine, text: "primeira" });
+    await sendMessage(viewerFor(jo.id), { cabinId: cabine, text: "segunda" });
+    return { lia, jo, cabine };
+  }
+
+  it("quem apaga para de ver as mensagens; a outra pessoa continua com tudo", async () => {
+    const { lia, jo, cabine } = await conversaCom2Mensagens();
+
+    await apagarConversa(viewerFor(lia.id), cabine);
+
+    expect(await listMessages(viewerFor(lia.id), cabine)).toHaveLength(0);
+    expect(await listMessages(viewerFor(jo.id), cabine)).toHaveLength(2);
+  });
+
+  it("a conversa some da lista de quem apagou, e não da do outro", async () => {
+    const { lia, jo, cabine } = await conversaCom2Mensagens();
+
+    await apagarConversa(viewerFor(lia.id), cabine);
+
+    expect((await listarCabines(viewerFor(lia.id))).cabines).toHaveLength(0);
+    expect((await listarCabines(viewerFor(jo.id))).cabines).toHaveLength(1);
+    void cabine;
+  });
+
+  /*
+   * Apagar limpa o passado, não fecha a porta. Para fechar existe bloquear,
+   * que diz o que é — e se apagar bloqueasse, ninguém poderia te alcançar
+   * depois de uma limpeza de lista.
+   */
+  it("mensagem nova traz a conversa de volta, só com o que é novo", async () => {
+    const { lia, jo, cabine } = await conversaCom2Mensagens();
+    await apagarConversa(viewerFor(lia.id), cabine);
+
+    await sendMessage(viewerFor(jo.id), { cabinId: cabine, text: "voltei" });
+
+    const minhas = await listMessages(viewerFor(lia.id), cabine);
+    expect(minhas.map((m) => m.text)).toEqual(["voltei"]);
+    expect((await listarCabines(viewerFor(lia.id))).cabines).toHaveLength(1);
+  });
+
+  it("a bolinha da barra acende com a mensagem que trouxe a conversa de volta", async () => {
+    const { lia, jo, cabine } = await conversaCom2Mensagens();
+    await apagarConversa(viewerFor(lia.id), cabine);
+    expect(await temCabineNova(viewerFor(lia.id))).toBe(false);
+
+    await sendMessage(viewerFor(jo.id), { cabinId: cabine, text: "voltei" });
+    expect(await temCabineNova(viewerFor(lia.id))).toBe(true);
+  });
+
+  it("quando as duas apagam e nada sobrou, a Cabine some do banco", async () => {
+    const { lia, jo, cabine } = await conversaCom2Mensagens();
+
+    await apagarConversa(viewerFor(lia.id), cabine);
+    await apagarConversa(viewerFor(jo.id), cabine);
+
+    expect(await db.cabin.findUnique({ where: { id: cabine } })).toBeNull();
+  });
+
+  it("se sobrou mensagem depois da marca de alguém, a Cabine fica", async () => {
+    const { lia, jo, cabine } = await conversaCom2Mensagens();
+
+    await apagarConversa(viewerFor(lia.id), cabine);
+    await sendMessage(viewerFor(jo.id), { cabinId: cabine, text: "ainda aqui" });
+    // Jo apaga depois, mas Lia ainda alcança "ainda aqui".
+    await apagarConversa(viewerFor(jo.id), cabine);
+
+    expect(await db.cabin.findUnique({ where: { id: cabine } })).not.toBeNull();
+    expect((await listMessages(viewerFor(lia.id), cabine)).map((m) => m.text)).toEqual([
+      "ainda aqui",
+    ]);
+  });
+
+  it("quem não participa não apaga", async () => {
+    const { lia, jo, rafa } = await cenario();
+    const cabine = await cabineEntre(lia.id, jo.id);
+
+    await expect(apagarConversa(viewerFor(rafa.id), cabine)).rejects.toThrow();
   });
 });

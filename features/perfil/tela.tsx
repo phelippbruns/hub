@@ -66,7 +66,7 @@ export async function TelaDePerfil({
           contribuicoes={perfil.contribuicoes}
           comunidades={perfil.comunidades}
           seguidores={perfil.seguidores}
-          seguidoresHref={perfil.souEu ? "/perfil/seguidores" : undefined}
+          seguidoresHref={perfil.souEu ? "/perfil/seguindo?aba=seguidores" : undefined}
           seguindo={
             /*
               RN27: só o dono vê, e só para ele a lista abre. Continua sendo

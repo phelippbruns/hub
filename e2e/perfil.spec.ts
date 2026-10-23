@@ -429,7 +429,13 @@ test.describe("RN28: as duas listas abrem no perfil próprio", () => {
 
       await page.goto("/perfil");
       await page.getByRole("link", { name: /seguidor/ }).click();
-      await page.waitForURL(/\/perfil\/seguidores/);
+
+      // As duas listas viraram uma tela com abas.
+      await page.waitForURL(/aba=seguidores/);
+      await expect(page.getByRole("tab", { name: "Seguidores" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
       await expect(page.getByText("Só você vê esta lista.")).toBeVisible();
 
       // No perfil de outra pessoa, seguidores não é link.

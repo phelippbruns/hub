@@ -10,7 +10,7 @@ import { ContentColumn, PaginaCarregando } from "@/design/components";
 export default function Carregando() {
   return (
     <ContentColumn>
-      <PaginaCarregando label="Carregando quem você segue" linhas={3} />
+      <PaginaCarregando label="Carregando as suas pessoas" linhas={3} />
     </ContentColumn>
   );
 }

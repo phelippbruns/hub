@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useId, useState, useTransition } from "react";
 import { Button, ConfirmSheet, MenuSuspenso, RoundIconButton } from "@/design/components";
 import { MoreOptionsIcon } from "@/design/icons";
-import { bloquearDaCabine, sairDaCabine } from "./actions";
+import { apagarMinhaConversa, bloquearDaCabine, sairDaCabine } from "./actions";
 
 export type ParticipanteNoMenu = { id: string; nome: string; handle: string; souEu: boolean };
 
@@ -22,11 +22,15 @@ export function MenuDaCabine({
   cabinId: string;
   participantes: ParticipanteNoMenu[];
 }) {
-  const [aberto, setAberto] = useState<"nenhum" | "menu" | "sair" | "bloquear">("nenhum");
+  const [aberto, setAberto] = useState<"nenhum" | "menu" | "sair" | "apagar" | "bloquear">(
+    "nenhum",
+  );
   const [pendente, iniciar] = useTransition();
   const idDoMenu = useId();
 
   const outros = participantes.filter((pessoa) => !pessoa.souEu);
+  /* Grupo é de 3 a 5: ali sair ainda faz sentido, porque alguém fica. */
+  const ehGrupo = participantes.length > 2;
   const [paraBloquear, setParaBloquear] = useState<ParticipanteNoMenu | null>(null);
 
   return (
@@ -86,17 +90,35 @@ export function MenuDaCabine({
               </Button>
             ))}
 
-            <Button variant="danger" onClick={() => setAberto("sair")}>
-              Sair da Cabine
+            {/*
+              RN24: numa conversa de duas, apagar; num grupo, sair.
+              São coisas diferentes e não dá para oferecer uma pela outra.
+              Apagar limpa o meu lado e a porta continua aberta; sair afeta
+              quem ficou, e por isso continua existindo onde há quem fique.
+            */}
+            <Button variant="danger" onClick={() => setAberto(ehGrupo ? "sair" : "apagar")}>
+              {ehGrupo ? "Sair da Cabine" : "Apagar conversa"}
             </Button>
 
-            {/* RN24: a consequência vem escrita, antes de a pessoa decidir. */}
+            {/* A consequência vem escrita, antes de a pessoa decidir. */}
             <p className="text-caption text-inkMuted">
-              Se só uma pessoa ficar, a Cabine se encerra.
+              {ehGrupo
+                ? "Se só uma pessoa ficar, a Cabine se encerra."
+                : "Some só para você. A outra pessoa continua com a conversa."}
             </p>
           </div>
         </MenuSuspenso>
       </div>
+
+      <ConfirmSheet
+        open={aberto === "apagar"}
+        titulo="Apagar esta conversa?"
+        descricao="Ela some da sua lista e você deixa de ver as mensagens. A outra pessoa continua com tudo. Se ela escrever de novo, a conversa volta — começando do que for novo."
+        confirmar="Apagar conversa"
+        pendente={pendente}
+        onConfirm={() => iniciar(() => apagarMinhaConversa(cabinId))}
+        onCancel={() => setAberto("nenhum")}
+      />
 
       <ConfirmSheet
         open={aberto === "sair"}

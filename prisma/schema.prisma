@@ -504,6 +504,18 @@ model CabinMember {
   /// Até quando esta pessoa leu. Nulo = nunca abriu, então tudo conta.
   lastReadAt DateTime? @map("last_read_at") @db.Timestamptz(6)
 
+  /// RN24: até quando esta pessoa apagou a conversa, **só para ela**.
+  ///
+  /// Apagar não mexe no que a outra pessoa guardou: cada lado tem a sua
+  /// marca, e o que é anterior a ela some só de quem apagou. A conversa
+  /// volta à lista se chegar mensagem nova — apagar limpa o passado, não
+  /// fecha a porta.
+  ///
+  /// Quando todo mundo apagou e não sobrou mensagem depois das marcas, a
+  /// Cabine é apagada de verdade: não faz sentido guardar o que ninguém
+  /// mais alcança.
+  clearedAt  DateTime? @map("cleared_at") @db.Timestamptz(6)
+
   cabin   Cabin   @relation(fields: [cabinId], references: [id], onDelete: Cascade)
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Avatar } from "@/design/components";
 import type { ReactNode } from "react";
 import { cn } from "@/design/cn";
@@ -5,7 +6,10 @@ import { cn } from "@/design/cn";
 export type PessoaNoCabecalho = {
   id: string;
   nome: string;
+  /** Quando há, o nome no topo vira o caminho para o perfil. */
+  handle?: string;
   avatarUrl: string | null;
+  souEu?: boolean;
 };
 
 /**
@@ -30,8 +34,19 @@ export function CabecalhoDaCabine({
   convidadas?: PessoaNoCabecalho[];
   menu: ReactNode;
 }) {
+  // A contagem é de quem está dentro, **eu incluído**: é a Cabine inteira.
   const quantas = participantes.length;
   const rostos = [...participantes, ...convidadas].slice(0, 3);
+
+  /*
+   * Com uma pessoa só do outro lado, o nome leva ao perfil dela.
+   *
+   * Numa conversa de duas, o nome no topo **é** a pessoa — não poder
+   * clicar nele obrigava a sair da Cabine, lembrar o @ e digitá-lo. Em
+   * grupo o nome é a soma de vários, e não há um perfil para onde ir.
+   */
+  const outras = [...participantes.filter((p) => !p.souEu), ...convidadas];
+  const soUma = outras.length === 1 ? outras[0] : null;
 
   return (
     <header className="border-line flex items-center gap-2 border-b px-5 py-4">
@@ -54,7 +69,15 @@ export function CabecalhoDaCabine({
       </span>
 
       <span className="min-w-0 flex-1">
-        <h1 className="text-subtitle text-ink truncate">{nome}</h1>
+        {soUma?.handle ? (
+          <h1 className="text-subtitle truncate">
+            <Link href={`/${soUma.handle}`} className="text-ink underline-offset-2 hover:underline">
+              {nome}
+            </Link>
+          </h1>
+        ) : (
+          <h1 className="text-subtitle text-ink truncate">{nome}</h1>
+        )}
         {/*
           Com convite pendente, a espera é o que importa dizer — não a
           contagem. "1 pessoa na Cabine" é verdade e não ajuda ninguém:

@@ -454,18 +454,24 @@ test.describe("a Cabine de duas colunas", () => {
  * lugar errado, um texto fora do centro, um menu que empurra a página, e
  * uma busca que promete o que o servidor recusa.
  */
+/**
+ * Duas pessoas que se seguem, que é quem pode conversar sem convite.
+ *
+ * Fora de qualquer `describe`: dois grupos de teste precisam dela, e
+ * duplicá-la seria a quarta vez nesta suíte que um passo copiado quebra em
+ * vários lugares de uma vez.
+ */
+async function duasQueSeSeguem(page: Page, browser: Browser, prefixo: string) {
+  const eu = await entrarNoApp(page, `${prefixo}a`);
+  const outra = await outraSessao(browser, `${prefixo}b`);
+
+  await seguirNoPerfil(page, outra.handle);
+  await seguirNoPerfil(outra.page, eu.handle);
+
+  return { eu, outra };
+}
+
 test.describe("os acertos da Cabine", () => {
-  /** Duas pessoas que se seguem, que é quem pode conversar. */
-  async function duasQueSeSeguem(page: Page, browser: Browser, prefixo: string) {
-    const eu = await entrarNoApp(page, `${prefixo}a`);
-    const outra = await outraSessao(browser, `${prefixo}b`);
-
-    await seguirNoPerfil(page, outra.handle);
-    await seguirNoPerfil(outra.page, eu.handle);
-
-    return { eu, outra };
-  }
-
   test("buscar e clicar num nome abre a conversa, na mesma tela", async ({ page, browser }) => {
     const { outra } = await duasQueSeSeguem(page, browser, "busca");
 
@@ -554,6 +560,116 @@ test.describe("os acertos da Cabine", () => {
 
       // O menu abre por cima: nada embaixo dele se move.
       expect(Math.round((await campo.boundingBox())!.y)).toBe(Math.round(antes));
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+});
+
+/**
+ * Os acertos depois de usar: Enter, o nome que leva ao perfil, a bolinha
+ * da barra e apagar a conversa.
+ */
+test.describe("acertos de uso da Cabine", () => {
+  test("Enter envia, e Shift+Enter quebra linha", async ({ page, browser }) => {
+    const { outra } = await duasQueSeSeguem(page, browser, "enter");
+
+    try {
+      await page.goto(`/${outra.handle}`);
+      await page.getByRole("button", { name: /^Abrir uma Cabine com/ }).click();
+      await page.waitForURL(/\/cabines\/[0-9a-f-]+$/, { timeout: 20_000 });
+
+      const campo = page.getByRole("textbox", { name: "Mensagem" });
+
+      // Shift+Enter fica no campo.
+      await campo.fill("primeira linha");
+      await campo.press("Shift+Enter");
+      await expect(campo).toHaveValue(/primeira linha\n/);
+
+      // Enter envia.
+      await campo.fill("enviada com Enter");
+      await campo.press("Enter");
+      await expect(campo).toHaveValue("", { timeout: 15_000 });
+      await expect(
+        page.getByRole("region", { name: "Conversa" }).getByText("enviada com Enter"),
+      ).toBeVisible();
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("o nome no topo leva ao perfil da pessoa", async ({ page, browser }) => {
+    const { outra } = await duasQueSeSeguem(page, browser, "nomeperfil");
+
+    try {
+      await page.goto(`/${outra.handle}`);
+      await page.getByRole("button", { name: /^Abrir uma Cabine com/ }).click();
+      await page.waitForURL(/\/cabines\/[0-9a-f-]+$/, { timeout: 20_000 });
+
+      await page.getByRole("heading", { level: 1 }).getByRole("link").click();
+      await page.waitForURL(/\/[a-z0-9_]+$/);
+      expect(new URL(page.url()).pathname).toBe(`/${outra.handle}`);
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("a barra lateral acende a bolinha quando chega mensagem", async ({ page, browser }) => {
+    const { outra } = await duasQueSeSeguem(page, browser, "bolinha");
+
+    try {
+      await page.goto(`/${outra.handle}`);
+      await page.getByRole("button", { name: /^Abrir uma Cabine com/ }).click();
+      await page.waitForURL(/\/cabines\/[0-9a-f-]+$/, { timeout: 20_000 });
+      const conversa = page.url();
+
+      // Antes: nada novo para mim.
+      await page.goto("/inicio");
+      await expect(page.getByRole("status", { name: "Há conversa nova" })).toHaveCount(0);
+
+      // A outra pessoa escreve.
+      await outra.page.goto(conversa);
+      await outra.page.getByRole("textbox", { name: "Mensagem" }).fill("oi");
+      await outra.page.getByRole("button", { name: "Enviar" }).click();
+      await expect(outra.page.getByRole("textbox", { name: "Mensagem" })).toHaveValue("", {
+        timeout: 15_000,
+      });
+
+      await page.goto("/inicio");
+      await expect(page.getByRole("status", { name: "Há conversa nova" })).toBeVisible();
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("RN24: apagar limpa o meu lado, e o da outra pessoa fica", async ({ page, browser }) => {
+    const { outra } = await duasQueSeSeguem(page, browser, "apagar");
+
+    try {
+      await page.goto(`/${outra.handle}`);
+      await page.getByRole("button", { name: /^Abrir uma Cabine com/ }).click();
+      await page.waitForURL(/\/cabines\/[0-9a-f-]+$/, { timeout: 20_000 });
+      const conversa = page.url();
+
+      const campo = page.getByRole("textbox", { name: "Mensagem" });
+      await campo.fill("vai sumir do meu lado");
+      await campo.press("Enter");
+      await expect(campo).toHaveValue("", { timeout: 15_000 });
+
+      // Numa conversa de duas, o menu oferece apagar — não sair.
+      await page.getByRole("button", { name: "Opções da Cabine" }).click();
+      await expect(page.getByRole("button", { name: "Sair da Cabine" })).toHaveCount(0);
+      await page.getByRole("button", { name: "Apagar conversa" }).click();
+      await page.getByRole("button", { name: "Apagar conversa" }).last().click();
+
+      await page.waitForURL(/\/cabines$/, { timeout: 20_000 });
+      await expect(page.getByText("Nenhuma conversa ainda")).toBeVisible();
+
+      // A outra pessoa continua com tudo.
+      await outra.page.goto(conversa);
+      await expect(
+        outra.page.getByRole("region", { name: "Conversa" }).getByText("vai sumir do meu lado"),
+      ).toBeVisible();
     } finally {
       await outra.contexto.close();
     }
