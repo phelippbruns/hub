@@ -6,6 +6,7 @@ import { getViewer } from "@/lib/auth/session";
 import { CABECALHO_DA_ROTA, ehCompartilhavel } from "@/lib/auth/rotas-publicas";
 import { jaFezOnboarding } from "@/lib/data/onboarding";
 import { temNovidade } from "@/lib/data/inicio";
+import { temCabineNova } from "@/lib/data/cabins";
 
 /**
  * Layout das telas autenticadas — e das compartilháveis (F14).
@@ -49,10 +50,10 @@ export default async function AppLayout({
   if (!(await jaFezOnboarding(viewer.profileId))) redirect("/boas-vindas");
 
   // Item 7 da F11: o ponto amarelo no sino quando há notificação não lida.
-  const novidade = await temNovidade(viewer);
+  const [novidade, cabineNova] = await Promise.all([temNovidade(viewer), temCabineNova(viewer)]);
 
   return (
-    <AppShell nav={<NavRail temNovidade={novidade} />} painel={painel}>
+    <AppShell nav={<NavRail temNovidade={novidade} temCabineNova={cabineNova} />} painel={painel}>
       {children}
     </AppShell>
   );

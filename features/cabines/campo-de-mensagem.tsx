@@ -86,6 +86,20 @@ export function CampoDeMensagem({ cabinId }: { cabinId: string }) {
           maxLength={LIMITE_DA_MENSAGEM}
           value={texto}
           onChange={(evento) => setTexto(evento.target.value)}
+          /*
+           * Enter envia; Shift+Enter quebra linha.
+           *
+           * É o que a mão já faz em qualquer conversa, e sem isso a pessoa
+           * digitava Enter, ganhava uma linha em branco e tinha de caçar o
+           * botão. `isComposing` fica de fora: em teclado de japonês,
+           * chinês ou coreano o Enter confirma a palavra que está sendo
+           * montada, e enviar ali cortaria a frase no meio.
+           */
+          onKeyDown={(evento) => {
+            if (evento.key !== "Enter" || evento.shiftKey || evento.nativeEvent.isComposing) return;
+            evento.preventDefault();
+            evento.currentTarget.form?.requestSubmit();
+          }}
           placeholder="Escreva uma mensagem"
           aria-describedby={idDoLimite}
           /*

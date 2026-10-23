@@ -81,7 +81,9 @@ export default async function CabinePage({ params }: { params: Params }) {
           participantes={cabine.participantes.map((p) => ({
             id: p.id,
             nome: p.nome,
+            handle: p.handle,
             avatarUrl: p.avatarUrl,
+            souEu: p.souEu,
           }))}
           convidadas={cabine.convidadas}
           menu={

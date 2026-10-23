@@ -135,7 +135,14 @@ function Rotulo({ children }: { children: ReactNode }) {
   );
 }
 
-export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
+export function NavRail({
+  temNovidade = false,
+  temCabineNova = false,
+}: {
+  temNovidade?: boolean;
+  /** Conversa com mensagem não lida, ou convite esperando. */
+  temCabineNova?: boolean;
+}) {
   const pathname = usePathname();
   const atualHref = areaAtual(pathname);
 
@@ -201,12 +208,18 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
           >
             <Eixo className="relative">
               <Icone decorative active={atual} className="size-iconNav" />
-              {href === "/notificacoes" && temNovidade ? (
+              {(href === "/notificacoes" && temNovidade) ||
+              (href === "/cabines" && temCabineNova) ? (
                 <span
                   /*
                    * "Há novidade", e não um número: o Hub sabe que existe
                    * algo não lido, não quantos. Dizer "1 não lidas" seria
                    * errado em português e impreciso ao mesmo tempo.
+                   *
+                   * A mesma bolinha serve ao sino e à Cabine — duas formas
+                   * de dizer a mesma coisa fariam a pessoa aprender duas
+                   * vezes. A contagem exata da Cabine fica na lista dela,
+                   * onde há espaço para dizê-la direito.
                    *
                    * Fica **sempre no canto do sino**, aberta ou fechada a
                    * barra. Antes ele trocava de lugar — canto do ícone
@@ -215,7 +228,7 @@ export function NavRail({ temNovidade = false }: { temNovidade?: boolean }) {
                    * barra, e procurar o aviso em dois lugares é trabalho
                    * de quem lê.
                    */
-                  aria-label="Há novidade"
+                  aria-label={href === "/cabines" ? "Há conversa nova" : "Há novidade"}
                   role="status"
                   className="bg-sun rounded-pill absolute top-0 right-1 size-2"
                 />

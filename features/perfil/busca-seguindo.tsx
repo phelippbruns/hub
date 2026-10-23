@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Avatar } from "@/design/components";
+import { useRouter } from "next/navigation";
+import { Avatar, Tabs } from "@/design/components";
 import { SearchIcon } from "@/design/icons";
 import { OlhoDeSeguir } from "./acoes-do-perfil";
 
@@ -56,7 +57,7 @@ export function ListaDeSeguindo({
         />
       </div>
 
-      {/* RN27: a lista é privada, e a tela diz isso. */}
+      {/* RN27/RN28: as duas listas são privadas, e a tela diz isso. */}
       <p className="text-caption text-inkMuted">Só você vê esta lista.</p>
 
       {visiveis.length === 0 ? (
@@ -90,5 +91,30 @@ export function ListaDeSeguindo({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * As abas de "Pessoas": quem eu sigo e quem me segue.
+ *
+ * A escolha vai para a URL, como nas abas do perfil — endereço
+ * compartilhável e botão voltar funcionando. É também o que deixa o perfil
+ * mandar direto para a aba certa.
+ */
+export function AbasDePessoas({ atual }: { atual: "seguindo" | "seguidores" }) {
+  const router = useRouter();
+
+  return (
+    <Tabs
+      label="Suas pessoas"
+      activeId={atual}
+      tabs={[
+        { id: "seguindo", label: "Seguindo" },
+        { id: "seguidores", label: "Seguidores" },
+      ]}
+      onSelect={(id) =>
+        router.push(id === "seguidores" ? "/perfil/seguindo?aba=seguidores" : "/perfil/seguindo")
+      }
+    />
   );
 }

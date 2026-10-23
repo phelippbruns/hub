@@ -13,7 +13,7 @@ import {
   translateDatabaseError,
 } from "./errors";
 import { inviteToCabinSchema } from "./validation";
-import { requireProfileId, type Viewer } from "./viewer";
+import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import {
   comunidadesEmComum,
   isBlockedBetween,
@@ -37,12 +37,14 @@ export function chaveDoPar(a: string, b: string): string {
   return [a, b].sort().join(":");
 }
 
+/** Confere a participação e devolve a linha — quem chama costuma precisar dela. */
 async function requireCabinMember(cabinId: string, profileId: string) {
   const member = await prisma.cabinMember.findUnique({
     where: { cabinId_profileId: { cabinId, profileId } },
-    select: { leftAt: true },
+    select: { leftAt: true, clearedAt: true, lastReadAt: true },
   });
   if (!member || member.leftAt) throw new ForbiddenError("Você não participa desta Cabine");
+  return member;
 }
 
 /**
@@ -430,6 +432,63 @@ async function encerrarSeNinguemVeio(
 }
 
 /** RN24: qualquer participante sai; com uma pessoa restante, a Cabine encerra. */
+/**
+ * RN24: apaga a conversa **para mim**.
+ *
+ * Marca a data e sai da minha lista. A outra pessoa continua com o
+ * histórico inteiro — a mensagem é uma linha só para as duas, e removê-la
+ * apagaria a cópia dela junto. O corte por data é o que separa os dois
+ * lados sem duplicar nada.
+ *
+ * **Não fecha a porta.** Se a outra pessoa escrever depois, a conversa
+ * volta à minha lista começando do que é novo: apagar limpa o passado, e
+ * transformar isso em bloqueio seria prometer uma coisa e fazer outra —
+ * para isso existe bloquear, que diz o que é.
+ *
+ * Quando todo mundo apagou e não sobrou mensagem depois das marcas, a
+ * Cabine é apagada de verdade: não faz sentido guardar o que ninguém mais
+ * alcança.
+ */
+export async function apagarConversa(viewer: Viewer, cabinId: string) {
+  const me = requireProfileId(viewer);
+  await requireCabinMember(cabinId, me);
+
+  await prisma.$transaction(async (tx) => {
+    const agora = new Date();
+
+    await tx.cabinMember.update({
+      where: { cabinId_profileId: { cabinId, profileId: me } },
+      data: { clearedAt: agora, lastReadAt: agora },
+    });
+
+    const membros = await tx.cabinMember.findMany({
+      where: { cabinId, leftAt: null },
+      select: { profileId: true, clearedAt: true },
+    });
+
+    // Alguém ainda guarda a conversa: nada mais a fazer.
+    if (membros.some((membro) => membro.clearedAt === null)) return;
+
+    /*
+     * Todo mundo apagou. Se sobrou mensagem depois da marca de alguém, ela
+     * ainda é alcançável por essa pessoa e a Cabine fica.
+     */
+    const maisAntiga = membros.reduce<Date>(
+      (menor, membro) => (membro.clearedAt! < menor ? membro.clearedAt! : menor),
+      membros[0]!.clearedAt!,
+    );
+
+    const sobrou = await tx.message.findFirst({
+      where: { cabinId, deletedAt: null, createdAt: { gt: maisAntiga } },
+      select: { id: true },
+    });
+    if (sobrou) return;
+
+    // Ninguém alcança mais nada: a Cabine some de verdade.
+    await tx.cabin.delete({ where: { id: cabinId } });
+  });
+}
+
 export async function leaveCabin(viewer: Viewer, cabinId: string) {
   const me = requireProfileId(viewer);
   await requireCabinMember(cabinId, me);
@@ -524,10 +583,20 @@ export async function sendMessage(
 /** Só participante lê a conversa. */
 export async function listMessages(viewer: Viewer, cabinId: string) {
   const me = requireProfileId(viewer);
-  await requireCabinMember(cabinId, me);
+  const membro = await requireCabinMember(cabinId, me);
 
+  /*
+   * RN24: quem apagou a conversa não vê o que é anterior à sua marca.
+   *
+   * O corte é por pessoa, e por isso vive na consulta e não numa coluna
+   * da mensagem: a mesma linha continua inteira para quem não apagou.
+   */
   const mensagens = await prisma.message.findMany({
-    where: { cabinId, deletedAt: null },
+    where: {
+      cabinId,
+      deletedAt: null,
+      ...(membro?.clearedAt ? { createdAt: { gt: membro.clearedAt } } : {}),
+    },
     orderBy: { createdAt: "asc" },
     include: {
       author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
@@ -711,10 +780,16 @@ export async function listarCabines(viewer: Viewer): Promise<{
               where: { leftAt: null, profileId: { not: me } },
               include: { profile: { select: { name: true } } },
             },
+            /*
+             * Até 2 mensagens, e não 1: a prévia tem de ser a última que
+             * **eu** ainda alcanço, e a última de todas pode ser anterior
+             * à minha marca de apagado. Duas bastam porque o filtro por
+             * data é aplicado logo abaixo, sobre o que veio.
+             */
             messages: {
               where: { deletedAt: null },
               orderBy: { createdAt: "desc" },
-              take: 1,
+              take: 2,
               include: { author: { select: { id: true, name: true } } },
             },
           },
@@ -726,20 +801,40 @@ export async function listarCabines(viewer: Viewer): Promise<{
   // A foto de quem convidou é caminho no depósito; a tela precisa de endereço.
   const quemConvidou = await comAvatares(convites.map((c) => c.inviter));
 
+  /*
+   * RN24: a conversa apagada some da minha lista, e volta sozinha quando
+   * chega mensagem depois da marca — é o que separa "apagar" de "bloquear".
+   *
+   * O corte é por pessoa, então o filtro mora aqui e não na consulta: o
+   * Prisma não compara uma coluna da minha linha de participação com a data
+   * da mensagem dentro do mesmo `where`.
+   */
+  const visiveis = participacoes.filter((p) => {
+    if (!p.clearedAt) return true;
+    const ultima = p.cabin.messages.at(0);
+    return ultima !== undefined && ultima.createdAt > p.clearedAt;
+  });
+
   const cabines = await Promise.all(
-    participacoes.map(async (p) => {
-      const ultima = p.cabin.messages.at(0);
+    visiveis.map(async (p) => {
+      // A prévia é a última que **eu** ainda alcanço.
+      const ultima = p.cabin.messages.find((m) => !p.clearedAt || m.createdAt > p.clearedAt);
 
       /*
        * Não lidas: o que chegou de **outra pessoa** depois da última vez que
        * esta abriu. Sem `lastReadAt` (nunca abriu), tudo que é de outro conta.
+       * O que foi apagado também não conta — some da conversa e da contagem.
        */
+      const corte = [p.lastReadAt, p.clearedAt].filter(Boolean) as Date[];
+      const depoisDe =
+        corte.length > 0 ? new Date(Math.max(...corte.map((d) => d.getTime()))) : null;
+
       const naoLidas = await prisma.message.count({
         where: {
           cabinId: p.cabinId,
           deletedAt: null,
           authorId: { not: me },
-          ...(p.lastReadAt ? { createdAt: { gt: p.lastReadAt } } : {}),
+          ...(depoisDe ? { createdAt: { gt: depoisDe } } : {}),
         },
       });
 
@@ -943,6 +1038,64 @@ export async function cabineAbertaCom(viewer: Viewer, outraPessoa: string): Prom
   });
 
   return minhas.find((m) => m.cabin._count.members === 2)?.cabinId ?? null;
+}
+
+/**
+ * Se há conversa com mensagem não lida, ou convite esperando.
+ *
+ * Devolve **sim ou não**, nunca um número: é o mesmo que o sino faz. O Hub
+ * sabe que existe algo novo, e a contagem exata mora na lista, onde há
+ * espaço para dizê-la direito.
+ *
+ * Convite conta como novidade: para quem recebeu, ele é a conversa — não
+ * ter aviso dele seria esconder justamente o que exige resposta.
+ */
+export async function temCabineNova(viewer: Viewer): Promise<boolean> {
+  const me = viewerProfileId(viewer);
+  if (!me) return false;
+
+  const convite = await prisma.cabinInvite.findFirst({
+    where: { inviteeId: me, status: "pending" },
+    select: { id: true },
+  });
+  if (convite) return true;
+
+  /*
+   * Uma mensagem de outra pessoa, depois da última vez que abri aquela
+   * conversa. Sem `lastReadAt` (nunca abri), tudo que é de outro conta.
+   *
+   * Duas consultas, e não uma por Cabine: a barra lateral roda em toda
+   * página do app, e N consultas por navegação é caro para uma bolinha. O
+   * `OR` carrega o corte de cada conversa, porque "não lida" depende de
+   * quando **aquela** foi aberta — um corte só, global, acenderia a
+   * bolinha por mensagem já lida em outra conversa.
+   */
+  const membros = await prisma.cabinMember.findMany({
+    where: { profileId: me, leftAt: null, cabin: { closedAt: null } },
+    select: { cabinId: true, lastReadAt: true, clearedAt: true },
+  });
+  if (membros.length === 0) return false;
+
+  const naoLida = await prisma.message.findFirst({
+    where: {
+      deletedAt: null,
+      authorId: { not: me },
+      OR: membros.map((membro) => {
+        // O corte é o mais recente entre "li até aqui" e "apaguei até aqui".
+        const datas = [membro.lastReadAt, membro.clearedAt].filter(Boolean) as Date[];
+        const depoisDe =
+          datas.length > 0 ? new Date(Math.max(...datas.map((d) => d.getTime()))) : null;
+
+        return {
+          cabinId: membro.cabinId,
+          ...(depoisDe ? { createdAt: { gt: depoisDe } } : {}),
+        };
+      }),
+    },
+    select: { id: true },
+  });
+
+  return naoLida !== null;
 }
 
 /** RN22: quem convidou pode cancelar enquanto o convite estiver aberto. */

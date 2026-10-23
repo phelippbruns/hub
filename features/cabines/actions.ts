@@ -22,6 +22,7 @@ import {
   cancelarConvite,
   declineInvite,
   inviteToCabin,
+  apagarConversa,
   leaveCabin,
   marcarCabineComoLida,
   sendMessage,
@@ -165,7 +166,22 @@ export async function cancelarMeuConvite(inviteId: string) {
   revalidatePath("/cabines");
 }
 
-/** RN24: com uma pessoa restante, a Cabine encerra. */
+/**
+ * RN24: apaga a conversa só para mim.
+ *
+ * Nas conversas de duas pessoas é isto que o menu oferece, no lugar de
+ * sair: sair encerrava a Cabine dos dois lados e exigia convite novo para
+ * voltar, e isso é forte demais para o que quase sempre se quer — limpar.
+ */
+export async function apagarMinhaConversa(cabinId: string) {
+  const viewer = await quemPede();
+  await apagarConversa(viewer, cabinId);
+
+  revalidatePath("/cabines");
+  redirect("/cabines");
+}
+
+/** RN24: com uma pessoa restante, a Cabine encerra. Vale para grupo. */
 export async function sairDaCabine(cabinId: string) {
   const viewer = await quemPede();
   await leaveCabin(viewer, cabinId);
