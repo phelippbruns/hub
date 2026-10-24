@@ -490,9 +490,34 @@ test("a marca do Hub na barra é um quarto maior que a marca de nível", async (
     .locator("svg")
     .first();
 
-  const caixa = (await marca.boundingBox())!;
-  expect(Math.round(caixa.width)).toBe(40);
-  expect(Math.round(caixa.height)).toBe(40);
+  const medida = await marca.evaluate((svg) => {
+    const q = svg.getBoundingClientRect();
+    const t = svg.querySelector("path")!.getBoundingClientRect();
+    return {
+      lado: Math.round(q.width),
+      alto: Math.round(q.height),
+      // A tinta dentro do quadrado, em fração dele.
+      tinta: t.height / q.height,
+      dx: ((t.left + t.right) / 2 - (q.left + q.right) / 2) / q.width,
+    };
+  });
+
+  expect(medida.lado).toBe(40);
+  expect(medida.alto).toBe(40);
+
+  /*
+   * E a chave está no lugar **nesta marca**, que é a única que carrega a
+   * classe da animação.
+   *
+   * Aqui a logo já saiu quebrada uma vez, com a chave miúda num canto, e
+   * nenhum teste viu: o teste de centro olhava a marca da tela de abertura,
+   * que não tem a classe. A causa era `transform-box: fill-box` caindo no
+   * próprio `<path>` — atributo `transform` de SVG é a propriedade CSS
+   * `transform`, e reancorá-lo move o símbolo. Mede-se a tinta justamente
+   * onde o risco está.
+   */
+  expect(medida.tinta, "a chave encolheu ou cresceu dentro do quadrado").toBeCloseTo(0.62, 2);
+  expect(medida.dx, "a chave saiu do lugar na horizontal").toBeCloseTo(-0.00733, 3);
 });
 
 /**

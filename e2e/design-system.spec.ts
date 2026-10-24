@@ -193,6 +193,14 @@ test.describe("as marcas da abertura", () => {
    * trocar o traçado ou o `transform`, isto fica vermelho.
    */
   test("a chave fica onde o arquivo de logo a põe", async ({ page }) => {
+    /*
+     * Com movimento reduzido as marcas param de balançar.
+     *
+     * Elas giram, e a caixa de um desenho girado é maior que a dele — medir
+     * a tinta contra o quadrado no meio do balanço dá um número diferente a
+     * cada execução. Paradas, a medida é a do arquivo.
+     */
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
 
     const desvio = await page.locator(".hub-marca-balanca-1").evaluate((marca) => {
