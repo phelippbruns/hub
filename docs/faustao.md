@@ -1434,6 +1434,41 @@ meio do quadrado.
 arquivo antes de desenhar. Teste de geometria confirma que o desenho está
 no lugar; nenhum teste confirma que é o desenho certo.
 
+### A logo quebrou porque `transform` de SVG é CSS
+
+*O que aconteceu:* a animação da marca pedia que a chave crescesse "a
+partir do centro", e para isso a classe levava `transform-box: fill-box` e
+`transform-origin: center`. Eu pus a classe no próprio `<path>`. O traçado
+que veio do arquivo de logo já tem um `transform` — `translate(...)
+scale(...)` — e **atributo `transform` de SVG é a propriedade CSS
+`transform`**: reancorar a origem reancorou o posicionamento inteiro. A
+chave virou um risquinho miúdo num canto do quadrado amarelo. A logo foi
+para produção assim.
+
+*A causa:* reproduzi a animação do protótipo sem reproduzir a estrutura
+dele. O `hub-logo-animado.html` do PO envolve o traçado num `<g>` e anima o
+grupo, justamente por isso — eu li as curvas e os tempos, e passei pela
+linha que importava.
+
+*Por que passou pelas verificações:* três testes olhavam perto e nenhum
+viu. O de centro media a marca da **tela de abertura**, que não carrega a
+classe da animação. O de tamanho media o **quadrado**, que continuava com
+40 px. O de animação conferia o **nome** da animação, que estava certo.
+Nenhum media a tinta no lugar onde o risco estava. Eu também olhei
+capturas de tela, mas as que tirei da marca isolada — e ali estava correta.
+
+*Como foi resolvido:* a animação mora num `<g>` em volta do traçado, e o
+teste da barra passa a medir a tinta **dentro da marca que tem a classe**:
+altura de 62% do quadrado e centro a -0,733% dele.
+
+🔒 **Com barreira** — o teste mede a tinta onde o risco está, não onde é
+cômodo medir.
+
+**A lição:** quando copio um comportamento de um protótipo, a estrutura faz
+parte do comportamento. E teste de desenho tem que medir **a instância que
+o usuário vê**, não uma parecida: a diferença entre as duas é exatamente
+onde o defeito se esconde.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

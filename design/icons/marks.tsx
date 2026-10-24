@@ -51,9 +51,13 @@ export function TopicStarInline({ className }: { className?: string }) {
  *   logo. O símbolo cai exatamente onde o desenhista o pôs dentro do
  *   quadrado colorido — inclusive o acerto óptico de 7,5 unidades à
  *   esquerda do centro geométrico, na chave.
- * - `solto`: a janela é colada na tinta. Serve para o símbolo sozinho
- *   dentro de um botão que já tem a cor do nível no fundo, onde ele precisa
- *   ocupar a caixa do ícone, e não 30% dela.
+ * - `solto`: uma janela quadrada centrada no símbolo, em que a tinta ocupa
+ *   82% do lado. Serve para o símbolo sozinho dentro de um botão que já tem
+ *   a cor do nível no fundo. Os 82% não são gosto: é a proporção do
+ *   asterisco na grade de 24 dele, e os dois aparecem empilhados na barra
+ *   lateral. Com a janela colada na tinta — que foi como entregou da
+ *   primeira vez — a cerquilha encostava na borda do círculo e ficava
+ *   gorda ao lado do asterisco.
  */
 export type EncaixeDaMarca = "marca" | "solto";
 
@@ -61,13 +65,13 @@ const QUADRADO = "0 0 1024 1024";
 
 const CHAVE = {
   transform: "translate(504.49,512.51) scale(0.765838,-0.765838) translate(-173.0,-291.5)",
-  caixa: "387.32 195.07 234.35 634.88",
+  caixa: "117.37 125.39 774.24 774.24",
   d: "M20 234V340Q42 345 60.0 361.0Q78 377 89.5 407.0Q101 437 104 483Q109 548 119.5 591.0Q130 634 148.5 659.5Q167 685 193.5 695.5Q220 706 257 706Q271 706 289.0 704.0Q307 702 326 699V578Q303 578 286.0 572.0Q269 566 259.5 543.5Q250 521 250 472Q250 432 237.0 402.0Q224 372 203.0 352.0Q182 332 158.0 320.0Q134 308 111 303V280Q134 274 158.5 262.0Q183 250 203.5 229.5Q224 209 237.0 179.5Q250 150 250 110Q250 61 259.5 38.5Q269 16 286.0 10.0Q303 4 326 4V-117Q307 -120 288.0 -121.5Q269 -123 257 -123Q221 -123 194.5 -112.5Q168 -102 149.5 -77.0Q131 -52 120.0 -9.0Q109 34 104 100Q101 142 90.0 170.0Q79 198 61.0 214.0Q43 230 20 234Z",
 } as const;
 
 const CERQUILHA = {
   transform: "translate(514.76,514.10) scale(0.512000,-0.512000) translate(-316.5,-330.0)",
-  caixa: "360.90 345.14 307.71 337.92",
+  caixa: "308.71 308.05 412.10 412.10",
   d: "M271 0 313 158H212L170 0H32L74 158H16V273H105L143 413H39V526H173L209 660H347L311 526H412L448 660H586L550 526H617V413H520L482 273H594V158H451L409 0ZM243 273H344L382 413H281Z",
 } as const;
 
@@ -88,12 +92,18 @@ function Glifo({
       aria-hidden="true"
       className={className}
     >
-      <path
-        className={classeDoTracado}
-        transform={glifo.transform}
-        fill="currentColor"
-        d={glifo.d}
-      />
+      {/*
+        O `<g>` em volta não é enfeite. O `transform` do traçado é um
+        atributo de SVG, e atributo de SVG **é** a propriedade CSS
+        `transform`: pôr `transform-box: fill-box` e `transform-origin:
+        center` no próprio `<path>` reancora o transform dele e o símbolo
+        sai do lugar — foi assim que a logo da barra saiu quebrada, com a
+        chave miúda num canto. A animação mora no grupo, que não tem
+        transform nenhum, exatamente como no protótipo do PO.
+      */}
+      <g className={classeDoTracado}>
+        <path transform={glifo.transform} fill="currentColor" d={glifo.d} />
+      </g>
     </svg>
   );
 }
