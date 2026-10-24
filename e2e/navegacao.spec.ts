@@ -324,18 +324,19 @@ test.describe("a barra fecha sozinha", () => {
     const barra = page.getByRole("navigation", { name: "Navegação principal" });
 
     /*
-     * Este botão já saiu errado duas vezes: uma cerquilha solta e, depois,
-     * um selo de 24 px dentro de um anel vazado de 42. O que o prende é a
-     * cor de fundo — se ele voltar a ser vazado, isto reprova.
+     * Este botão já saiu errado três vezes: uma cerquilha solta, depois um
+     * selo de 24 px dentro de um anel vazado de 42, e depois uma pílula
+     * oval de 52. O que o prende é o disco cheio — se ele voltar a ser
+     * vazado, isto reprova.
+     *
+     * A cor mora no **disco** dentro da linha, não na linha: é o disco que
+     * é redondo, e a linha é só o alvo de clique com o rótulo ao lado.
      */
-    await expect(barra.getByRole("link", { name: "Criar tópico", exact: true })).toHaveCSS(
-      "background-color",
-      "rgb(30, 26, 51)",
-    );
-    await expect(barra.getByRole("link", { name: "Criar comunidade", exact: true })).toHaveCSS(
-      "background-color",
-      "rgb(166, 156, 251)",
-    );
+    const disco = (nome: string) =>
+      barra.getByRole("link", { name: nome, exact: true }).locator("span > span");
+
+    await expect(disco("Criar tópico")).toHaveCSS("background-color", "rgb(30, 26, 51)");
+    await expect(disco("Criar comunidade")).toHaveCSS("background-color", "rgb(166, 156, 251)");
   });
 
   test("o glifo fica centrado no botão fechado", async ({ page }) => {
@@ -419,4 +420,116 @@ test("Configurações tem os Termos, e Sair é a última coisa da tela", async (
 
   await termos.click();
   await page.waitForURL(/\/termos/);
+});
+
+/**
+ * Os botões de criar são redondos, e os três últimos itens ficam à mesma
+ * distância um do outro.
+ *
+ * Na rodada passada os dois de criar viraram pílulas de 52 px para o rótulo
+ * cair no eixo, e o que se via era uma forma oval onde antes havia um botão
+ * redondo — queixa do PO. O círculo voltou, agora **dentro** do `Eixo`, o
+ * que resolve o rótulo sem mudar o desenho.
+ *
+ * E Configurações vinha com 16 px de distância contra os 8 px dos dois de
+ * cima; empilhados, a diferença aparecia.
+ */
+test("os botões de criar são redondos e os três últimos são igualmente espaçados", async ({
+  page,
+}) => {
+  await entrarNoApp(page, "redondos");
+  await page.goto("/inicio");
+
+  const barra = page.getByRole("navigation", { name: "Navegação principal" });
+
+  const medidas = await barra.evaluate((nav) => {
+    const linha = (nome: string) =>
+      [...nav.querySelectorAll("a")].find((a) => a.getAttribute("aria-label") === nome) ??
+      [...nav.querySelectorAll("a")].find((a) => a.textContent?.trim() === nome);
+
+    const disco = (nome: string) => {
+      const span = linha(nome)!.querySelector("span > span") as HTMLElement;
+      const caixa = span.getBoundingClientRect();
+      return { largura: Math.round(caixa.width), altura: Math.round(caixa.height) };
+    };
+
+    const topo = (nome: string) => Math.round(linha(nome)!.getBoundingClientRect().top);
+    const base = (nome: string) => Math.round(linha(nome)!.getBoundingClientRect().bottom);
+
+    return {
+      topico: disco("Criar tópico"),
+      comunidade: disco("Criar comunidade"),
+      vaos: [
+        topo("Criar comunidade") - base("Criar tópico"),
+        topo("Configurações") - base("Criar comunidade"),
+      ],
+    };
+  });
+
+  // `control` é 42 px, e redondo quer dizer largura igual à altura.
+  expect(medidas.topico).toEqual({ largura: 42, altura: 42 });
+  expect(medidas.comunidade).toEqual({ largura: 42, altura: 42 });
+
+  // `space2`, os mesmos 8 px entre os três.
+  expect(medidas.vaos, `vãos de ${medidas.vaos.join(" e ")} px`).toEqual([8, 8]);
+});
+
+/**
+ * A marca do Hub é um quarto maior que uma marca de nível.
+ *
+ * 40 contra 32: na barra ela não está ao lado de um nome, ela é a logo.
+ * Decisão do PO em 24 de outubro, junto com os arquivos de logo.
+ */
+test("a marca do Hub na barra é um quarto maior que a marca de nível", async ({ page }) => {
+  await entrarNoApp(page, "marcamaior");
+  await page.goto("/inicio");
+
+  const marca = page
+    .getByRole("navigation", { name: "Navegação principal" })
+    .getByRole("link", { name: "Hub" })
+    .locator("svg")
+    .first();
+
+  const caixa = (await marca.boundingBox())!;
+  expect(Math.round(caixa.width)).toBe(40);
+  expect(Math.round(caixa.height)).toBe(40);
+});
+
+/**
+ * A marca se mexe quando deve, e só então.
+ *
+ * O protótipo que o PO mandou tem dois movimentos com donos diferentes: a
+ * chave cresce ao passar o mouse **na marca**, e a palavra "hub" sai de
+ * dentro dela quando **a barra** abre. Trocar os donos é o erro fácil — a
+ * palavra presa ao hover da marca deixaria a logo pela metade sempre que
+ * alguém abrisse a barra pelo lado.
+ */
+test("a chave cresce no hover da marca, e a palavra sai quando a barra abre", async ({ page }) => {
+  await entrarNoApp(page, "animamarca");
+  await page.goto("/inicio");
+
+  const barra = page.getByRole("navigation", { name: "Navegação principal" });
+  const marca = barra.getByRole("link", { name: "Hub" });
+  const chave = marca.locator(".hub-marca-chave");
+  const palavra = barra.locator(".hub-marca-palavra");
+
+  const animacao = () => chave.evaluate((el) => getComputedStyle(el).animationName);
+  const opacidade = () => palavra.evaluate((el) => Number(getComputedStyle(el).opacity));
+
+  // Parada, e a palavra escondida dentro da chave.
+  expect(await animacao()).toBe("none");
+  expect(await opacidade()).toBeLessThan(0.1);
+
+  // O mouse na marca abre a barra (ela é parte da barra) e anima a chave.
+  await marca.hover();
+  expect(await animacao()).toBe("hub-chave-abre");
+  await expect.poll(opacidade, { timeout: 2000 }).toBeGreaterThan(0.9);
+
+  // Abrir a barra por outro item mostra a palavra sem animar a chave.
+  // Longe da barra: (0, 0) ainda está dentro dela.
+  await page.mouse.move(900, 400);
+  await expect.poll(opacidade, { timeout: 2000 }).toBeLessThan(0.1);
+  await barra.getByRole("link", { name: "Explorar" }).hover();
+  await expect.poll(opacidade, { timeout: 2000 }).toBeGreaterThan(0.9);
+  expect(await animacao()).toBe("none");
 });

@@ -20,7 +20,7 @@ Tópico ativo é o tópico com ao menos uma resposta nas últimas 24 horas. É e
 2. **Cada nível tem uma cor fixa, em toda a rede.** Universo é `sun`, comunidade é `lavender`, tópico é `ink`. A regra vale para marcas, chips selecionados e ícones de tipo. O cartão de Hot Topic não leva selo; quem o identifica é o título da seção.
 
    O Universo saiu do produto na F12.1, e desde então **`sun` é a ação principal de uma tela**: o Responder dentro do cartão de Hot Topic, a pílula do card atual no Paginador, o "Iniciar Jornada" do onboarding, o Seguir no perfil, e a marca `{` do Hub. Uma por tela — duas competiriam, e aí nenhuma seria a principal.
-3. **Ícone de tipo, nome natural.** `{` marca Universo, `#` marca comunidade, `*` marca tópico, cada um na cor do seu nível. **Os três são desenho, não letra**: letra depende das métricas que cada sistema lê da fonte, e foi por isso que a chave apareceu torta três vezes antes de virar traçado. Os símbolos aparecem como ícones ao lado do nome, nunca dentro dele: "Música Eletrônica", não "#música eletrônica". Em listas, a comunidade aparece com uma miniatura da capa no lugar da marca #. Na página da comunidade, a marca # é o próprio botão de entrar e sair: contorno lavanda para visitante, preenchida em lavanda para membro.
+3. **Ícone de tipo, nome natural.** `{` marca Universo, `#` marca comunidade, `*` marca tópico, cada um na cor do seu nível. **Os três são traçado, não letra**: letra depende das métricas que cada sistema lê da fonte, e foi por isso que a chave apareceu torta três vezes. A chave e a cerquilha vêm dos arquivos de logo em [logo/](logo/) — são o contorno real da Bricolage em peso 800, não uma imitação dele —, e cada uma traz junto a própria posição dentro do quadrado, inclusive o acerto óptico da chave, 7,5 de 1024 à esquerda do centro geométrico. O asterisco continua desenhado à mão, numa grade de 24: nenhum arquivo de logo o define. Os símbolos aparecem como ícones ao lado do nome, nunca dentro dele: "Música Eletrônica", não "#música eletrônica". Em listas, a comunidade aparece com uma miniatura da capa no lugar da marca #. Na página da comunidade, a marca # é o próprio botão de entrar e sair: contorno lavanda para visitante, preenchida em lavanda para membro.
 4. **Plano, sem sombra.** A hierarquia vem de cor de fundo e peso tipográfico.
 5. **Texto sobre cor é sempre `ink`,** exceto sobre `ink` e `error`, que levam `paper`.
 6. **A lista termina.** Toda lista do Início acaba com uma marca de fim.
@@ -120,3 +120,27 @@ Carregando usa blocos estáticos em lavanda clara, sem brilho animado. Erro usa 
 ## Fora deste sistema por enquanto
 
 Modo história da Cabine (feature posterior), tema escuro, conjunto de ícones próprio e regras de movimento. Os componentes Cartão da Pergunta e Abas da Cabine ficaram obsoletos com o HUB v2.
+
+
+## Logo
+
+Os arquivos ficam em [logo/](logo/) e são a fonte do que está em
+`design/icons/marks.tsx`:
+
+| Arquivo | O que é |
+| --- | --- |
+| `hub-logo.svg` | A marca: quadrado `sun` com a chave. |
+| `hub-icone-comunidade.svg` | A marca de comunidade: quadrado `lavender` com a cerquilha. |
+| `hub-logo-horizontal.svg` | A marca ao lado da palavra "hub". |
+| `hub-logo-animado.html` | O protótipo da animação ao passar o mouse. |
+
+Cada símbolo tem dois encaixes no código, e a diferença é só a janela:
+`marca` traz o quadrado inteiro de 1024 e põe o símbolo onde o arquivo o
+põe; `solto` cola a janela na tinta, para quando o símbolo entra sozinho
+num botão que já tem a cor do nível no fundo.
+
+**A marca do Hub na barra lateral é um quarto maior** que uma marca de
+nível — 40 contra 32 — porque ali ela não está ao lado de um nome: ela é a
+logo. Ao passar o mouse, a chave cresce e a palavra "hub" sai de dentro
+dela, com as curvas do protótipo e tempos mais curtos, porque a barra
+termina de abrir em 150 ms. As duas param com movimento reduzido.

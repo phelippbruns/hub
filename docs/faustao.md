@@ -1401,6 +1401,39 @@ ficar vermelho por um motivo que não está no repositório.
 que pareça. Vale a pena saber **quais** dependências externas o build tem,
 porque um dia uma delas cai no meio de uma revisão.
 
+### Desenhei a marca em vez de pedir o arquivo
+
+*O que aconteceu:* a chave `{` do Hub tinha aparecido torta três vezes
+porque era a **letra** da fonte, e a posição de uma letra vem das métricas
+que cada sistema lê do arquivo. O conserto que eu propus e o PO aprovou foi
+desenhá-la em SVG. Desenhei, apertei o teste de centro de 1 px para 0,25 px,
+e entreguei. Na primeira vez que o PO olhou, ele mandou os arquivos de logo:
+`hub-logo.svg`, `hub-icone-comunidade.svg` e o logo horizontal. O desenho
+não era a marca — era uma imitação dela, com o traço no peso errado e os
+braços no comprimento errado.
+
+*A causa:* eu tratei "a letra está torta" como um problema de posição, e
+resolvi a posição. O que estava em jogo era **qual desenho é a marca**, e
+isso não é uma decisão de engenharia — é um arquivo que existia e que eu
+não pedi.
+
+*Por que passou pelas verificações:* o teste media o **centro**, não o
+desenho. Um `{` imitado, centrado ao quarto de pixel, passa igual ao
+verdadeiro. Nenhuma verificação automática sabe qual é a marca do Hub.
+
+*Como foi resolvido:* os quatro arquivos entraram em
+`docs/design-system/logo/`, e `design/icons/marks.tsx` passou a carregar o
+contorno real da Bricolage em peso 800, com a posição que o arquivo dá. O
+teste agora mede a **tinta** contra os números do arquivo — centro em 504,49
+de 1024, altura de 634,88 —, então trocar o traçado por outro reprova.
+
+🔒 **Com barreira** — o teste compara o desenho com o arquivo, não com o
+meio do quadrado.
+
+**A lição:** quando a correção é "como isso fica", pergunte se existe um
+arquivo antes de desenhar. Teste de geometria confirma que o desenho está
+no lugar; nenhum teste confirma que é o desenho certo.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

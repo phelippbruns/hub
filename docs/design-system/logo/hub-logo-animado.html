@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logo Hub animado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root { --ink:#1E1A33; --inkMuted:#565170; --paper:#FFFFFF; --surfacePage:#F1EEFF; --sun:#FFD95E;
+  --spring:cubic-bezier(.34,1.56,.64,1); --ease:cubic-bezier(.22,1,.36,1); }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--surfacePage); color:var(--ink); font-family:"Bricolage Grotesque",system-ui,sans-serif; }
+main { max-width:880px; margin:0 auto; padding:32px 16px 64px; }
+h1 { font-size:28px; line-height:32px; font-weight:800; letter-spacing:-.02em; margin:0 0 8px; }
+p { margin:0 0 32px; color:var(--inkMuted); font-size:15px; line-height:22px; }
+.card { background:var(--paper); border-radius:18px; height:360px; display:grid; place-items:center; cursor:pointer; outline:none; }
+.card:focus-visible { outline:3px solid var(--ink); outline-offset:2px; }
+.lock { width:min(520px,100%); height:auto; overflow:visible; }
+.bg { fill:var(--sun); }
+path { fill:var(--ink); }
+.icon, .brace { transform-box:fill-box; transform-origin:center; }
+.text { transform-box:fill-box; transform-origin:0% 50%; }
+
+/* repouso: só o ícone, centralizado */
+.icon { transform:translateX(427.5px); transition:transform .45s var(--ease) .25s; }
+.text { opacity:0; transform:translateX(-293.0px) scale(.04); transition:transform .3s var(--ease), opacity .1s linear .2s; }
+
+/* hover: ícone desliza, a chave abre e "hub" sai de dentro dela */
+.card:is(:hover,:focus-visible) .icon { transform:translateX(0); transition-delay:0s; }
+.card:is(:hover,:focus-visible) .text { opacity:1; transform:none;
+  transition:transform .65s var(--spring) .4s, opacity .05s linear .4s; }
+.card:is(:hover,:focus-visible) .brace { animation:abre .8s var(--ease) .3s; }
+@keyframes abre { 0%,100% { transform:scale(1); } 35% { transform:scale(1.2); } }
+
+@media (prefers-reduced-motion:reduce) {
+  .icon, .text, .brace { transition:none !important; animation:none !important; }
+  .icon, .text { transform:none; opacity:1; }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>Logo animado</h1>
+  <p>Passe o mouse sobre o cartão. No teclado, use Tab para focar.</p>
+  <div class="card" tabindex="0" role="img" aria-label="Logo do Hub">
+    <svg viewBox="0 0 1367 512" class="lock" aria-hidden="true">
+      <g class="icon"><g transform="scale(0.5)"><rect class="bg" width="1024" height="1024" rx="384"/><g class="brace"><path transform="translate(504.49,512.51) scale(0.765838,-0.765838) translate(-173.0,-291.5)" d="M20 234V340Q42 345 60.0 361.0Q78 377 89.5 407.0Q101 437 104 483Q109 548 119.5 591.0Q130 634 148.5 659.5Q167 685 193.5 695.5Q220 706 257 706Q271 706 289.0 704.0Q307 702 326 699V578Q303 578 286.0 572.0Q269 566 259.5 543.5Q250 521 250 472Q250 432 237.0 402.0Q224 372 203.0 352.0Q182 332 158.0 320.0Q134 308 111 303V280Q134 274 158.5 262.0Q183 250 203.5 229.5Q224 209 237.0 179.5Q250 150 250 110Q250 61 259.5 38.5Q269 16 286.0 10.0Q303 4 326 4V-117Q307 -120 288.0 -121.5Q269 -123 257 -123Q221 -123 194.5 -112.5Q168 -102 149.5 -77.0Q131 -52 120.0 -9.0Q109 34 104 100Q101 142 90.0 170.0Q79 198 61.0 214.0Q43 230 20 234Z"/></g></g></g>
+      <g class="text"><path transform="translate(593.92,256.0) scale(0.4185286103542234,-0.4185286103542234) translate(-62,-353.0)" d="M62 0V720H223V555Q223 535 221.5 513.5Q220 492 216.5 469.5Q213 447 209.5 424.0Q206 401 201 379H225Q239 428 260.0 464.5Q281 501 315.0 521.5Q349 542 402 542Q496 542 542.5 476.5Q589 411 589 275V0H427V248Q427 329 403.5 369.5Q380 410 332 410Q295 410 271.0 387.0Q247 364 235.0 325.5Q223 287 223 240V0ZM886 -14Q792 -14 744.5 49.5Q697 113 697 243V528H859V264Q859 190 881.0 153.5Q903 117 948 117Q975 117 994.5 130.5Q1014 144 1027.5 168.5Q1041 193 1047.5 225.0Q1054 257 1054 295V528H1215V0H1087L1084 163H1064Q1049 101 1026.5 61.5Q1004 22 970.0 4.0Q936 -14 886 -14ZM1673 -14Q1623 -14 1585.5 5.0Q1548 24 1524.5 62.0Q1501 100 1493 156H1474L1471 0H1339V720H1500V545Q1500 521 1496.5 494.5Q1493 468 1487.5 439.0Q1482 410 1476 377H1499Q1513 431 1536.0 467.0Q1559 503 1593.5 521.5Q1628 540 1675 540Q1741 540 1789.5 506.0Q1838 472 1865.0 409.5Q1892 347 1892 260Q1892 176 1865.5 114.5Q1839 53 1790.0 19.5Q1741 -14 1673 -14ZM1613 116Q1646 116 1671.0 134.5Q1696 153 1709.5 186.5Q1723 220 1723 265Q1723 311 1710.0 343.5Q1697 376 1673.5 394.0Q1650 412 1617 412Q1595 412 1576.5 404.0Q1558 396 1544.0 382.0Q1530 368 1520.0 350.5Q1510 333 1505.0 313.5Q1500 294 1500 275V254Q1500 233 1506.0 209.0Q1512 185 1525.5 164.0Q1539 143 1560.5 129.5Q1582 116 1613 116Z"/></g>
+    </svg>
+  </div>
+</main>
+</body>
+</html>

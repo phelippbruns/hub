@@ -255,14 +255,20 @@ export function DesignGallery() {
                   <span className="text-caption text-inkMuted text-center">{label}</span>
                 </div>
               ))}
-              {/* O `#` desenhado, para quando ele é ícone de botão e não
-                  marca ao lado de um nome — é o do botão de criar
-                  comunidade na barra lateral, sobre o fundo lavanda. */}
+              {/* A marca do Hub na barra lateral: um quarto maior que a
+                  marca de nível, porque ali ela é a logo. */}
               <div className="bg-paper flex flex-col items-center gap-1 rounded-sm p-2">
-                <span className="size-mark text-ink grid place-items-center">
+                <LevelMark level="universe" tamanho="nav" />
+                <span className="text-caption text-inkMuted text-center">Hub, na barra</span>
+              </div>
+              {/* O mesmo traçado da cerquilha, mas com a janela colada na
+                  tinta: é assim que ele entra num botão que já tem a cor do
+                  nível no fundo — o de criar comunidade, na barra lateral. */}
+              <div className="bg-paper flex flex-col items-center gap-1 rounded-sm p-2">
+                <span className="bg-lavender text-ink rounded-pill size-control grid place-items-center">
                   <CommunityHash className="size-iconNav" />
                 </span>
-                <span className="text-caption text-inkMuted text-center">Comunidade, em traço</span>
+                <span className="text-caption text-inkMuted text-center">Comunidade, solta</span>
               </div>
               <div className="bg-paper flex flex-col items-center gap-1 rounded-sm p-2">
                 <CommunityDoor member={false} />

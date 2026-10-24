@@ -175,37 +175,47 @@ test.describe("as marcas da abertura", () => {
   });
 
   /**
-   * A chave é desenho, e por isso o centro é exato.
+   * A chave fica onde o arquivo de logo a põe.
    *
-   * Era a letra `{` da fonte, e a posição de uma letra dentro da linha vem
-   * das métricas que **cada sistema** lê do arquivo: a mesma Bricolage
-   * punha a chave 1,17 px abaixo do centro no macOS e perto de 1,9 px no
-   * Linux. O ajuste em `em` era um só, zerava num e deixava 0,7 px no
-   * outro — por isso este teste tinha 1 px de folga, e por isso a chave
-   * apareceu torta três vezes mesmo com ele verde.
+   * Era a letra `{` da fonte, e a posição de uma letra vem das métricas que
+   * **cada sistema** lê do arquivo: a mesma Bricolage punha a chave 1,17 px
+   * abaixo do centro no macOS e perto de 1,9 px no Linux. Por isso ela
+   * apareceu torta três vezes mesmo com este teste verde.
    *
-   * Desenhada, não há métrica de fonte no caminho: a tinta vai de 6,5 a
-   * 17,5 na horizontal e de 2 a 22 na vertical, as duas centradas em 12 da
-   * grade de 24. A folga cai para um quarto de pixel, que é só o
-   * arredondamento do navegador.
+   * Agora a chave é o contorno que veio de `hub-logo.svg`, com o quadrado
+   * inteiro por janela: ela cai exatamente onde o desenhista a pôs, em
+   * qualquer tamanho e em qualquer sistema.
+   *
+   * E o lugar dela **não é o centro geométrico**: a tinta vai de 387,32 a
+   * 621,66 na horizontal de uma caixa de 1024, com centro em 504,49 — sete
+   * unidades e meia à esquerda de 512. É acerto óptico, de propósito, e o
+   * teste mede contra o arquivo, não contra o meio do quadrado. Se alguém
+   * trocar o traçado ou o `transform`, isto fica vermelho.
    */
-  test("a chave fica centrada no quadrado", async ({ page }) => {
+  test("a chave fica onde o arquivo de logo a põe", async ({ page }) => {
     await page.goto("/");
 
     const desvio = await page.locator(".hub-marca-balanca-1").evaluate((marca) => {
       const quadrado = marca.getBoundingClientRect();
-      const desenho = marca.querySelector("svg")!.getBoundingClientRect();
+      // A tinta, não o `<svg>`: a janela do desenho é o quadrado inteiro,
+      // então medir o `<svg>` daria zero sempre e não guardaria nada.
+      const tinta = marca.querySelector("path")!.getBoundingClientRect();
 
+      // Em fração do quadrado, para a medida não depender do tamanho.
       return {
-        horizontal: (desenho.left + desenho.right) / 2 - (quadrado.left + quadrado.right) / 2,
-        vertical: (desenho.top + desenho.bottom) / 2 - (quadrado.top + quadrado.bottom) / 2,
+        horizontal:
+          ((tinta.left + tinta.right) / 2 - (quadrado.left + quadrado.right) / 2) / quadrado.width,
+        vertical:
+          ((tinta.top + tinta.bottom) / 2 - (quadrado.top + quadrado.bottom) / 2) / quadrado.height,
+        altura: tinta.height / quadrado.height,
       };
     });
 
-    expect(Math.abs(desvio.horizontal), "a chave está fora do centro na horizontal").toBeLessThan(
-      0.25,
-    );
-    expect(Math.abs(desvio.vertical), "a chave está fora do centro na vertical").toBeLessThan(0.25);
+    // 504,49 de 1024 é -0,733%; 512,51 é +0,05%.
+    expect(desvio.horizontal, "a chave saiu do lugar na horizontal").toBeCloseTo(-0.00733, 3);
+    expect(desvio.vertical, "a chave saiu do lugar na vertical").toBeCloseTo(0.0005, 3);
+    // 634,88 de 1024: se alguém trocar o traçado por outro, o tamanho muda.
+    expect(desvio.altura, "a chave mudou de tamanho").toBeCloseTo(0.62, 2);
   });
 });
 
