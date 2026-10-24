@@ -176,10 +176,21 @@ export function NavRail({
       <Link
         href="/boas-vindas"
         aria-label="Hub"
-        className="text-ink mb-4 flex items-center gap-2 no-underline"
+        className="group/marca text-ink mb-4 flex items-center gap-2 no-underline"
       >
         <Eixo>
-          <LevelMark level="universe" />
+          {/*
+            Uma inclinação curta ao passar o mouse: a marca é o único
+            elemento da barra que não leva a uma área, e o movimento é o
+            que diz que ela responde ao clique. Fica parada com movimento
+            reduzido, como as marcas da tela de abertura.
+
+            Tamanho e lugar não mudaram — decisão do PO em 24 de outubro.
+          */}
+          <LevelMark
+            level="universe"
+            className="transition-transform duration-150 ease-out group-hover/marca:-rotate-6 motion-reduce:transition-none motion-reduce:group-hover/marca:rotate-0"
+          />
         </Eixo>
         <span aria-hidden="true" className="text-title">
           <Rotulo>Hub</Rotulo>
@@ -252,35 +263,35 @@ export function NavRail({
           Os dois ícones têm 24 px, como a engrenagem logo abaixo: três
           tamanhos diferentes em três botões empilhados é o tipo de coisa
           que se vê antes de saber o que é. */}
-      <div
-        className="mt-auto flex flex-col gap-2"
-        /*
-         * O recuo que põe o círculo de 42 px no mesmo eixo de 42 px dos
-         * ícones: a diferença entre a caixa do eixo e o botão, dividida por
-         * dois. Calculado a partir dos tokens, e não escrito como 5px, para
-         * continuar certo se alguma das duas medidas mudar.
-         */
-        style={{ paddingLeft: "calc((var(--spacing-navItemBox) - var(--spacing-control)) / 2)" }}
-      >
+      {/*
+        Os dois usam a mesma caixa dos outros itens, o `Eixo` de 52 px.
+
+        Antes eles tinham caixa própria de 42 px e um recuo de 5 px para o
+        **ícone** cair no eixo. O ícone caía, mas o **rótulo** não: ele
+        começava a 47 px enquanto "Configurações" logo abaixo começava a
+        60 px, e os treze pixels de diferença eram visíveis com a barra
+        aberta. Agora os três textos saem do mesmo lugar.
+      */}
+      <div className="mt-auto flex flex-col gap-2">
         <Link
           href="/criar-topico"
           aria-label="Criar tópico"
-          className="bg-ink text-paper rounded-pill text-label h-control w-control flex items-center overflow-hidden font-semibold whitespace-nowrap no-underline group-hover/nav:w-full group-has-[:focus-visible]/nav:w-full"
+          className="bg-ink text-paper rounded-pill text-label h-control w-navItemBox flex items-center gap-2 overflow-hidden font-semibold whitespace-nowrap no-underline group-hover/nav:w-full group-has-[:focus-visible]/nav:w-full"
         >
-          <span className="size-control grid shrink-0 place-items-center">
+          <Eixo>
             <TopicStar className="size-iconNav" />
-          </span>
+          </Eixo>
           <Rotulo>Criar tópico</Rotulo>
         </Link>
 
         <Link
           href="/comunidades/nova"
           aria-label="Criar comunidade"
-          className="bg-lavender text-ink rounded-pill text-label h-control w-control flex items-center overflow-hidden font-semibold whitespace-nowrap no-underline group-hover/nav:w-full group-has-[:focus-visible]/nav:w-full"
+          className="bg-lavender text-ink rounded-pill text-label h-control w-navItemBox flex items-center gap-2 overflow-hidden font-semibold whitespace-nowrap no-underline group-hover/nav:w-full group-has-[:focus-visible]/nav:w-full"
         >
-          <span className="size-control grid shrink-0 place-items-center">
+          <Eixo>
             <CommunityHash className="size-iconNav" />
-          </span>
+          </Eixo>
           <Rotulo>Criar comunidade</Rotulo>
         </Link>
       </div>

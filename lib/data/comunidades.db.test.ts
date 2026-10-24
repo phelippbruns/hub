@@ -441,3 +441,44 @@ describe("a preferência do painel", () => {
     expect(await painelEstaOculto(viewerFor(outra.id))).toBe(false);
   });
 });
+
+/**
+ * RN03: a capa entra já na criação.
+ *
+ * Antes a comunidade nascia sempre com a capa padrão e quem criava
+ * precisava descobrir o menu de três pontos para terminar o que estava
+ * fazendo. O que o depósito devolve é **caminho**, não endereço, e é por
+ * isso que `coverUrl` deixou de ser `z.url()`.
+ */
+describe("RN03: a capa na criação", () => {
+  it("guarda o caminho do depósito que veio", async () => {
+    const dona = await makeProfile();
+    const universo = await makeUniverse();
+
+    const criada = await createCommunity(viewerFor(dona.id), {
+      universeId: universo.id,
+      name: "Com capa",
+      intro: "intro",
+      coverUrl: "capas/abc-123.jpg",
+    });
+
+    const doBanco = await db.community.findUniqueOrThrow({ where: { id: criada!.id } });
+    expect(doBanco.coverUrl).toBe("capas/abc-123.jpg");
+  });
+
+  it("sem capa, nasce com a padrão do Universo", async () => {
+    const dona = await makeProfile();
+    const universo = await makeUniverse();
+
+    const criada = await createCommunity(viewerFor(dona.id), {
+      universeId: universo.id,
+      name: "Sem capa",
+      intro: "intro",
+      coverUrl: null,
+    });
+
+    const doBanco = await db.community.findUniqueOrThrow({ where: { id: criada!.id } });
+    const doUniverso = await db.universe.findUniqueOrThrow({ where: { id: universo.id } });
+    expect(doBanco.coverUrl).toBe(doUniverso.defaultCoverUrl);
+  });
+});

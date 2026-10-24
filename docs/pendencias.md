@@ -563,3 +563,21 @@ fácil de trocar.
 
 Em paralelo, e sem pressa de código: começar a conversa jurídica sobre
 verificação de idade. É o item que mais demora e o que mais bloqueia.
+
+## Fonte servida do repositório, não baixada no build
+
+`design/fonts.ts` usa `next/font/google`. Em runtime está certo — a fonte
+sai do nosso domínio, sem requisição ao Google —, mas **o build a baixa**,
+e já derrubou uma rodada de CI com um erro que não fala de rede (está no
+Faustão).
+
+**O que fazer:** guardar os arquivos `.woff2` da Bricolage Grotesque em
+`design/fontes/` e trocar para `next/font/local`. O build deixa de
+depender de o Google estar no ar.
+
+**Tamanho:** meio dia, a maior parte em conferir que os pesos (400 a 800)
+e o subconjunto latino ficaram iguais aos de hoje.
+
+**Por que não foi feito junto:** apareceu no meio de um PR de acabamento,
+e acrescentar arquivos binários de fonte ali misturaria duas coisas que
+precisam ser revisadas separado.

@@ -86,13 +86,6 @@ test.describe("criar comunidade", () => {
     // O nome precisa estar clicável: é a saída que a mensagem oferece.
     await expect(aviso.getByRole("link")).toBeVisible();
   });
-
-  test("o aviso do corte de 20 membros aparece antes de criar", async ({ page }) => {
-    await entrarNoApp(page, "aviso");
-    await page.goto("/comunidades/nova");
-
-    await expect(page.getByText(/ao atingir 20 membros/)).toBeVisible();
-  });
 });
 
 test.describe("a página da comunidade", () => {
@@ -259,3 +252,66 @@ test.describe("Minhas Comunidades", () => {
     await expect(page.getByText(/Nada encontrado para/)).toBeVisible();
   });
 });
+
+/**
+ * RN03: a capa entra já na criação.
+ *
+ * Antes a comunidade nascia com a padrão e quem criava precisava descobrir
+ * o menu de três pontos para terminar o que estava fazendo.
+ */
+test.describe("a capa na criação", () => {
+  test("escolher a capa ao criar, e ela aparece na comunidade", async ({ page }) => {
+    await entrarNoApp(page, "capacriar");
+    await page.goto("/comunidades/nova");
+
+    const nome = `Com Capa ${Date.now() % 100000}`;
+    await page.getByLabel("Nome").fill(nome);
+    await page.getByLabel("Intro").fill("Comunidade criada com capa pelo teste.");
+    await page.getByLabel("Escolher a capa").setInputFiles({
+      name: "capa.png",
+      mimeType: "image/png",
+      buffer: PNG_MINIMO,
+    });
+
+    await page.getByRole("button", { name: "Criar comunidade" }).click();
+    await page.waitForURL(/\/c\/[^/]+$/, { timeout: 20_000 });
+
+    // A capa guardada é um caminho do depósito, não a padrão do Universo.
+    await esperarNoBanco(`
+      SELECT 1 FROM communities
+       WHERE name = '${nome}' AND cover_url LIKE 'capas/%'`);
+  });
+
+  test("sem capa, a comunidade nasce com a padrão", async ({ page }) => {
+    await entrarNoApp(page, "semcapa");
+    await page.goto("/comunidades/nova");
+
+    const nome = `Sem Capa ${Date.now() % 100000}`;
+    await page.getByLabel("Nome").fill(nome);
+    await page.getByLabel("Intro").fill("Comunidade criada sem capa pelo teste.");
+    await page.getByRole("button", { name: "Criar comunidade" }).click();
+    await page.waitForURL(/\/c\/[^/]+$/, { timeout: 20_000 });
+
+    // Hoje a capa padrão é nula; o que o teste afirma é que **não** veio
+    // do depósito, que é o que distingue "sem capa" de "com capa".
+    await esperarNoBanco(`
+      SELECT 1 FROM communities
+       WHERE name = '${nome}'
+         AND (cover_url IS NULL OR cover_url NOT LIKE 'capas/%')`);
+  });
+
+  test("o texto dos 20 membros saiu: ele não era verdade", async ({ page }) => {
+    await entrarNoApp(page, "vintemembros");
+    await page.goto("/comunidades/nova");
+
+    // EXPLORE_MIN_MEMBERS vale 0 desde outubro: toda comunidade aparece
+    // no Explorar desde o primeiro membro.
+    await expect(page.getByText(/20 membros/)).toHaveCount(0);
+  });
+});
+
+/** Um PNG de 1×1, suficiente para o servidor reconhecer o tipo pelos bytes. */
+const PNG_MINIMO = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);

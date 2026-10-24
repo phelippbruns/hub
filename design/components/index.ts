@@ -1,5 +1,6 @@
 export { Button } from "./button";
 export { Avatar, type TamanhoDeAvatar } from "./avatar";
+export { CampoDeBusca } from "./campo-de-busca";
 export { Chip } from "./chip";
 export { TextField } from "./text-field";
 export { Input } from "./input";
@@ -18,6 +19,7 @@ export { BottomSheet } from "./bottom-sheet";
 export { MenuSuspenso } from "./menu-suspenso";
 export { Checkbox } from "./checkbox";
 export { Switch } from "./switch";
+export { SwitchRow } from "./switch-row";
 export {
   PaginaCarregando,
   Skeleton,

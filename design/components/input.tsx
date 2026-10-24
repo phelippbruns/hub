@@ -46,7 +46,7 @@ export function Input({ label, error, hint, rotuloOculto, className, id, ...prop
         aria-invalid={error ? true : undefined}
         aria-describedby={cn(error && errorId, hint && hintId) || undefined}
         className={cn(
-          "text-body text-ink bg-paper box-border w-full rounded-sm border-2 px-2 py-2",
+          "text-body text-ink bg-paper box-border w-full rounded-sm border px-2 py-2",
           error ? "border-error" : "border-inkMuted",
         )}
         {...props}

@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Segmented } from "@/design/components";
-import { SearchIcon } from "@/design/icons";
+import { CampoDeBusca as PilulaDeBusca, Segmented } from "@/design/components";
 
 export const FILTROS = [
   { id: "tudo", label: "Tudo" },
@@ -52,17 +51,12 @@ export function CampoDeBusca({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="bg-paper border-inkMuted box-border flex items-center gap-2 rounded-sm border-2 px-2">
-        <SearchIcon decorative className="size-iconSm text-inkMuted shrink-0" />
-        <input
-          type="search"
-          value={termo}
-          onChange={(evento) => setTermo(evento.target.value)}
-          aria-label="Buscar comunidades, tópicos ou pessoas"
-          placeholder="Buscar comunidades ou pessoas"
-          className="text-body text-ink min-w-0 flex-1 border-0 bg-transparent py-2 outline-none"
-        />
-      </div>
+      <PilulaDeBusca
+        rotulo="Buscar comunidades, tópicos ou pessoas"
+        placeholder="Buscar comunidades ou pessoas"
+        value={termo}
+        onChange={(evento) => setTermo(evento.target.value)}
+      />
 
       <Segmented
         label="Filtrar resultados"

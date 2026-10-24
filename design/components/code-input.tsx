@@ -89,7 +89,7 @@ export function CodeInput({
             onKeyDown={(event) => handleKeyDown(index, event)}
             onPaste={handlePaste}
             className={cn(
-              "text-ink bg-paper h-avatarMd box-border w-full rounded-sm border-2 text-center font-bold",
+              "text-ink bg-paper h-avatarMd box-border w-full rounded-sm border text-center font-bold",
               error ? "border-error" : "border-inkMuted",
             )}
           />

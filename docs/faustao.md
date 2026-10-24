@@ -1372,6 +1372,35 @@ olhar o tempo por passo antes de culpar o que mudou.
 ficou mais lento?" e sim **"qual passo levou o tempo?"**. Sem medir, a
 culpa cai no que mudou por último, que quase nunca é o culpado.
 
+### O build depende de o Google estar no ar
+
+*O que aconteceu:* a CI de um PR de acabamento ficou vermelha com 15 erros
+do Turbopack ao resolver `next/font/google`. Os testes tinham passado —
+624 de unidade, 404 de banco —, e o que morreu foi o build do servidor das
+jornadas. Reexecutar o mesmo commit, sem tocar em nada, passou.
+
+*A causa:* `design/fonts.ts` usa `next/font/google`. Em runtime isso é
+bom: a fonte é servida do nosso domínio, sem requisição ao Google, o que
+ajuda a privacidade e a CSP. Mas **o build baixa a fonte**, e o runner
+precisa alcançar o Google para compilar. Quando não alcança, o erro que
+aparece não fala de rede — fala de "import map" e de "queries have exactly
+one entry", que parece defeito do código.
+
+*Por que custou tempo:* o sintoma aponta para o lugar errado. A mensagem
+não diz "não consegui baixar a fonte"; diz algo que soa como erro de
+configuração do Next, e o reflexo é procurar no que mudou por último.
+
+*Como foi resolvido:* nada — reexecutar bastou. O conserto de verdade é
+guardar os arquivos da fonte no repositório e usar `next/font/local`, que
+tira a chamada externa do caminho do build. Está em `docs/pendencias.md`.
+
+👁 **Solto** — enquanto a fonte vier do Google no build, qualquer PR pode
+ficar vermelho por um motivo que não está no repositório.
+
+**A lição:** build que busca coisa na internet não é reprodutível, por mais
+que pareça. Vale a pena saber **quais** dependências externas o build tem,
+porque um dia uma delas cai no meio de uma revisão.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

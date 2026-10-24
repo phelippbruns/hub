@@ -14,6 +14,7 @@ import { FUNDOS_DO_PERFIL } from "@/features/perfil/fundos";
 import {
   ActivityRow,
   Avatar,
+  CampoDeBusca,
   AnswerCard,
   BottomSheet,
   MenuSuspenso,
@@ -49,6 +50,7 @@ import {
   SuccessMessage,
   SuggestionRow,
   Switch,
+  SwitchRow,
   Tabs,
   TextField,
   TopicName,
@@ -185,6 +187,8 @@ export function DesignGallery() {
   const [fixada, setFixada] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [cardDaGaleria, setCardDaGaleria] = useState(0);
+  const [buscaDaGaleria, setBuscaDaGaleria] = useState("");
+  const [ajusteDaGaleria, setAjusteDaGaleria] = useState(true);
   const [codigo, setCodigo] = useState("12");
 
   return (
@@ -788,6 +792,36 @@ export function DesignGallery() {
             <span className="text-caption text-inkMuted">
               Card {cardDaGaleria + 1} de 7. A atual muda de forma, não só de cor.
             </span>
+          </div>
+        </Card>
+
+        <Card title="Busca" wide>
+          {/* Uma pílula só, usada em cinco telas. Borda de 1 px: campo é
+              moldura de conteúdo, não corpo. */}
+          <div className="w-full">
+            <CampoDeBusca
+              rotulo="Buscar comunidades ou pessoas"
+              value={buscaDaGaleria}
+              onChange={(evento) => setBuscaDaGaleria(evento.target.value)}
+            />
+          </div>
+        </Card>
+
+        <Card title="Linha de ajuste" wide>
+          {/* O nome aparece na tela, não só no `aria-label`. */}
+          <div className="flex w-full flex-col gap-3">
+            <SwitchRow
+              nome="Cabine"
+              descricao="Convites para conversar e mensagens novas."
+              checked={ajusteDaGaleria}
+              onToggle={() => setAjusteDaGaleria((v) => !v)}
+            />
+            <SwitchRow
+              nome="Novos tópicos nas comunidades"
+              descricao="Desligado por padrão: uma comunidade ativa abre vários por dia."
+              checked={!ajusteDaGaleria}
+              onToggle={() => setAjusteDaGaleria((v) => !v)}
+            />
           </div>
         </Card>
 

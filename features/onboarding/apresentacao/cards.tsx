@@ -114,7 +114,7 @@ export const CARDS: Card[] = [
             </>,
             <>
               <b className="font-semibold">Para criar,</b> toque em Criar comunidade. Dê um nome,
-              uma capa e uma intro de até 240 caracteres.
+              uma capa e introduza seu assunto.
             </>,
           ]}
         />
@@ -179,8 +179,14 @@ export const CARDS: Card[] = [
         <Passos
           itens={[
             <>
+              {/*
+                Não prometa editar: a RN14 diz que resposta não se edita —
+                para corrigir, apaga e responde de novo. O card prometia
+                "editar por 5 minutos" desde que nasceu, e não existia
+                código nenhum por trás disso.
+              */}
               <b className="font-semibold">Para participar,</b> acesse o tópico e deixe sua
-              contribuição. Dá para editar por 5 minutos.
+              contribuição.
             </>,
             <>
               <b className="font-semibold">Para criar,</b> toque em Criar tópico, dê um nome e
@@ -193,7 +199,7 @@ export const CARDS: Card[] = [
           ]}
         />
         <Nota>
-          Cada comunidade tem moderação. Respostas que quebram as regras podem ser removidas.
+          Cada comunidade tem moderação. Contribuições que quebram as regras podem ser removidas.
         </Nota>
       </>
     ),

@@ -149,7 +149,14 @@ export const createCommunitySchema = z.object({
   universeId: uuidSchema.optional(),
   name: userText(60, "O nome da comunidade"),
   intro: userText(240, "A intro"),
-  coverUrl: z.url().nullable().default(null),
+  /**
+   * Caminho no depósito (`capas/<uuid>.jpg`) **ou** endereço.
+   *
+   * Era só `z.url()`, e isso impedia a capa de ser enviada na criação: o
+   * depósito devolve caminho, não URL, e o que a tela manda é o caminho. A
+   * capa padrão do Universo é uma URL, e continua passando.
+   */
+  coverUrl: z.string().min(1).max(500).nullable().default(null),
 });
 
 /** RN27: até 3 links no perfil. */

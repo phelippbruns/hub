@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { Switch } from "@/design/components";
+import { SwitchRow } from "@/design/components";
 import { salvarPreferencia } from "./actions";
 
 export type Preferencias = {
@@ -73,20 +73,19 @@ export function PreferenciasDeNotificacao({ atuais }: { atuais: Preferencias }) 
   return (
     <div className="flex flex-col gap-3">
       {INTERRUPTORES.map(({ campo, rotulo, apoio, valor }) => (
-        <div key={campo} className="flex flex-col gap-1">
-          <Switch
-            label={rotulo}
-            checked={valor(atuais)}
-            onToggle={() => {
-              if (pendente) return;
-              const formulario = new FormData();
-              formulario.set("campo", campo);
-              formulario.set("ligado", valor(atuais) ? "nao" : "sim");
-              iniciar(() => salvarPreferencia(formulario));
-            }}
-          />
-          <p className="text-caption text-inkMuted">{apoio}</p>
-        </div>
+        <SwitchRow
+          key={campo}
+          nome={rotulo}
+          descricao={apoio}
+          checked={valor(atuais)}
+          onToggle={() => {
+            if (pendente) return;
+            const formulario = new FormData();
+            formulario.set("campo", campo);
+            formulario.set("ligado", valor(atuais) ? "nao" : "sim");
+            iniciar(() => salvarPreferencia(formulario));
+          }}
+        />
       ))}
     </div>
   );

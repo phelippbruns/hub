@@ -174,73 +174,55 @@ test.describe("as marcas da abertura", () => {
     }
   });
 
+  /**
+   * A chave é desenho, e por isso o centro é exato.
+   *
+   * Era a letra `{` da fonte, e a posição de uma letra dentro da linha vem
+   * das métricas que **cada sistema** lê do arquivo: a mesma Bricolage
+   * punha a chave 1,17 px abaixo do centro no macOS e perto de 1,9 px no
+   * Linux. O ajuste em `em` era um só, zerava num e deixava 0,7 px no
+   * outro — por isso este teste tinha 1 px de folga, e por isso a chave
+   * apareceu torta três vezes mesmo com ele verde.
+   *
+   * Desenhada, não há métrica de fonte no caminho: a tinta vai de 6,5 a
+   * 17,5 na horizontal e de 2 a 22 na vertical, as duas centradas em 12 da
+   * grade de 24. A folga cai para um quarto de pixel, que é só o
+   * arredondamento do navegador.
+   */
   test("a chave fica centrada no quadrado", async ({ page }) => {
     await page.goto("/");
 
-    /*
-     * Medir a **tinta**, não a caixa do texto.
-     *
-     * O grid já centra a caixa; o que estava torto era o desenho dentro
-     * dela, 1,2 px abaixo do meio. Medir a caixa daria o contrário do que
-     * se quer provar — ela agora está deslocada de propósito.
-     *
-     * A linha de base sai de uma sonda de altura zero, que todo navegador
-     * alinha por ela; a extensão da tinta sai do `measureText` com a mesma
-     * fonte calculada da marca.
-     */
-    const desvio = await page.locator(".hub-marca-balanca-1").evaluate(async (marca) => {
-      /*
-       * Esperar a fonte antes de medir.
-       *
-       * Sem isto o `measureText` usa a fonte substituta enquanto a
-       * Bricolage carrega, e a conta sai sobre um `{` que não é o que está
-       * na tela. Na minha máquina ela já estava em cache e o teste passava;
-       * na CI, fria, deu 0,70 px e reprovou — medida errada, tela certa.
-       */
-      await document.fonts.ready;
-
-      const interno = marca.firstElementChild as HTMLElement;
+    const desvio = await page.locator(".hub-marca-balanca-1").evaluate((marca) => {
       const quadrado = marca.getBoundingClientRect();
-
-      const sonda = document.createElement("span");
-      sonda.style.cssText = "display:inline-block;width:0;height:0";
-      interno.appendChild(sonda);
-      const linhaDeBase = sonda.getBoundingClientRect().top;
-      sonda.remove();
-
-      const estilo = getComputedStyle(interno.parentElement!);
-      const ctx = document.createElement("canvas").getContext("2d")!;
-      ctx.font = `${estilo.fontWeight} ${estilo.fontSize} ${estilo.fontFamily}`;
-      const tinta = ctx.measureText("{");
-
-      const meioDaTinta =
-        linhaDeBase - (tinta.actualBoundingBoxAscent - tinta.actualBoundingBoxDescent) / 2;
-      const caixa = interno.getBoundingClientRect();
-      const meioHorizontalDaTinta =
-        caixa.x + (tinta.actualBoundingBoxRight - tinta.actualBoundingBoxLeft) / 2;
+      const desenho = marca.querySelector("svg")!.getBoundingClientRect();
 
       return {
-        horizontal: meioHorizontalDaTinta - (quadrado.x + quadrado.width / 2),
-        vertical: meioDaTinta - (quadrado.y + quadrado.height / 2),
+        horizontal: (desenho.left + desenho.right) / 2 - (quadrado.left + quadrado.right) / 2,
+        vertical: (desenho.top + desenho.bottom) / 2 - (quadrado.top + quadrado.bottom) / 2,
       };
     });
 
-    /*
-     * Um pixel de folga, e não meio.
-     *
-     * A posição da letra dentro da linha vem das métricas verticais que
-     * **cada sistema** lê da fonte: o mesmo `{`, na mesma Bricolage, cai
-     * 1,17 px abaixo do centro no macOS e perto de 1,9 px no Linux. O
-     * ajuste em `em` é um só, então ele zera num e deixa 0,7 px no outro.
-     *
-     * O limite de 1 px é o que separa os dois mundos: com o ajuste, os
-     * dois passam; sem ele, os dois reprovam. Tentei desenhar a chave em
-     * SVG para o centro virar geometria, e o desenho à mão ficou pior que
-     * a letra ao lado do `#` e do asterisco — não valia a troca.
-     */
-    expect(Math.abs(desvio.vertical), "a chave está fora do centro na vertical").toBeLessThan(1);
     expect(Math.abs(desvio.horizontal), "a chave está fora do centro na horizontal").toBeLessThan(
-      1,
+      0.25,
     );
+    expect(Math.abs(desvio.vertical), "a chave está fora do centro na vertical").toBeLessThan(0.25);
   });
+});
+
+/**
+ * A espessura da borda diz o que o elemento é.
+ *
+ * **Campo é moldura de conteúdo**, e leva 1 px: foi a queixa do PO, e a
+ * Cabine já era assim. **Botão, chip e marca levam 2 px**, porque ali a
+ * borda não contorna nada — ela é o corpo. O botão secundário *é* a
+ * borda, e afiná-la o deixa frágil ao lado do primário, que é cheio.
+ */
+test("campo tem borda fina; botão continua com a grossa", async ({ page }) => {
+  await page.goto("/entrar");
+
+  const campo = page.getByLabel("Email");
+  await expect(campo).toHaveCSS("border-top-width", "1px");
+
+  const botao = page.getByRole("button", { name: "Entrar" });
+  await expect(botao).toHaveCSS("border-top-width", "2px");
 });
