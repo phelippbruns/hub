@@ -10,6 +10,7 @@ import {
   ExploreNavIcon,
   HomeNavIcon,
   NotificationsNavIcon,
+  PalavraHub,
   ProfileNavIcon,
   SettingsIcon,
   TopicStar,
@@ -159,7 +160,7 @@ export function NavRail({
        * sempre, transparente, para aparecer sem mudar a largura de nada.
        */
       className={cn(
-        "group/nav bg-paper border-r-line w-navRail hover:w-navRailOpen has-[:focus-visible]:w-navRailOpen",
+        "group/nav hub-nav bg-paper border-r-line w-navRail hover:w-navRailOpen has-[:focus-visible]:w-navRailOpen",
         "absolute inset-y-0 left-0 flex flex-col gap-1 overflow-hidden border-r border-r-transparent px-3 pb-4",
         "hover:border-r-line has-[:focus-visible]:border-r-line transition-[width] duration-150 ease-in-out",
         "motion-reduce:transition-none",
@@ -176,25 +177,28 @@ export function NavRail({
       <Link
         href="/boas-vindas"
         aria-label="Hub"
-        className="group/marca text-ink mb-4 flex items-center gap-2 no-underline"
+        className="hub-marca text-ink mb-4 flex items-center gap-2 no-underline"
       >
         <Eixo>
           {/*
-            Uma inclinação curta ao passar o mouse: a marca é o único
-            elemento da barra que não leva a uma área, e o movimento é o
-            que diz que ela responde ao clique. Fica parada com movimento
-            reduzido, como as marcas da tela de abertura.
+            A marca é um quarto maior que uma marca de nível (40 contra 32):
+            ela não está ao lado de um nome, ela **é** a logo. Decisão do PO
+            em 24 de outubro, junto com os arquivos de logo.
 
-            Tamanho e lugar não mudaram — decisão do PO em 24 de outubro.
+            A chave cresce ao passar o mouse, e a palavra "hub" sai de
+            dentro dela quando a barra abre — as duas em `app/globals.css`,
+            do protótipo que o PO mandou. Param com movimento reduzido.
           */}
-          <LevelMark
-            level="universe"
-            className="transition-transform duration-150 ease-out group-hover/marca:-rotate-6 motion-reduce:transition-none motion-reduce:group-hover/marca:rotate-0"
-          />
+          <LevelMark level="universe" tamanho="nav" classeDoTracado="hub-marca-chave" />
         </Eixo>
-        <span aria-hidden="true" className="text-title">
-          <Rotulo>Hub</Rotulo>
-        </span>
+        {/*
+          A palavra é o traçado do logo horizontal, não o texto "Hub": é ela
+          que o protótipo faz sair de dentro da chave, e uma letra de fonte
+          não cresce de 4% ao tamanho cheio sem borrar. Quem usa leitor de
+          tela não perde nada — o link já se chama "Hub" pelo `aria-label`,
+          e o texto de antes também era `aria-hidden`.
+        */}
+        <PalavraHub className="hub-marca-palavra h-palavraNav w-auto shrink-0" />
       </Link>
 
       {AREAS.map(({ href, nome, Icone }) => {
@@ -250,36 +254,32 @@ export function NavRail({
         );
       })}
 
-      {/* Criar fica no fim da barra, separado da navegação: são ações, não
-          lugares. Recolhidos são círculos de `control`; abertos viram
-          pílula com o nome, **da mesma largura**, sem sair do eixo.
-
-          Cada um leva a cor do seu nível, cheia: tópico em ink com o
-          asterisco em paper, comunidade em lavanda com a cerquilha em ink.
-          É a mesma regra de cor das marcas do Hub, aplicada ao botão
-          inteiro — antes a de comunidade era um selo de 24 px solto dentro
-          de um anel vazado de 42, pequeno e fora do centro.
-
-          Os dois ícones têm 24 px, como a engrenagem logo abaixo: três
-          tamanhos diferentes em três botões empilhados é o tipo de coisa
-          que se vê antes de saber o que é. */}
       {/*
-        Os dois usam a mesma caixa dos outros itens, o `Eixo` de 52 px.
+        Criar fica no fim da barra, separado da navegação: são ações, não
+        lugares. Cada um leva a cor do seu nível, cheia: tópico em ink com o
+        asterisco em paper, comunidade em lavanda com a cerquilha em ink.
 
-        Antes eles tinham caixa própria de 42 px e um recuo de 5 px para o
-        **ícone** cair no eixo. O ícone caía, mas o **rótulo** não: ele
-        começava a 47 px enquanto "Configurações" logo abaixo começava a
-        60 px, e os treze pixels de diferença eram visíveis com a barra
-        aberta. Agora os três textos saem do mesmo lugar.
+        **São círculos de novo.** Na rodada passada eles viraram pílulas de
+        52 px para o rótulo cair no mesmo x dos outros — e o que se via era
+        uma forma oval onde antes havia um botão redondo. Agora o círculo de
+        42 px mora **dentro** do `Eixo` de 52, centrado nele: o desenho
+        volta a ser redondo e o rótulo começa no mesmo lugar que todos os
+        outros, sem recuo mágico nenhum.
+
+        Configurações entra no mesmo bloco, com o mesmo `gap-2`. Antes ele
+        vinha depois, com `mt-3`: 16 px de distância contra os 8 px dos dois
+        de cima, e os três empilhados mostravam a diferença.
       */}
       <div className="mt-auto flex flex-col gap-2">
         <Link
           href="/criar-topico"
           aria-label="Criar tópico"
-          className="bg-ink text-paper rounded-pill text-label h-control w-navItemBox flex items-center gap-2 overflow-hidden font-semibold whitespace-nowrap no-underline group-hover/nav:w-full group-has-[:focus-visible]/nav:w-full"
+          className="rounded-pill text-label h-navItem text-ink hover:bg-surfacePage flex items-center gap-2 font-semibold no-underline"
         >
           <Eixo>
-            <TopicStar className="size-iconNav" />
+            <span className="bg-ink text-paper rounded-pill size-control grid place-items-center">
+              <TopicStar className="size-iconNav" />
+            </span>
           </Eixo>
           <Rotulo>Criar tópico</Rotulo>
         </Link>
@@ -287,30 +287,32 @@ export function NavRail({
         <Link
           href="/comunidades/nova"
           aria-label="Criar comunidade"
-          className="bg-lavender text-ink rounded-pill text-label h-control w-navItemBox flex items-center gap-2 overflow-hidden font-semibold whitespace-nowrap no-underline group-hover/nav:w-full group-has-[:focus-visible]/nav:w-full"
+          className="rounded-pill text-label h-navItem text-ink hover:bg-surfacePage flex items-center gap-2 font-semibold no-underline"
         >
           <Eixo>
-            <CommunityHash className="size-iconNav" />
+            <span className="bg-lavender text-ink rounded-pill size-control grid place-items-center">
+              <CommunityHash className="size-iconNav" />
+            </span>
           </Eixo>
           <Rotulo>Criar comunidade</Rotulo>
         </Link>
-      </div>
 
-      <Link
-        href="/configuracoes"
-        aria-current={pathname.startsWith("/configuracoes") ? "page" : undefined}
-        className={cn(
-          "rounded-pill text-label h-navItem mt-3 flex items-center gap-2 font-semibold no-underline",
-          pathname.startsWith("/configuracoes")
-            ? "bg-surfacePage text-ink"
-            : "text-inkMuted hover:bg-surfacePage",
-        )}
-      >
-        <Eixo>
-          <SettingsIcon decorative className="size-iconNav" />
-        </Eixo>
-        <Rotulo>Configurações</Rotulo>
-      </Link>
+        <Link
+          href="/configuracoes"
+          aria-current={pathname.startsWith("/configuracoes") ? "page" : undefined}
+          className={cn(
+            "rounded-pill text-label h-navItem flex items-center gap-2 font-semibold no-underline",
+            pathname.startsWith("/configuracoes")
+              ? "bg-surfacePage text-ink"
+              : "text-inkMuted hover:bg-surfacePage",
+          )}
+        >
+          <Eixo>
+            <SettingsIcon decorative className="size-iconNav" />
+          </Eixo>
+          <Rotulo>Configurações</Rotulo>
+        </Link>
+      </div>
     </nav>
   );
 }

@@ -953,3 +953,84 @@
 .hub-campo-busca input:focus-visible {
   outline: none;
 }
+
+/*
+ * A marca do Hub na barra lateral, do protótipo `hub-logo-animado.html`.
+ *
+ * São dois movimentos, e eles têm donos diferentes de propósito:
+ *
+ * - A **chave cresce** ao passar o mouse na marca. Quem cresce é o traçado,
+ *   não o quadrado em volta: é a chave que abre.
+ * - A **palavra "hub" sai de dentro da chave** quando a *barra* abre, não
+ *   quando o mouse passa na marca. Senão, abrir a barra pelo lado mostraria
+ *   todos os rótulos e deixaria a logo pela metade.
+ *
+ * As curvas são as do protótipo. Os tempos são mais curtos: lá a barra não
+ * existe, e aqui ela termina de abrir em 150 ms — uma palavra que chegasse
+ * 1 segundo depois pareceria travamento, não animação.
+ */
+@keyframes hub-chave-abre {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  35% {
+    transform: scale(1.2);
+  }
+}
+
+.hub-marca-chave {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.hub-marca:hover .hub-marca-chave,
+.hub-marca:focus-visible .hub-marca-chave {
+  animation: hub-chave-abre 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.1s;
+}
+
+/*
+ * Em repouso a palavra está encolhida dentro da chave e invisível. A barra
+ * recolhida também a corta, mas opacidade zero é o que garante que nenhum
+ * pedaço de letra apareça na beirada enquanto ela abre.
+ */
+.hub-marca-palavra {
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  opacity: 0;
+  transform: translateX(-57%) scale(0.04);
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.1s linear;
+}
+
+.hub-nav:hover .hub-marca-palavra,
+.hub-nav:has(:focus-visible) .hub-marca-palavra {
+  opacity: 1;
+  transform: none;
+  transition:
+    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s,
+    opacity 0.05s linear 0.15s;
+}
+
+/*
+ * Com movimento reduzido a palavra ainda aparece e some com a barra — o que
+ * sai é o salto e a mola, não a informação.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .hub-marca:hover .hub-marca-chave,
+  .hub-marca:focus-visible .hub-marca-chave {
+    animation: none;
+  }
+
+  .hub-marca-palavra {
+    transform: none;
+    transition: none;
+  }
+
+  .hub-nav:hover .hub-marca-palavra,
+  .hub-nav:has(:focus-visible) .hub-marca-palavra {
+    transition: none;
+  }
+}

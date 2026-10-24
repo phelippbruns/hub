@@ -160,6 +160,10 @@ export const size = {
   iconLg: "34px",
   /** Marca de nível ({, #, asterisco) e o botão # de entrar e sair da comunidade. */
   mark: "32px",
+  /** Marca do Hub na barra lateral. Um quarto maior que mark: ela é a logo, não uma marca ao lado de um nome. */
+  markNav: "40px",
+  /** Altura da palavra "hub" ao lado da marca na barra aberta. É a proporção do logo horizontal: 24 para uma marca de 40. */
+  palavraNav: "24px",
   /** Botão só de ícone. */
   control: "42px",
   /** Botão de ícone redondo, em cabeçalho e barra. */

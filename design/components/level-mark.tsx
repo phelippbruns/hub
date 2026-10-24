@@ -10,8 +10,11 @@ import { cn } from "../cn";
  */
 export type Level = "universe" | "community" | "topic";
 
-/** `lg` é a marca de abertura: a logo do Hub na apresentação do onboarding. */
-export type LevelMarkSize = "md" | "lg";
+/**
+ * `nav` é a marca do Hub na barra lateral, e `lg` é a de abertura, na
+ * apresentação do onboarding.
+ */
+export type LevelMarkSize = "md" | "nav" | "lg";
 
 const tones: Record<Level, string> = {
   universe: "bg-sun text-ink",
@@ -20,23 +23,27 @@ const tones: Record<Level, string> = {
 };
 
 /*
- * O quadrado e o tamanho do texto andam juntos: em md o símbolo ocupa 20 de
- * 32 px, e em lg a proporção é a mesma, escrita em `em` a partir da
- * tipografia da caixa. É o que mantém o desenho idêntico nos dois tamanhos
- * em vez de dois ajustes que se desencontram quando um deles muda.
- */
-/*
- * A tipografia da caixa continua aqui porque o símbolo desenhado em `lg`
- * se mede em `em`: é dela que o `size-[0.6875em]` tira a referência.
+ * A tipografia da caixa fica aqui porque o asterisco em `lg` se mede em
+ * `em`: é dela que o `size-[0.6875em]` tira a referência.
  */
 const boxes: Record<LevelMarkSize, string> = {
   md: "size-mark text-subtitle rounded-sm",
+  nav: "size-markNav rounded-sm",
   lg: "size-markLg text-brand rounded-lg",
 };
 
-/** Os símbolos são desenho, não letra: 22 de 32 px em md, a mesma razão em lg. */
+/**
+ * O asterisco é desenhado numa grade de 24 e precisa de um tamanho: 22 de
+ * 32 px em md, a mesma razão em lg.
+ *
+ * A chave e a cerquilha não precisam. Elas vêm dos arquivos de logo com o
+ * quadrado inteiro por janela (`encaixe="marca"`), então ocupam a caixa
+ * toda e caem exatamente onde o desenhista as pôs — inclusive o acerto
+ * óptico da chave, 7,5 de 1024 à esquerda do centro.
+ */
 const desenhos: Record<LevelMarkSize, string> = {
   md: "size-icon",
+  nav: "size-icon",
   lg: "size-[0.6875em]",
 };
 
@@ -44,33 +51,42 @@ export function LevelMark({
   level,
   tamanho = "md",
   className,
+  classeDoTracado,
 }: {
   level: Level;
   tamanho?: LevelMarkSize;
   className?: string;
+  /**
+   * Classe no **traçado**, não no quadrado. Existe por causa da animação da
+   * barra lateral: quem cresce ao passar o mouse é a chave, e o quadrado
+   * colorido em volta dela fica parado.
+   */
+  classeDoTracado?: string;
 }) {
   /*
-   * Os três são desenho, não letra.
+   * Os três são traçado, não letra: letra depende das métricas que cada
+   * sistema lê da fonte — foi assim que a chave apareceu torta três vezes.
    *
-   * O `{` foi o último a mudar, depois de aparecer torto três vezes: letra
-   * depende das métricas que cada sistema lê da fonte, e desenho depende
-   * só da geometria do traçado. Agora os três marcam o centro do quadrado
-   * pela mesma regra, em qualquer tamanho e em qualquer sistema.
+   * A chave e a cerquilha são o contorno que veio dos arquivos de logo, e
+   * por isso trazem junto a própria posição dentro do quadrado. O
+   * asterisco continua desenhado à mão, numa grade de 24, e por isso ainda
+   * precisa de um tamanho — nenhum arquivo de logo o define.
    */
-  const Simbolo =
-    level === "universe" ? HubBrace : level === "community" ? CommunityHash : TopicStar;
+  const simbolo =
+    level === "topic" ? (
+      <TopicStar className={desenhos[tamanho]} />
+    ) : level === "universe" ? (
+      <HubBrace encaixe="marca" className="size-full" classeDoTracado={classeDoTracado} />
+    ) : (
+      <CommunityHash encaixe="marca" className="size-full" />
+    );
 
   return (
     <span
       aria-hidden="true"
-      className={cn(
-        boxes[tamanho],
-        "inline-grid place-items-center font-extrabold",
-        tones[level],
-        className,
-      )}
+      className={cn(boxes[tamanho], "inline-grid place-items-center", tones[level], className)}
     >
-      <Simbolo className={desenhos[tamanho]} />
+      {simbolo}
     </span>
   );
 }
