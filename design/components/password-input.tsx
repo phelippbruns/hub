@@ -31,7 +31,7 @@ export function PasswordInput({ label, error, hint, className, id, ...props }: P
 
       <div
         className={cn(
-          "bg-paper box-border flex w-full items-center gap-1 rounded-sm border-2 px-2",
+          "bg-paper box-border flex w-full items-center gap-1 rounded-sm border px-2",
           error ? "border-error" : "border-inkMuted",
         )}
       >

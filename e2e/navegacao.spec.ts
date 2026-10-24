@@ -365,3 +365,58 @@ test.describe("a barra fecha sozinha", () => {
     expect(await largura("Criar tópico")).toBe(await largura("Criar comunidade"));
   });
 });
+
+/**
+ * Os rótulos da barra saem todos do mesmo lugar.
+ *
+ * Os botões de criar tinham caixa própria de 42 px com um recuo de 5 para
+ * o **ícone** cair no eixo. O ícone caía; o rótulo não — ele começava 13 px
+ * antes de "Configurações", e com a barra aberta dava para ver.
+ */
+test("os rótulos da barra lateral começam no mesmo x", async ({ page }) => {
+  await entrarNoApp(page, "alinhamento");
+  await page.goto("/inicio");
+
+  const barra = page.getByRole("navigation", { name: "Navegação principal" });
+  await barra.hover();
+
+  const esquerdas = await barra.evaluate((nav) => {
+    const nomes = ["Início", "Explorar", "Criar tópico", "Criar comunidade", "Configurações"];
+    return nomes.map((nome) => {
+      const alvo = [...nav.querySelectorAll("a")].find((a) => a.textContent?.trim() === nome);
+      // O rótulo é o último filho do link; o ícone é o primeiro.
+      const rotulo = alvo?.lastElementChild as HTMLElement | undefined;
+      return rotulo ? Math.round(rotulo.getBoundingClientRect().left) : -1;
+    });
+  });
+
+  expect(esquerdas).not.toContain(-1);
+  expect(new Set(esquerdas).size, `rótulos em ${esquerdas.join(", ")}`).toBe(1);
+});
+
+test("Configurações tem os Termos, e Sair é a última coisa da tela", async ({ page }) => {
+  await entrarNoApp(page, "configs");
+  await page.goto("/configuracoes");
+
+  // A seção "Conta" sumiu: um título para um botão só é moldura em volta de nada.
+  await expect(page.getByRole("heading", { name: "Conta" })).toHaveCount(0);
+
+  const sair = page.getByRole("button", { name: "Sair" });
+  const termos = page.getByRole("link", { name: /Termos de uso/ });
+  await expect(sair).toBeVisible();
+  await expect(termos).toBeVisible();
+
+  // Sair embaixo de tudo.
+  const posicoes = await page.evaluate(() => {
+    const principal = document.querySelector("main")!;
+    const botao = [...principal.querySelectorAll("button")].find(
+      (b) => b.textContent?.trim() === "Sair",
+    )!;
+    const ultimo = [...principal.querySelectorAll("p, h2, a, button")].pop()!;
+    return { sair: botao.getBoundingClientRect().top, fim: ultimo.getBoundingClientRect().top };
+  });
+  expect(posicoes.sair).toBeGreaterThanOrEqual(posicoes.fim);
+
+  await termos.click();
+  await page.waitForURL(/\/termos/);
+});

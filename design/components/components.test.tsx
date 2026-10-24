@@ -28,6 +28,7 @@ import {
   SuccessMessage,
   SuggestionRow,
   Switch,
+  SwitchRow,
   Tabs,
   TextField,
   TopicName,
@@ -190,6 +191,20 @@ const cases: Array<[string, React.ReactElement]> = [
     />,
   ],
   ["foto de perfil, sem foto", <Avatar nome="Lia Souza" tamanho="perfil" />],
+  [
+    // O nome tem de aparecer **na tela**, não só no `aria-label`: antes a
+    // pessoa lia a explicação sem saber o que ela ligava.
+    "linha de ajuste, ligada",
+    <SwitchRow nome="Cabine" descricao="Convites para conversar e mensagens novas." checked />,
+  ],
+  [
+    "linha de ajuste, desligada",
+    <SwitchRow
+      nome="Novos tópicos nas comunidades"
+      descricao="Desligado por padrão: uma comunidade ativa abre vários por dia."
+      checked={false}
+    />,
+  ],
   ["foto de perfil, nome de uma palavra só", <Avatar nome="Jo" />],
   // F11: as linhas do Início.
   [

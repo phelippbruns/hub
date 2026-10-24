@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Avatar, Tabs } from "@/design/components";
-import { SearchIcon } from "@/design/icons";
+import { CampoDeBusca, Avatar, Tabs } from "@/design/components";
 import { OlhoDeSeguir } from "./acoes-do-perfil";
 
 type Seguida = {
@@ -45,17 +44,11 @@ export function ListaDeSeguindo({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="bg-paper border-inkMuted box-border flex items-center gap-2 rounded-sm border-2 px-2">
-        <SearchIcon decorative className="size-iconSm text-inkMuted shrink-0" />
-        <input
-          type="search"
-          value={termo}
-          onChange={(evento) => setTermo(evento.target.value)}
-          aria-label={ehSeguidores ? "Buscar quem segue você" : "Buscar pessoas que você segue"}
-          placeholder={ehSeguidores ? "Buscar quem segue você" : "Buscar pessoas que você segue"}
-          className="text-body text-ink min-w-0 flex-1 border-0 bg-transparent py-2 outline-none"
-        />
-      </div>
+      <CampoDeBusca
+        rotulo={ehSeguidores ? "Buscar quem segue você" : "Buscar pessoas que você segue"}
+        value={termo}
+        onChange={(evento) => setTermo(evento.target.value)}
+      />
 
       {/* RN27/RN28: as duas listas são privadas, e a tela diz isso. */}
       <p className="text-caption text-inkMuted">Só você vê esta lista.</p>

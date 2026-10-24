@@ -55,6 +55,19 @@ export async function criarComunidade(
 ): Promise<EstadoDaCriacao> {
   const viewer = await quemPede();
 
+  /*
+   * A capa é opcional: sem imagem, a comunidade nasce com a padrão, como
+   * antes. Guardar **antes** de validar nome e intro desperdiçaria um
+   * arquivo a cada nome repetido, então a imagem só sobe depois que o
+   * resto passou.
+   */
+  const arquivo = formulario.get("imagem");
+  const temCapa = arquivo instanceof File && arquivo.size > 0;
+
+  if (temCapa && arquivo.size > TAMANHO_MAXIMO) {
+    return { erro: `A imagem passa de ${TAMANHO_MAXIMO_EM_MB} MB.` };
+  }
+
   // F12.1: não há Universo a escolher. A camada de dados põe no Hubverso.
   const entrada = {
     name: String(formulario.get("name") ?? ""),
@@ -77,9 +90,19 @@ export async function criarComunidade(
   const existente = await comunidadeComOMesmoNome(validado.data.name);
   if (existente) return { jaExiste: { name: existente.name, slug: existente.slug } };
 
+  let capa: string | null = null;
+  if (temCapa) {
+    try {
+      capa = await guardarImagem(new Uint8Array(await arquivo.arrayBuffer()), "capas");
+    } catch (erro) {
+      if (erro instanceof ImagemRecusada) return { erro: erro.motivo };
+      throw erro;
+    }
+  }
+
   let slug: string;
   try {
-    const criada = await createCommunity(viewer, validado.data);
+    const criada = await createCommunity(viewer, { ...validado.data, coverUrl: capa });
     slug = criada!.slug;
   } catch (erro) {
     // A corrida: alguém criou o mesmo nome entre a checagem e o INSERT.

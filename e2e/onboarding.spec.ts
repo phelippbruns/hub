@@ -114,6 +114,23 @@ test.describe("RN31: a apresentação do Hub", () => {
     await expect(proximo).not.toBeVisible();
   });
 
+  /*
+   * A primeira tela do Hub não pode prometer o que o Hub não faz. Este
+   * card dizia "Dá para editar por 5 minutos" desde que nasceu, e a RN14
+   * diz o contrário: resposta não se edita, apaga e responde de novo.
+   */
+  test("o onboarding não promete editar resposta", async ({ page }) => {
+    await criarContaEChegarNoOnboarding(page, "semeditar");
+    await page.getByRole("button", { name: "Próximo card" }).click();
+    await page.getByRole("button", { name: "Próximo card" }).click();
+
+    await expect(
+      page.getByRole("heading", { name: "A mágica acontece nos tópicos" }),
+    ).toBeVisible();
+    await expect(page.getByText(/editar por 5 minutos/)).toHaveCount(0);
+    await expect(page.getByText(/Contribuições que quebram as regras/)).toBeVisible();
+  });
+
   test("o card fora da tela fica escondido do leitor de tela", async ({ page }) => {
     await criarContaEChegarNoOnboarding(page, "inerte");
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { Switch } from "@/design/components";
+import { SwitchRow } from "@/design/components";
 import { salvarQuemPodeConvidar } from "./actions";
 
 /**
@@ -22,19 +22,17 @@ export function QuemPodeMeConvidar({ atual }: { atual: "community_members" | "no
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <Switch
-        label="Aceitar convites de Cabine"
-        checked={atual === "community_members"}
-        onToggle={() => {
-          if (!pendente) trocar(atual !== "community_members");
-        }}
-      />
-      <p className="text-caption text-inkMuted">
-        {atual === "community_members"
+    <SwitchRow
+      nome="Aceitar convites de Cabine"
+      descricao={
+        atual === "community_members"
           ? "Pessoas das suas comunidades podem te convidar para conversar."
-          : "Ninguém pode te convidar. Você continua podendo convidar outras pessoas."}
-      </p>
-    </div>
+          : "Ninguém pode te convidar. Você continua podendo convidar outras pessoas."
+      }
+      checked={atual === "community_members"}
+      onToggle={() => {
+        if (!pendente) trocar(atual !== "community_members");
+      }}
+    />
   );
 }

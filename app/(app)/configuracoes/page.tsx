@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Button, ContentColumn, PageTitle, SectionTitle } from "@/design/components";
 import { sair } from "@/features/autenticacao/actions";
 import { QuemPodeMeConvidar } from "@/features/cabines/quem-pode-me-convidar";
@@ -9,12 +10,16 @@ import { PreferenciasDeNotificacao } from "@/features/notificacoes/preferencias"
 export const metadata: Metadata = { title: "Configurações · Hub" };
 
 /**
- * A tela de Configurações chega inteira na F17 — exportar dados, excluir
- * conta, preferências.
+ * Configurações.
  *
- * O botão de sair mudou-se para cá na F11. Ele morava no Início desde a F05
- * porque não havia outro lugar, e o Início é a primeira tela que alguém vê:
- * não é lugar de um botão que encerra a sessão.
+ * **Sair é a última coisa da tela**, e pequeno. Ele abria a página numa
+ * seção "Conta" só dele, em tamanho de ação principal: a primeira coisa
+ * que alguém via ao abrir as Configurações era o botão de ir embora. A
+ * seção sumiu junto — um título para um botão só é moldura em volta de
+ * nada, e o resto da conta chega na F17.
+ *
+ * Exportar dados e excluir conta chegam na F17. Notificação no aparelho,
+ * com o app instalado, vem logo depois desta.
  */
 export default async function ConfiguracoesPage() {
   const viewer = await getViewer();
@@ -27,13 +32,6 @@ export default async function ConfiguracoesPage() {
     <ContentColumn>
       <PageTitle>Configurações</PageTitle>
 
-      <SectionTitle>Conta</SectionTitle>
-      <form action={sair}>
-        <Button type="submit" variant="secondary">
-          Sair
-        </Button>
-      </form>
-
       {/*
         RN23: cada pessoa define quem pode convidá-la para uma Cabine.
         Entrou na F13, junto com a Cabine — a regra já era respeitada no
@@ -41,6 +39,15 @@ export default async function ConfiguracoesPage() {
       */}
       <SectionTitle>Privacidade</SectionTitle>
       <QuemPodeMeConvidar atual={politica} />
+
+      {/*
+        O atalho para os Termos mora aqui porque é aqui que alguém procura.
+        A página existe desde a F03, mas só era alcançável da tela de
+        entrada: quem já tinha conta não chegava nela por lugar nenhum.
+      */}
+      <Link href="/termos" className="text-bodyStrong text-ink underline underline-offset-2">
+        Termos de uso e Política de privacidade
+      </Link>
 
       {/* RN34: cada tipo tem um interruptor, e ele vale na hora de criar. */}
       <SectionTitle>Notificações</SectionTitle>
@@ -50,6 +57,13 @@ export default async function ConfiguracoesPage() {
         Exportar seus dados e excluir a conta chegam na F17. Notificação no aparelho, com o app
         instalado, vem logo depois desta.
       </p>
+
+      {/* O fio separa a saída do resto: é a única ação sem volta aqui. */}
+      <form action={sair} className="border-line mt-3 border-t pt-3">
+        <Button type="submit" variant="secondary" size="sm">
+          Sair
+        </Button>
+      </form>
     </ContentColumn>
   );
 }

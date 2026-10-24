@@ -507,3 +507,69 @@ quem o dado nunca foi perigoso.
 
 📌 **Fixado** — a RN28 foi reescrita, `getFollowers` recusa quem não é o
 dono, e há teste de banco e de jornada dos dois lados.
+
+---
+
+## 14. A primeira tela prometia o que o produto não faz
+
+### "Dá para editar por 5 minutos" nunca foi verdade
+
+O card de Tópicos do onboarding dizia, desde que nasceu: *"acesse o tópico
+e deixe sua contribuição. Dá para editar por 5 minutos."*
+
+A RN14 diz o contrário, e sempre disse: *"A resposta não pode ser editada.
+Para corrigir, o autor apaga e responde de novo."* Não existia nenhuma
+edição no código — nem action, nem coluna, nem política de banco. O menu da
+própria resposta tem só "Apagar resposta", com o texto "Para corrigir,
+apague e responda de novo" logo ali.
+
+*O que custou:* a **primeira** tela que alguém vê no Hub ensinava uma
+função inexistente. Quem acreditasse ia escrever com menos cuidado,
+contando com um conserto que não existe, e descobriria no pior momento —
+depois de publicar.
+
+*Por que passou:* o texto do onboarding veio do protótipo, e protótipo é
+desenho, não contrato. Ninguém conferiu cada frase contra a RN
+correspondente, porque texto de tela não parece código — e nenhum teste lê
+texto de tela procurando promessa.
+
+*Como ficou:* a frase saiu. A jornada do onboarding agora reprova se ela
+voltar.
+
+**Regra:** texto de onboarding é promessa, e promessa se confere contra a
+regra, uma por uma. Quando o protótipo descreve um comportamento, ele é
+pedido de feature — não descrição do que existe.
+
+📌 **Fixado** — `e2e/onboarding.spec.ts` procura a frase e reprova se ela
+reaparecer.
+
+---
+
+## 15. Texto que envelheceu junto com a regra
+
+### A tela de criar comunidade falava de um corte que estava desligado
+
+"A comunidade fica disponível na aba Explorar ao atingir 20 membros."
+
+A RN05 existe e está inteira no código — mas `EXPLORE_MIN_MEMBERS` vale
+**0** desde 4 de outubro, por decisão sua: com o Hub recém-nascido, o corte
+deixava o Explorar vazio justamente para quem chegava primeiro. Toda
+comunidade aparece desde o primeiro membro.
+
+*O que custou:* quem criava comunidade achava que ela estava escondida, e
+não estava. Pior: desanimava de divulgar, esperando um número que não era
+exigido.
+
+*Por que passou:* a constante foi zerada com um comentário cuidadoso
+explicando o porquê — e o **texto da tela** ficou. Mudar o valor de uma
+regra e esquecer a frase que a descreve é fácil justamente quando a frase
+mora longe do código que ela descreve.
+
+*Como ficou:* o texto saiu, e com ele o teste que o guardava — ele
+afirmava que a tela dizia aquilo, ou seja, **protegia a mentira**.
+
+**Regra:** quando uma regra é desligada por configuração, procure o texto
+que a anuncia. A regra dorme no código; a frase continua acordada na tela.
+
+👁 **Solto** — não há como um teste saber que uma frase virou mentira. O
+que existe é o hábito: mexeu num limite, procure quem o cita.

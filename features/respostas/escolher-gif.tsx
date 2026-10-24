@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BottomSheet, Button, LoadingBlock, Skeleton } from "@/design/components";
-import { SearchIcon } from "@/design/icons";
+import { CampoDeBusca, BottomSheet, Button, LoadingBlock, Skeleton } from "@/design/components";
 
 export type GifEscolhido = { url: string; descricao: string };
 
@@ -58,17 +57,11 @@ export function EscolherGif({
 
   return (
     <BottomSheet title="Escolher GIF" open={aberto}>
-      <div className="bg-paper border-inkMuted box-border flex items-center gap-2 rounded-sm border-2 px-2">
-        <SearchIcon decorative className="size-iconSm text-inkMuted shrink-0" />
-        <input
-          type="search"
-          value={termo}
-          onChange={(evento) => setTermo(evento.target.value)}
-          aria-label="Buscar GIF"
-          placeholder="Buscar GIF"
-          className="text-body text-ink min-w-0 flex-1 border-0 bg-transparent py-2 outline-none"
-        />
-      </div>
+      <CampoDeBusca
+        rotulo="Buscar GIF"
+        value={termo}
+        onChange={(evento) => setTermo(evento.target.value)}
+      />
 
       {carregando ? (
         <LoadingBlock label="Procurando GIFs">

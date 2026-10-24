@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { Button, Input, TextField } from "@/design/components";
-import { ImageIcon } from "@/design/icons";
+import { useActionState, useRef, useState } from "react";
+import { Button, CommunityCover, Input, TextField } from "@/design/components";
+import { TAMANHO_MAXIMO_EM_MB, problemaNaImagem } from "@/lib/midia/limites";
 import { criarComunidade, type EstadoDaCriacao } from "./actions";
 
 /**
@@ -15,19 +15,65 @@ import { criarComunidade, type EstadoDaCriacao } from "./actions";
  */
 export function FormularioNovaComunidade() {
   const [estado, acao, pendente] = useActionState<EstadoDaCriacao, FormData>(criarComunidade, {});
+  const [previa, setPrevia] = useState<string | null>(null);
+  const [nomeDoArquivo, setNomeDoArquivo] = useState<string | null>(null);
+  const [problemaDaCapa, setProblemaDaCapa] = useState<string | null>(null);
+  const [nome, setNome] = useState("");
+  const arquivoRef = useRef<HTMLInputElement>(null);
 
   return (
     <form action={acao} className="flex flex-col gap-3">
       {/*
-        Enviar capa aqui é da F20. Até lá a comunidade nasce com a capa padrão
-        do Hub, e quem modera troca depois pelo menu de três pontos.
+        A capa entra já na criação.
+
+        Antes a comunidade nascia com a capa padrão e só quem modera trocava
+        depois, pelo menu de três pontos — ou seja, quem acabou de criar
+        precisava descobrir um menu para terminar o que estava fazendo. O
+        caminho é o mesmo da tela de trocar capa: prévia aqui, conferência
+        pelos bytes e remoção da localização no servidor.
       */}
-      <div className="bg-lavender min-h-cover text-ink grid place-items-center rounded-sm">
-        <span className="flex flex-col items-center gap-1">
-          <ImageIcon decorative className="size-iconLg" />
-          <span className="text-caption">A capa pode ser trocada depois de criar</span>
+      <CommunityCover name={nome || "Sua comunidade"} coverUrl={previa} />
+
+      {/*
+        O controle de arquivo do navegador vem em inglês e não há como
+        traduzi-lo. Fica escondido do olho, não do teclado nem do leitor de
+        tela, e quem aparece é um botão nosso.
+      */}
+      <input
+        ref={arquivoRef}
+        type="file"
+        name="imagem"
+        accept="image/jpeg,image/png,image/webp"
+        className="sr-only"
+        aria-label="Escolher a capa"
+        onChange={(evento) => {
+          const escolhido = evento.target.files?.[0] ?? null;
+          setProblemaDaCapa(escolhido ? problemaNaImagem(escolhido) : null);
+          setNomeDoArquivo(escolhido?.name ?? null);
+          if (previa) URL.revokeObjectURL(previa);
+          setPrevia(escolhido ? URL.createObjectURL(escolhido) : null);
+        }}
+      />
+
+      <div className="flex items-center gap-2">
+        <Button variant="secondary" size="sm" onClick={() => arquivoRef.current?.click()}>
+          Escolher capa
+        </Button>
+        <span className="text-caption text-inkMuted min-w-0 flex-1 truncate">
+          {nomeDoArquivo ?? "Sem capa, o Hub usa a padrão"}
         </span>
       </div>
+
+      {problemaDaCapa ? (
+        <p role="alert" className="text-caption text-error">
+          {problemaDaCapa}
+        </p>
+      ) : (
+        <p className="text-caption text-inkMuted">
+          JPEG, PNG ou WebP, até {TAMANHO_MAXIMO_EM_MB} MB. A localização que a foto carrega é
+          removida antes de guardar.
+        </p>
+      )}
 
       <Input
         label="Nome"
@@ -35,6 +81,8 @@ export function FormularioNovaComunidade() {
         required
         maxLength={60}
         autoComplete="off"
+        value={nome}
+        onChange={(evento) => setNome(evento.target.value)}
         error={estado.erros?.name}
       />
 
@@ -58,18 +106,17 @@ export function FormularioNovaComunidade() {
         className="w-full"
       />
 
-      <p className="text-caption text-inkMuted">
-        A comunidade fica disponível na aba Explorar ao atingir 20 membros. Enquanto isso, pode ser
-        encontrada pela busca.
-      </p>
-
       {estado.erro ? (
         <p role="alert" className="text-caption text-error">
           {estado.erro}
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pendente}>
+      <Button
+        type="submit"
+        disabled={pendente || problemaDaCapa !== null}
+        disabledHint={problemaDaCapa ?? undefined}
+      >
         Criar comunidade
       </Button>
     </form>

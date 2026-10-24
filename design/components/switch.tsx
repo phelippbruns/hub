@@ -10,11 +10,14 @@ export function Switch({
   checked,
   onToggle,
   label,
+  describedBy,
   className,
 }: {
   checked: boolean;
   onToggle?: () => void;
   label: string;
+  /** Id da frase que explica o ajuste, quando houver uma. */
+  describedBy?: string;
   className?: string;
 }) {
   return (
@@ -23,9 +26,10 @@ export function Switch({
       role="switch"
       aria-checked={checked}
       aria-label={label}
+      aria-describedby={describedBy}
       onClick={onToggle}
       className={cn(
-        "h-toggleH w-toggleW rounded-pill relative inline-flex cursor-pointer",
+        "h-toggleH w-toggleW rounded-pill relative inline-flex shrink-0 cursor-pointer",
         checked ? "bg-ink" : "bg-line",
         className,
       )}

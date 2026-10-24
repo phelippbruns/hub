@@ -58,7 +58,7 @@ export function TextField({
         className={cn(
           "bg-paper text-body text-ink box-border w-full resize-none rounded-sm px-2 py-2",
           tall ? "min-h-avatarLg" : "",
-          error ? "border-error border-2" : "border-inkMuted border-2",
+          error ? "border-error border" : "border-inkMuted border",
         )}
         {...props}
       />
