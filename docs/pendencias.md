@@ -620,3 +620,32 @@ num quadrado de 36 px não muda nada visível.
 
 **Tamanho:** meio dia, a maior parte em levar cinco colunas a mais nas
 consultas que alimentam as cinco listas.
+
+## A tela de comunidade do protótipo v6: seis PRs ainda por vir
+
+O PO desenhou a tela da comunidade num protótipo navegável
+(`comunidade-v6.html`, 30 de outubro) e aprovou a entrega em sete PRs, cada
+um indo para produção sozinho. **O primeiro já está feito** — abas Início e
+Membros, cartão Sobre, regras da comunidade (RN36), Primeiros passos, a
+capa virando o próprio botão e o endereço de tópico reservado contra rota
+irmã.
+
+Faltam seis, nesta ordem:
+
+| # | O quê | Tamanho |
+| --- | --- | --- |
+| 2 | **A lista de tópicos**: filtros Em alta · Recentes · Seguindo · "Com novidades (n)" no lugar dos dois ícones sem rótulo; a última contribuição no cartão, com avatar e @; busca só a partir de 10 tópicos; e `topicosDaComunidade` passando a respeitar o bloqueio (RN26), que hoje ignora o viewer | 1 dia |
+| 3 | **O painel do tópico**: rota interceptada `(.)[topico]` num slot, com a página inteira preservada para o link colado e o 404; separador de contribuições novas; compositor redesenhado | 1,5 dia |
+| 4 | **Enquetes**: `polls`, `poll_options`, `poll_votes`; a contagem **não sai do servidor** para quem não votou; um voto por pessoa garantido pelo banco | 2 dias |
+| 5 | **Eventos**: `events`, `event_attendances`; o link do encontro online só chega a quem confirmou; lotado conferido no servidor | 2 dias |
+| 6 | **Moderar numa janela**, em duas seções, e a comunidade passando a ser **editável** depois de criada (nome, intro, sobre, regras); botão Moderar na capa com contador de denúncias | 1 dia |
+| 7 | **Acabamento**: foco, teclado, `Esc`, alvos de 44 px, e a passada final de termo — "contribuição", nunca "resposta" | meio dia |
+
+**Duas coisas que esses PRs obrigam a decidir**, e que já estão neste
+documento: alinhar a RN28 antes do PR 7, para "contribuição" querer dizer
+uma coisa só; e aceitar que enquetes e eventos entram como RN37 e RN38,
+numa fase entre a F16 e a F17 — hoje eles não existem em regra nenhuma.
+
+**A coluna lateral da direita volta no PR 2**, mas como coluna comum da
+página da comunidade: nunca a rota paralela e a coluna no banco que o
+`vacilos.md` registrou no item 17.

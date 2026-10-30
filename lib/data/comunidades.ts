@@ -8,6 +8,7 @@ import { prisma } from "./prisma";
 import { ForbiddenError, NotFoundError } from "./errors";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { enderecoDeMidia } from "@/lib/midia/deposito";
+import { linhasDasRegras } from "./validation";
 import type { Ancora, Medidas } from "@/lib/midia/enquadramento";
 
 /** Um tópico como as listas da comunidade o mostram (RN15: nunca um placar). */
@@ -98,6 +99,13 @@ export type PaginaDaComunidade = {
   slug: string;
   name: string;
   intro: string;
+  /**
+   * As regras da comunidade, já quebradas em linhas e sem as vazias.
+   *
+   * Lista vazia quer dizer "sem regras escritas" — e é o que faz a porta
+   * deixar entrar num clique, em vez de abrir a folha de leitura.
+   */
+  regras: string[];
   coverUrl: string | null;
   /** Nulo quando a capa não foi medida: aí ela é recortada no centro. */
   medidasDaCapa: Medidas | null;
@@ -116,6 +124,8 @@ export type PaginaDaComunidade = {
    */
   contribuicoesCount: number;
   criadaEm: Date;
+  /** Quem criou. Nulo quando a conta saiu do Hub (`onDelete: SetNull`). */
+  criadaPor: { name: string; handle: string } | null;
   universo: { id: string; name: string; slug: string };
   souMembro: boolean;
   souModerador: boolean;
@@ -143,6 +153,7 @@ export async function paginaDaComunidade(
       slug: true,
       name: true,
       intro: true,
+      rules: true,
       coverUrl: true,
       coverWidth: true,
       coverHeight: true,
@@ -151,6 +162,7 @@ export async function paginaDaComunidade(
       coverAnchorY: true,
       membersCount: true,
       createdAt: true,
+      createdBy: { select: { name: true, handle: true } },
       /*
        * Tópicos sai de `_count`; contribuições, não. `Answer` aponta para
        * `Topic`, nunca para `Community`, então não existe relação para
@@ -185,6 +197,7 @@ export async function paginaDaComunidade(
     slug: comunidade.slug,
     name: comunidade.name,
     intro: comunidade.intro,
+    regras: linhasDasRegras(comunidade.rules),
     // O depósito é privado: o endereço é assinado na hora de desenhar.
     coverUrl: await enderecoDeMidia(comunidade.coverUrl),
     /*
@@ -202,6 +215,7 @@ export async function paginaDaComunidade(
     topicosCount: comunidade._count.topics,
     contribuicoesCount: contribuicoes,
     criadaEm: comunidade.createdAt,
+    criadaPor: comunidade.createdBy,
     universo: comunidade.universe,
     souMembro: Boolean(minha && !minha.bannedAt),
     souModerador: minha?.role === "moderator" && !minha.bannedAt,

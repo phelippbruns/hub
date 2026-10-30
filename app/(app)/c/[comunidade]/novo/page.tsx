@@ -11,10 +11,14 @@ export const metadata: Metadata = { title: "Novo tópico · Hub" };
 /** Tela 16: criar tópico na comunidade (RN07). */
 export default async function NovoTopicoPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ comunidade: string }>;
+  /** `?nome=` vem das sugestões de Primeiros passos, na tela da comunidade. */
+  searchParams: Promise<{ nome?: string }>;
 }) {
   const { comunidade: slug } = await params;
+  const { nome } = await searchParams;
 
   let dados;
   let viewer;
@@ -35,6 +39,7 @@ export default async function NovoTopicoPage({
         comunidadeSlug={dados.slug}
         nomeDaComunidade={dados.name}
         jaUsouODia={jaUsouODia}
+        nomeSugerido={nome?.slice(0, 80) ?? ""}
       />
     </ContentColumn>
   );

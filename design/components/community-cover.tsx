@@ -73,7 +73,19 @@ export function CommunityCover({
       {/* O véu é decorativo: está aqui pelo contraste, não pelo sentido. */}
       <span aria-hidden="true" className="from-ink/80 to-ink/20 absolute inset-0 bg-linear-to-t" />
 
-      <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+      {/*
+        `z-20` nos controles, e não só a ordem no HTML: quando a capa
+        inteira virou o botão de trocar a imagem, ele passou a pintar por
+        cima destes e engolia o clique em voltar, compartilhar e no menu.
+        Cinco jornadas reprovaram com "intercepts pointer events", que é o
+        único lugar onde isso aparece — na tela o cursor continua certo.
+
+        E `z-30` aqui, acima dos `z-20` da linha do nome, porque é deste
+        canto que descem os drops de compartilhar e do menu: empatados em
+        `z-20`, quem vem depois no HTML ganha, e o nome tapava o menu
+        inteiro.
+      */}
+      <div className="absolute inset-x-3 top-3 z-30 flex items-start justify-between gap-2">
         <span className="flex gap-1">{esquerda}</span>
         <span className="flex gap-1">{direita}</span>
       </div>
@@ -83,7 +95,7 @@ export function CommunityCover({
         PO em 29 de outubro. Ela é o botão de entrar e sair, então ao lado
         do nome ela diz de que comunidade é a porta.
       */}
-      <div className="relative flex items-center gap-2">
+      <div className="relative z-20 flex items-center gap-2">
         <h1 className="text-title text-paper">{name}</h1>
         {children}
       </div>

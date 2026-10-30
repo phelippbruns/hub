@@ -16,10 +16,17 @@ export function FormularioNovoTopico({
   comunidadeSlug,
   nomeDaComunidade,
   jaUsouODia,
+  nomeSugerido = "",
 }: {
   comunidadeSlug: string;
   nomeDaComunidade: string;
   jaUsouODia: boolean;
+  /**
+   * Vem de Primeiros passos, na tela da comunidade. É `defaultValue`, não
+   * valor controlado: a sugestão abre o campo preenchido e quem escreve
+   * continua dono dele.
+   */
+  nomeSugerido?: string;
 }) {
   const [estado, acao, pendente] = useActionState<EstadoDaCriacao, FormData>(criarTopico, {});
 
@@ -40,6 +47,7 @@ export function FormularioNovoTopico({
         required
         maxLength={80}
         autoComplete="off"
+        defaultValue={nomeSugerido}
         disabled={jaUsouODia}
         error={estado.erros?.name}
       />

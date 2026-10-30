@@ -142,6 +142,24 @@ Três peças sustentam isso, e a lista de rotas mora em **um lugar só** ([lib/a
 
 **Rota nova de primeiro nível exige @ reservado.** Como o perfil mora na raiz, quem registrasse `@inicio` ficaria inalcançável para sempre — o Next casa rota estática antes de dinâmica e nada avisaria. A lista está em [lib/data/validation.ts](lib/data/validation.ts) e [lib/data/rotas.test.ts](lib/data/rotas.test.ts) varre `app/` e falha se faltar alguma.
 
+**E rota nova irmã do tópico exige slug reservado.** A mesma armadilha um
+nível abaixo: `/c/<slug>/novo` e `/c/<slug>/moderar` são estáticas, irmãs de
+`/c/<slug>/[topico]`, então um tópico com esse endereço ficava inalcançável.
+Quem resolve é o gatilho `topics_set_slug`, que trata endereço reservado como
+colisão e numera — o nome "Novo" continua valendo e o endereço vira `novo-2`.
+A lista está em `SLUGS_DE_TOPICO_RESERVADOS`
+([lib/data/validation.ts](lib/data/validation.ts)) e na função
+`hub_slugs_de_topico_reservados()` do banco; [lib/data/rotas-de-topico.test.ts](lib/data/rotas-de-topico.test.ts)
+varre `app/(app)/c/[comunidade]/` e falha se as duas listas e as rotas
+discordarem.
+
+**As abas da comunidade vão na URL como `?aba=`, nunca como segmento.** É
+consequência direta do de cima: cada aba virada em rota multiplicaria a
+armadilha. A leitura da aba mora em `features/comunidades/shared.ts`, **sem**
+`"use client"` — exportá-la de `abas.tsx`, que é cliente, derrubou a página
+inteira com 500, e nem o `typecheck` nem o `lint` viram. O `"use client"`
+contamina o arquivo todo, não só o componente.
+
 **Jornada verde pode ser servidor velho.** `playwright.config.ts` traz
 `reuseExistingServer: !process.env.CI`: fora da CI, um `npm run start`
 deixado de pé por uma execução anterior é reaproveitado **sem rebuild** — e

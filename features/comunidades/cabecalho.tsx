@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useId, useRef, useState, useTransition } from "react";
 import {
+  BottomSheet,
   Button,
   CommunityDoor,
   ConfirmSheet,
@@ -47,7 +48,9 @@ export function CabecalhoDaComunidade({
   paraCompartilhar: PessoaParaCompartilhar[];
 }) {
   const router = useRouter();
-  const [aberto, setAberto] = useState<"nenhum" | "compartilhar" | "sair" | "menu">("nenhum");
+  const [aberto, setAberto] = useState<"nenhum" | "compartilhar" | "sair" | "menu" | "regras">(
+    "nenhum",
+  );
   const [membro, setMembro] = useState(comunidade.souMembro);
   const [membros, setMembros] = useState(comunidade.membersCount);
   const [pendente, iniciar] = useTransition();
@@ -71,18 +74,24 @@ export function CabecalhoDaComunidade({
   const entregaModeracao = comunidade.souModerador && !ultimaPessoa;
   const saidaPesa = ultimaPessoa || entregaModeracao;
 
+  /*
+   * Entrar é um clique **quando não há o que ler**. Com regras escritas, a
+   * folha aparece antes: concordar com uma regra que ninguém mostrou não é
+   * concordar com nada, e é a moderação dessa comunidade que vai cobrar
+   * depois.
+   *
+   * Sem regras, nada muda — pôr uma janela na frente de toda entrada seria
+   * o mesmo vacilo da confirmação de sair, do outro lado da porta.
+   */
+  const temRegras = comunidade.regras.length > 0;
+
   function tocarNaPorta() {
     if (!membro) {
-      setMembro(true);
-      setMembros(membros + 1);
-      iniciar(async () => {
-        try {
-          await alternarMembro(comunidade.id, comunidade.slug, false);
-        } catch {
-          setMembro(false);
-          setMembros(membros);
-        }
-      });
+      if (temRegras) {
+        abrir("regras");
+        return;
+      }
+      entrar();
       return;
     }
 
@@ -92,6 +101,22 @@ export function CabecalhoDaComunidade({
     }
 
     sair();
+  }
+
+  function entrar() {
+    const tinha = membros;
+    setMembro(true);
+    setMembros(tinha + 1);
+    setAberto("nenhum");
+
+    iniciar(async () => {
+      try {
+        await alternarMembro(comunidade.id, comunidade.slug, false);
+      } catch {
+        setMembro(false);
+        setMembros(tinha);
+      }
+    });
   }
 
   function sair() {
@@ -273,7 +298,37 @@ export function CabecalhoDaComunidade({
         {comunidade.contribuicoesCount === 1 ? "contribuição" : "contribuições"} · criada em{" "}
         {mesEAno(comunidade.criadaEm)}
       </p>
-      <p className="text-body text-ink">{comunidade.intro}</p>
+
+      {/*
+        A folha de entrada, só para comunidade com regras escritas.
+
+        Não é um "tem certeza?": é o texto que a pessoa precisa ter lido
+        para a moderação poder cobrar depois. Por isso o botão diz "Li e
+        quero entrar", e não "OK".
+      */}
+      <BottomSheet title={`Entrar em ${comunidade.name}`} open={aberto === "regras"}>
+        <p className="text-body text-inkMuted">{comunidade.intro}</p>
+        <div className="bg-surfacePage rounded-sm px-3 py-2">
+          <p className="text-label text-ink">
+            {comunidade.regras.length === 1
+              ? "Ao entrar, você concorda com a regra:"
+              : "Ao entrar, você concorda com as regras:"}
+          </p>
+          <ol className="text-body text-ink mt-1 flex list-decimal flex-col gap-1 pl-4">
+            {comunidade.regras.map((regra) => (
+              <li key={regra}>{regra}</li>
+            ))}
+          </ol>
+        </div>
+        <div className="flex flex-col gap-1">
+          <Button variant="secondary" onClick={() => setAberto("nenhum")}>
+            Agora não
+          </Button>
+          <Button onClick={entrar} disabled={pendente} disabledHint="Aguarde um instante">
+            Li e quero entrar
+          </Button>
+        </div>
+      </BottomSheet>
 
       {/*
         A folha da saída só aparece nos dois casos em que sair faz mais do

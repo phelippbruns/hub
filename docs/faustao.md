@@ -1517,6 +1517,38 @@ Campo que carrega dado fica fora do que troca. E teste de tela que olha a
 tela não serve: ele confirma o que você acabou de desenhar. O que prova é
 o que ficou no banco.
 
+### Uma função exportada de arquivo de cliente, chamada no servidor
+
+*O que aconteceu:* as abas da comunidade nasceram em
+`features/comunidades/abas.tsx`, que começa com `"use client"`. Junto com o
+componente, exportei `abaDaComunidade()`, a função de duas linhas que lê a
+aba da URL — e a chamei na página, que é Server Component.
+
+A página inteira passou a responder **"This page couldn't load. A server
+error occurred"**. Cinco jornadas novas reprovaram de uma vez, todas na
+primeira asserção, nenhuma dizendo nada sobre a causa.
+
+*Por que passou:* `npm run typecheck` verde, `npm run lint` verde. Para o
+TypeScript é uma função exportada de um módulo, importada por outro — não
+existe tipo que diga "isto só existe no navegador". A fronteira entre
+cliente e servidor **não é do sistema de tipos**: ela só existe em tempo de
+execução, e o Next só reclama quando a função é chamada de verdade.
+
+*Como foi resolvido:* a função foi para `features/comunidades/shared.ts`,
+sem `"use client"`, que é exatamente o que o CLAUDE.md já mandava fazer com
+o que a tela e o servidor compartilham. O componente importa o tipo de lá.
+
+👁 **Protegido só pela página** — e é protegido de verdade: qualquer rota que
+chame a função pelo servidor devolve 500, e a jornada que abre a comunidade
+reprova na hora. O que falta é um aviso **antes** de rodar.
+
+**A lição:** o `"use client"` contamina o arquivo inteiro, não só o
+componente. Uma função utilitária pendurada num arquivo de cliente é uma
+bomba-relógio que nenhuma ferramenta estática vê — e o sintoma é a tela
+inteira morrer, longe da causa. Utilitário compartilhado nasce em
+`shared.ts`; se está num arquivo com `"use client"`, ele é do navegador e
+de mais ninguém.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

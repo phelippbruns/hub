@@ -80,6 +80,22 @@ export const HANDLES_RESERVADOS = new Set([
   "suporte",
 ]);
 
+/**
+ * Endereços que **não podem** ser slug de tópico.
+ *
+ * Um nível abaixo dos @ reservados, e pelo mesmo motivo: `/c/<slug>/novo` e
+ * `/c/<slug>/moderar` são rotas estáticas irmãs de `/c/<slug>/[topico]`, e
+ * o Next casa estático antes de dinâmico. Um tópico com um desses
+ * endereços ficaria inalcançável para sempre, calado.
+ *
+ * Quem recusa é o gatilho `topics_set_slug`, que trata o nome reservado
+ * como colisão e numera — "Novo" vira `novo-2`. O nome continua valendo; só
+ * o endereço muda. A lista aqui existe para o teste
+ * [rotas-de-topico.test.ts](./rotas-de-topico.test.ts) conferir que ela e a
+ * função `hub_slugs_de_topico_reservados()` do banco dizem a mesma coisa.
+ */
+export const SLUGS_DE_TOPICO_RESERVADOS = new Set(["novo", "moderar"]);
+
 /** RN17: o @ é único na plataforma. Formato conservador, conforme CLAUDE.md. */
 export const handleSchema = z
   .string()
@@ -146,6 +162,47 @@ export const createAnswerSchema = z
  * é um pai único e invisível. `universeId` continua aceito — quem já manda
  * um continua funcionando — mas não é mais pedido a ninguém.
  */
+/**
+ * As regras da comunidade: uma por linha, no máximo 5.
+ *
+ * Texto com quebras de linha, e não lista, porque é assim que quem modera
+ * escreve e é assim que a coluna guarda. A conversão para lista acontece na
+ * leitura, num lugar só (`linhasDasRegras`), para a tela e o banco nunca
+ * discordarem sobre quantas regras existem.
+ */
+export const MAXIMO_DE_REGRAS = 5;
+
+/**
+ * Quebra o texto guardado nas regras que a tela mostra.
+ *
+ * Linha vazia some: quem escreve deixa uma sobrando no fim, e uma regra em
+ * branco na lista parece defeito. É por isso que a contagem para o limite
+ * também passa por aqui — senão um texto com cinco regras e dois enters
+ * seria recusado por "seis".
+ */
+export function linhasDasRegras(texto: string): string[] {
+  return texto
+    .split("\n")
+    .map((linha) => linha.trim())
+    .filter((linha) => linha.length > 0);
+}
+
+/**
+ * RN16 vale aqui também: regra da comunidade é texto de pessoa, e não leva
+ * link. Quem modera não é exceção.
+ */
+export const regrasSchema = z
+  .string()
+  .max(400, "As regras passam de 400 caracteres")
+  .default("")
+  .transform((texto) => linhasDasRegras(texto).join("\n"))
+  .refine((texto) => linhasDasRegras(texto).length <= MAXIMO_DE_REGRAS, {
+    message: `São no máximo ${MAXIMO_DE_REGRAS} regras, uma por linha`,
+  })
+  .refine((texto) => !containsLink(texto), {
+    message: "RN16: links não são aceitos nas regras",
+  });
+
 export const createCommunitySchema = z.object({
   universeId: uuidSchema.optional(),
   name: userText(60, "O nome da comunidade"),

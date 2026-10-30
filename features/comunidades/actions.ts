@@ -35,7 +35,14 @@ import {
 } from "@/lib/midia/enquadramento";
 import { apagarImagem, guardarImagem } from "@/lib/midia/deposito";
 import { getViewer } from "@/lib/auth/session";
-import { RuleViolationError, UnauthenticatedError } from "@/lib/data/errors";
+import {
+  ForbiddenError,
+  NotFoundError,
+  RuleViolationError,
+  UnauthenticatedError,
+} from "@/lib/data/errors";
+import { followProfile, unfollowProfile } from "@/lib/data/follows";
+import { convidarModerador } from "@/lib/data/moderacao";
 import { createCommunitySchema } from "@/lib/data/validation";
 
 async function quemPede() {
@@ -250,4 +257,50 @@ export async function trocarCapaDaComunidade(
     revalidatePath(rota);
   }
   return { trocada: true };
+}
+
+/**
+ * RN18: seguir uma pessoa a partir da lista de membros.
+ *
+ * A mesma ação que o perfil tem, repetida aqui porque uma feature não
+ * importa de outra — o que é compartilhado sobe para `lib/data/`, e é onde
+ * `followProfile` mora. O que muda é só qual tela revalidar.
+ */
+export async function alternarSeguirMembro(profileId: string, slug: string, seguindo: boolean) {
+  const viewer = await quemPede();
+
+  if (seguindo) {
+    await unfollowProfile(viewer, profileId);
+  } else {
+    await followProfile(viewer, profileId);
+  }
+
+  revalidatePath(`/c/${slug}`);
+}
+
+/**
+ * RN06: a moderação se oferece, não se impõe.
+ *
+ * O botão na lista de membros **manda um convite**; a pessoa só vira
+ * moderadora quando aceita. Promover direto faria alguém acordar
+ * responsável por uma comunidade sem ter dito sim, e moderar é trabalho.
+ */
+export async function convidarParaModerar(
+  communityId: string,
+  slug: string,
+  profileId: string,
+): Promise<{ erro?: string; convidado?: boolean }> {
+  const viewer = await quemPede();
+
+  try {
+    await convidarModerador(viewer, communityId, profileId);
+  } catch (erro) {
+    if (erro instanceof ForbiddenError || erro instanceof NotFoundError) {
+      return { erro: erro.message };
+    }
+    throw erro;
+  }
+
+  revalidatePath(`/c/${slug}`);
+  return { convidado: true };
 }

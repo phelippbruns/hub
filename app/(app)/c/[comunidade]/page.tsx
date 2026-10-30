@@ -17,8 +17,14 @@ import { CabecalhoDaComunidade } from "@/features/comunidades/cabecalho";
 import { TelaDeConvite } from "@/features/convite/tela";
 import { metadataCompartilhavel } from "@/features/convite/metadata";
 import { ControlesDeTopicos } from "@/features/comunidades/controles-de-topicos";
+import { AbasDaComunidade } from "@/features/comunidades/abas";
+import { abaDaComunidade } from "@/features/comunidades/shared";
+import { SobreAComunidade } from "@/features/comunidades/sobre";
+import { MembrosDaComunidade } from "@/features/comunidades/membros";
+import { PrimeirosPassos, TOPICOS_PARA_SUMIR } from "@/features/comunidades/primeiros-passos";
 import { comunidadeDaRota } from "@/features/comunidades/dados";
-import { topicosDaComunidade, topicosQueSigoAqui } from "@/lib/data/comunidades";
+import { filtroDeMembros, membrosDaComunidade } from "@/lib/data/membros";
+import { topicosDaComunidade } from "@/lib/data/comunidades";
 import { hotTopicDeHoje } from "@/lib/data/ciclo";
 import { sugestoesParaConvidar } from "@/lib/data/cabins";
 import { NotFoundError } from "@/lib/data/errors";
@@ -49,12 +55,20 @@ export default async function ComunidadePage({
   searchParams,
 }: {
   params: Promise<{ comunidade: string }>;
-  searchParams: Promise<{ q?: string; ordem?: string; convite?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    ordem?: string;
+    convite?: string;
+    aba?: string;
+    filtro?: string;
+    pessoa?: string;
+  }>;
 }) {
   const { comunidade: slug } = await params;
-  const { q, ordem, convite } = await searchParams;
+  const { q, ordem, convite, aba, filtro, pessoa } = await searchParams;
   const termo = q?.trim() ?? "";
   const ordemAtual: OrdemDosTopicos = ordem === "recentes" ? "recentes" : "respostas";
+  const abaAtual = abaDaComunidade(aba);
 
   let dados;
   let viewer;
@@ -82,90 +96,101 @@ export default async function ComunidadePage({
     );
   }
 
-  const [paraCompartilhar, seguidos] = await Promise.all([
-    sugestoesParaConvidar(viewer),
-    // RN18: os tópicos que a pessoa segue aqui. Vinham do painel da
-    // direita, que saiu na F20; agora encabeçam a lista.
-    topicosQueSigoAqui(viewer, dados.id),
-  ]);
+  const paraCompartilhar = await sugestoesParaConvidar(viewer);
 
   return (
     <ContentColumn larga>
       <CabecalhoDaComunidade comunidade={dados} paraCompartilhar={paraCompartilhar} />
 
-      {seguidos.length > 0 ? (
+      <AbasDaComunidade base={`/c/${dados.slug}`} atual={abaAtual} />
+
+      {abaAtual === "membros" ? (
+        <Suspense
+          fallback={<PaginaCarregando titulo={false} linhas={3} label="Carregando os membros" />}
+        >
+          <AbaDeMembros
+            slug={dados.slug}
+            comunidadeId={dados.id}
+            souModerador={dados.souModerador}
+            souMembro={dados.souMembro}
+            filtro={filtro}
+            termo={pessoa?.trim() ?? ""}
+          />
+        </Suspense>
+      ) : (
         <>
-          <SectionTitle>Tópicos que você segue aqui</SectionTitle>
-          <div className="flex flex-col gap-2">
-            {seguidos.map((topico) => (
-              <Link
-                key={topico.id}
-                href={`/c/${dados.slug}/${topico.slug}`}
-                className="bg-paper block rounded-sm p-3"
-              >
-                <span className="text-bodyStrong text-ink block truncate">
-                  <TopicName>{topico.name}</TopicName>
-                </span>
-              </Link>
-            ))}
-          </div>
+          <SobreAComunidade
+            intro={dados.intro}
+            regras={dados.regras}
+            criadaPor={dados.criadaPor}
+            criadaEm={dados.criadaEm}
+          />
+
+          {/*
+          Primeiros passos some sozinho ao terceiro tópico, e só aparece para
+          quem é membro: a RN07 exige participação para criar.
+        */}
+          {dados.souMembro && dados.topicosCount < TOPICOS_PARA_SUMIR ? (
+            <PrimeirosPassos slug={dados.slug} />
+          ) : null}
+
+          {/*
+          RN09: o Hot Topic do dia, eleito às 00h pelo ciclo anterior.
+          Comunidade sem respostas ontem não ganha destaque — e a lista abaixo
+          aparece na ordem normal, sem um primeiro lugar que ninguém disputou.
+
+          Some durante a busca: procurar um tópico e ver outro em destaque
+          acima confunde o que é resultado.
+        */}
+          {/*
+          O Hot Topic e a lista de tópicos são as duas consultas pesadas, e ficam
+          dentro de um `<Suspense>` — não num `loading.tsx`.
+
+          A diferença importa: `loading.tsx` abre o limite **antes** de a página
+          rodar, e o Next começa a transmitir com 200 no cabeçalho. Numa rota
+          que chama `notFound()`, como esta, isso transforma 404 em 200 — um
+          endereço que não existe passa a dizer que existe. Aconteceu em 15 de
+          outubro e está no Faustão.
+
+          Aqui a conferência de existência já rodou acima. O que chega depois é
+          só conteúdo, e pode escorrer.
+        */}
+          <Suspense
+            fallback={<PaginaCarregando titulo={false} linhas={1} label="Carregando o Hot Topic" />}
+          >
+            <DestaqueDaComunidade comunidadeId={dados.id} slug={dados.slug} termo={termo} />
+          </Suspense>
+
+          {/*
+          O botão de criar tópico também mora **aqui**, e não só no atalho da
+          barra lateral: a vontade de abrir um assunto nasce lendo a comunidade,
+          e não havia caminho daqui para `/c/<slug>/novo`.
+
+          Só para quem é membro: RN07 exige participação para criar, e um botão
+          que leva a uma recusa é pior do que botão nenhum.
+        */}
+          <SectionTitle acao={dados.souMembro ? <BotaoNovoTopico slug={dados.slug} /> : undefined}>
+            Tópicos
+          </SectionTitle>
+          <ControlesDeTopicos
+            slug={dados.slug}
+            nomeDaComunidade={dados.name}
+            termoInicial={termo}
+            ordem={ordemAtual}
+          />
+
+          <Suspense
+            fallback={<PaginaCarregando titulo={false} linhas={3} label="Carregando os tópicos" />}
+          >
+            <ListaDeTopicos
+              comunidadeId={dados.id}
+              slug={dados.slug}
+              termo={termo}
+              ordem={ordemAtual}
+            />
+          </Suspense>
         </>
-      ) : null}
-      {/*
-        RN09: o Hot Topic do dia, eleito às 00h pelo ciclo anterior.
-        Comunidade sem respostas ontem não ganha destaque — e a lista abaixo
-        aparece na ordem normal, sem um primeiro lugar que ninguém disputou.
-
-        Some durante a busca: procurar um tópico e ver outro em destaque
-        acima confunde o que é resultado.
-      */}
-      {/*
-        O Hot Topic e a lista de tópicos são as duas consultas pesadas, e ficam
-        dentro de um `<Suspense>` — não num `loading.tsx`.
-
-        A diferença importa: `loading.tsx` abre o limite **antes** de a página
-        rodar, e o Next começa a transmitir com 200 no cabeçalho. Numa rota
-        que chama `notFound()`, como esta, isso transforma 404 em 200 — um
-        endereço que não existe passa a dizer que existe. Aconteceu em 15 de
-        outubro e está no Faustão.
-
-        Aqui a conferência de existência já rodou acima. O que chega depois é
-        só conteúdo, e pode escorrer.
-      */}
-      <Suspense
-        fallback={<PaginaCarregando titulo={false} linhas={1} label="Carregando o Hot Topic" />}
-      >
-        <DestaqueDaComunidade comunidadeId={dados.id} slug={dados.slug} termo={termo} />
-      </Suspense>
-
-      {/*
-        O botão de criar tópico também mora **aqui**, e não só no atalho da
-        barra lateral: a vontade de abrir um assunto nasce lendo a comunidade,
-        e não havia caminho daqui para `/c/<slug>/novo`.
-
-        Só para quem é membro: RN07 exige participação para criar, e um botão
-        que leva a uma recusa é pior do que botão nenhum.
-      */}
-      <SectionTitle acao={dados.souMembro ? <BotaoNovoTopico slug={dados.slug} /> : undefined}>
-        Tópicos
-      </SectionTitle>
-      <ControlesDeTopicos
-        slug={dados.slug}
-        nomeDaComunidade={dados.name}
-        termoInicial={termo}
-        ordem={ordemAtual}
-      />
-
-      <Suspense
-        fallback={<PaginaCarregando titulo={false} linhas={3} label="Carregando os tópicos" />}
-      >
-        <ListaDeTopicos
-          comunidadeId={dados.id}
-          slug={dados.slug}
-          termo={termo}
-          ordem={ordemAtual}
-        />
-      </Suspense>
+      )}
     </ContentColumn>
   );
 }
@@ -282,5 +307,45 @@ function BotaoNovoTopico({ slug }: { slug: string }) {
       <TopicStar className="size-icon" />
       Criar tópico
     </Link>
+  );
+}
+
+/**
+ * A aba Membros.
+ *
+ * Fica em `<Suspense>` como a lista de tópicos, e pelo mesmo motivo: a
+ * conferência de existência da comunidade já rodou lá em cima, então o que
+ * chega depois é só conteúdo e pode escorrer. `loading.tsx` aqui
+ * transformaria o 404 desta rota em 200 — está no Faustão.
+ */
+async function AbaDeMembros({
+  slug,
+  comunidadeId,
+  souModerador,
+  souMembro,
+  filtro,
+  termo,
+}: {
+  slug: string;
+  comunidadeId: string;
+  souModerador: boolean;
+  souMembro: boolean;
+  filtro: string | undefined;
+  termo: string;
+}) {
+  const { viewer } = await comunidadeDaRota(slug);
+  const escolhido = filtroDeMembros(filtro);
+  const membros = await membrosDaComunidade(viewer, comunidadeId, { filtro: escolhido, termo });
+
+  return (
+    <MembrosDaComunidade
+      slug={slug}
+      communityId={comunidadeId}
+      membros={membros}
+      filtro={escolhido}
+      termo={termo}
+      souModerador={souModerador}
+      souMembro={souMembro}
+    />
   );
 }

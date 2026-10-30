@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { AjusteDeImagem, Button, CommunityCover } from "@/design/components";
 import { TAMANHO_MAXIMO_EM_MB, problemaNaImagem } from "@/lib/midia/limites";
 import {
@@ -64,6 +64,7 @@ export function CapaEditavel({
   children?: React.ReactNode;
 }) {
   const arquivo = useRef<HTMLInputElement>(null);
+  const idDoAviso = useId();
   const [nova, setNova] = useState<{ url: string; medidas: Medidas } | null>(null);
   const [ajustando, setAjustando] = useState(false);
   const [enquadramento, setEnquadramento] = useState<Enquadramento>(ENQUADRAMENTO_PADRAO);
@@ -130,7 +131,14 @@ export function CapaEditavel({
       type="file"
       name="imagem"
       accept="image/jpeg,image/png,image/webp"
-      aria-label={rotulo}
+      /*
+        Escondido também do leitor de tela, e fora da ordem do Tab: desde
+        que a capa virou o botão, o campo é só o mecanismo. Com rótulo, ele
+        era anunciado como um segundo controle com o mesmo nome — e
+        qualquer busca por esse nome passava a achar dois elementos.
+      */
+      aria-hidden="true"
+      tabIndex={-1}
       className="sr-only"
       onChange={(evento) => escolher(evento.target.files?.[0])}
     />
@@ -189,18 +197,47 @@ export function CapaEditavel({
 
         {podeEditar ? (
           /*
-            Um botão de verdade, e não um `onClick` na capa: quem navega por
-            teclado precisa alcançar isto com Tab. Ele fica no canto de
-            baixo, longe de voltar, compartilhar e o menu, que moram em cima.
+            **A capa é o botão.** O PO pediu que o botão permanente saísse
+            da tela: ele e o aviso de formatos ficavam visíveis para quem só
+            queria ler a comunidade, e o envio é feito tocando na própria
+            imagem.
+
+            Um `<button>` posicionado por cima, e não um `onClick` na capa:
+            quem navega por teclado precisa alcançar isto com Tab, e um
+            `div` clicável não aparece na navegação. Não dá para envolver a
+            capa inteira, porque dentro dela já existem botões — botão
+            dentro de botão é HTML inválido.
+
+            Ele fica em `z-10`, **abaixo** dos cantos e da linha do nome,
+            que são `z-20` dentro do `CommunityCover`: sem isso ele pintava
+            por cima e engolia o clique em voltar, compartilhar, no menu e
+            na própria marca # de entrar.
+
+            O rótulo só aparece no hover e no foco: na tela parada a capa é
+            capa, e quem chega de teclado vê o que o Tab alcançou.
           */
-          <div className="absolute right-3 bottom-3 flex gap-1">
-            {medidasAtuais || nova ? (
-              <Button variant="secondary" size="sm" onClick={reabrir}>
-                Ajustar
-              </Button>
-            ) : null}
-            <Button variant="secondary" size="sm" onClick={() => arquivo.current?.click()}>
+          <button
+            type="button"
+            aria-label={rotulo}
+            aria-describedby={idDoAviso}
+            onClick={() => arquivo.current?.click()}
+            className="group absolute inset-0 grid cursor-pointer place-items-center rounded-sm"
+          >
+            <span className="bg-paper text-ink text-label rounded-pill px-2 py-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
               {rotulo}
+            </span>
+          </button>
+        ) : null}
+
+        {/*
+          Reajustar sem trocar o arquivo é outra ação, e só existe quando há
+          capa para ajustar. Fica num botão próprio, porque a capa inteira
+          já é o envio.
+        */}
+        {podeEditar && (medidasAtuais || nova) ? (
+          <div className="absolute right-3 bottom-3">
+            <Button variant="secondary" size="sm" onClick={reabrir}>
+              Ajustar
             </Button>
           </div>
         ) : null}
@@ -211,12 +248,21 @@ export function CapaEditavel({
         estava sempre visível, e quem só estava lendo a comunidade via uma
         instrução de envio de arquivo logo abaixo do título.
       */}
+      {/*
+        O aviso de formatos saiu da tela, a pedido do PO: ele é instrução de
+        envio de arquivo, e ficava abaixo do título da comunidade para quem
+        só estava lendo.
+
+        Ele não sumiu — virou a descrição acessível do botão da capa, e é
+        lido por quem chega nele. O erro, esse continua visível: recusa sem
+        motivo na tela é pior do que aviso a mais.
+      */}
       {problema ? (
         <p role="alert" className="text-caption text-error">
           {problema}
         </p>
       ) : podeEditar ? (
-        <p className="text-caption text-inkMuted">
+        <p id={idDoAviso} className="sr-only">
           JPEG, PNG ou WebP, até {TAMANHO_MAXIMO_EM_MB} MB. A localização que a foto carrega é
           removida antes de guardar.
         </p>

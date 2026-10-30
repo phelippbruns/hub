@@ -317,6 +317,10 @@ model Community {
   /// valor em cada create. Se o gatilho falhar, o índice único denuncia.
   slug           String  @unique @default("") @db.VarChar(80)
   intro          String  @db.VarChar(240)
+  /// Regras da comunidade, uma por linha, no máximo 5 (CHECK no banco).
+  /// Vazio quer dizer "sem regras escritas", e é o que decide se a porta
+  /// pergunta algo antes de deixar entrar.
+  rules          String  @default("") @db.VarChar(400)
   coverUrl       String? @map("cover_url")
   createdById    String? @map("created_by_id") @db.Uuid
 

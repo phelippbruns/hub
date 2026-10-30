@@ -122,7 +122,13 @@ test.describe("a página da comunidade", () => {
     await expect(menu).toBeHidden();
 
     await opcoes.click();
-    await page.mouse.click(400, 600);
+    /*
+      "Fora" precisa ser um alvo inerte, não uma coordenada: o clique era em
+      (400, 600) e passou a cair sobre um link de Primeiros passos, que
+      navegava e arrancava o menu da tela antes da próxima asserção. A linha
+      de informações é texto puro e não vai a lugar nenhum.
+    */
+    await page.getByText(/criada em/).click();
     await expect(menu).toBeHidden();
 
     // Navegar fecha: sem isso o menu ficaria por cima da tela nova.
@@ -185,6 +191,144 @@ test.describe("a página da comunidade", () => {
  * comunidade pública não há o que confirmar. Sobraram dois casos em que
  * sair faz mais do que sair, e os dois continuam perguntando.
  */
+test.describe("as abas da comunidade", () => {
+  test("Início e Membros trocam pela URL, e o endereço é compartilhável", async ({ page }) => {
+    await entrarNoApp(page, "abas");
+    await preencherNova(page, novoNome("Com Abas"));
+    await page.waitForURL(/\/c\//);
+
+    const abas = page.getByRole("tablist", { name: "Seções da comunidade" });
+    await expect(abas).toBeVisible();
+
+    const inicio = page.getByRole("tab", { name: "Início" });
+    const membros = page.getByRole("tab", { name: "Membros" });
+    await expect(inicio).toHaveAttribute("aria-selected", "true");
+
+    await membros.click();
+    await page.waitForURL(/aba=membros/);
+    await expect(membros).toHaveAttribute("aria-selected", "true");
+    // Quem criou aparece na própria lista, com o selo de criadora.
+    await expect(page.getByText("Criadora")).toBeVisible();
+
+    /*
+     * A aba na URL, e não em estado local: recarregar precisa cair na
+     * mesma aba, senão o endereço não serve para mandar a ninguém.
+     */
+    await page.reload();
+    await expect(page.getByRole("tab", { name: "Membros" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    await page.getByRole("tab", { name: "Início" }).click();
+    await expect(page).not.toHaveURL(/aba=membros/);
+  });
+
+  test("a aba Membros tem busca e filtros, e o filtro Moderação deixa só quem modera", async ({
+    page,
+  }) => {
+    await entrarNoApp(page, "filtro");
+    await preencherNova(page, novoNome("Com Filtro"));
+    await page.waitForURL(/\/c\//);
+
+    await page.getByRole("tab", { name: "Membros" }).click();
+    await page.waitForURL(/aba=membros/);
+
+    await page.getByRole("button", { name: "Moderação" }).click();
+    await page.waitForURL(/filtro=moderacao/);
+    await expect(page.getByText("Criadora")).toBeVisible();
+
+    // A busca por um @ que não existe esvazia a lista, com texto próprio.
+    await page.getByRole("button", { name: "Todos" }).click();
+    await page.getByLabel("Buscar pessoas na comunidade").fill("naoexisteninguem");
+    await expect(page.getByText(/Ninguém encontrado/)).toBeVisible();
+  });
+});
+
+test.describe("o cartão Sobre e as regras", () => {
+  test("sem regras escritas, entrar continua sendo um clique", async ({ page, context }) => {
+    const nome = novoNome("Sem Regras");
+    await entrarNoApp(page, "semregra");
+    await preencherNova(page, nome);
+    await page.waitForURL(/\/c\//);
+    const endereco = new URL(page.url()).pathname;
+
+    await expect(page.getByRole("heading", { name: "Sobre" })).toBeVisible();
+    // Sem regras não existe o bloco recolhido.
+    await expect(page.getByText(/Regras da comunidade/)).toHaveCount(0);
+
+    const { contexto, visita: outra } = await outraPessoa(context, "semregra2");
+    await outra.goto(endereco);
+
+    const porta = outra.getByRole("button", { name: `Entrar em ${nome}` });
+    await porta.click();
+
+    // Nenhuma folha no caminho: a porta já mudou de estado.
+    await expect(outra.getByRole("button", { name: `Membro de ${nome}` })).toBeVisible();
+    await esperarNoBanco(
+      `SELECT 1 FROM memberships m JOIN communities c ON c.id = m.community_id WHERE c.name = '${nome.replace(/'/g, "''")}' AND m.profile_id <> c.created_by_id`,
+    );
+    await contexto.close();
+  });
+
+  test("com regras escritas, a porta mostra o que a pessoa está aceitando", async ({
+    page,
+    context,
+  }) => {
+    const nome = novoNome("Com Regras");
+    await entrarNoApp(page, "comregra");
+    await preencherNova(page, nome);
+    await page.waitForURL(/\/c\//);
+    const endereco = new URL(page.url()).pathname;
+
+    // As regras ainda não têm tela de edição (ela chega com a janela de
+    // moderar): aqui o teste as grava direto, que é o estado que importa.
+    await consultar(
+      `UPDATE communities SET rules = 'Mostre o processo.' || chr(10) || 'Critique o trabalho, nunca a pessoa.' WHERE name = '${nome.replace(/'/g, "''")}'`,
+    );
+
+    await page.reload();
+    await expect(page.getByText("Regras da comunidade (2)")).toBeVisible();
+
+    const { contexto, visita: outra } = await outraPessoa(context, "comregra2");
+    await outra.goto(endereco);
+    await outra.getByRole("button", { name: `Entrar em ${nome}` }).click();
+
+    const folha = outra.getByRole("dialog", { name: `Entrar em ${nome}` });
+    await expect(folha).toBeVisible();
+    await expect(folha.getByText("Mostre o processo.")).toBeVisible();
+
+    // "Agora não" sai sem entrar: a porta continua fechada.
+    await folha.getByRole("button", { name: "Agora não" }).click();
+    await expect(outra.getByRole("button", { name: `Entrar em ${nome}` })).toBeVisible();
+
+    await outra.getByRole("button", { name: `Entrar em ${nome}` }).click();
+    await outra.getByRole("button", { name: "Li e quero entrar" }).click();
+    await expect(outra.getByRole("button", { name: `Membro de ${nome}` })).toBeVisible();
+
+    // O que prova é o que ficou no banco, não o que a tela mostrou.
+    await esperarNoBanco(
+      `SELECT 1 FROM memberships m JOIN communities c ON c.id = m.community_id WHERE c.name = '${nome.replace(/'/g, "''")}' AND m.profile_id <> c.created_by_id`,
+    );
+    await contexto.close();
+  });
+
+  test("Primeiros passos aparece na comunidade nova e abre o formulário preenchido", async ({
+    page,
+  }) => {
+    await entrarNoApp(page, "passos");
+    await preencherNova(page, novoNome("Com Passos"));
+    await page.waitForURL(/\/c\//);
+
+    const bloco = page.getByRole("heading", { name: "Primeiros passos" });
+    await expect(bloco).toBeVisible();
+
+    await page.getByRole("link", { name: "Apresente-se aqui" }).click();
+    await page.waitForURL(/\/novo/);
+    await expect(page.getByLabel("Nome")).toHaveValue("Apresente-se aqui");
+  });
+});
+
 test.describe("sair da comunidade", () => {
   test("membro comum sai com um clique, sem folha", async ({ page, context }) => {
     const dona = page;
@@ -359,7 +503,7 @@ test.describe("a capa na criação", () => {
     const nome = `Com Capa ${Date.now() % 100000}`;
     await page.getByLabel("Nome").fill(nome);
     await page.getByLabel("Intro").fill("Comunidade criada com capa pelo teste.");
-    await page.getByLabel("Escolher a capa").setInputFiles({
+    await page.locator('input[name="imagem"]').setInputFiles({
       name: "capa.png",
       mimeType: "image/png",
       buffer: PNG_MINIMO,
@@ -462,7 +606,7 @@ test.describe("trocar a capa sem sair da tela", () => {
     await page.waitForURL(/\/c\/[^/]+$/);
     const endereco = page.url();
 
-    await page.getByLabel(/^Trocar a capa$/).setInputFiles({
+    await page.locator('input[name="imagem"]').setInputFiles({
       name: "capa.png",
       mimeType: "image/png",
       buffer: PNG_600,
@@ -497,6 +641,36 @@ test.describe("trocar a capa sem sair da tela", () => {
     expect(page.url()).toBe(endereco);
   });
 
+  test("a capa é o botão: nem rótulo permanente, nem aviso de formatos na tela", async ({
+    page,
+  }) => {
+    await entrarNoApp(page, "capalimpa");
+    await preencherNova(page, novoNome("Capa Limpa"));
+    await page.waitForURL(/\/c\/[^/]+$/);
+
+    /*
+      O PO mandou tirar os dois da tela: o botão permanente e o aviso de
+      formatos ficavam abaixo do título, para quem só queria ler. O envio
+      passou a ser tocar na própria capa.
+    */
+    const aviso = page.getByText(/JPEG, PNG ou WebP/);
+    const caixaDoAviso = await aviso.boundingBox();
+    expect(caixaDoAviso!.width).toBeLessThanOrEqual(1);
+
+    /*
+      Ele não sumiu, virou a descrição do botão: quem usa leitor de tela
+      precisa saber o que pode enviar **antes** de abrir o seletor. Por
+      isso a conferência é de área ocupada, e não de existência.
+    */
+    const capa = page.getByRole("button", { name: "Trocar a capa" });
+    await expect(capa).toBeVisible();
+    await expect(capa).toHaveAccessibleDescription(/JPEG, PNG ou WebP/);
+
+    // E continua alcançável pelo teclado: é um botão de verdade.
+    await capa.focus();
+    await expect(capa).toBeFocused();
+  });
+
   test("quem não modera não vê como trocar a capa", async ({ page }) => {
     await entrarNoApp(page, "capaalheia");
 
@@ -505,7 +679,8 @@ test.describe("trocar a capa sem sair da tela", () => {
     );
     await page.goto(`/c/${alheia!.slug}`);
 
-    await expect(page.getByLabel(/^Trocar a capa$/)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Trocar a capa" })).toHaveCount(0);
+    await expect(page.locator('input[name="imagem"]')).toHaveCount(0);
     await expect(page.getByText(/localização que a foto carrega/)).toHaveCount(0);
   });
 
