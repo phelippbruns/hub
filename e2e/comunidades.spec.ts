@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
 import {
   alerta,
@@ -89,105 +89,197 @@ test.describe("criar comunidade", () => {
 });
 
 test.describe("a página da comunidade", () => {
-  test("o painel da direita acompanha a tela, inclusive com uma folha aberta", async ({ page }) => {
-    await entrarNoApp(page, "painel");
-    await preencherNova(page, novoNome("Com Painel"));
-    await page.waitForURL(/\/c\//);
-
-    const painel = page.getByRole("complementary", { name: "Painel de contexto" });
-    await expect(painel).toBeVisible();
-    await expect(painel.getByText("Como o Hot Topic funciona")).toBeVisible();
-
-    // Abrir o menu não pode esconder o painel.
-    await page.getByRole("button", { name: "Mais opções" }).click();
-    await expect(painel).toBeVisible();
-  });
-
-  test("ocultar o painel vale depois de recarregar, e dá para trazer de volta", async ({
+  /*
+   * Os dois menus abrem como drop, logo abaixo do botão — pedido do PO em
+   * 29 de outubro. Eram folhas subindo do rodapé, e a folha empurrava a
+   * tela inteira para baixo.
+   */
+  test("os menus abrem como drop e fecham com Esc, com clique fora e ao navegar", async ({
     page,
   }) => {
-    await entrarNoApp(page, "ocultar");
-    await preencherNova(page, novoNome("Sem Painel"));
-    await page.waitForURL(/\/c\//);
-
-    const painel = page.getByRole("complementary", { name: "Painel de contexto" });
-    await expect(painel).toBeVisible();
-
-    await page.getByRole("button", { name: "Mais opções" }).click();
-    await page.getByRole("button", { name: "Ocultar painel lateral" }).click();
-    await expect(painel).toBeHidden();
-
-    // É preferência da pessoa, não estado da tela.
-    await page.reload();
-    await expect(painel).toBeHidden();
-
-    await page.getByRole("button", { name: "Mais opções" }).click();
-    await page.getByRole("button", { name: "Mostrar painel lateral" }).click();
-    await expect(painel).toBeVisible();
-  });
-
-  test("as telas sem painel não ficam com uma faixa em branco", async ({ page }) => {
-    await entrarNoApp(page, "sempainel");
-    await page.goto("/inicio");
-
-    await expect(page.getByRole("complementary", { name: "Painel de contexto" })).toBeHidden();
-  });
-
-  test("o botão de opções fica amarelo enquanto a folha está aberta", async ({ page }) => {
-    await entrarNoApp(page, "amarelo");
-    await preencherNova(page, novoNome("Com Menu"));
+    await entrarNoApp(page, "drop");
+    await preencherNova(page, novoNome("Com Drop"));
     await page.waitForURL(/\/c\//);
 
     const opcoes = page.getByRole("button", { name: "Mais opções" });
-    await expect(opcoes).toHaveAttribute("aria-expanded", "false");
+    const menu = page.getByRole("dialog", { name: /^Com Drop/ });
 
+    await expect(opcoes).toHaveAttribute("aria-expanded", "false");
     await opcoes.click();
     await expect(opcoes).toHaveAttribute("aria-expanded", "true");
+    await expect(menu).toBeVisible();
+
+    /*
+     * O drop desce **do botão**, e não do topo da tela: é esta medida que
+     * separa um menu suspenso de uma folha que aparece em qualquer lugar.
+     */
+    const botao = (await opcoes.boundingBox())!;
+    const caixa = (await menu.boundingBox())!;
+    expect(caixa.y).toBeGreaterThan(botao.y);
+    expect(caixa.y - (botao.y + botao.height)).toBeLessThan(24);
+
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+
+    await opcoes.click();
+    await page.mouse.click(400, 600);
+    await expect(menu).toBeHidden();
+
+    // Navegar fecha: sem isso o menu ficaria por cima da tela nova.
+    await opcoes.click();
+    await page.getByRole("link", { name: "Moderar" }).click();
+    await page.waitForURL(/\/moderar$/);
+    await expect(menu).toBeHidden();
+  });
+
+  test("compartilhar também é drop, e traz as três saídas", async ({ page }) => {
+    await entrarNoApp(page, "dropshare");
+    await preencherNova(page, novoNome("Compartilhada"));
+    await page.waitForURL(/\/c\//);
+
+    await page.getByRole("button", { name: /^Compartilhar / }).click();
+
+    const folha = page.getByRole("dialog", { name: /^Compartilhar / });
+    await expect(folha).toBeVisible();
+    await expect(folha.getByLabel("Buscar pessoas")).toBeVisible();
+    await expect(folha.getByRole("button", { name: "Copiar link" })).toBeVisible();
+    await expect(folha.getByRole("button", { name: "Outros apps" })).toBeVisible();
+  });
+
+  /*
+   * A terceira coluna saiu do layout junto com o painel da comunidade, que
+   * era a única tela a usá-la.
+   */
+  test("não existe mais painel de contexto em tela nenhuma", async ({ page }) => {
+    await entrarNoApp(page, "sempainel");
+    await preencherNova(page, novoNome("Sem Painel"));
+    await page.waitForURL(/\/c\//);
+
+    await expect(page.getByRole("complementary", { name: "Painel de contexto" })).toHaveCount(0);
+
+    // E o que o painel mostrava desceu para baixo da capa.
+    await expect(
+      page.getByText(/membro.* · .*tópico.* · .*contribuiç.* · criada em /),
+    ).toBeVisible();
+  });
+
+  /*
+   * Um botão de criar tópico, não dois. Havia um igual no estado vazio da
+   * lista, e dois botões idênticos fazem procurar diferença entre eles.
+   */
+  test("há um único botão de criar tópico, e ele leva o asterisco", async ({ page }) => {
+    await entrarNoApp(page, "umbotao");
+    await preencherNova(page, novoNome("Um Botao"));
+    await page.waitForURL(/\/c\//);
+
+    // Dentro do conteúdo: a barra lateral também tem um "Criar tópico", e
+    // ele é outra coisa — leva a escolher a comunidade antes.
+    const botoes = page.getByRole("main").getByRole("link", { name: "Criar tópico" });
+    await expect(botoes).toHaveCount(1);
+    await expect(botoes.locator("svg")).toBeVisible();
   });
 });
 
+/*
+ * Sair deixou de pedir confirmação — decisão do PO em 29 de outubro: numa
+ * comunidade pública não há o que confirmar. Sobraram dois casos em que
+ * sair faz mais do que sair, e os dois continuam perguntando.
+ */
 test.describe("sair da comunidade", () => {
-  test("pede confirmação, e desistir mantém a pessoa dentro", async ({ page }) => {
-    await entrarNoApp(page, "desistir");
-    await preencherNova(page, novoNome("Vou Ficar"));
-    await page.waitForURL(/\/c\//);
+  test("membro comum sai com um clique, sem folha", async ({ page, context }) => {
+    const dona = page;
+    await entrarNoApp(dona, "dona");
+    const nome = novoNome("Entro E Saio");
+    await preencherNova(dona, nome);
+    await dona.waitForURL(/\/c\//);
+    const endereco = dona.url();
 
-    const porta = page.getByRole("button", { name: /^Membro de / });
-    await porta.click();
-
-    await expect(page.getByText(/Seus tópicos e respostas continuam na comunidade/)).toBeVisible();
-    await page.getByRole("button", { name: "Continuar membro" }).click();
-
-    await expect(porta).toBeVisible();
-  });
-
-  test("confirmar tira a pessoa, e a comunidade some de Minhas", async ({ page }) => {
-    await entrarNoApp(page, "sair");
-    const nome = novoNome("Vou Sair");
-    await preencherNova(page, nome);
-    await page.waitForURL(/\/c\//);
-
-    await page.goto("/comunidades/minhas");
-    await expect(page.getByText(nome, { exact: true })).toBeVisible();
-
-    await page.goBack();
-    await page.getByRole("button", { name: /^Membro de / }).click();
-    await page.getByRole("button", { name: "Sair", exact: true }).click();
-
-    await expect(page.getByRole("button", { name: /^Entrar em / })).toBeVisible();
+    // Outra pessoa entra: assim quem sai não é a última nem modera.
+    const { contexto, visita } = await outraPessoa(context, "visita");
+    await visita.goto(endereco);
+    await visita.getByRole("button", { name: /^Entrar em / }).click();
 
     /*
-     * Esperar o banco antes de navegar. Sair atualiza a tela na hora, mas a
-     * requisição ainda está indo — trocar de página aqui a cancelaria, e o
-     * teste reprovaria por corrida em vez de por defeito.
+     * Esperar o banco e recarregar antes de sair. A porta troca de rótulo
+     * na hora, mas a entrada ainda está indo ao servidor, e enquanto ela
+     * vai o botão fica sem `onToggle` — clicar aí não faria nada, e o teste
+     * reprovaria por corrida em vez de por defeito.
+     */
+    await expect(visita.getByRole("button", { name: /^Membro de / })).toBeVisible();
+    await esperarNoBanco(`
+      SELECT 1 FROM communities c
+       JOIN memberships m ON m.community_id = c.id
+       WHERE c.name = '${nome}'
+       GROUP BY c.id HAVING count(m.*) = 2`);
+    await visita.reload();
+
+    const porta = visita.getByRole("button", { name: /^Membro de / });
+    await expect(porta).toBeVisible();
+    await porta.click();
+
+    // Sem folha nenhuma: a porta muda na hora.
+    await expect(visita.getByRole("button", { name: /^Entrar em / })).toBeVisible();
+    await expect(visita.getByRole("button", { name: "Continuar membro" })).toHaveCount(0);
+    await contexto.close();
+  });
+
+  test("RN06: quem modera e tem gente dentro é avisado do que entrega", async ({
+    page,
+    context,
+  }) => {
+    await entrarNoApp(page, "modsai");
+    const nome = novoNome("Entrego A Moderacao");
+    await preencherNova(page, nome);
+    await page.waitForURL(/\/c\//);
+    const endereco = page.url();
+
+    const { contexto, visita } = await outraPessoa(context, "fica");
+    await visita.goto(endereco);
+    await visita.getByRole("button", { name: /^Entrar em / }).click();
+    await expect(visita.getByRole("button", { name: /^Membro de / })).toBeVisible();
+    /*
+     * Esperar o banco antes de fechar o navegador da visitante. A porta
+     * troca de rótulo na hora, mas a entrada ainda está indo — fechar aqui
+     * cancelaria a requisição, e a dona recarregaria sozinha na comunidade.
      */
     await esperarNoBanco(`
       SELECT 1 FROM communities c
+       JOIN memberships m ON m.community_id = c.id
        WHERE c.name = '${nome}'
-         AND NOT EXISTS (SELECT 1 FROM memberships m WHERE m.community_id = c.id)`);
+       GROUP BY c.id HAVING count(m.*) = 2`);
+    await contexto.close();
 
-    await page.goto("/comunidades/minhas");
-    await expect(page.getByText(nome, { exact: true })).toHaveCount(0);
+    await page.reload();
+    await page.getByRole("button", { name: /^Membro de / }).click();
+
+    await expect(page.getByText(/A moderação passa para o membro mais ativo/)).toBeVisible();
+    await page.getByRole("button", { name: "Continuar membro" }).click();
+    await expect(page.getByRole("button", { name: /^Membro de / })).toBeVisible();
+  });
+
+  /*
+   * RN35: a última pessoa leva a comunidade junto. É a única ação do Hub
+   * que destrói conteúdo, então ela continua perguntando — e a folha diz
+   * quantos tópicos somem, não "tem certeza?".
+   */
+  test("RN35: a última pessoa é avisada, e sair apaga a comunidade", async ({ page }) => {
+    await entrarNoApp(page, "ultima");
+    const nome = novoNome("Vou Sumir");
+    await preencherNova(page, nome);
+    await page.waitForURL(/\/c\//);
+    const endereco = page.url();
+
+    await page.getByRole("button", { name: /^Membro de / }).click();
+    await expect(page.getByText(/Você é a última pessoa aqui/)).toBeVisible();
+    await page.getByRole("button", { name: "Sair e apagar" }).click();
+
+    await esperarNoBanco(`
+      SELECT 1 FROM communities c
+       WHERE c.name = '${nome}' AND c.deleted_at IS NOT NULL`);
+
+    // O endereço deixa de existir.
+    const resposta = await page.goto(endereco);
+    expect(resposta?.status()).toBe(404);
   });
 });
 
@@ -196,12 +288,12 @@ test.describe("sair da comunidade", () => {
  * por requisição. O teste de `design-system.spec.ts` cobre as rotas abertas;
  * estas precisam de sessão.
  *
- * A página da comunidade é a primeira com **rota paralela**, e o painel é uma
- * segunda árvore na mesma resposta — é exatamente onde um script sairia sem
- * nonce sem ninguém notar.
+ * A página da comunidade teve rota paralela até a F20, e era ali que um
+ * script podia sair sem nonce sem ninguém notar. A rota saiu com o painel,
+ * mas a varredura fica: ela custa pouco e guarda três telas.
  */
 test.describe("nonce nas telas com sessão", () => {
-  test("todo script leva nonce, inclusive com o painel na tela", async ({ page }) => {
+  test("todo script leva nonce", async ({ page }) => {
     await entrarNoApp(page, "nonce");
     await preencherNova(page, novoNome("Com Nonce"));
     await page.waitForURL(/\/c\//);
@@ -310,8 +402,137 @@ test.describe("a capa na criação", () => {
   });
 });
 
+/**
+ * Um PNG de 600×600, em degradê, para o ajuste da capa ter o que mexer.
+ *
+ * Quadrado de propósito: numa capa deitada a imagem quadrada **sobra na
+ * vertical**, que é o eixo onde arrastar muda alguma coisa. Com o PNG de
+ * 1×1 não haveria sobra em eixo nenhum, e o teste passaria sem exercitar
+ * o enquadramento.
+ */
+const PNG_600 = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAlgAAAJYCAAAAACbDccAAAAG+ElEQVR42u3SZxswhBiA0TdllBFaRpSR0s6KjBIZhU" +
+    "IlLQ2pzMxkV0gRGiKhYZS0lPZCgzQoGQ1KKcqKys7Vr7g/PJdzfsNZsAAA/r8tBAGxaGLdBwJiIRaDYi0MAbFoYi0C" +
+    "AbFoYt0XAmIhFoNi3Q8CYtHEuj8ExKKJ9QAIiIVYDIq1KATEoom1GATEoon1QAiIhVgMivUgCIhFE+vBEBCLJtZDIC" +
+    "AWYjEo1uIQEIsm1kMhIBZNrIdBQCzEYlCsh0NALJpYS0BALMRiUKwlISAWTaylICAWTaylISAWYjEo1jIQEIsm1iMg" +
+    "IBZNrEdCQCzEYlCsR0FALJpYj4aAWDSxloWAWIjFoFiPgYBYNLEeCwGxaGItBwGxEItBsZaHgFg0sR4HAbFoYj0eAm" +
+    "IhFoNiPQECYtHEeiIExEIsBsVaAQJi0cR6EgTEoom1IgTEQiwGxVoJAmLRxHoyBMSiibUyBMRCLAbFWgUCYtHEWhUC" +
+    "YtHEWg0CYiEWg2KtDgGxaGKtAQGxaGKtCQGxEItBsdaCgFg0sZ4CAbFoYj0VAmIhFoNiPQ0CYtHEejoExEIsBsV6Bg" +
+    "TEoom1NgTEoon1TAiIhVgMivUsCIhFE2sdCIhFE+vZEBALsRgU6zkQEIsm1nMhIBZNrOdBQCzEYlCsdSEgFk2s9SAg" +
+    "Fk2s50NALMRiUKz1ISAWTawXQEAsmlgvhIBYiMWgWBtAQCyaWC+CgFiIxaBYL4aAWDSxXgIBsWhivRQCYiEWg2JtCA" +
+    "GxaGJtBAGxaGK9DAJiIRaDYr0cAmLRxHoFBMSiibUxBMRCLAbF2gQCYtHEeiUExKKJ9SoIiIVYDIr1agiIRRNrUwiI" +
+    "RRNrMwiIhVgMirU5BMSiifUaCIiFWAyKtQUExKKJ9VoIiEUTa0sIiIVYDIq1FQTEoom1NQTEoom1DQTEQiwGxdoWAm" +
+    "LRxHodBMSiibUdBMRCLAbF2h4CYtHE2gECYtHE2hECYiEWg2K9HgJi0cTaCQJi0cR6AwTEQiwGxdoZAmLRxNoFAmIh" +
+    "FoNi7QoBsWhivRECYtHEehMExEIsBsV6MwTEoon1FgiIRRPrrRAQC7EYFOttEBCLJtZuEBCLJtbbISAWYjEo1jsgIB" +
+    "ZNrHdCQCyaWO+CgFiIxaBY74aAWDSx3gMBsWhi7Q4BsRCLQbHeCwGxaGLtAQGxEItBsd4HAbFoYr0fAmLRxPoABMRC" +
+    "LAbF+iAExKKJ9SEIiEUT68MQEAuxGBTrIxAQiybWnhAQiybWXhAQC7EYFGtvCIhFE+ujEBCLJtbHICAWYjEo1schIB" +
+    "ZNrH0gIBZNrE9AQCzEYlCsfSEgFk2s/SAgFmIxKNYnISAWTaxPQUAsmlj7Q0AsxGJQrE9DQCyaWJ+BgFg0sT4LAbEQ" +
+    "i0GxDoCAWDSxDoSAWDSxDoKAWIjFoFgHQ0Asmlifg4BYNLEOgYBYiMWgWJ+HgFg0sb4AAbFoYh0KAbEQi0GxvggBsW" +
+    "hiHQYBsRCLQbG+BAGxaGJ9GQJi0cT6CgTEQiwGxTocAmLRxDoCAmLRxDoSAmIhFoNiHQUBsWhifRUCYtHE+hoExEIs" +
+    "BsX6OgTEoon1DQiIRRPraAiIhVgMinUMBMSiifVNCIhFE+tYCIiFWAyK9S0IiEUT6zgIiIVYDIp1PATEool1AgTEoo" +
+    "l1IgTEQiwGxToJAmLRxPo2BMSiiXUyBMRCLAbFOgUCYtHE+g4ExKKJdSoExEIsBsU6DQJi0cQ6HQJi0cQ6AwJiIRaD" +
+    "Yp0JAbFoYp0FAbFoYp0NAbEQi0GxzoGAWDSxzoWAWIjFoFjnQUAsmljnQ0AsmljfhYBYiMWgWN+DgFg0sb4PAbFoYl" +
+    "0AAbEQi0GxLoSAWDSxLoKAWDSxLoaAWIjFoFg/gIBYNLF+CAGxaGJdAgGxEItBsX4EAbFoYl0KAbFoYl0GAbEQi0Gx" +
+    "LoeAWDSxroCAWIjFoFg/hoBYNLF+AgGxaGJdCQGxEItBsa6CgFg0sX4KAbFoYl0NAbEQi0GxfgYBsWhi/RwCYtHE+g" +
+    "UExEIsBsX6JQTEool1DQTEool1LQTEQiwGxboOAmLRxLoeAmLRxPoVBMRCLAbF+jUExKKJdQMExEIsBsW6EQJi0cT6" +
+    "DQTEool1EwTEQiwGxboZAmLRxPotBMSiiXULBMRCLAbFuhUCYtHE+h0ExKKJ9XsIiIVYDIp1GwTEool1OwTEoon1Bw" +
+    "iIhVgMivVHCIhFE+tPEBCLJtafISAWYjEo1l8gIBZNrDsgIBZiMSjWXyEgFk2sv0FALJpYd0JALMRiUKy7ICAWTay7" +
+    "ISAWTay/Q0AsxGJQrH9AQCyaWP+EgFg0sf4FAbEQi0Gx/g0BsWhi/QcCYtHE+i8ExEIsBsW6BwJi0cT6HwTEInEvQc" +
+    "WxSU/w6MMAAAAASUVORK5CYII=",
+  "base64",
+);
+
 /** Um PNG de 1×1, suficiente para o servidor reconhecer o tipo pelos bytes. */
 const PNG_MINIMO = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
   "base64",
 );
+
+/*
+ * O ajuste da capa, que na F20 passou a acontecer **na própria tela**.
+ *
+ * Antes era uma rota só dela, em `/c/<slug>/capa`: você saía da comunidade,
+ * escolhia um arquivo, via uma prévia sem poder mexer, salvava e voltava.
+ */
+test.describe("trocar a capa sem sair da tela", () => {
+  test("escolher, arrastar, aproximar e dar OK, tudo em /c/<slug>", async ({ page }) => {
+    await entrarNoApp(page, "capaajuste");
+    const nome = novoNome("Capa Ajustada");
+    await preencherNova(page, nome);
+    await page.waitForURL(/\/c\/[^/]+$/);
+    const endereco = page.url();
+
+    await page.getByLabel(/^Trocar a capa$/).setInputFiles({
+      name: "capa.png",
+      mimeType: "image/png",
+      buffer: PNG_600,
+    });
+
+    // O ajuste abre sozinho, na capa, sem trocar de endereço.
+    const regua = page.getByLabel("Aproximação");
+    await expect(regua).toBeVisible();
+    expect(page.url()).toBe(endereco);
+
+    // Arrastar na vertical, que é onde a imagem quadrada sobra.
+    const quadro = (await regua.locator("xpath=ancestor::div[1]/..").boundingBox())!;
+    await page.mouse.move(quadro.x + quadro.width / 2, quadro.y + quadro.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(quadro.x + quadro.width / 2, quadro.y + quadro.height / 2 - 40, {
+      steps: 8,
+    });
+    await page.mouse.up();
+
+    await regua.fill("1.8");
+    await page.getByRole("button", { name: "OK" }).click();
+
+    // O que o banco guardou: as medidas vieram dos bytes, não do formulário.
+    await esperarNoBanco(`
+      SELECT 1 FROM communities
+       WHERE name = '${nome}'
+         AND cover_url LIKE 'capas/%'
+         AND cover_width = 600 AND cover_height = 600
+         AND cover_zoom > 1`);
+
+    // E continuamos na comunidade, que era o ponto.
+    expect(page.url()).toBe(endereco);
+  });
+
+  test("quem não modera não vê como trocar a capa", async ({ page }) => {
+    await entrarNoApp(page, "capaalheia");
+
+    const [alheia] = await consultar<{ slug: string }>(
+      `SELECT c.slug FROM communities c WHERE c.deleted_at IS NULL ORDER BY c.created_at LIMIT 1`,
+    );
+    await page.goto(`/c/${alheia!.slug}`);
+
+    await expect(page.getByLabel(/^Trocar a capa$/)).toHaveCount(0);
+    await expect(page.getByText(/localização que a foto carrega/)).toHaveCount(0);
+  });
+
+  /* A rota antiga saiu; ela tinha menos de duas semanas de vida. */
+  test("o endereço antigo da capa não existe mais", async ({ page }) => {
+    await entrarNoApp(page, "capavelha");
+    await preencherNova(page, novoNome("Sem Rota Capa"));
+    await page.waitForURL(/\/c\/[^/]+$/);
+
+    const resposta = await page.goto(`${page.url()}/capa`);
+    expect(resposta?.status()).toBe(404);
+  });
+});
+
+/**
+ * Uma segunda pessoa, em outro contexto do navegador.
+ *
+ * O contexto precisa do `baseURL` do projeto: `browser.newPage()` devolve
+ * uma página **sem** ele, e aí todo `goto("/criar-conta")` do apoio falha
+ * sem dizer por quê — a sessão nunca é criada e o teste reprova numa
+ * asserção lá na frente, longe da causa.
+ */
+async function outraPessoa(context: BrowserContext, prefixo: string) {
+  const contexto = await context.browser()!.newContext({
+    baseURL: test.info().project.use.baseURL,
+  });
+  const visita = await contexto.newPage();
+  await entrarNoApp(visita, prefixo);
+  return { contexto, visita };
+}

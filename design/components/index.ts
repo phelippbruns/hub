@@ -1,4 +1,5 @@
 export { Button } from "./button";
+export { AjusteDeImagem } from "./ajuste-de-imagem";
 export { Avatar, type TamanhoDeAvatar } from "./avatar";
 export { CampoDeBusca } from "./campo-de-busca";
 export { Chip } from "./chip";

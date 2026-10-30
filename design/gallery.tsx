@@ -12,6 +12,7 @@
 import { useState, type ReactNode } from "react";
 import { FUNDOS_DO_PERFIL } from "@/features/perfil/fundos";
 import {
+  AjusteDeImagem,
   ActivityRow,
   Avatar,
   CampoDeBusca,
@@ -87,6 +88,19 @@ import {
   WarningIcon,
 } from "./icons";
 import { color, radius, spacing, typography } from "./tokens";
+import { ENQUADRAMENTO_PADRAO, QUADRO_DA_CAPA } from "@/lib/midia/enquadramento";
+
+/**
+ * Um degradê em SVG, para a galeria não depender de arquivo nem de rede.
+ *
+ * Quadrado de propósito: numa capa deitada a imagem quadrada sobra na
+ * vertical, que é o eixo onde arrastar muda alguma coisa.
+ */
+const EXEMPLO_DE_IMAGEM =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%23FFD95E"/><stop offset="1" stop-color="%23A69CFB"/></linearGradient></defs><rect width="600" height="600" fill="url(%23g)"/></svg>`,
+  );
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -497,9 +511,30 @@ export function DesignGallery() {
                 </>
               }
             >
+              {/* A marca # fica na linha do nome: ela é a porta da comunidade. */}
               <CommunityDoor member oQue="Música Eletrônica" />
-              <span className="text-caption text-paper">3.412 membros</span>
             </CommunityCover>
+          </div>
+        </Card>
+
+        {/*
+          O ajuste de imagem, nas duas formas em que o Hub o usa: hexágono
+          no perfil, retângulo na capa. A conta é a mesma; muda a proporção
+          do quadro e o recorte desenhado.
+        */}
+        <Card title="Ajuste de imagem, em quadro deitado" wide>
+          <div className="w-full">
+            <AjusteDeImagem
+              url={EXEMPLO_DE_IMAGEM}
+              medidas={{ largura: 600, altura: 600 }}
+              inicial={ENQUADRAMENTO_PADRAO}
+              onMudar={() => {}}
+              quadro={QUADRO_DA_CAPA}
+              forma="retangulo"
+              controles="dentro"
+              camposEscondidos={false}
+              className="min-h-cover w-full"
+            />
           </div>
         </Card>
 
@@ -537,9 +572,9 @@ export function DesignGallery() {
           <div className="w-full">
             <ConfirmSheet
               open={confirmando}
-              titulo="Sair de Música Eletrônica?"
-              descricao="Você deixa de ver os Hot Topics dela no Início. Seus tópicos e respostas continuam na comunidade."
-              confirmar="Sair"
+              titulo="Apagar Música Eletrônica?"
+              descricao="Você é a última pessoa aqui. Sair apaga a comunidade, com os 12 tópicos dela."
+              confirmar="Sair e apagar"
               cancelar="Continuar membro"
               onConfirm={() => setConfirmando(false)}
               onCancel={() => setConfirmando(false)}

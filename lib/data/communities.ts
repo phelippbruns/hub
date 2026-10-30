@@ -73,6 +73,16 @@ export async function createCommunity(viewer: Viewer, input: unknown) {
           nameNormalized: data.name,
           intro: data.intro,
           coverUrl: data.coverUrl ?? universe.defaultCoverUrl,
+          /*
+           * Sem capa própria, a comunidade herda a do Universo — que é
+           * endereço externo e não foi medida. Aí o enquadramento fica no
+           * padrão e a imagem é recortada no centro, como sempre foi.
+           */
+          coverWidth: data.coverUrl ? data.coverWidth : null,
+          coverHeight: data.coverUrl ? data.coverHeight : null,
+          coverZoom: data.coverUrl ? data.coverZoom : 1,
+          coverAnchorX: data.coverUrl ? data.coverAnchorX : 0.5,
+          coverAnchorY: data.coverUrl ? data.coverAnchorY : 0.5,
           createdById: me,
         },
       });
@@ -125,11 +135,29 @@ export async function joinCommunity(viewer: Viewer, communityId: string) {
 }
 
 /**
- * RN06: quando um moderador sai, a moderação passa para o membro mais ativo.
- * A escolha do "mais ativo" é comportamento de moderação (F16); aqui a saída
- * apenas não deixa a comunidade sem moderador.
+ * Sair da comunidade.
+ *
+ * Duas regras encostam aqui, e a ordem entre elas importa:
+ *
+ * - **RN06**: quando um moderador sai, a moderação passa para o membro mais
+ *   ativo. A escolha do "mais ativo" é comportamento de moderação (F16);
+ *   aqui a saída apenas não deixa a comunidade sem moderador.
+ * - **RN35**: comunidade que fica sem ninguém é excluída. Decisão do PO em
+ *   29 de outubro. Vem **antes** da herança, porque sem ninguém não há
+ *   herdeiro a escolher — e uma comunidade órfã, sem quem a modere e sem
+ *   quem a leia, é só um endereço que atende denúncia que ninguém atende.
+ *
+ * A exclusão é lógica (`deletedAt`), não `DELETE`: o histórico de moderação
+ * e as denúncias continuam de pé, e quem precisar auditar ainda encontra.
+ * `/c/<slug>` passa a dar 404 porque toda leitura já filtra `deletedAt`.
+ *
+ * Devolve o que a tela precisa dizer depois: se a comunidade deixou de
+ * existir.
  */
-export async function leaveCommunity(viewer: Viewer, communityId: string) {
+export async function leaveCommunity(
+  viewer: Viewer,
+  communityId: string,
+): Promise<{ comunidadeApagada: boolean }> {
   const me = requireProfileId(viewer);
 
   const membership = await prisma.membership.findUnique({
@@ -143,13 +171,28 @@ export async function leaveCommunity(viewer: Viewer, communityId: string) {
       where: { communityId_profileId: { communityId, profileId: me } },
     });
 
-    if (membership.role !== "moderator") return;
+    /*
+     * RN35. A contagem é feita **dentro da transação e depois do delete**:
+     * a coluna `members_count` é mantida por gatilho e pode não ter sido
+     * atualizada ainda nesta visão, e duas pessoas saindo ao mesmo tempo
+     * veriam cada uma a outra como "ainda tem alguém".
+     */
+    const restantes = await tx.membership.count({ where: { communityId } });
+    if (restantes === 0) {
+      await tx.community.update({
+        where: { id: communityId },
+        data: { deletedAt: new Date() },
+      });
+      return { comunidadeApagada: true };
+    }
+
+    if (membership.role !== "moderator") return { comunidadeApagada: false };
 
     const outro = await tx.membership.findFirst({
       where: { communityId, role: "moderator", bannedAt: null },
       select: { profileId: true },
     });
-    if (outro) return;
+    if (outro) return { comunidadeApagada: false };
 
     const herdeiro = await escolherHerdeiroDaModeracao(tx, communityId);
     if (herdeiro) {
@@ -158,6 +201,8 @@ export async function leaveCommunity(viewer: Viewer, communityId: string) {
         data: { role: "moderator" },
       });
     }
+
+    return { comunidadeApagada: false };
   });
 }
 

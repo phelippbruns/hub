@@ -581,3 +581,42 @@ e o subconjunto latino ficaram iguais aos de hoje.
 **Por que não foi feito junto:** apareceu no meio de um PR de acabamento,
 e acrescentar arquivos binários de fonte ali misturaria duas coisas que
 precisam ser revisadas separado.
+
+## "Contribuição" quer dizer duas coisas
+
+Na página da comunidade, **contribuições são as respostas**: ao lado delas
+já aparece o número de tópicos, e somar os tópicos de novo contaria cada um
+duas vezes. No perfil, pela **RN28**, contribuição é *resposta ou tópico
+criado* — o número soma os dois.
+
+Nenhuma das duas telas está errada sozinha. A palavra é que passou a contar
+coisas diferentes, e quem comparar os dois números vai concluir que um deles
+está quebrado.
+
+**O que fazer:** decidir uma definição só. Ou contribuição é sempre
+resposta, e o número do perfil diminui; ou a comunidade ganha outra palavra
+para o número dela. É decisão de produto, não de código.
+
+**Tamanho:** dez minutos de decisão, meia hora de código em qualquer um dos
+caminhos — `contarContribuicoes` em `lib/data/perfil.ts` e
+`contribuicoesCount` em `lib/data/comunidades.ts`.
+
+## A miniatura de 36 px ignora o enquadramento da capa
+
+A capa da comunidade guarda uma âncora desde a F20, e a página grande a
+respeita. As **miniaturas quadradas** nas listas (`size-thumb`, 36 px)
+continuam recortando no centro.
+
+É de propósito: a âncora foi escolhida numa faixa deitada, e num quadrado a
+sobra troca de eixo — o que a pessoa centralizou pode sair do quadro. E
+`object-cover` centralizado nunca deixa buraco, em proporção nenhuma.
+
+**O que fazer, se um dia incomodar:** uma função pura
+`pontoDeInteresse(medidas, enquadramento, quadro)` em
+`lib/midia/enquadramento.ts` devolvendo o centro do recorte em fração da
+imagem, usada como `object-position` na miniatura. Mantém a garantia de não
+deixar buraco, honra o que a pessoa escolheu olhar, e ignora o zoom, que
+num quadrado de 36 px não muda nada visível.
+
+**Tamanho:** meio dia, a maior parte em levar cinco colunas a mais nas
+consultas que alimentam as cinco listas.

@@ -1469,6 +1469,54 @@ parte do comportamento. E teste de desenho tem que medir **a instância que
 o usuário vê**, não uma parecida: a diferença entre as duas é exatamente
 onde o defeito se esconde.
 
+### Três defeitos num formulário, todos sem sintoma
+
+*O que aconteceu:* a capa da comunidade passou a ser enviada e ajustada na
+própria tela. Três coisas quebraram no caminho, e **nenhuma das três deu
+erro**: a tela parecia funcionar e o banco guardava a coisa errada, ou nada.
+
+1. **O campo de arquivo saía da árvore.** Escolher uma imagem abria o
+   ajuste, que era outro caminho de desenho, e o `<input type="file">`
+   morava dentro do caminho anterior. O React o removia, o arquivo ia
+   junto, e a comunidade nascia sem capa.
+2. **Depois, ele voltava — mas vazio.** Pondo o campo nos dois caminhos, o
+   React ainda via duas árvores diferentes e **recriava** o elemento. Campo
+   de arquivo recriado perde o arquivo escolhido. A correção foi pô-lo
+   **fora dos dois**, numa posição estável.
+3. **Os três números do enquadramento sumiam no clique do OK.** O OK fecha
+   o ajuste e envia o formulário, nessa ordem; o React processa o
+   fechamento primeiro, os campos escondidos saem da árvore, e o servidor
+   recebia o envio sem eles. `Number(null)` vira 0, `dentroDoLimite`
+   devolve o neutro, e a capa voltava para o centro — exatamente como se a
+   pessoa não tivesse mexido em nada.
+
+E uma quarta, de outra natureza: **o quadro de ajuste engolia o clique nos
+próprios controles.** Ele chama `setPointerCapture` no `pointerdown` para o
+arrasto não escapar quando o mouse sai da imagem; com os controles **dentro**
+do quadro, o ponteiro era capturado antes de o clique chegar ao botão. O OK
+não fazia nada. Nenhum erro, nenhum log.
+
+*Por que passou pelas verificações:* tipos, lint e 628 testes de unidade
+passaram em todas as quatro. São defeitos de **montagem do formulário** e
+de **eventos do navegador** — não existe tipo que os descreva, e teste de
+unidade de componente não envia formulário nem captura ponteiro. Quem pegou
+as quatro foi a jornada, e só porque ela conferia **o que o banco guardou**,
+não o que a tela mostrava.
+
+*Como foi resolvido:* o campo de arquivo e os três números moram fora dos
+caminhos de desenho, numa posição fixa da árvore; o quadro ignora o
+`pointerdown` que começa num `[data-controles]`.
+
+🔒 **Com barreira** — a jornada "escolher, arrastar, aproximar e dar OK"
+confere `cover_url`, `cover_width = 600` e `cover_zoom > 1` no banco. Cada
+um dos quatro defeitos reprova pelo menos uma dessas três colunas.
+
+**A lição:** formulário que muda de cara enquanto é preenchido é um campo
+minado, e a mina é sempre a mesma — **o que sai da árvore não é enviado**.
+Campo que carrega dado fica fora do que troca. E teste de tela que olha a
+tela não serve: ele confirma o que você acabou de desenhar. O que prova é
+o que ficou no banco.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

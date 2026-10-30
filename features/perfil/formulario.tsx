@@ -1,12 +1,19 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { Avatar, Button, Input, SectionTitle, Switch, TextField } from "@/design/components";
+import {
+  AjusteDeImagem,
+  Avatar,
+  Button,
+  Input,
+  SectionTitle,
+  Switch,
+  TextField,
+} from "@/design/components";
 import { acharLink } from "@/lib/texto/links";
 import { TAMANHO_MAXIMO_EM_MB, problemaNaImagem } from "@/lib/midia/limites";
 import { ENQUADRAMENTO_PADRAO, type Enquadramento } from "@/lib/midia/enquadramento";
 import { MAXIMO_DE_LINKS } from "@/lib/data/validation";
-import { AjusteDaFoto } from "./ajuste-da-foto";
 import { FUNDOS_DO_PERFIL, fundoDaPagina } from "./fundos";
 import { salvarPerfil, type EstadoDoPerfil } from "./actions";
 
@@ -78,7 +85,9 @@ export function FormularioDePerfil({
         <SectionTitle>Foto de perfil</SectionTitle>
 
         {fotoAtual && medidasAtuais ? (
-          <AjusteDaFoto
+          <AjusteDeImagem
+            forma="hexagono"
+            className="size-fotoAjuste"
             // Trocar a foto recomeça o ajuste do zero, em vez de herdar o
             // enquadramento da anterior, que foi feito para outra imagem.
             key={fotoAtual}

@@ -120,7 +120,7 @@ O MVP cobre sete etapas da jornada, da entrada à segurança. Celular e web têm
 ### Descoberta
 
 1. Explorar, item próprio da navegação, com busca única e filtros Tudo, Comunidades, Tópicos e Pessoas. Cada comunidade da lista tem a marca # para entrar direto. A busca tem tela de resultado com comunidades e pessoas.
-3. Página da comunidade: foto de capa no topo com o nome; abaixo, a marca # funciona como botão para entrar ou sair, ao lado do número de membros, descrição, Hot Topic e lista de tópicos. Sair pede confirmação. Se quem sai modera, a moderação passa para o membro mais ativo. A capa tem botão de compartilhar. Uma lupa ao lado da ordenação abre a busca de tópicos dentro da comunidade.
+3. Página da comunidade: foto de capa no topo, com o nome e a marca # na mesma linha — ela é o botão de entrar e sair. Abaixo da capa, uma linha com membros, tópicos, contribuições e a data de criação, depois a descrição, o Hot Topic e a lista de tópicos. **Sair não pede confirmação**, com duas exceções: quem modera e tem outras pessoas dentro é avisado de que entrega a moderação (RN06), e quem é a última pessoa é avisado de que a comunidade será apagada (RN35). Quem modera troca e ajusta a capa na própria tela, sem sair dela. A capa tem botão de compartilhar, e tanto ele quanto o menu de três pontos abrem como menu suspenso. Uma lupa ao lado da ordenação abre a busca de tópicos dentro da comunidade.
 4. Menu da comunidade com moderadores, denunciar e moderar. Não há ajuste de notificações por comunidade no MVP.
 
 ### Participação
@@ -198,7 +198,7 @@ São 34 regras. Elas substituem integralmente as RN01 a RN23 do escopo anterior.
 | RN03 | Toda comunidade exige nome, intro de até 240 caracteres e capa. Sem capa enviada, usa a capa padrão do Hub. Universo saiu da exigência na F12.1. | Comunidades |
 | RN04 | Não podem existir duas comunidades com o mesmo nome. A comparação ignora maiúsculas, acentos, espaços e plural simples. A checagem roda no envio. | Comunidades |
 | RN05 | A comunidade fica disponível em Explorar ao atingir 20 membros. Antes disso, só aparece na busca. | Comunidades |
-| RN06 | Quem cria a comunidade é moderador e pode nomear outros. Quando um moderador sai, a moderação passa automaticamente para o membro mais ativo da comunidade. | Moderação |
+| RN06 | Quem cria a comunidade é moderador e pode nomear outros. Quando um moderador sai e **ainda há outras pessoas**, a moderação passa automaticamente para o membro mais ativo da comunidade, e ele é avisado disso antes de sair. Sem ninguém restante, vale a RN35. | Moderação |
 | RN07 | Qualquer membro cria tópicos, com limite de 1 por pessoa por dia em cada comunidade. | Tópicos |
 | RN08 | Todo tópico tem nome e descrição de até 240 caracteres, com GIF ou 1 imagem opcional. O autor pode apagar o tópico enquanto ele tiver menos de 5 respostas de outras pessoas, sem contar as do próprio autor; elas também são apagadas, com aviso antes. A partir de 5 respostas, o tópico não pode mais ser apagado pelo autor, só pela moderação. O limite pode mudar conforme a escala. | Tópicos |
 | RN09 | O ciclo vira às 00h. O Hot Topic do dia é o tópico com mais pessoas diferentes respondendo no ciclo anterior. | Ciclo |
@@ -226,6 +226,7 @@ São 34 regras. Elas substituem integralmente as RN01 a RN23 do escopo anterior.
 | RN31 | O onboarding é uma apresentação de sete cards: seis mostram o Hub funcionando e o sétimo exige ao menos 3 comunidades, escolhidas numa lista só — o agrupamento por Universo saiu na F12.1. O botão de concluir só aparece depois de ver os sete cards **e** escolher as 3. Quem chega por convite já tem a comunidade do convite selecionada e volta ao tópico ao terminar. O onboarding termina pedindo permissão de notificações. Quem já concluiu pode rever a apresentação pela marca do Hub, e aí são seis cards: a escolha não se repete. | Conta |
 | RN32 | O usuário pode baixar uma cópia dos seus dados e excluir a conta pelas configurações. Ao excluir, escolhe entre manter respostas e tópicos como "Conta excluída" ou apagar tudo. Cabines, perfil e Coleção são apagados nos dois casos. | Conta |
 | RN33 | O moderador remove respostas e tópicos, remove membros (que podem voltar) e bane membros (que não podem voltar). Também adiciona moderadores entre os membros, por convite que precisa ser aceito, e remove moderadores, exceto quem criou a comunidade. Quem é removido da moderação continua membro e é avisado. Banir da plataforma é ação exclusiva do Hub. O autor recebe notificação com o motivo quando uma resposta ou tópico é removido. | Moderação |
+| RN35 | Comunidade que fica sem nenhum membro é excluída no mesmo instante em que a última pessoa sai. A exclusão é lógica: o endereço deixa de abrir, e o histórico de moderação continua existindo. | Comunidades |
 | RN34 | Notificações ligadas por padrão: seu tópico virou Hot Topic, convites e mensagens de Cabine, aviso diário dos tópicos seguidos. Desligada por padrão: novos tópicos nas comunidades. | Notificações |
 
 ## Identidade visual e design system
