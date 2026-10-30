@@ -8,7 +8,7 @@ import {
   HotTopicCard,
   PaginaCarregando,
   SectionTitle,
-  TopicName,
+  TopicCard,
 } from "@/design/components";
 import { sizes, variants } from "@/design/components/button";
 import { TopicStar } from "@/design/icons";
@@ -18,17 +18,22 @@ import { TelaDeConvite } from "@/features/convite/tela";
 import { metadataCompartilhavel } from "@/features/convite/metadata";
 import { ControlesDeTopicos } from "@/features/comunidades/controles-de-topicos";
 import { AbasDaComunidade } from "@/features/comunidades/abas";
-import { abaDaComunidade } from "@/features/comunidades/shared";
+import {
+  abaDaComunidade,
+  filtroDeTopicos,
+  type FiltroDeTopicos,
+} from "@/features/comunidades/shared";
+import { haQuantoTempo } from "@/lib/tempo";
 import { SobreAComunidade } from "@/features/comunidades/sobre";
 import { MembrosDaComunidade } from "@/features/comunidades/membros";
 import { PrimeirosPassos, TOPICOS_PARA_SUMIR } from "@/features/comunidades/primeiros-passos";
+import { ResumoDaComunidade } from "@/features/comunidades/resumo";
 import { comunidadeDaRota } from "@/features/comunidades/dados";
 import { filtroDeMembros, membrosDaComunidade } from "@/lib/data/membros";
 import { topicosDaComunidade } from "@/lib/data/comunidades";
 import { hotTopicDeHoje } from "@/lib/data/ciclo";
 import { sugestoesParaConvidar } from "@/lib/data/cabins";
 import { NotFoundError } from "@/lib/data/errors";
-import type { OrdemDosTopicos } from "@/lib/data/comunidades";
 
 export async function generateMetadata({
   params,
@@ -61,14 +66,17 @@ export default async function ComunidadePage({
     convite?: string;
     aba?: string;
     filtro?: string;
+    /** O filtro da aba Membros: todos, moderacao ou novos. */
+    papel?: string;
     pessoa?: string;
   }>;
 }) {
   const { comunidade: slug } = await params;
-  const { q, ordem, convite, aba, filtro, pessoa } = await searchParams;
+  const { q, ordem, convite, aba, filtro, pessoa, papel } = await searchParams;
+  const pessoaFiltro = papel;
   const termo = q?.trim() ?? "";
-  const ordemAtual: OrdemDosTopicos = ordem === "recentes" ? "recentes" : "respostas";
   const abaAtual = abaDaComunidade(aba);
+  const filtroAtual = filtroDeTopicos(filtro ?? (ordem === "recentes" ? "recentes" : undefined));
 
   let dados;
   let viewer;
@@ -111,85 +119,89 @@ export default async function ComunidadePage({
           <AbaDeMembros
             slug={dados.slug}
             comunidadeId={dados.id}
+            total={dados.membersCount}
             souModerador={dados.souModerador}
             souMembro={dados.souMembro}
-            filtro={filtro}
+            filtro={pessoaFiltro}
             termo={pessoa?.trim() ?? ""}
           />
         </Suspense>
       ) : (
-        <>
-          <SobreAComunidade
-            intro={dados.intro}
-            regras={dados.regras}
-            criadaPor={dados.criadaPor}
-            criadaEm={dados.criadaEm}
-          />
+        /*
+          Duas colunas acima de 1100 px, como o protótipo v6: o conteúdo à
+          esquerda e o resumo da comunidade à direita.
 
-          {/*
-          Primeiros passos some sozinho ao terceiro tópico, e só aparece para
-          quem é membro: a RN07 exige participação para criar.
-        */}
-          {dados.souMembro && dados.topicosCount < TOPICOS_PARA_SUMIR ? (
-            <PrimeirosPassos slug={dados.slug} />
-          ) : null}
+          A coluna da direita é **desta página**, e não uma rota paralela do
+          app inteiro com uma preferência no banco — foi assim que ela nasceu
+          na F20 e é o que o vacilo 17 registrou. Aqui ela é um `<aside>` e
+          nada mais.
 
-          {/*
-          RN09: o Hot Topic do dia, eleito às 00h pelo ciclo anterior.
-          Comunidade sem respostas ontem não ganha destaque — e a lista abaixo
-          aparece na ordem normal, sem um primeiro lugar que ninguém disputou.
-
-          Some durante a busca: procurar um tópico e ver outro em destaque
-          acima confunde o que é resultado.
-        */}
-          {/*
-          O Hot Topic e a lista de tópicos são as duas consultas pesadas, e ficam
-          dentro de um `<Suspense>` — não num `loading.tsx`.
-
-          A diferença importa: `loading.tsx` abre o limite **antes** de a página
-          rodar, e o Next começa a transmitir com 200 no cabeçalho. Numa rota
-          que chama `notFound()`, como esta, isso transforma 404 em 200 — um
-          endereço que não existe passa a dizer que existe. Aconteceu em 15 de
-          outubro e está no Faustão.
-
-          Aqui a conferência de existência já rodou acima. O que chega depois é
-          só conteúdo, e pode escorrer.
-        */}
-          <Suspense
-            fallback={<PaginaCarregando titulo={false} linhas={1} label="Carregando o Hot Topic" />}
-          >
-            <DestaqueDaComunidade comunidadeId={dados.id} slug={dados.slug} termo={termo} />
-          </Suspense>
-
-          {/*
-          O botão de criar tópico também mora **aqui**, e não só no atalho da
-          barra lateral: a vontade de abrir um assunto nasce lendo a comunidade,
-          e não havia caminho daqui para `/c/<slug>/novo`.
-
-          Só para quem é membro: RN07 exige participação para criar, e um botão
-          que leva a uma recusa é pior do que botão nenhum.
-        */}
-          <SectionTitle acao={dados.souMembro ? <BotaoNovoTopico slug={dados.slug} /> : undefined}>
-            Tópicos
-          </SectionTitle>
-          <ControlesDeTopicos
-            slug={dados.slug}
-            nomeDaComunidade={dados.name}
-            termoInicial={termo}
-            ordem={ordemAtual}
-          />
-
-          <Suspense
-            fallback={<PaginaCarregando titulo={false} linhas={3} label="Carregando os tópicos" />}
-          >
-            <ListaDeTopicos
-              comunidadeId={dados.id}
-              slug={dados.slug}
-              termo={termo}
-              ordem={ordemAtual}
+          Sem corte por largura: o protótipo some com ela abaixo de 1100 px,
+          mas o Hub é só computador até a F21 e a regra do projeto proíbe
+          breakpoint. A adaptação entra inteira lá, junto com o celular.
+        */
+        <div className="flex items-start gap-3">
+          <div className="flex min-w-0 flex-1 flex-col gap-3">
+            <SobreAComunidade
+              about={dados.about}
+              regras={dados.regras}
+              criadaPor={dados.criadaPor}
+              criadaEm={dados.criadaEm}
             />
-          </Suspense>
-        </>
+
+            {/*
+              Primeiros passos some sozinho ao terceiro tópico, e só aparece
+              para quem é membro: a RN07 exige participação para criar.
+            */}
+            {dados.souMembro && dados.topicosCount < TOPICOS_PARA_SUMIR ? (
+              <PrimeirosPassos slug={dados.slug} />
+            ) : null}
+
+            {/*
+              RN09: o Hot Topic do dia, eleito às 00h pelo ciclo anterior.
+              Comunidade sem respostas ontem não ganha destaque.
+
+              Ele e a lista são as duas consultas pesadas, e ficam dentro de
+              um `<Suspense>` — não num `loading.tsx`. A diferença importa:
+              `loading.tsx` abre o limite **antes** de a página rodar, e o
+              Next começa a transmitir com 200 no cabeçalho. Numa rota que
+              chama `notFound()`, como esta, isso transforma 404 em 200.
+              Aconteceu em 15 de outubro e está no Faustão.
+            */}
+            <Suspense
+              fallback={
+                <PaginaCarregando titulo={false} linhas={1} label="Carregando o Hot Topic" />
+              }
+            >
+              <DestaqueDaComunidade comunidadeId={dados.id} slug={dados.slug} termo={termo} />
+            </Suspense>
+
+            <SectionTitle
+              contagem={dados.topicosCount}
+              acao={dados.souMembro ? <BotaoNovoTopico slug={dados.slug} /> : undefined}
+            >
+              Tópicos
+            </SectionTitle>
+
+            <Suspense
+              fallback={
+                <PaginaCarregando titulo={false} linhas={3} label="Carregando os tópicos" />
+              }
+            >
+              <ListaDeTopicos
+                comunidadeId={dados.id}
+                slug={dados.slug}
+                nomeDaComunidade={dados.name}
+                termo={termo}
+                filtro={filtroAtual}
+                souMembro={dados.souMembro}
+                totalDeTopicos={dados.topicosCount}
+              />
+            </Suspense>
+          </div>
+
+          <ResumoDaComunidade comunidade={dados} />
+        </div>
       )}
     </ContentColumn>
   );
@@ -234,50 +246,92 @@ async function DestaqueDaComunidade({
 async function ListaDeTopicos({
   comunidadeId,
   slug,
+  nomeDaComunidade,
   termo,
-  ordem,
+  filtro,
+  souMembro,
+  totalDeTopicos,
 }: {
   comunidadeId: string;
   slug: string;
+  nomeDaComunidade: string;
   termo: string;
-  ordem: OrdemDosTopicos;
+  filtro: FiltroDeTopicos;
+  souMembro: boolean;
+  totalDeTopicos: number;
 }) {
   // `comunidadeDaRota` é lida uma vez por requisição, então pedir o viewer
   // de novo aqui não custa outra ida ao banco.
   const { viewer } = await comunidadeDaRota(slug);
-  const topicos = await topicosDaComunidade(viewer, comunidadeId, { ordem, termo });
 
-  if (topicos.length === 0) {
-    return (
-      <EmptyState
-        title={termo ? `Nada encontrado para "${termo}"` : "Nenhum tópico ainda"}
-        description={
-          termo ? "Tente outro termo." : "Seja a primeira pessoa a abrir um assunto aqui."
-        }
-      />
-    );
-  }
+  /*
+   * A lista sai sempre sem o filtro de novidades, para o chip "Com
+   * novidades (n)" saber o número antes de ser clicado. É a mesma consulta
+   * — o filtro é aplicado aqui, na memória, sobre o que já veio.
+   */
+  const todos = await topicosDaComunidade(viewer, comunidadeId, {
+    filtro: filtro === "novas" ? "alta" : filtro,
+    termo,
+  });
+  const comNovidades = todos.filter((topico) => topico.novas > 0).length;
+  const topicos = filtro === "novas" ? todos.filter((topico) => topico.novas > 0) : todos;
 
   return (
-    <div className="flex flex-col gap-2">
-      {topicos.map((topico) => (
-        <Link
-          key={topico.id}
-          href={`/c/${slug}/${topico.slug}`}
-          className="bg-paper block rounded-sm p-3"
-        >
-          <span className="text-bodyStrong text-ink block">
-            <TopicName>{topico.name}</TopicName>
-          </span>
-          <span className="text-caption text-inkMuted block">
-            {topico.pessoas.toLocaleString("pt-BR")} {topico.pessoas === 1 ? "pessoa" : "pessoas"},{" "}
-            {topico.respostas.toLocaleString("pt-BR")}{" "}
-            {topico.respostas === 1 ? "resposta" : "respostas"}
-          </span>
-        </Link>
-      ))}
-    </div>
+    <>
+      <ControlesDeTopicos
+        slug={slug}
+        nomeDaComunidade={nomeDaComunidade}
+        termoInicial={termo}
+        filtro={filtro}
+        comNovidades={comNovidades}
+        souMembro={souMembro}
+        totalDeTopicos={totalDeTopicos}
+      />
+
+      {topicos.length === 0 ? (
+        <EmptyState title={vazio(filtro, termo).titulo} description={vazio(filtro, termo).texto} />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {topicos.map((topico) => (
+            <Link key={topico.id} href={`/c/${slug}/${topico.slug}`} className="block">
+              <TopicCard
+                name={topico.name}
+                people={topico.pessoas}
+                answers={topico.respostas}
+                when={topico.ultima ? haQuantoTempo(topico.ultima.quando) : undefined}
+                following={topico.seguindo}
+                novas={topico.novas}
+                ultima={topico.ultima}
+              />
+            </Link>
+          ))}
+        </div>
+      )}
+    </>
   );
+}
+
+/** Cada lista vazia tem um motivo diferente, e o texto diz qual. */
+function vazio(filtro: FiltroDeTopicos, termo: string) {
+  if (termo) {
+    return { titulo: `Nada encontrado para "${termo}"`, texto: "Tente outro termo." };
+  }
+  if (filtro === "seguindo") {
+    return {
+      titulo: "Você não segue nenhum tópico aqui",
+      texto: "Abra um tópico e toque no olho para vê-lo nesta lista.",
+    };
+  }
+  if (filtro === "novas") {
+    return {
+      titulo: "Você está em dia",
+      texto: "Nenhuma contribuição nova desde a sua última visita.",
+    };
+  }
+  return {
+    titulo: "Nenhum tópico ainda",
+    texto: "Seja a primeira pessoa a abrir um assunto aqui.",
+  };
 }
 
 /**
@@ -321,6 +375,7 @@ function BotaoNovoTopico({ slug }: { slug: string }) {
 async function AbaDeMembros({
   slug,
   comunidadeId,
+  total,
   souModerador,
   souMembro,
   filtro,
@@ -328,6 +383,7 @@ async function AbaDeMembros({
 }: {
   slug: string;
   comunidadeId: string;
+  total: number;
   souModerador: boolean;
   souMembro: boolean;
   filtro: string | undefined;
@@ -341,6 +397,7 @@ async function AbaDeMembros({
     <MembrosDaComunidade
       slug={slug}
       communityId={comunidadeId}
+      total={total}
       membros={membros}
       filtro={escolhido}
       termo={termo}

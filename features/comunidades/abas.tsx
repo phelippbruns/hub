@@ -16,14 +16,18 @@ import type { AbaDaComunidade } from "./shared";
  *
  * Presa sem animação e sem título entrando, como o PO pediu: o que a barra
  * precisa fazer é continuar alcançável, não se anunciar.
+ *
+ * Formato pílula, como o protótipo v6: alinhada à esquerda, sem esticar, e
+ * com espaço para o contador que Enquetes e Eventos vão trazer.
  */
 export function AbasDaComunidade({ base, atual }: { base: string; atual: AbaDaComunidade }) {
   const router = useRouter();
   const params = useSearchParams();
 
   return (
-    <div className="bg-surfacePage sticky top-0 z-10 -mx-1 px-1">
+    <div className="bg-surfacePage border-line sticky top-0 z-10 -mx-1 border-b px-1 py-2">
       <Tabs
+        formato="pilula"
         label="Seções da comunidade"
         tabs={[
           { id: "inicio", label: "Início" },

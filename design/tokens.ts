@@ -72,6 +72,13 @@ export const typography = {
     fontWeight: 800,
     letterSpacing: "-0.02em",
   },
+  /** O nome da comunidade sobre a capa. Maior que title porque ali ele é a tela inteira. */
+  coverTitle: {
+    fontSize: "40px",
+    lineHeight: "46px",
+    fontWeight: 800,
+    letterSpacing: "-0.02em",
+  },
   /** Pergunta de abertura do tópico em destaque. */
   question: {
     fontSize: "22px",
@@ -206,8 +213,8 @@ export const size = {
   avatarSm: "32px",
   /** Botão miúdo: enviar mensagem na Cabine e as respostas de um convite. */
   controlXs: "32px",
-  /** Altura da capa da comunidade, no topo da página dela. */
-  cover: "180px",
+  /** Altura da capa da comunidade, no topo da página dela. 230 px é a medida do protótipo v6: com 180 o nome de 40 px e os botões dos cantos disputavam a mesma faixa. */
+  cover: "230px",
   /** Foto no topo da página de perfil, no formato de hexágono orgânico. */
   avatarPerfil: "125px",
   /** Quadro em que a foto de perfil é arrastada e aproximada, em Editar perfil. */
@@ -220,6 +227,10 @@ export const size = {
   demoPanel: "400px",
   /** Marca de nível em tamanho de abertura: a logo do Hub na apresentação do onboarding. */
   markLg: "88px",
+  /** A marca # sobre a capa da comunidade, que é o botão de entrar e sair. Maior que mark porque ali ela divide a linha com o nome em 40 px. */
+  markCover: "40px",
+  /** Botão redondo de ícone sobre a capa e no topo do tópico. 44 px é o alvo de toque mínimo, o mesmo de navItem. */
+  btnRound: "44px",
 } as const;
 
 export const fontFamily =

@@ -9,10 +9,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db, joinAs, makeCommunity, makeProfile, makeUniverse, resetDatabase } from "./testing/db";
 import { membrosDaComunidade } from "./membros";
-import { paginaDaComunidade } from "./comunidades";
+import { paginaDaComunidade, topicosDaComunidade } from "./comunidades";
 import { blockProfile } from "./cabins";
-import { followProfile } from "./follows";
-import { createTopic } from "./topics";
+import { followProfile, followTopic } from "./follows";
+import { createAnswer, createTopic } from "./topics";
+import { marcarTopicoComoVisto } from "./inicio";
 import { SLUGS_DE_TOPICO_RESERVADOS, linhasDasRegras, regrasSchema } from "./validation";
 import { viewerFor } from "./viewer";
 
@@ -195,5 +196,92 @@ describe("o endereço do tópico não colide com rota irmã", () => {
 
     const guardado = await db.topic.findUniqueOrThrow({ where: { id: topico.id } });
     expect(guardado.slug).toBe("primeira-festa");
+  });
+});
+
+describe("a lista de tópicos da comunidade", () => {
+  async function comTopico() {
+    const base = await cenario();
+    const topico = await createTopic(viewerFor(base.lia.id), {
+      communityId: base.comunidade.id,
+      name: "Primeira festa",
+      description: "Conta como foi.",
+      media: null,
+    });
+    return { ...base, topico };
+  }
+
+  it("traz a última contribuição, com quem escreveu", async () => {
+    const { jo, comunidade, topico } = await comTopico();
+    await createAnswer(viewerFor(jo.id), {
+      topicId: topico.id,
+      text: "A minha foi num porão em 2009.",
+      media: null,
+    });
+
+    const [naLista] = await topicosDaComunidade(viewerFor(jo.id), comunidade.id);
+
+    expect(naLista?.ultima?.texto).toBe("A minha foi num porão em 2009.");
+    expect(naLista?.ultima?.autorHandle).toBe("jo");
+    expect(naLista?.respostas).toBe(1);
+  });
+
+  it("tópico sem contribuição vem com ultima nula, e a tela diz isso", async () => {
+    const { lia, comunidade } = await comTopico();
+
+    const [naLista] = await topicosDaComunidade(viewerFor(lia.id), comunidade.id);
+    expect(naLista?.ultima).toBeNull();
+  });
+
+  it("RN26: o tópico de quem me bloqueou some da lista", async () => {
+    const { lia, jo, comunidade } = await cenario();
+    await createTopic(viewerFor(jo.id), {
+      communityId: comunidade.id,
+      name: "Tópico do Jo",
+      description: "Uma abertura qualquer.",
+      media: null,
+    });
+
+    const antes = await topicosDaComunidade(viewerFor(lia.id), comunidade.id);
+    expect(antes.map((t) => t.name)).toContain("Tópico do Jo");
+
+    await blockProfile(viewerFor(jo.id), lia.id);
+
+    const depois = await topicosDaComunidade(viewerFor(lia.id), comunidade.id);
+    expect(depois.map((t) => t.name)).not.toContain("Tópico do Jo");
+  });
+
+  it("conta as contribuições novas desde a última visita, sem contar as minhas", async () => {
+    const { lia, jo, comunidade, topico } = await comTopico();
+    await followTopic(viewerFor(lia.id), topico.id);
+    await marcarTopicoComoVisto(viewerFor(lia.id), topico.id);
+
+    await createAnswer(viewerFor(jo.id), {
+      topicId: topico.id,
+      text: "Cheguei agora.",
+      media: null,
+    });
+    await createAnswer(viewerFor(lia.id), {
+      topicId: topico.id,
+      text: "Essa é minha, não conta.",
+      media: null,
+    });
+
+    const [naLista] = await topicosDaComunidade(viewerFor(lia.id), comunidade.id);
+    expect(naLista?.novas).toBe(1);
+    expect(naLista?.seguindo).toBe(true);
+  });
+
+  it("quem não segue não tem novas, mesmo com contribuição recente", async () => {
+    const { lia, jo, comunidade, topico } = await comTopico();
+    await createAnswer(viewerFor(jo.id), {
+      topicId: topico.id,
+      text: "Oi.",
+      media: null,
+    });
+
+    const [naLista] = await topicosDaComunidade(viewerFor(lia.id), comunidade.id);
+    expect(naLista?.novas).toBe(0);
+    expect(naLista?.seguindo).toBe(false);
   });
 });

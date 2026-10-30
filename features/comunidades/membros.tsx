@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Avatar, Button, CampoDeBusca, Chip, EmptyState } from "@/design/components";
+import { Avatar, Button, CampoDeBusca, Chip, EmptyState, SectionTitle } from "@/design/components";
+
+/** Mês e ano: o dia exato de quando alguém entrou não interessa a ninguém. */
+function mesEAno(data: Date) {
+  return data.toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
+}
 import { alternarSeguirMembro, convidarParaModerar } from "./actions";
 import type { FiltroDeMembros, MembroNaComunidade } from "@/lib/data/membros";
 
@@ -27,6 +32,7 @@ const FILTROS: { id: FiltroDeMembros; rotulo: string }[] = [
 export function MembrosDaComunidade({
   slug,
   communityId,
+  total,
   membros,
   filtro,
   termo,
@@ -35,6 +41,8 @@ export function MembrosDaComunidade({
 }: {
   slug: string;
   communityId: string;
+  /** O total da comunidade, que pode ser maior do que a página mostra. */
+  total: number;
   membros: MembroNaComunidade[];
   filtro: FiltroDeMembros;
   termo: string;
@@ -70,12 +78,43 @@ export function MembrosDaComunidade({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [procurado, termo, params, router, slug]);
 
+  const [convidando, setConvidando] = useState(false);
+
   return (
     <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <SectionTitle contagem={total}>Membros</SectionTitle>
+          <p className="text-caption text-inkMuted">
+            Siga pessoas para ver o que elas fazem no seu Início.
+          </p>
+        </div>
+
+        {/*
+          Convidar é copiar o endereço da comunidade: quem abrir vê a capa,
+          o nome e a pergunta, e entra com um toque (RN16). Só para quem
+          participa — convidar para um lugar onde você não está é estranho.
+        */}
+        {souMembro ? (
+          <Button
+            size="sm"
+            onClick={() => {
+              void navigator.clipboard
+                ?.writeText(`${window.location.origin}/c/${slug}`)
+                .then(() => setConvidando(true))
+                .catch(() => setConvidando(false));
+            }}
+          >
+            {convidando ? "Link copiado" : "Convidar"}
+          </Button>
+        ) : null}
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex gap-1" role="group" aria-label="Filtrar membros">
           {FILTROS.map((opcao) => (
             <Chip
+              formato="pilula"
               key={opcao.id}
               label={opcao.rotulo}
               selected={filtro === opcao.id}
@@ -163,25 +202,33 @@ function LinhaDeMembro({
    * então "Criadora, Moderação" seria redundância escrita.
    */
   const selo = membro.criador
-    ? "Criadora"
+    ? { texto: "Criadora", cor: "bg-sun" }
     : membro.moderador
-      ? "Moderação"
+      ? { texto: "Moderação", cor: "bg-lavender" }
       : membro.novato
-        ? "Entrou esta semana"
+        ? { texto: "Entrou esta semana", cor: "bg-line" }
         : null;
 
   return (
     <li className="bg-paper flex items-center gap-2 rounded-sm p-2">
       <Link href={`/${membro.handle}`} className="flex min-w-0 flex-1 items-center gap-2">
-        <Avatar nome={membro.nome} url={membro.avatarUrl} tamanho="md" />
+        <Avatar nome={membro.nome} url={membro.avatarUrl} tamanho="lg" />
         <span className="min-w-0 flex-1">
-          <span className="text-bodyStrong text-ink block truncate">
-            {membro.nome}
-            {membro.souEu ? " (você)" : ""}
+          <span className="flex items-center gap-1">
+            <span className="text-bodyStrong text-ink truncate">
+              {membro.nome}
+              {membro.souEu ? " (você)" : ""}
+            </span>
+            {selo ? (
+              <span
+                className={`${selo.cor} text-ink text-caption rounded-pill shrink-0 px-2 font-bold`}
+              >
+                {selo.texto}
+              </span>
+            ) : null}
           </span>
           <span className="text-caption text-inkMuted block truncate">
-            @{membro.handle}
-            {selo ? ` · ${selo}` : ""}
+            @{membro.handle} · entrou em {mesEAno(membro.desde)}
           </span>
         </span>
       </Link>

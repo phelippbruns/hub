@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useId, useRef, useState, useTransition } from "react";
 import {
+  Avatar,
   BottomSheet,
   Button,
   CommunityDoor,
@@ -291,13 +292,44 @@ export function CabecalhoDaComunidade({
         contaria cada um duas vezes, já que eles estão no número ao lado.
         Alinhar a RN28 está em docs/pendencias.md.
       */}
-      <p className="text-caption text-inkMuted">
-        {numero(membros)} {membros === 1 ? "membro" : "membros"} · {numero(comunidade.topicosCount)}{" "}
-        {comunidade.topicosCount === 1 ? "tópico" : "tópicos"} ·{" "}
-        {numero(comunidade.contribuicoesCount)}{" "}
-        {comunidade.contribuicoesCount === 1 ? "contribuição" : "contribuições"} · criada em{" "}
-        {mesEAno(comunidade.criadaEm)}
-      </p>
+      {/* A descrição curta, logo abaixo da capa, como o protótipo mostra. */}
+      <p className="text-body text-ink">{comunidade.intro}</p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {/*
+          Avatares sobrepostos, sem iniciais: aqui eles são a textura de
+          "tem gente aqui", não um crachá. O nome de cada um não cabe nem
+          interessa nesta linha, e por isso o bloco inteiro é decorativo —
+          o número ao lado é que carrega a informação.
+        */}
+        {comunidade.primeirosMembros.length > 0 ? (
+          <span aria-hidden="true" className="flex">
+            {comunidade.primeirosMembros.map((pessoa, i) => (
+              <Avatar
+                key={i}
+                nome={pessoa.nome}
+                url={pessoa.avatarUrl}
+                tamanho="sm"
+                className={i > 0 ? "-ml-2" : undefined}
+              />
+            ))}
+          </span>
+        ) : null}
+
+        <p className="text-caption text-inkMuted">
+          {numero(membros)} {membros === 1 ? "membro" : "membros"} ·{" "}
+          {numero(comunidade.topicosCount)} {comunidade.topicosCount === 1 ? "tópico" : "tópicos"} ·{" "}
+          {/*
+            Com movimento, o número de hoje; parada, a data de nascimento.
+            "0 contribuições hoje" anuncia o vazio de quem acabou de chegar.
+          */}
+          {comunidade.contribuicoesHoje > 0
+            ? `${numero(comunidade.contribuicoesHoje)} ${
+                comunidade.contribuicoesHoje === 1 ? "contribuição" : "contribuições"
+              } hoje`
+            : `criada em ${mesEAno(comunidade.criadaEm)}`}
+        </p>
+      </div>
 
       {/*
         A folha de entrada, só para comunidade com regras escritas.

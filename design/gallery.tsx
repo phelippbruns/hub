@@ -45,7 +45,6 @@ import {
   SectionTitle,
   Segmented,
   RadioGroup,
-  SortToggle,
   Paginador,
   Steps,
   SuccessMessage,
@@ -56,6 +55,7 @@ import {
   TextField,
   TopicName,
   TopicOpening,
+  TopicCard,
   TopicRow,
 } from "./components";
 import {
@@ -197,7 +197,6 @@ export function DesignGallery() {
   const [filtro, setFiltro] = useState("tudo");
   const [motivo, setMotivo] = useState<string | null>(null);
   const [seguindo, setSeguindo] = useState(false);
-  const [ordem, setOrdem] = useState<"atividade" | "recentes">("atividade");
   const [fixada, setFixada] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [cardDaGaleria, setCardDaGaleria] = useState(0);
@@ -582,10 +581,6 @@ export function DesignGallery() {
           </div>
         </Card>
 
-        <Card title="Ordem" wide>
-          <SortToggle ordem={ordem} onChange={setOrdem} />
-        </Card>
-
         <Card title="Topo do perfil" wide>
           {/* RN28: participação, não popularidade — uma linha de texto, não um placar. */}
           <div className="w-full">
@@ -768,6 +763,26 @@ export function DesignGallery() {
               action={<CommunityDoor member={member} onToggle={() => setMember((v) => !v)} />}
             />
             <TopicRow name="primeira festa" people={42} answers={87} when="há 10 min" />
+          </div>
+        </Card>
+
+        <Card title="Cartão de tópico" wide>
+          <div className="flex w-full flex-col gap-2">
+            <TopicCard
+              name="primeira festa"
+              people={42}
+              answers={87}
+              when="há 10 min"
+              following
+              novas={3}
+              ultima={{
+                texto: "Levo o cabo extra, o da casa nunca alcança a mesa de som.",
+                autorNome: "Lia Souza",
+                autorHandle: "lia",
+                avatarUrl: null,
+              }}
+            />
+            <TopicCard name="ninguém respondeu ainda" people={0} answers={0} ultima={null} />
           </div>
         </Card>
 

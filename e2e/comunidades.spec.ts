@@ -3,6 +3,7 @@ import { consultar, esperarNoBanco } from "./apoio-banco";
 import {
   alerta,
   cadastroConcluido,
+  respostaPublicada,
   concluirOnboarding,
   preencherNovaComunidade,
 } from "./apoio-tela";
@@ -156,17 +157,33 @@ test.describe("a página da comunidade", () => {
    * A terceira coluna saiu do layout junto com o painel da comunidade, que
    * era a única tela a usá-la.
    */
-  test("não existe mais painel de contexto em tela nenhuma", async ({ page }) => {
+  test("o painel de contexto não voltou: o resumo é desta página", async ({ page }) => {
     await entrarNoApp(page, "sempainel");
     await preencherNova(page, novoNome("Sem Painel"));
     await page.waitForURL(/\/c\//);
 
+    /*
+      A rota paralela do app inteiro, com preferência no banco, não voltou —
+      é o vacilo 17. O que existe é um `<aside>` desta página, e ele não
+      aparece em tela nenhuma fora da comunidade.
+    */
     await expect(page.getByRole("complementary", { name: "Painel de contexto" })).toHaveCount(0);
+    await expect(page.getByRole("complementary", { name: "Resumo da comunidade" })).toBeVisible();
 
-    // E o que o painel mostrava desceu para baixo da capa.
-    await expect(
-      page.getByText(/membro.* · .*tópico.* · .*contribuiç.* · criada em /),
-    ).toBeVisible();
+    await page.goto("/inicio");
+    await expect(page.getByRole("complementary")).toHaveCount(0);
+  });
+
+  test("a linha sob a capa conta a comunidade, e troca o número pelo nascimento", async ({
+    page,
+  }) => {
+    await entrarNoApp(page, "linha");
+    await preencherNova(page, novoNome("Com Linha"));
+    await page.waitForURL(/\/c\//);
+
+    // Parada, a linha diz quando nasceu — "0 contribuições hoje" só anuncia
+    // o vazio de quem acabou de chegar.
+    await expect(page.getByText(/1 membro · 0 tópicos · criada em /)).toBeVisible();
   });
 
   /*
@@ -245,6 +262,94 @@ test.describe("as abas da comunidade", () => {
   });
 });
 
+test.describe("a lista de tópicos", () => {
+  test("os filtros têm nome, vivem na URL, e Seguindo só aparece para quem participa", async ({
+    page,
+  }) => {
+    await entrarNoApp(page, "filtros");
+    const nome = novoNome("Com Filtros");
+    await preencherNova(page, nome);
+    await page.waitForURL(/\/c\/[^/]+$/);
+
+    // Os dois ícones sem rótulo saíram; no lugar, chips com nome.
+    await expect(page.getByRole("button", { name: "Ordenar por atividade" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Em alta" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await page.getByRole("button", { name: "Recentes" }).click();
+    await page.waitForURL(/filtro=recentes/);
+    await expect(page.getByRole("button", { name: "Recentes" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    // "Seguindo" absorveu a seção que ficava acima da lista.
+    await expect(page.getByRole("heading", { name: "Tópicos que você segue aqui" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Seguindo" }).click();
+    await page.waitForURL(/filtro=seguindo/);
+    await expect(page.getByText("Você não segue nenhum tópico aqui")).toBeVisible();
+  });
+
+  test("o cartão mostra a última contribuição, com avatar e @", async ({ page }) => {
+    await entrarNoApp(page, "ultima");
+    const nome = novoNome("Com Última");
+    await preencherNova(page, nome);
+    await page.waitForURL(/\/c\/([^/]+)$/);
+    const endereco = new URL(page.url()).pathname;
+
+    await page.goto(`${endereco}/novo`);
+    await page.getByLabel("Nome").fill("Primeira festa");
+    await page.getByLabel("Descrição").fill("Conta aí como foi.");
+    await page.getByRole("button", { name: "Criar tópico" }).click();
+    await page.waitForURL(/\/c\/[^/]+\/[^/]+$/);
+
+    await page.getByLabel("Sua resposta").fill("A minha foi num porão em 2009.");
+    await page.getByRole("button", { name: "Responder" }).click();
+    await respostaPublicada(page, "A minha foi num porão em 2009.");
+
+    await page.goto(endereco);
+    const cartao = page.getByRole("main").getByText("A minha foi num porão em 2009.");
+    await expect(cartao).toBeVisible();
+    await expect(page.getByRole("main").getByText("1 pessoa · 1 contribuição")).toBeVisible();
+  });
+
+  test("a busca só aparece a partir de 10 tópicos", async ({ page }) => {
+    await entrarNoApp(page, "buscacurta");
+    await preencherNova(page, novoNome("Poucos Tópicos"));
+    await page.waitForURL(/\/c\/[^/]+$/);
+
+    // Comunidade nova: a lista inteira cabe na tela, e o campo só ocuparia espaço.
+    await expect(page.getByRole("searchbox", { name: /Buscar tópicos/ })).toHaveCount(0);
+
+    // A do seed tem bastante tópico, e lá o campo existe.
+    const [cheia] = await consultar<{ slug: string }>(`
+      SELECT c.slug FROM communities c
+       JOIN topics t ON t.community_id = c.id AND t.deleted_at IS NULL
+       WHERE c.deleted_at IS NULL
+       GROUP BY c.slug HAVING count(*) >= 10 LIMIT 1`);
+    if (cheia) {
+      await page.goto(`/c/${cheia.slug}`);
+      await expect(page.getByRole("searchbox", { name: /Buscar tópicos/ })).toBeVisible();
+    }
+  });
+
+  test("a coluna da direita resume a comunidade, sem rota paralela nenhuma", async ({ page }) => {
+    await entrarNoApp(page, "resumo");
+    await preencherNova(page, novoNome("Com Resumo"));
+    await page.waitForURL(/\/c\/[^/]+$/);
+
+    const resumo = page.getByRole("complementary", { name: "Resumo da comunidade" });
+    await expect(resumo).toBeVisible();
+    await expect(resumo.getByText(/MEMBROS/)).toBeVisible();
+    await expect(resumo.getByText(/ATIVIDADE/)).toBeVisible();
+
+    await resumo.getByRole("link", { name: "Ver todos" }).click();
+    await page.waitForURL(/aba=membros/);
+  });
+});
+
 test.describe("o cartão Sobre e as regras", () => {
   test("sem regras escritas, entrar continua sendo um clique", async ({ page, context }) => {
     const nome = novoNome("Sem Regras");
@@ -253,9 +358,14 @@ test.describe("o cartão Sobre e as regras", () => {
     await page.waitForURL(/\/c\//);
     const endereco = new URL(page.url()).pathname;
 
-    await expect(page.getByRole("heading", { name: "Sobre" })).toBeVisible();
-    // Sem regras não existe o bloco recolhido.
+    /*
+      Sem sobre escrito e sem regras, o cartão inteiro não existe: cartão
+      com título e nada dentro é pior do que cartão nenhum. O que a pessoa
+      precisa ver numa comunidade recém-nascida é Primeiros passos.
+    */
+    await expect(page.getByRole("heading", { name: "Sobre" })).toHaveCount(0);
     await expect(page.getByText(/Regras da comunidade/)).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Primeiros passos" })).toBeVisible();
 
     const { contexto, visita: outra } = await outraPessoa(context, "semregra2");
     await outra.goto(endereco);
