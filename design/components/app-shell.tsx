@@ -4,35 +4,17 @@ import { cn } from "../cn";
 /**
  * A casca das telas autenticadas, acima de 768 px.
  *
- * Três partes: a barra lateral, o conteúdo e — **só quando a tela tem um** —
- * o painel de contexto à direita. Das 23 telas autenticadas, apenas a página
- * da comunidade e a Cabine têm painel; reservar a coluna nas outras 21
- * deixaria o conteúdo torto e fora do centro.
+ * Duas partes: a barra lateral e o conteúdo.
  *
- * O painel chega por rota paralela, e uma rota paralela está **sempre**
- * preenchida: as telas sem painel caem num `default` que devolve nada. Por
- * isso quem decide se a coluna existe é o `empty:hidden` — se a tela não
- * desenhou nada ali, a coluna some, em vez de ficar uma faixa de 260 px em
- * branco com uma linha ao lado.
+ * Houve uma terceira — o painel de contexto à direita, por rota paralela —,
+ * e ela saiu na F20 junto com o painel da comunidade, que era a única tela
+ * a usá-la. O Hub inteiro carregava a rota paralela, o `default` que
+ * devolvia nada e o `empty:hidden` que escondia a coluna, por uma tela só.
+ * As informações da comunidade desceram para baixo da capa.
  */
-export function AppShell({
-  nav,
-  children,
-  painel,
-}: {
-  nav: ReactNode;
-  children: ReactNode;
-  painel?: ReactNode;
-}) {
+export function AppShell({ nav, children }: { nav: ReactNode; children: ReactNode }) {
   return (
-    <div
-      className={cn(
-        "bg-surfacePage grid min-h-screen",
-        painel === undefined
-          ? "grid-cols-[auto_minmax(0,1fr)]"
-          : "grid-cols-[auto_minmax(0,1fr)_auto]",
-      )}
-    >
+    <div className="bg-surfacePage grid min-h-screen grid-cols-[auto_minmax(0,1fr)]">
       {/*
         O encaixe da barra: largura fixa de `navRail`, e é ele que fica
         `sticky`. A barra mora dentro em posição absoluta e cresce por cima
@@ -45,14 +27,6 @@ export function AppShell({
       */}
       <div className="w-navRail sticky top-0 z-20 h-screen self-start">{nav}</div>
       <main className="min-w-0">{children}</main>
-      {painel === undefined ? null : (
-        <aside
-          aria-label="Painel de contexto"
-          className="border-line w-contextPanel border-l p-4 empty:hidden"
-        >
-          {painel}
-        </aside>
-      )}
     </div>
   );
 }

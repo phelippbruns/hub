@@ -15,7 +15,7 @@ import {
   topicoPorEndereco,
 } from "./topics";
 import { createCommunity, joinCommunity } from "./communities";
-import { trocarCapa } from "./comunidades";
+import { CAPA_SEM_ENQUADRAMENTO, trocarCapa } from "./comunidades";
 import { viewerFor } from "./viewer";
 
 beforeEach(resetDatabase);
@@ -195,7 +195,7 @@ describe("RN06: a capa da comunidade", () => {
   it("quem modera troca", async () => {
     const { lia, comunidade } = await cenario();
 
-    await trocarCapa(viewerFor(lia.id), comunidade.id, "capas/nova.jpg");
+    await trocarCapa(viewerFor(lia.id), comunidade.id, "capas/nova.jpg", CAPA_SEM_ENQUADRAMENTO);
 
     const depois = await db.community.findUniqueOrThrow({ where: { id: comunidade.id } });
     expect(depois.coverUrl).toBe("capas/nova.jpg");
@@ -204,9 +204,9 @@ describe("RN06: a capa da comunidade", () => {
   it("membro comum não troca", async () => {
     const { jo, comunidade } = await cenario();
 
-    await expect(trocarCapa(viewerFor(jo.id), comunidade.id, "capas/invasora.jpg")).rejects.toThrow(
-      /modera/i,
-    );
+    await expect(
+      trocarCapa(viewerFor(jo.id), comunidade.id, "capas/invasora.jpg", CAPA_SEM_ENQUADRAMENTO),
+    ).rejects.toThrow(/modera/i);
   });
 
   it("quem nem é membro não troca", async () => {
@@ -214,18 +214,29 @@ describe("RN06: a capa da comunidade", () => {
     const estranha = await makeProfile();
 
     await expect(
-      trocarCapa(viewerFor(estranha.id), comunidade.id, "capas/invasora.jpg"),
+      trocarCapa(
+        viewerFor(estranha.id),
+        comunidade.id,
+        "capas/invasora.jpg",
+        CAPA_SEM_ENQUADRAMENTO,
+      ),
     ).rejects.toThrow();
   });
 
   it("a capa antiga é devolvida para ser apagada do depósito", async () => {
     const { lia, comunidade } = await cenario();
 
-    await trocarCapa(viewerFor(lia.id), comunidade.id, "capas/primeira.jpg");
+    await trocarCapa(
+      viewerFor(lia.id),
+      comunidade.id,
+      "capas/primeira.jpg",
+      CAPA_SEM_ENQUADRAMENTO,
+    );
     const { anteriorParaApagar } = await trocarCapa(
       viewerFor(lia.id),
       comunidade.id,
       "capas/segunda.jpg",
+      CAPA_SEM_ENQUADRAMENTO,
     );
 
     // Guardar imagem que ninguém mais vê custa espaço e aumenta o que vaza.
@@ -249,6 +260,7 @@ describe("RN06: a capa da comunidade", () => {
       viewerFor(lia.id),
       comunidade.id,
       "capas/propria.jpg",
+      CAPA_SEM_ENQUADRAMENTO,
     );
     expect(anteriorParaApagar).toBeNull();
   });

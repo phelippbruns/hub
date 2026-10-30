@@ -213,7 +213,6 @@ model Profile {
   ageVerifiedAt         DateTime?              @map("age_verified_at") @db.Timestamptz(6)
 
   /// F07: painel de contexto oculto. Preferência da pessoa, não do aparelho.
-  hideContextPanel Boolean @default(false) @map("hide_context_panel")
   /// Versão dos Termos aceita no cadastro (RN29).
   termsVersion     String? @map("terms_version") @db.VarChar(20)
 
@@ -320,6 +319,21 @@ model Community {
   intro          String  @db.VarChar(240)
   coverUrl       String? @map("cover_url")
   createdById    String? @map("created_by_id") @db.Uuid
+
+  /// O enquadramento da capa. Largura e altura saem **dos bytes** no
+  /// servidor, nunca do formulário.
+  ///
+  /// A âncora, e não um deslocamento, porque a capa ocupa a largura da tela
+  /// e a altura é fixa: a forma do quadro muda com a janela, e um
+  /// deslocamento guardado contra uma forma abriria faixa vazia noutra. A
+  /// âncora diz que ponto da foto fica no mesmo lugar, que é o que o
+  /// `object-position` do CSS faz — vale em qualquer largura. O avatar
+  /// continua com ox/oy porque o quadro dele é sempre quadrado.
+  coverWidth   Int?   @map("cover_width")
+  coverHeight  Int?   @map("cover_height")
+  coverZoom    Float  @default(1) @map("cover_zoom")
+  coverAnchorX Float  @default(0.5) @map("cover_anchor_x")
+  coverAnchorY Float  @default(0.5) @map("cover_anchor_y")
 
   /// RN05: a comunidade entra no Explorar ao atingir 20 membros. Mantido por
   /// gatilho em memberships, para não depender de contagem a cada leitura.

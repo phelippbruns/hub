@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useRef, useState } from "react";
-import { Button, CommunityCover, Input, TextField } from "@/design/components";
-import { TAMANHO_MAXIMO_EM_MB, problemaNaImagem } from "@/lib/midia/limites";
+import { useActionState, useState } from "react";
+import { Button, Input, TextField } from "@/design/components";
 import { criarComunidade, type EstadoDaCriacao } from "./actions";
+import { CapaEditavel } from "./capa-editavel";
 
 /**
  * Tela 13: criar comunidade.
@@ -15,65 +15,24 @@ import { criarComunidade, type EstadoDaCriacao } from "./actions";
  */
 export function FormularioNovaComunidade() {
   const [estado, acao, pendente] = useActionState<EstadoDaCriacao, FormData>(criarComunidade, {});
-  const [previa, setPrevia] = useState<string | null>(null);
-  const [nomeDoArquivo, setNomeDoArquivo] = useState<string | null>(null);
-  const [problemaDaCapa, setProblemaDaCapa] = useState<string | null>(null);
   const [nome, setNome] = useState("");
-  const arquivoRef = useRef<HTMLInputElement>(null);
 
   return (
     <form action={acao} className="flex flex-col gap-3">
       {/*
-        A capa entra já na criação.
+        A capa entra já na criação, e o ajuste acontece dentro do próprio
+        retângulo dela — o mesmo componente da tela da comunidade e a mesma
+        mecânica da foto de perfil. Virou padrão de sistema na F20.
 
         Antes a comunidade nascia com a capa padrão e só quem modera trocava
-        depois, pelo menu de três pontos — ou seja, quem acabou de criar
-        precisava descobrir um menu para terminar o que estava fazendo. O
-        caminho é o mesmo da tela de trocar capa: prévia aqui, conferência
-        pelos bytes e remoção da localização no servidor.
+        depois, pelo menu de três pontos: quem acabou de criar precisava
+        descobrir um menu para terminar o que estava fazendo.
+
+        Aqui o OK só fecha o ajuste. Não há para onde enviar a imagem ainda:
+        a comunidade nasce no envio do formulário, e subir o arquivo antes
+        de o nome ser validado desperdiçaria um arquivo a cada nome repetido.
       */}
-      <CommunityCover name={nome || "Sua comunidade"} coverUrl={previa} />
-
-      {/*
-        O controle de arquivo do navegador vem em inglês e não há como
-        traduzi-lo. Fica escondido do olho, não do teclado nem do leitor de
-        tela, e quem aparece é um botão nosso.
-      */}
-      <input
-        ref={arquivoRef}
-        type="file"
-        name="imagem"
-        accept="image/jpeg,image/png,image/webp"
-        className="sr-only"
-        aria-label="Escolher a capa"
-        onChange={(evento) => {
-          const escolhido = evento.target.files?.[0] ?? null;
-          setProblemaDaCapa(escolhido ? problemaNaImagem(escolhido) : null);
-          setNomeDoArquivo(escolhido?.name ?? null);
-          if (previa) URL.revokeObjectURL(previa);
-          setPrevia(escolhido ? URL.createObjectURL(escolhido) : null);
-        }}
-      />
-
-      <div className="flex items-center gap-2">
-        <Button variant="secondary" size="sm" onClick={() => arquivoRef.current?.click()}>
-          Escolher capa
-        </Button>
-        <span className="text-caption text-inkMuted min-w-0 flex-1 truncate">
-          {nomeDoArquivo ?? "Sem capa, o Hub usa a padrão"}
-        </span>
-      </div>
-
-      {problemaDaCapa ? (
-        <p role="alert" className="text-caption text-error">
-          {problemaDaCapa}
-        </p>
-      ) : (
-        <p className="text-caption text-inkMuted">
-          JPEG, PNG ou WebP, até {TAMANHO_MAXIMO_EM_MB} MB. A localização que a foto carrega é
-          removida antes de guardar.
-        </p>
-      )}
+      <CapaEditavel nome={nome || "Sua comunidade"} capaAtual={null} rotulo="Escolher a capa" />
 
       <Input
         label="Nome"
@@ -112,11 +71,7 @@ export function FormularioNovaComunidade() {
         </p>
       ) : null}
 
-      <Button
-        type="submit"
-        disabled={pendente || problemaDaCapa !== null}
-        disabledHint={problemaDaCapa ?? undefined}
-      >
+      <Button type="submit" disabled={pendente}>
         Criar comunidade
       </Button>
     </form>

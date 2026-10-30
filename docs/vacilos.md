@@ -573,3 +573,73 @@ que a anuncia. A regra dorme no código; a frase continua acordada na tela.
 
 👁 **Solto** — não há como um teste saber que uma frase virou mentira. O
 que existe é o hábito: mexeu num limite, procure quem o cita.
+
+## 16. Confirmação que protegia de nada, e o buraco que ela escondia
+
+### "Sair pede confirmação" valia até para quem só tinha entrado
+
+*O que estava escrito:* o escopo dizia, na descrição da página da
+comunidade, **"Sair pede confirmação"**. Sem exceção. Implementado assim
+desde a F07: tocar na marca # abria uma folha com "Continuar membro" e
+"Sair".
+
+*O que o PO decidiu, em 29 de outubro:* a confirmação sai. A razão é curta
+e correta — **a comunidade é pública**. Entrar e sair não custa nada, não
+perde conteúdo e não avisa ninguém; perguntar "tem certeza?" para uma ação
+reversível e gratuita é atrito que treina a pessoa a clicar em "Sim" sem
+ler, e aí a confirmação que **importa** também passa batida.
+
+*O que a conversa descobriu:* a confirmação protegia de uma coisa de
+verdade, e de outra que ninguém tinha visto.
+
+A que ela protegia é a RN06: quando um moderador sai, a moderação passa
+para o membro mais ativo, **e isso não tem volta**. Era a última linha da
+descrição da folha, e sumiria junto com ela.
+
+A que ninguém tinha visto é a comunidade de uma pessoa só. Nela o moderador
+é o único membro, não há herdeiro a escolher, e sair deixava um endereço
+vivo com zero membros, sem quem o moderasse e sem quem o lesse — atendendo
+denúncia que ninguém atenderia. Ninguém tinha escrito o que fazer nesse
+caso porque ninguém tinha olhado para ele.
+
+*O que ficou:* sair é um clique, e duas exceções perguntam — a entrega da
+moderação e a exclusão da comunidade vazia, que virou a **RN35**. Nos dois
+casos o texto diz **o que acontece**, não "tem certeza?": o que a pessoa
+precisa saber é o que ela perde.
+
+**A lição:** antes de tirar uma confirmação, leia o que ela dizia. Ela é o
+único lugar do produto onde alguém já escreveu as consequências de uma
+ação — e, se alguma delas não couber em "é reversível e gratuito", é ela
+que precisa de regra, não de folha.
+
+## 17. Estrutura do Hub inteiro a serviço de uma tela
+
+### O painel de contexto existia para uma página só
+
+*O que havia:* uma terceira coluna no layout de todas as 23 telas
+autenticadas, alimentada por **rota paralela** (`app/(app)/@painel/`), com
+um `default.tsx` devolvendo nada, um `empty:hidden` para a coluna sumir, e
+uma coluna no banco (`profiles.hide_context_panel`) guardando a preferência
+de cada pessoa de escondê-la.
+
+*Quem usava:* a página da comunidade. Só ela. O painel mostrava a descrição,
+a contagem de membros, uma explicação de como o Hot Topic funciona e os
+tópicos seguidos naquela comunidade.
+
+*O que o PO decidiu:* o painel sai, e as informações descem para baixo da
+capa.
+
+*O que isso revelou:* a estrutura custava mais que o conteúdo. Rota
+paralela é das coisas mais difíceis de entender no App Router — ela tem
+regras próprias de `default`, de revalidação (`revalidatePath(..., "layout")`)
+e de como se comporta em navegação —, e o Hub carregava tudo isso, em toda
+tela, para desenhar quatro blocos de texto numa.
+
+A justificativa original está no código e era boa: o painel precisava
+continuar visível com uma folha aberta, e folha que empurra conteúdo o
+faria sumir. Ela deixou de valer quando as folhas viraram menus suspensos
+na mesma rodada — e ninguém teria reparado, porque a estrutura não reclama.
+
+**A lição:** quando uma peça de infraestrutura serve a **um** lugar,
+pergunte se o motivo dela ainda existe. O motivo some antes da peça, e em
+silêncio.

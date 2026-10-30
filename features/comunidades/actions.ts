@@ -15,12 +15,24 @@ import {
   leaveCommunity,
 } from "@/lib/data/communities";
 import {
+  CAPA_SEM_ENQUADRAMENTO,
   alternarFixada,
   comunidadePorSlug,
-  definirPainelOculto,
   trocarCapa,
+  type EnquadramentoDaCapa,
 } from "@/lib/data/comunidades";
-import { ImagemRecusada, TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB } from "@/lib/midia/imagem";
+import {
+  ImagemRecusada,
+  TAMANHO_MAXIMO,
+  TAMANHO_MAXIMO_EM_MB,
+  dimensoesDaImagem,
+} from "@/lib/midia/imagem";
+import {
+  QUADRO_DA_CAPA,
+  ancoraDoEnquadramento,
+  dentroDoLimite,
+  type Medidas,
+} from "@/lib/midia/enquadramento";
 import { apagarImagem, guardarImagem } from "@/lib/midia/deposito";
 import { getViewer } from "@/lib/auth/session";
 import { RuleViolationError, UnauthenticatedError } from "@/lib/data/errors";
@@ -91,18 +103,25 @@ export async function criarComunidade(
   if (existente) return { jaExiste: { name: existente.name, slug: existente.slug } };
 
   let capa: string | null = null;
+  let enquadramento = CAPA_SEM_ENQUADRAMENTO;
   if (temCapa) {
+    const bytes = new Uint8Array(await arquivo.arrayBuffer());
     try {
-      capa = await guardarImagem(new Uint8Array(await arquivo.arrayBuffer()), "capas");
+      capa = await guardarImagem(bytes, "capas");
     } catch (erro) {
       if (erro instanceof ImagemRecusada) return { erro: erro.motivo };
       throw erro;
     }
+    enquadramento = enquadramentoDaCapa(formulario, dimensoesDaImagem(bytes));
   }
 
   let slug: string;
   try {
-    const criada = await createCommunity(viewer, { ...validado.data, coverUrl: capa });
+    const criada = await createCommunity(viewer, {
+      ...validado.data,
+      coverUrl: capa,
+      ...enquadramento,
+    });
     slug = criada!.slug;
   } catch (erro) {
     // A corrida: alguém criou o mesmo nome entre a checagem e o INSERT.
@@ -121,17 +140,25 @@ export async function criarComunidade(
 }
 
 /** O # da página da comunidade: entra e sai. */
-export async function alternarMembro(communityId: string, slug: string, souMembro: boolean) {
+export async function alternarMembro(
+  communityId: string,
+  slug: string,
+  souMembro: boolean,
+): Promise<{ comunidadeApagada: boolean }> {
   const viewer = await quemPede();
+  let apagada = false;
 
   if (souMembro) {
-    await leaveCommunity(viewer, communityId);
+    // RN35: sair sendo a última pessoa apaga a comunidade.
+    ({ comunidadeApagada: apagada } = await leaveCommunity(viewer, communityId));
   } else {
     await joinCommunity(viewer, communityId);
   }
 
   revalidatePath(`/c/${slug}`);
   revalidatePath("/comunidades/minhas");
+  revalidatePath("/comunidades");
+  return { comunidadeApagada: apagada };
 }
 
 /** Fixar e desafixar, na linha de Minhas Comunidades. */
@@ -141,11 +168,36 @@ export async function alternarComunidadeFixada(communityId: string, fixar: boole
   revalidatePath("/comunidades/minhas");
 }
 
-/** Ocultar e trazer de volta o painel, pelo menu de três pontos. */
-export async function alternarPainel(oculto: boolean) {
-  const viewer = await quemPede();
-  await definirPainelOculto(viewer, oculto);
-  revalidatePath("/c/[comunidade]", "layout");
+/**
+ * O enquadramento que vem do formulário, reconferido com as medidas que o
+ * servidor leu **dos bytes**.
+ *
+ * A tela manda deslocamento (`ox`, `oy`), que é o que ela sabe arrastar, e
+ * o que se guarda é âncora, que é o que sobrevive à largura da janela
+ * mudar. A conversão é aqui, num lugar só, porque as duas telas que enviam
+ * capa precisam exatamente dela.
+ *
+ * Nada do formulário é confiável: `dentroDoLimite` corta o que passaria da
+ * borda, e o que não for número vira o neutro do campo.
+ */
+function enquadramentoDaCapa(formulario: FormData, medidas: Medidas | null): EnquadramentoDaCapa {
+  if (!medidas) return CAPA_SEM_ENQUADRAMENTO;
+
+  const numero = (campo: string) => Number(formulario.get(campo));
+  const pedido = dentroDoLimite(
+    medidas,
+    { zoom: numero("capaZoom"), ox: numero("capaOx"), oy: numero("capaOy") },
+    QUADRO_DA_CAPA,
+  );
+  const ancora = ancoraDoEnquadramento(medidas, pedido, QUADRO_DA_CAPA);
+
+  return {
+    coverWidth: medidas.largura,
+    coverHeight: medidas.altura,
+    coverZoom: pedido.zoom,
+    coverAnchorX: ancora.x,
+    coverAnchorY: ancora.y,
+  };
 }
 
 export type EstadoDaCapa = { erro?: string; trocada?: boolean };
@@ -174,15 +226,24 @@ export async function trocarCapaDaComunidade(
   if (arquivo.size > TAMANHO_MAXIMO)
     return { erro: `A imagem passa de ${TAMANHO_MAXIMO_EM_MB} MB.` };
 
+  const bytes = new Uint8Array(await arquivo.arrayBuffer());
+
   let caminho: string;
   try {
-    caminho = await guardarImagem(new Uint8Array(await arquivo.arrayBuffer()), "capas");
+    caminho = await guardarImagem(bytes, "capas");
   } catch (erro) {
     if (erro instanceof ImagemRecusada) return { erro: erro.motivo };
     throw erro;
   }
 
-  const { anteriorParaApagar } = await trocarCapa(viewer, comunidade.id, caminho);
+  const { anteriorParaApagar } = await trocarCapa(
+    viewer,
+    comunidade.id,
+    caminho,
+    // Medidas dos bytes, nunca do formulário: é o que impede alguém de
+    // mandar um tamanho mentiroso e deslocar a capa para fora do quadro.
+    enquadramentoDaCapa(formulario, dimensoesDaImagem(bytes)),
+  );
   await apagarImagem(anteriorParaApagar);
 
   for (const rota of [`/c/${slug}`, "/comunidades/minhas", "/comunidades"]) {

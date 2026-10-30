@@ -2,22 +2,27 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState, useTransition } from "react";
+import { useActionState, useId, useRef, useState, useTransition } from "react";
 import {
-  BottomSheet,
   Button,
-  CommunityCover,
   CommunityDoor,
   ConfirmSheet,
+  MenuSuspenso,
   RoundIconButton,
 } from "@/design/components";
 import { BackIcon, MoreOptionsIcon, ShareIcon } from "@/design/icons";
-import { alternarMembro, alternarPainel } from "./actions";
+import { alternarMembro, trocarCapaDaComunidade } from "./actions";
+import { CapaEditavel } from "./capa-editavel";
 import { Compartilhar, type PessoaParaCompartilhar } from "@/features/convite/compartilhar";
 import type { PaginaDaComunidade } from "@/lib/data/comunidades";
 
 function numero(valor: number) {
   return valor.toLocaleString("pt-BR");
+}
+
+/** Mês e ano: o dia exato de uma comunidade não interessa a ninguém. */
+function mesEAno(data: Date) {
+  return data.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 }
 
 /**
@@ -26,14 +31,18 @@ function numero(valor: number) {
  * Os três estados — compartilhar, sair e o menu — moram aqui juntos porque
  * são **excludentes**: abrir um fecha os outros. Separados em componentes
  * diferentes, dois poderiam ficar abertos ao mesmo tempo.
+ *
+ * Compartilhar e o menu abrem como **drop**, logo abaixo do botão que os
+ * abriu, e não como folha subindo do rodapé: pedido do PO em 29 de outubro,
+ * e o mesmo `MenuSuspenso` que o perfil e a Cabine já usam. A folha
+ * continua existindo para a confirmação de saída, que é interrupção de
+ * propósito.
  */
 export function CabecalhoDaComunidade({
   comunidade,
-  painelOculto,
   paraCompartilhar,
 }: {
   comunidade: PaginaDaComunidade;
-  painelOculto: boolean;
   /** Quem pode receber o link (F14). Vem pronto do servidor. */
   paraCompartilhar: PessoaParaCompartilhar[];
 }) {
@@ -42,6 +51,8 @@ export function CabecalhoDaComunidade({
   const [membro, setMembro] = useState(comunidade.souMembro);
   const [membros, setMembros] = useState(comunidade.membersCount);
   const [pendente, iniciar] = useTransition();
+  const [estadoDaCapa, trocarCapa] = useActionState(trocarCapaDaComunidade, {});
+  const formularioDaCapa = useRef<HTMLFormElement>(null);
 
   const idDoMenu = useId();
   const idDeCompartilhar = useId();
@@ -50,26 +61,40 @@ export function CabecalhoDaComunidade({
     setAberto((atual) => (atual === qual ? "nenhum" : qual));
   }
 
-  /** Entrar é direto; sair passa pela confirmação. */
+  /*
+   * Quem sai sozinho leva a comunidade junto (RN35), e quem modera entrega
+   * a moderação (RN06). Fora esses dois casos, **sair é um clique** —
+   * decisão do PO em 29 de outubro: numa comunidade pública não há o que
+   * confirmar, e a folha só atrasava quem já tinha decidido.
+   */
+  const ultimaPessoa = membros <= 1;
+  const entregaModeracao = comunidade.souModerador && !ultimaPessoa;
+  const saidaPesa = ultimaPessoa || entregaModeracao;
+
   function tocarNaPorta() {
-    if (membro) {
+    if (!membro) {
+      setMembro(true);
+      setMembros(membros + 1);
+      iniciar(async () => {
+        try {
+          await alternarMembro(comunidade.id, comunidade.slug, false);
+        } catch {
+          setMembro(false);
+          setMembros(membros);
+        }
+      });
+      return;
+    }
+
+    if (saidaPesa) {
       abrir("sair");
       return;
     }
 
-    setMembro(true);
-    setMembros(membros + 1);
-    iniciar(async () => {
-      try {
-        await alternarMembro(comunidade.id, comunidade.slug, false);
-      } catch {
-        setMembro(false);
-        setMembros(membros);
-      }
-    });
+    sair();
   }
 
-  function confirmarSaida() {
+  function sair() {
     const tinha = membros;
     setMembro(false);
     setMembros(tinha - 1);
@@ -77,7 +102,9 @@ export function CabecalhoDaComunidade({
 
     iniciar(async () => {
       try {
-        await alternarMembro(comunidade.id, comunidade.slug, true);
+        const { comunidadeApagada } = await alternarMembro(comunidade.id, comunidade.slug, true);
+        // A comunidade deixou de existir: ficar aqui mostraria um 404.
+        if (comunidadeApagada) router.push("/comunidades/minhas");
       } catch {
         setMembro(true);
         setMembros(tinha);
@@ -97,117 +124,178 @@ export function CabecalhoDaComunidade({
 
   return (
     <div className="flex flex-col gap-3">
-      <CommunityCover
-        name={comunidade.name}
-        coverUrl={comunidade.coverUrl}
-        esquerda={
-          <RoundIconButton label="Voltar" onClick={() => router.back()}>
-            <BackIcon decorative className="size-icon" />
-          </RoundIconButton>
-        }
-        direita={
-          <>
-            <RoundIconButton
-              label={`Compartilhar ${comunidade.name}`}
-              ativo={aberto === "compartilhar"}
-              controla={idDeCompartilhar}
-              onClick={() => abrir("compartilhar")}
-            >
-              <ShareIcon decorative className="size-icon" />
-            </RoundIconButton>
-            <RoundIconButton
-              label="Mais opções"
-              ativo={aberto === "menu"}
-              controla={idDoMenu}
-              onClick={() => abrir("menu")}
-            >
-              <MoreOptionsIcon decorative className="size-icon" />
-            </RoundIconButton>
-          </>
-        }
-      >
-        {/* Banida: nenhuma porta. Oferecer "Entrar" a quem não pode entrar
-            é pedir um clique que só devolve erro. */}
-        {comunidade.estouBanida ? (
-          <span className="text-bodyStrong text-paper">Você não pode entrar nesta comunidade.</span>
-        ) : (
-          <CommunityDoor
-            member={membro}
-            oQue={comunidade.name}
-            onToggle={pendente ? undefined : tocarNaPorta}
-          />
-        )}
-        <span className="text-caption text-paper">
-          {numero(membros)} {membros === 1 ? "membro" : "membros"}
-        </span>
-      </CommunityCover>
+      <form ref={formularioDaCapa} action={trocarCapa}>
+        <input type="hidden" name="comunidade" value={comunidade.slug} />
 
-      <div id={idDeCompartilhar}>
-        <BottomSheet title={`Compartilhar ${comunidade.name}`} open={aberto === "compartilhar"}>
-          {/*
-            Montada só quando a folha abre: a busca de pessoas é uma ida ao
-            servidor, e ninguém paga por ela sem ter pedido para compartilhar.
-          */}
-          {aberto === "compartilhar" ? (
-            <Compartilhar
-              tipo="comunidade"
-              id={comunidade.id}
-              nome={comunidade.name}
-              endereco={`/c/${comunidade.slug}`}
-              pessoas={paraCompartilhar}
-              aoFechar={() => setAberto("nenhum")}
+        <CapaEditavel
+          nome={comunidade.name}
+          capaAtual={comunidade.coverUrl}
+          medidasAtuais={comunidade.medidasDaCapa}
+          zoomAtual={comunidade.zoomDaCapa}
+          ancoraAtual={comunidade.ancoraDaCapa}
+          podeEditar={comunidade.souModerador}
+          // O OK aplica: aqui já existe comunidade para onde a capa vai.
+          aoConfirmar={() => formularioDaCapa.current?.requestSubmit()}
+          esquerda={
+            <RoundIconButton label="Voltar" onClick={() => router.back()}>
+              <BackIcon decorative className="size-icon" />
+            </RoundIconButton>
+          }
+          direita={
+            <>
+              {/*
+                O `relative` é de cada botão, e não do bloco: é dele que o
+                drop se pendura. No bloco, os dois menus abririam a partir
+                do mesmo canto e o de compartilhar sairia torto.
+              */}
+              <span className="relative">
+                <RoundIconButton
+                  label={`Compartilhar ${comunidade.name}`}
+                  ativo={aberto === "compartilhar"}
+                  controla={idDeCompartilhar}
+                  onClick={() => abrir("compartilhar")}
+                >
+                  <ShareIcon decorative className="size-icon" />
+                </RoundIconButton>
+
+                <span id={idDeCompartilhar}>
+                  <MenuSuspenso
+                    titulo={`Compartilhar ${comunidade.name}`}
+                    aberto={aberto === "compartilhar"}
+                    onFechar={() => setAberto("nenhum")}
+                  >
+                    {/*
+                      Montado só quando abre: a busca de pessoas é uma ida
+                      ao servidor, e ninguém paga por ela sem ter pedido
+                      para compartilhar.
+                    */}
+                    {aberto === "compartilhar" ? (
+                      <Compartilhar
+                        tipo="comunidade"
+                        id={comunidade.id}
+                        nome={comunidade.name}
+                        endereco={`/c/${comunidade.slug}`}
+                        pessoas={paraCompartilhar}
+                        aoFechar={() => setAberto("nenhum")}
+                      />
+                    ) : null}
+                  </MenuSuspenso>
+                </span>
+              </span>
+
+              <span className="relative">
+                <RoundIconButton
+                  label="Mais opções"
+                  ativo={aberto === "menu"}
+                  controla={idDoMenu}
+                  onClick={() => abrir("menu")}
+                >
+                  <MoreOptionsIcon decorative className="size-icon" />
+                </RoundIconButton>
+
+                <span id={idDoMenu}>
+                  <MenuSuspenso
+                    titulo={comunidade.name}
+                    aberto={aberto === "menu"}
+                    onFechar={() => setAberto("nenhum")}
+                  >
+                    <p className="text-body text-inkMuted">{quemModera}</p>
+
+                    {/*
+                      Navegar fecha o menu. Sem isto ele continuaria aberto
+                      por cima da tela nova, porque o App Router não
+                      desmonta o cabeçalho ao trocar de rota irmã.
+                    */}
+                    <div className="flex flex-col gap-1">
+                      {comunidade.souModerador ? (
+                        <Link
+                          href={`/c/${comunidade.slug}/moderar`}
+                          onClick={() => setAberto("nenhum")}
+                        >
+                          <Button variant="secondary" className="w-full">
+                            Moderar
+                          </Button>
+                        </Link>
+                      ) : null}
+
+                      <Link
+                        href={`/denuncia?comunidade=${comunidade.slug}`}
+                        onClick={() => setAberto("nenhum")}
+                      >
+                        <Button variant="secondary" className="w-full">
+                          Denunciar comunidade
+                        </Button>
+                      </Link>
+                    </div>
+                  </MenuSuspenso>
+                </span>
+              </span>
+            </>
+          }
+        >
+          {/* Banida: nenhuma porta. Oferecer "Entrar" a quem não pode entrar
+              é pedir um clique que só devolve erro. */}
+          {comunidade.estouBanida ? (
+            <span className="text-bodyStrong text-paper">
+              Você não pode entrar nesta comunidade.
+            </span>
+          ) : (
+            <CommunityDoor
+              member={membro}
+              oQue={comunidade.name}
+              onToggle={pendente ? undefined : tocarNaPorta}
             />
-          ) : null}
-        </BottomSheet>
-      </div>
+          )}
+        </CapaEditavel>
+      </form>
 
-      <div id={idDoMenu}>
-        <BottomSheet title={comunidade.name} open={aberto === "menu"}>
-          <p className="text-body text-inkMuted">{quemModera}</p>
+      {estadoDaCapa.erro ? (
+        <p role="alert" className="text-caption text-error">
+          {estadoDaCapa.erro}
+        </p>
+      ) : null}
 
-          <div className="flex flex-col gap-1">
-            {comunidade.souModerador ? (
-              <>
-                <Link href={`/c/${comunidade.slug}/capa`}>
-                  <Button variant="secondary" className="w-full">
-                    Editar capa
-                  </Button>
-                </Link>
-                <Link href={`/c/${comunidade.slug}/moderar`}>
-                  <Button variant="secondary" className="w-full">
-                    Moderar
-                  </Button>
-                </Link>
-              </>
-            ) : null}
+      {/*
+        A linha de informações, que antes morava no painel da direita.
 
-            <Link href={`/denuncia?comunidade=${comunidade.slug}`}>
-              <Button variant="secondary" className="w-full">
-                Denunciar comunidade
-              </Button>
-            </Link>
+        Uma linha de texto, não um placar de caixinhas — é a mesma regra que
+        o perfil segue: o Hub conta participação, não popularidade.
 
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setAberto("nenhum");
-                iniciar(() => alternarPainel(!painelOculto));
-              }}
-            >
-              {painelOculto ? "Mostrar painel lateral" : "Ocultar painel lateral"}
-            </Button>
-          </div>
-        </BottomSheet>
-      </div>
+        "Contribuições" aqui são as respostas. No perfil a palavra conta
+        resposta **ou** tópico criado (RN28); somar os tópicos de novo
+        contaria cada um duas vezes, já que eles estão no número ao lado.
+        Alinhar a RN28 está em docs/pendencias.md.
+      */}
+      <p className="text-caption text-inkMuted">
+        {numero(membros)} {membros === 1 ? "membro" : "membros"} · {numero(comunidade.topicosCount)}{" "}
+        {comunidade.topicosCount === 1 ? "tópico" : "tópicos"} ·{" "}
+        {numero(comunidade.contribuicoesCount)}{" "}
+        {comunidade.contribuicoesCount === 1 ? "contribuição" : "contribuições"} · criada em{" "}
+        {mesEAno(comunidade.criadaEm)}
+      </p>
+      <p className="text-body text-ink">{comunidade.intro}</p>
 
+      {/*
+        A folha da saída só aparece nos dois casos em que sair faz mais do
+        que sair. O texto diz o que acontece, e não "tem certeza?" — o que
+        a pessoa precisa saber é o que ela perde.
+      */}
       <ConfirmSheet
         open={aberto === "sair"}
-        titulo={`Sair de ${comunidade.name}?`}
-        descricao="Você deixa de ver os Hot Topics dela no Início. Seus tópicos e respostas continuam na comunidade. Se você modera, a moderação passa para o membro mais ativo."
-        confirmar="Sair"
+        titulo={ultimaPessoa ? `Apagar ${comunidade.name}?` : `Sair de ${comunidade.name}?`}
+        descricao={
+          ultimaPessoa
+            ? `Você é a última pessoa aqui. Sair apaga a comunidade, com ${
+                comunidade.topicosCount === 1
+                  ? "o tópico dela"
+                  : `os ${numero(comunidade.topicosCount)} tópicos dela`
+              }.`
+            : "A moderação passa para o membro mais ativo, e isso não tem volta. Seus tópicos e respostas continuam na comunidade."
+        }
+        confirmar={ultimaPessoa ? "Sair e apagar" : "Sair"}
         cancelar="Continuar membro"
         pendente={pendente}
-        onConfirm={confirmarSaida}
+        onConfirm={sair}
         onCancel={() => setAberto("nenhum")}
       />
     </div>

@@ -11,13 +11,14 @@ import {
   TopicName,
 } from "@/design/components";
 import { sizes, variants } from "@/design/components/button";
+import { TopicStar } from "@/design/icons";
 import { cn } from "@/design/cn";
 import { CabecalhoDaComunidade } from "@/features/comunidades/cabecalho";
 import { TelaDeConvite } from "@/features/convite/tela";
 import { metadataCompartilhavel } from "@/features/convite/metadata";
 import { ControlesDeTopicos } from "@/features/comunidades/controles-de-topicos";
 import { comunidadeDaRota } from "@/features/comunidades/dados";
-import { painelEstaOculto, topicosDaComunidade } from "@/lib/data/comunidades";
+import { topicosDaComunidade, topicosQueSigoAqui } from "@/lib/data/comunidades";
 import { hotTopicDeHoje } from "@/lib/data/ciclo";
 import { sugestoesParaConvidar } from "@/lib/data/cabins";
 import { NotFoundError } from "@/lib/data/errors";
@@ -81,24 +82,35 @@ export default async function ComunidadePage({
     );
   }
 
-  const [oculto, paraCompartilhar] = await Promise.all([
-    painelEstaOculto(viewer),
+  const [paraCompartilhar, seguidos] = await Promise.all([
     sugestoesParaConvidar(viewer),
+    // RN18: os tópicos que a pessoa segue aqui. Vinham do painel da
+    // direita, que saiu na F20; agora encabeçam a lista.
+    topicosQueSigoAqui(viewer, dados.id),
   ]);
 
   return (
     <ContentColumn larga>
-      <CabecalhoDaComunidade
-        comunidade={dados}
-        painelOculto={oculto}
-        paraCompartilhar={paraCompartilhar}
-      />
+      <CabecalhoDaComunidade comunidade={dados} paraCompartilhar={paraCompartilhar} />
 
-      {/*
-        A descrição não entra aqui: na web ela mora no painel da direita, como
-        o protótipo manda. Repetir seria a mesma frase duas vezes na tela. No
-        celular, que é a F21, ela volta para cá.
-      */}
+      {seguidos.length > 0 ? (
+        <>
+          <SectionTitle>Tópicos que você segue aqui</SectionTitle>
+          <div className="flex flex-col gap-2">
+            {seguidos.map((topico) => (
+              <Link
+                key={topico.id}
+                href={`/c/${dados.slug}/${topico.slug}`}
+                className="bg-paper block rounded-sm p-3"
+              >
+                <span className="text-bodyStrong text-ink block truncate">
+                  <TopicName>{topico.name}</TopicName>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </>
+      ) : null}
       {/*
         RN09: o Hot Topic do dia, eleito às 00h pelo ciclo anterior.
         Comunidade sem respostas ontem não ganha destaque — e a lista abaixo
@@ -150,7 +162,6 @@ export default async function ComunidadePage({
         <ListaDeTopicos
           comunidadeId={dados.id}
           slug={dados.slug}
-          souMembro={dados.souMembro}
           termo={termo}
           ordem={ordemAtual}
         />
@@ -198,13 +209,11 @@ async function DestaqueDaComunidade({
 async function ListaDeTopicos({
   comunidadeId,
   slug,
-  souMembro,
   termo,
   ordem,
 }: {
   comunidadeId: string;
   slug: string;
-  souMembro: boolean;
   termo: string;
   ordem: OrdemDosTopicos;
 }) {
@@ -220,7 +229,6 @@ async function ListaDeTopicos({
         description={
           termo ? "Tente outro termo." : "Seja a primeira pessoa a abrir um assunto aqui."
         }
-        action={!termo && souMembro ? <BotaoNovoTopico slug={slug} /> : undefined}
       />
     );
   }
@@ -254,12 +262,24 @@ async function ListaDeTopicos({
  * dentro de link é HTML inválido e dá dois nomes acessíveis ao mesmo alvo.
  * Mesmo caminho do "Responder" do cartão de Hot Topic.
  */
+/**
+ * O botão de criar tópico, em destaque e com o asterisco.
+ *
+ * É um só. Havia outro igual no estado vazio da lista, e o PO mandou tirá-lo:
+ * o lugar deste já é o certo, e dois botões idênticos na mesma tela fazem
+ * procurar diferença entre eles.
+ *
+ * `Link` estilizado, e não `Button` dentro de `Link`: botão dentro de link é
+ * HTML inválido, e um `Button` que navega perderia o clique do meio e o
+ * "abrir em nova aba".
+ */
 function BotaoNovoTopico({ slug }: { slug: string }) {
   return (
     <Link
       href={`/c/${slug}/novo`}
-      className={cn("rounded-pill inline-block", variants.primary, sizes.sm)}
+      className={cn("rounded-pill inline-flex items-center gap-1", variants.primary, sizes.sm)}
     >
+      <TopicStar className="size-icon" />
       Criar tópico
     </Link>
   );

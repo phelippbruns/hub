@@ -1,14 +1,21 @@
 /**
- * O enquadramento da foto de perfil (RN30).
+ * O enquadramento de uma imagem dentro de um quadro: a foto de perfil
+ * (RN30) e a capa da comunidade.
  *
  * A imagem é guardada inteira; o recorte é só a posição e o tamanho com que
  * ela é desenhada dentro do quadro. Isso tem duas consequências boas:
  * reenquadrar não degrada a foto, e o mesmo enquadramento serve a qualquer
  * tamanho de avatar.
  *
- * Por isso tudo aqui é **fração do lado do quadro**, nunca pixel: o
- * deslocamento 0,1 move a imagem em 10 px num avatar de 100 e em 3 px num de
- * 30, que é o que mantém o rosto no mesmo lugar nos dois.
+ * Por isso tudo aqui é **fração do quadro**, nunca pixel: o deslocamento
+ * 0,1 move a imagem em 10 px num avatar de 100 e em 3 px num de 30, que é o
+ * que mantém o rosto no mesmo lugar nos dois.
+ *
+ * O quadro **não é mais sempre quadrado**. O avatar é; a capa da comunidade
+ * é uma faixa deitada, e de largura variável, porque ela ocupa a tela toda e
+ * tem altura fixa. Por isso `ox` é fração da largura do quadro e `oy` é
+ * fração da altura dele — num quadro quadrado dá no mesmo, que é o que
+ * permitiu o avatar não mudar nem de valor nem de comportamento.
  *
  * Este módulo é puro — sem Prisma, sem React, sem Supabase. Precisa ser: a
  * tela usa para arrastar e o servidor usa para conferir, e **as duas contas
@@ -33,7 +40,13 @@ export const ENQUADRAMENTO_PADRAO: Enquadramento = { zoom: 1, ox: 0, oy: 0 };
 /** As medidas da imagem original, em pixels. */
 export type Medidas = { largura: number; altura: number };
 
-/** Onde a imagem é desenhada dentro de um quadro de lado `lado`. */
+/**
+ * O quadro em que a imagem é desenhada. Só a **proporção** importa: um
+ * quadro de 2 por 1 e um de 600 por 300 dão o mesmo enquadramento.
+ */
+export const QUADRO_QUADRADO: Medidas = { largura: 1, altura: 1 };
+
+/** Onde a imagem é desenhada dentro do quadro, na escala dele. */
 export type Caixa = { largura: number; altura: number; esquerda: number; topo: number };
 
 /**
@@ -44,9 +57,13 @@ export type Caixa = { largura: number; altura: number; esquerda: number; topo: n
  * a partir daí, então **zoom 1 nunca deixa buraco** — é o piso, não um
  * tamanho arbitrário.
  */
-export function caixaDaImagem(medidas: Medidas, enquadramento: Enquadramento, lado = 1): Caixa {
+export function caixaDaImagem(
+  medidas: Medidas,
+  enquadramento: Enquadramento,
+  quadro: Medidas = QUADRO_QUADRADO,
+): Caixa {
   const fator =
-    Math.max(lado / medidas.largura, lado / medidas.altura) *
+    Math.max(quadro.largura / medidas.largura, quadro.altura / medidas.altura) *
     clamp(enquadramento.zoom, ZOOM_MINIMO, ZOOM_MAXIMO);
 
   const largura = medidas.largura * fator;
@@ -55,8 +72,8 @@ export function caixaDaImagem(medidas: Medidas, enquadramento: Enquadramento, la
   return {
     largura,
     altura,
-    esquerda: (lado - largura) / 2 + enquadramento.ox * lado,
-    topo: (lado - altura) / 2 + enquadramento.oy * lado,
+    esquerda: (quadro.largura - largura) / 2 + enquadramento.ox * quadro.largura,
+    topo: (quadro.altura - altura) / 2 + enquadramento.oy * quadro.altura,
   };
 }
 
@@ -66,11 +83,15 @@ export function caixaDaImagem(medidas: Medidas, enquadramento: Enquadramento, la
  * É metade do que sobra da imagem para fora do quadro. Passar disso é o que
  * abriria um buraco branco dentro da forma.
  */
-export function limiteDoDeslocamento(medidas: Medidas, zoom: number): { x: number; y: number } {
-  const caixa = caixaDaImagem(medidas, { zoom, ox: 0, oy: 0 });
+export function limiteDoDeslocamento(
+  medidas: Medidas,
+  zoom: number,
+  quadro: Medidas = QUADRO_QUADRADO,
+): { x: number; y: number } {
+  const caixa = caixaDaImagem(medidas, { zoom, ox: 0, oy: 0 }, quadro);
   return {
-    x: Math.max(0, (caixa.largura - 1) / 2),
-    y: Math.max(0, (caixa.altura - 1) / 2),
+    x: Math.max(0, (caixa.largura - quadro.largura) / 2 / quadro.largura),
+    y: Math.max(0, (caixa.altura - quadro.altura) / 2 / quadro.altura),
   };
 }
 
@@ -82,9 +103,13 @@ export function limiteDoDeslocamento(medidas: Medidas, zoom: number): { x: numbe
  * nada que vem do formulário é confiável — e o resultado tem de ser o mesmo,
  * senão a foto muda de posição ao recarregar a página.
  */
-export function dentroDoLimite(medidas: Medidas, enquadramento: Enquadramento): Enquadramento {
+export function dentroDoLimite(
+  medidas: Medidas,
+  enquadramento: Enquadramento,
+  quadro: Medidas = QUADRO_QUADRADO,
+): Enquadramento {
   const zoom = clamp(enquadramento.zoom, ZOOM_MINIMO, ZOOM_MAXIMO);
-  const limite = limiteDoDeslocamento(medidas, zoom);
+  const limite = limiteDoDeslocamento(medidas, zoom, quadro);
 
   return {
     zoom,
@@ -94,8 +119,12 @@ export function dentroDoLimite(medidas: Medidas, enquadramento: Enquadramento): 
 }
 
 /** Se o enquadramento deixaria parte do quadro vazia. */
-export function deixaBuraco(medidas: Medidas, enquadramento: Enquadramento): boolean {
-  const limite = limiteDoDeslocamento(medidas, enquadramento.zoom);
+export function deixaBuraco(
+  medidas: Medidas,
+  enquadramento: Enquadramento,
+  quadro: Medidas = QUADRO_QUADRADO,
+): boolean {
+  const limite = limiteDoDeslocamento(medidas, enquadramento.zoom, quadro);
   const folga = 1e-6;
 
   return (
@@ -123,3 +152,108 @@ function clamp(valor: number, minimo: number, maximo: number): number {
   const limitado = Math.min(maximo, Math.max(minimo, numero));
   return limitado === 0 ? 0 : limitado;
 }
+
+/**
+ * A âncora: que ponto da **imagem** fica no mesmo lugar dentro do quadro.
+ *
+ * Existe por causa da capa da comunidade, cujo quadro **muda de forma**: a
+ * altura é fixa em 180 px e a largura é a da janela, então a mesma capa é
+ * uma faixa 7:1 num monitor e quase 10:1 noutro. Um `ox` guardado contra uma
+ * forma não serve para outra — num quadro mais largo ele abriria faixa vazia.
+ *
+ * A âncora não tem esse problema porque não fala do quadro: ela diz "o ponto
+ * a 30% da largura da foto fica a 30% da largura da capa", que é exatamente
+ * o que o `object-position` do CSS faz. Aplicada a qualquer forma, ela nunca
+ * deixa buraco — o pior que acontece é o recorte escorregar alguns pixels
+ * quando a janela muda de tamanho, que é o que já acontece hoje.
+ *
+ * O avatar continua guardando `ox`/`oy`: o quadro dele é sempre quadrado, e
+ * converter o que já está no banco seria migração de dados por nada.
+ *
+ * Os dois extremos são 0 e 1; quando a imagem não sobra num eixo, não há o
+ * que ancorar e o valor é 0,5 — o centro.
+ */
+export type Ancora = { x: number; y: number };
+
+export const ANCORA_PADRAO: Ancora = { x: 0.5, y: 0.5 };
+
+export function ancoraDoEnquadramento(
+  medidas: Medidas,
+  enquadramento: Enquadramento,
+  quadro: Medidas = QUADRO_QUADRADO,
+): Ancora {
+  const caixa = caixaDaImagem(medidas, enquadramento, quadro);
+
+  return {
+    x: fracao(caixa.esquerda, quadro.largura - caixa.largura),
+    y: fracao(caixa.topo, quadro.altura - caixa.altura),
+  };
+}
+
+/**
+ * O caminho de volta, para reabrir o ajuste com a capa onde ela ficou.
+ *
+ * Sem ele, quem clicasse em "Ajustar" veria a imagem pular para o centro, e
+ * o único jeito de voltar ao enquadramento de antes seria acertá-lo de novo
+ * no olho.
+ */
+export function enquadramentoDaAncora(
+  medidas: Medidas,
+  zoom: number,
+  ancora: Ancora,
+  quadro: Medidas = QUADRO_QUADRADO,
+): Enquadramento {
+  const caixa = caixaDaImagem(medidas, { zoom, ox: 0, oy: 0 }, quadro);
+  const sobraX = quadro.largura - caixa.largura;
+  const sobraY = quadro.altura - caixa.altura;
+
+  return dentroDoLimite(
+    medidas,
+    {
+      zoom,
+      ox: (sobraX * (ancora.x - 0.5)) / quadro.largura,
+      oy: (sobraY * (ancora.y - 0.5)) / quadro.altura,
+    },
+    quadro,
+  );
+}
+
+/** Onde o número cai dentro da sobra, de 0 a 1. Sem sobra, o centro. */
+function fracao(posicao: number, sobra: number): number {
+  if (Math.abs(sobra) < 1e-9) return 0.5;
+  return Math.min(1, Math.max(0, posicao / sobra));
+}
+
+/**
+ * A caixa em porcentagens, prontas para o CSS.
+ *
+ * Mora aqui, e não em cada componente, porque a conta "caixa → estilo" já
+ * estava escrita duas vezes — no ajuste e no avatar — e uma terceira cópia
+ * com o quadro errado é o jeito mais fácil de a foto sair certa ao ajustar e
+ * errada depois de salvar.
+ */
+export function porcentagens(
+  caixa: Caixa,
+  quadro: Medidas = QUADRO_QUADRADO,
+): { width: string; height: string; left: string; top: string } {
+  return {
+    width: `${(caixa.largura / quadro.largura) * 100}%`,
+    height: `${(caixa.altura / quadro.altura) * 100}%`,
+    left: `${(caixa.esquerda / quadro.largura) * 100}%`,
+    top: `${(caixa.topo / quadro.altura) * 100}%`,
+  };
+}
+
+/**
+ * O quadro de referência da capa da comunidade.
+ *
+ * É **referência**, não imposição: a capa tem altura fixa e largura de
+ * tela, então a forma real muda com a janela. Este valor é o que a tela de
+ * ajuste usa quando ainda não mediu a própria caixa, e o que o servidor usa
+ * para reconferir o que veio do formulário. O que é guardado no fim é a
+ * âncora, que não depende de nenhum quadro.
+ *
+ * 7 por 1 é a proporção de uma capa de 180 px de altura numa janela de
+ * 1280, que é a menor em que o Hub é desenhado hoje (o celular é a F21).
+ */
+export const QUADRO_DA_CAPA: Medidas = { largura: 7, altura: 1 };

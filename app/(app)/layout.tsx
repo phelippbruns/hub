@@ -26,17 +26,7 @@ import { temCabineNova } from "@/lib/data/cabins";
  * Aqui também vive o desvio para o onboarding: sem comunidade seguida, as
  * telas de dentro não teriam conteúdo nenhum (RN19, RN31).
  */
-export default async function AppLayout({
-  children,
-  painel,
-}: {
-  children: ReactNode;
-  /**
-   * Rota paralela: a tela que tiver painel de contexto preenche este espaço.
-   * Quem não tem cai no `@painel/default.tsx`, que devolve nada.
-   */
-  painel: ReactNode;
-}) {
+export default async function AppLayout({ children }: { children: ReactNode }) {
   const viewer = await getViewer();
 
   if (viewer.kind !== "member") {
@@ -53,7 +43,7 @@ export default async function AppLayout({
   const [novidade, cabineNova] = await Promise.all([temNovidade(viewer), temCabineNova(viewer)]);
 
   return (
-    <AppShell nav={<NavRail temNovidade={novidade} temCabineNova={cabineNova} />} painel={painel}>
+    <AppShell nav={<NavRail temNovidade={novidade} temCabineNova={cabineNova} />}>
       {children}
     </AppShell>
   );

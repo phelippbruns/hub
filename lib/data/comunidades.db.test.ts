@@ -7,12 +7,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { db, makeProfile, makeUniverse, resetDatabase } from "./testing/db";
 import {
   alternarFixada,
-  definirPainelOculto,
   minhasComunidades,
   paginaDaComunidade,
-  painelEstaOculto,
   topicosDaComunidade,
   topicosQueSigoAqui,
+  trocarCapa,
 } from "./comunidades";
 import {
   comunidadeComOMesmoNome,
@@ -424,24 +423,6 @@ describe("Minhas Comunidades", () => {
   });
 });
 
-describe("a preferência do painel", () => {
-  it("fica na pessoa, e começa visível", async () => {
-    const eu = await makeProfile();
-    expect(await painelEstaOculto(viewerFor(eu.id))).toBe(false);
-
-    await definirPainelOculto(viewerFor(eu.id), true);
-    expect(await painelEstaOculto(viewerFor(eu.id))).toBe(true);
-  });
-
-  it("é de cada pessoa, não do Hub", async () => {
-    const eu = await makeProfile();
-    const outra = await makeProfile();
-
-    await definirPainelOculto(viewerFor(eu.id), true);
-    expect(await painelEstaOculto(viewerFor(outra.id))).toBe(false);
-  });
-});
-
 /**
  * RN03: a capa entra já na criação.
  *
@@ -480,5 +461,155 @@ describe("RN03: a capa na criação", () => {
     const doBanco = await db.community.findUniqueOrThrow({ where: { id: criada!.id } });
     const doUniverso = await db.universe.findUniqueOrThrow({ where: { id: universo.id } });
     expect(doBanco.coverUrl).toBe(doUniverso.defaultCoverUrl);
+  });
+});
+
+/*
+ * RN35: comunidade que fica sem ninguém é excluída. Decisão do PO em 29 de
+ * outubro, quando a confirmação de saída saiu da tela: sem ela, o moderador
+ * sozinho sairia com um clique e deixaria um endereço que ninguém modera e
+ * ninguém lê.
+ */
+describe("RN35: a comunidade sem ninguém é excluída", () => {
+  it("sair sendo a última pessoa apaga a comunidade", async () => {
+    const eu = await makeProfile();
+    const universo = await makeUniverse("Som");
+    const comunidade = await criar(universo.id, "Só Minha", eu);
+
+    const { comunidadeApagada } = await leaveCommunity(viewerFor(eu.id), comunidade.id);
+    expect(comunidadeApagada).toBe(true);
+
+    const depois = await db.community.findUniqueOrThrow({ where: { id: comunidade.id } });
+    expect(depois.deletedAt).not.toBeNull();
+  });
+
+  it("o endereço dela deixa de abrir", async () => {
+    const eu = await makeProfile();
+    const universo = await makeUniverse("Som");
+    const comunidade = await criar(universo.id, "Some Depois", eu);
+
+    await leaveCommunity(viewerFor(eu.id), comunidade.id);
+
+    await expect(paginaDaComunidade(viewerFor(eu.id), comunidade.slug)).rejects.toThrow();
+  });
+
+  /*
+   * RN06 continua valendo quando sobra gente: a moderação passa, e a
+   * comunidade fica. É a ordem entre as duas regras que este caso guarda —
+   * apagar primeiro deixaria a comunidade sumir com membros dentro.
+   */
+  it("com outra pessoa dentro, a comunidade fica e a moderação passa", async () => {
+    const eu = await makeProfile();
+    const outra = await makeProfile();
+    const universo = await makeUniverse("Som");
+    const comunidade = await criar(universo.id, "Continua Viva", eu);
+    await joinCommunity(viewerFor(outra.id), comunidade.id);
+
+    const { comunidadeApagada } = await leaveCommunity(viewerFor(eu.id), comunidade.id);
+    expect(comunidadeApagada).toBe(false);
+
+    const depois = await db.community.findUniqueOrThrow({ where: { id: comunidade.id } });
+    expect(depois.deletedAt).toBeNull();
+
+    const herdeira = await db.membership.findUniqueOrThrow({
+      where: { communityId_profileId: { communityId: comunidade.id, profileId: outra.id } },
+    });
+    expect(herdeira.role).toBe("moderator");
+  });
+});
+
+/*
+ * O enquadramento da capa. O que importa aqui é que imagem e enquadramento
+ * andem juntos: em dois passos haveria uma janela em que a capa nova seria
+ * desenhada com as medidas da antiga.
+ */
+describe("o enquadramento da capa", () => {
+  const enquadramento = {
+    coverWidth: 1600,
+    coverHeight: 900,
+    coverZoom: 1.5,
+    coverAnchorX: 0.25,
+    coverAnchorY: 0.75,
+  };
+
+  it("é guardado junto com a imagem, numa operação só", async () => {
+    const eu = await makeProfile();
+    const universo = await makeUniverse("Foto");
+    const comunidade = await criar(universo.id, "Com Capa", eu);
+
+    await trocarCapa(viewerFor(eu.id), comunidade.id, "capas/nova.jpg", enquadramento);
+
+    const depois = await db.community.findUniqueOrThrow({ where: { id: comunidade.id } });
+    expect(depois.coverUrl).toBe("capas/nova.jpg");
+    expect(depois.coverWidth).toBe(1600);
+    expect(depois.coverZoom).toBeCloseTo(1.5, 6);
+    expect(depois.coverAnchorX).toBeCloseTo(0.25, 6);
+  });
+
+  it("chega à tela como medidas e âncora", async () => {
+    const eu = await makeProfile();
+    const universo = await makeUniverse("Foto");
+    const comunidade = await criar(universo.id, "Na Tela", eu);
+    await trocarCapa(viewerFor(eu.id), comunidade.id, "capas/nova.jpg", enquadramento);
+
+    const pagina = await paginaDaComunidade(viewerFor(eu.id), comunidade.slug);
+    expect(pagina.medidasDaCapa).toEqual({ largura: 1600, altura: 900 });
+    expect(pagina.ancoraDaCapa.y).toBeCloseTo(0.75, 6);
+  });
+
+  /*
+   * A capa que já existia, e a padrão do Universo, não têm medidas. Elas
+   * precisam continuar sendo lidas — é o caminho que mantém o recorte
+   * centralizado de antes desta rodada.
+   */
+  it("capa sem medidas continua sendo lida, e sem enquadramento", async () => {
+    const eu = await makeProfile();
+    const universo = await makeUniverse("Foto");
+    const comunidade = await criar(universo.id, "Capa Antiga", eu);
+
+    const pagina = await paginaDaComunidade(viewerFor(eu.id), comunidade.slug);
+    expect(pagina.medidasDaCapa).toBeNull();
+    expect(pagina.zoomDaCapa).toBe(1);
+  });
+
+  /*
+   * O terceiro portão. A tela limita, o servidor reconfere — e o banco
+   * recusa, que é o que vale quando alguém escreve direto nele.
+   */
+  it("o banco recusa zoom fora da faixa", async () => {
+    const eu = await makeProfile();
+    const universo = await makeUniverse("Foto");
+    const comunidade = await criar(universo.id, "Zoom Demais", eu);
+
+    await expect(
+      prisma.$executeRaw`UPDATE communities SET cover_zoom = 5 WHERE id = ${comunidade.id}::uuid`,
+    ).rejects.toThrow();
+  });
+});
+
+/*
+ * A tela mostra membros, tópicos, contribuições e a data. Os dois números
+ * do meio são novos, e o segundo é o que tem pegadinha: `Answer` aponta
+ * para `Topic`, nunca para `Community`.
+ */
+describe("os números da comunidade", () => {
+  it("conta tópicos e contribuições, sem contar o que foi apagado", async () => {
+    const eu = await makeProfile();
+    const outra = await makeProfile();
+    const universo = await makeUniverse("Conta");
+    const comunidade = await criar(universo.id, "Com Numeros", eu);
+    await joinCommunity(viewerFor(outra.id), comunidade.id);
+
+    const topico = await createTopic(viewerFor(eu.id), {
+      communityId: comunidade.id,
+      name: "Primeiro",
+      description: "Uma pergunta.",
+    });
+    await createAnswer(viewerFor(outra.id), { topicId: topico!.id, text: "Uma resposta." });
+
+    const pagina = await paginaDaComunidade(viewerFor(eu.id), comunidade.slug);
+    expect(pagina.topicosCount).toBe(1);
+    expect(pagina.contribuicoesCount).toBe(1);
+    expect(pagina.criadaEm).toBeInstanceOf(Date);
   });
 });

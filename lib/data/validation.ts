@@ -5,6 +5,7 @@
  * é conveniência; isto é a regra.
  */
 import { z } from "zod";
+import { ZOOM_MAXIMO, ZOOM_MINIMO } from "@/lib/midia/enquadramento";
 import { acharLink, contemLink } from "@/lib/texto/links";
 
 /**
@@ -157,6 +158,18 @@ export const createCommunitySchema = z.object({
    * capa padrão do Universo é uma URL, e continua passando.
    */
   coverUrl: z.string().min(1).max(500).nullable().default(null),
+
+  /*
+   * O enquadramento da capa. Estes cinco **não vêm do formulário**: a
+   * action os preenche com as medidas que leu dos bytes e com a âncora já
+   * reconferida. Estão no schema para o tipo de `createCommunity` ser um
+   * só, não para aceitar o que o navegador mandar.
+   */
+  coverWidth: z.int().positive().nullable().default(null),
+  coverHeight: z.int().positive().nullable().default(null),
+  coverZoom: z.number().min(ZOOM_MINIMO).max(ZOOM_MAXIMO).default(ZOOM_MINIMO),
+  coverAnchorX: z.number().min(0).max(1).default(0.5),
+  coverAnchorY: z.number().min(0).max(1).default(0.5),
 });
 
 /** RN27: até 3 links no perfil. */

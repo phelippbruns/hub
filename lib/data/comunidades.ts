@@ -8,6 +8,7 @@ import { prisma } from "./prisma";
 import { ForbiddenError, NotFoundError } from "./errors";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { enderecoDeMidia } from "@/lib/midia/deposito";
+import type { Ancora, Medidas } from "@/lib/midia/enquadramento";
 
 /** Um tópico como as listas da comunidade o mostram (RN15: nunca um placar). */
 export type TopicoNaComunidade = {
@@ -98,7 +99,23 @@ export type PaginaDaComunidade = {
   name: string;
   intro: string;
   coverUrl: string | null;
+  /** Nulo quando a capa não foi medida: aí ela é recortada no centro. */
+  medidasDaCapa: Medidas | null;
+  zoomDaCapa: number;
+  ancoraDaCapa: Ancora;
   membersCount: number;
+  topicosCount: number;
+  /**
+   * As respostas da comunidade.
+   *
+   * A tela chama isto de "contribuições", por decisão do PO em 29 de
+   * outubro. **No perfil a palavra conta outra coisa** — lá, pela RN28,
+   * contribuição é resposta *ou* tópico criado. Aqui os tópicos aparecem no
+   * número ao lado, e somá-los de novo contaria cada um duas vezes.
+   * Alinhar a RN28 está em docs/pendencias.md.
+   */
+  contribuicoesCount: number;
+  criadaEm: Date;
   universo: { id: string; name: string; slug: string };
   souMembro: boolean;
   souModerador: boolean;
@@ -127,7 +144,20 @@ export async function paginaDaComunidade(
       name: true,
       intro: true,
       coverUrl: true,
+      coverWidth: true,
+      coverHeight: true,
+      coverZoom: true,
+      coverAnchorX: true,
+      coverAnchorY: true,
       membersCount: true,
+      createdAt: true,
+      /*
+       * Tópicos sai de `_count`; contribuições, não. `Answer` aponta para
+       * `Topic`, nunca para `Community`, então não existe relação para
+       * contar — a contagem vai abaixo, pelo tópico, que é o mesmo caminho
+       * que `escolherHerdeiroDaModeracao` já usa.
+       */
+      _count: { select: { topics: { where: { deletedAt: null } } } },
       universe: { select: { id: true, name: true, slug: true } },
       memberships: {
         where: { role: "moderator", bannedAt: null },
@@ -138,12 +168,17 @@ export async function paginaDaComunidade(
   });
   if (!comunidade) throw new NotFoundError("Comunidade");
 
-  const minha = me
-    ? await prisma.membership.findUnique({
-        where: { communityId_profileId: { communityId: comunidade.id, profileId: me } },
-        select: { role: true, bannedAt: true },
-      })
-    : null;
+  const [minha, contribuicoes] = await Promise.all([
+    me
+      ? prisma.membership.findUnique({
+          where: { communityId_profileId: { communityId: comunidade.id, profileId: me } },
+          select: { role: true, bannedAt: true },
+        })
+      : null,
+    prisma.answer.count({
+      where: { deletedAt: null, topic: { communityId: comunidade.id, deletedAt: null } },
+    }),
+  ]);
 
   return {
     id: comunidade.id,
@@ -152,7 +187,21 @@ export async function paginaDaComunidade(
     intro: comunidade.intro,
     // O depósito é privado: o endereço é assinado na hora de desenhar.
     coverUrl: await enderecoDeMidia(comunidade.coverUrl),
+    /*
+     * As medidas vêm em par: sem as duas não há como enquadrar, e a capa
+     * cai no recorte centralizado. É o caso das capas anteriores a esta
+     * rodada e o da capa padrão do Universo, que é endereço externo.
+     */
+    medidasDaCapa:
+      comunidade.coverWidth && comunidade.coverHeight
+        ? { largura: comunidade.coverWidth, altura: comunidade.coverHeight }
+        : null,
+    zoomDaCapa: comunidade.coverZoom,
+    ancoraDaCapa: { x: comunidade.coverAnchorX, y: comunidade.coverAnchorY },
     membersCount: comunidade.membersCount,
+    topicosCount: comunidade._count.topics,
+    contribuicoesCount: contribuicoes,
+    criadaEm: comunidade.createdAt,
     universo: comunidade.universe,
     souMembro: Boolean(minha && !minha.bannedAt),
     souModerador: minha?.role === "moderator" && !minha.bannedAt,
@@ -319,7 +368,12 @@ export async function alternarFixada(viewer: Viewer, communityId: string, fixar:
  * A capa antiga sai do depósito: guardar imagem que ninguém mais vê custa
  * espaço e aumenta o que vaza se algo der errado.
  */
-export async function trocarCapa(viewer: Viewer, communityId: string, caminho: string) {
+export async function trocarCapa(
+  viewer: Viewer,
+  communityId: string,
+  caminho: string,
+  enquadramento: EnquadramentoDaCapa,
+) {
   const me = requireProfileId(viewer);
 
   const minha = await prisma.membership.findUnique({
@@ -335,7 +389,15 @@ export async function trocarCapa(viewer: Viewer, communityId: string, caminho: s
     select: { coverUrl: true, universe: { select: { defaultCoverUrl: true } } },
   });
 
-  await prisma.community.update({ where: { id: communityId }, data: { coverUrl: caminho } });
+  /*
+   * A imagem e o enquadramento dela vão juntos, numa operação só. Em dois
+   * passos haveria uma janela em que a capa nova estaria sendo desenhada
+   * com as medidas da antiga.
+   */
+  await prisma.community.update({
+    where: { id: communityId },
+    data: { coverUrl: caminho, ...enquadramento },
+  });
 
   // A capa do Universo é compartilhada: apagar seria tirar de todas as outras.
   const anterior = antes?.coverUrl;
@@ -343,20 +405,26 @@ export async function trocarCapa(viewer: Viewer, communityId: string, caminho: s
   return { anteriorParaApagar: anterior && !ehDoUniverso ? anterior : null };
 }
 
-/** A preferência de painel oculto, guardada na pessoa e não no aparelho. */
-export async function definirPainelOculto(viewer: Viewer, oculto: boolean) {
-  const me = requireProfileId(viewer);
-  await prisma.profile.update({ where: { id: me }, data: { hideContextPanel: oculto } });
-}
+/**
+ * O enquadramento da capa, como ele é guardado.
+ *
+ * Âncora, e não deslocamento: a capa ocupa a largura da tela com altura
+ * fixa, então a forma do quadro muda com a janela, e deslocamento guardado
+ * contra uma forma abre faixa vazia noutra. Ver `lib/midia/enquadramento.ts`.
+ */
+export type EnquadramentoDaCapa = {
+  coverWidth: number | null;
+  coverHeight: number | null;
+  coverZoom: number;
+  coverAnchorX: number;
+  coverAnchorY: number;
+};
 
-export async function painelEstaOculto(viewer: Viewer): Promise<boolean> {
-  const me = viewerProfileId(viewer);
-  // Visitante não tem preferência guardada; o painel aparece.
-  if (!me) return false;
-
-  const perfil = await prisma.profile.findUnique({
-    where: { id: me },
-    select: { hideContextPanel: true },
-  });
-  return perfil?.hideContextPanel ?? false;
-}
+/** Sem medidas não há enquadramento: a capa é recortada no centro. */
+export const CAPA_SEM_ENQUADRAMENTO: EnquadramentoDaCapa = {
+  coverWidth: null,
+  coverHeight: null,
+  coverZoom: 1,
+  coverAnchorX: 0.5,
+  coverAnchorY: 0.5,
+};

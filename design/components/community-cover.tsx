@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../cn";
+import { ANCORA_PADRAO, type Ancora, type Medidas } from "@/lib/midia/enquadramento";
 
 /**
  * A capa da comunidade: imagem larga com o nome por cima e os controles nos
@@ -13,28 +14,62 @@ import { cn } from "../cn";
  * Com a capa mais clara possível, a branca, o degradê ainda deixa o fundo do
  * texto acima de 8:1 contra o branco — folgado até para a contagem de
  * membros, que é texto pequeno.
+ *
+ * **Como a imagem é posicionada.** A capa tem altura fixa e largura de
+ * tela, então a forma dela muda com a janela. Por isso o que se guarda é
+ * uma âncora — "o ponto a 30% da foto fica a 30% da capa" —, que é
+ * exatamente o que `object-position` faz, e o zoom entra como `scale` com
+ * a **mesma** origem: escalar em torno do ponto ancorado mantém esse ponto
+ * parado. Como `object-cover` já preenche a capa no zoom 1, qualquer zoom a
+ * partir daí também preenche: **não existe largura de janela em que apareça
+ * faixa vazia**. Era essa a garantia que uma conta em pixels não daria.
+ *
+ * Sem medidas — capa anterior a esta rodada, ou a padrão do Universo, que é
+ * endereço externo —, o recorte é o centro, como sempre foi.
  */
 export function CommunityCover({
   name,
   coverUrl,
+  medidas = null,
+  zoom = 1,
+  ancora = ANCORA_PADRAO,
   esquerda,
   direita,
   children,
 }: {
   name: string;
   coverUrl: string | null;
+  /** Nulo quando a capa não foi medida: aí ela é recortada no centro. */
+  medidas?: Medidas | null;
+  zoom?: number;
+  ancora?: Ancora;
   /** Normalmente o botão de voltar. */
   esquerda?: ReactNode;
   /** Compartilhar e os três pontos. */
   direita?: ReactNode;
-  /** O que fica abaixo do nome: a marca # e a contagem de membros. */
+  /** Fica na mesma linha do nome: a marca # de entrar e sair. */
   children?: ReactNode;
 }) {
   return (
-    <div
-      className="bg-lavender min-h-cover relative flex flex-col justify-end overflow-hidden rounded-sm bg-cover bg-center p-3"
-      style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : undefined}
-    >
+    <div className="bg-lavender min-h-cover relative flex flex-col justify-end overflow-hidden rounded-sm p-3">
+      {coverUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- endereço assinado, de validade curta
+        <img
+          src={coverUrl}
+          alt=""
+          className="absolute inset-0 size-full object-cover"
+          style={
+            medidas
+              ? {
+                  objectPosition: `${ancora.x * 100}% ${ancora.y * 100}%`,
+                  transform: `scale(${zoom})`,
+                  transformOrigin: `${ancora.x * 100}% ${ancora.y * 100}%`,
+                }
+              : undefined
+          }
+        />
+      ) : null}
+
       {/* O véu é decorativo: está aqui pelo contraste, não pelo sentido. */}
       <span aria-hidden="true" className="from-ink/80 to-ink/20 absolute inset-0 bg-linear-to-t" />
 
@@ -43,8 +78,15 @@ export function CommunityCover({
         <span className="flex gap-1">{direita}</span>
       </div>
 
-      <h1 className="text-title text-paper relative">{name}</h1>
-      {children ? <div className="relative mt-1 flex items-center gap-2">{children}</div> : null}
+      {/*
+        A marca # fica **na linha do nome**, não embaixo dele — pedido do
+        PO em 29 de outubro. Ela é o botão de entrar e sair, então ao lado
+        do nome ela diz de que comunidade é a porta.
+      */}
+      <div className="relative flex items-center gap-2">
+        <h1 className="text-title text-paper">{name}</h1>
+        {children}
+      </div>
     </div>
   );
 }
