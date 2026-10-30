@@ -1,5 +1,3 @@
-import { SectionTitle } from "@/design/components";
-
 /** Mês e ano: o dia exato de uma comunidade não interessa a ninguém. */
 function mesEAno(data: Date) {
   return data.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
@@ -8,31 +6,46 @@ function mesEAno(data: Date) {
 /**
  * O cartão Sobre, no topo do Início da comunidade.
  *
+ * Título à esquerda e "Criada por @x em mês" à direita na mesma linha, como
+ * o protótipo v6 mostra: a autoria é contexto, não manchete.
+ *
  * As regras ficam **recolhidas**. Elas importam na hora de entrar e na hora
  * de uma denúncia, não a cada visita — abertas, empurrariam a lista de
- * tópicos para baixo da dobra em toda comunidade que se deu ao trabalho de
- * escrever cinco.
+ * tópicos para baixo da dobra em toda comunidade que escreveu cinco.
  *
- * Quem entra numa comunidade com regras já as leu: a porta abre a folha
- * antes de deixar entrar. Aqui elas continuam ao alcance de quem quiser
- * reler.
+ * **O cartão inteiro some quando não há nada dentro.** Comunidade recém
+ * criada não tem sobre nem regras, e um cartão com título e vazio é pior
+ * do que cartão nenhum — ali o que a pessoa precisa ver é Primeiros passos.
  */
 export function SobreAComunidade({
-  intro,
+  about,
   regras,
   criadaPor,
   criadaEm,
 }: {
-  intro: string;
+  about: string;
   regras: string[];
   criadaPor: { name: string; handle: string } | null;
   criadaEm: Date;
 }) {
-  return (
-    <section className="bg-paper flex flex-col gap-2 rounded-sm p-3">
-      <SectionTitle>Sobre</SectionTitle>
+  if (!about && regras.length === 0) return null;
 
-      <p className="text-body text-ink">{intro}</p>
+  return (
+    <section className="bg-paper flex flex-col gap-2 rounded-md p-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-subtitle text-ink">Sobre</h2>
+        {/*
+          Quem criou pode ter saído do Hub: a relação é `SetNull`, e aí a
+          linha fala só da data. "Criada por ninguém" seria pior que nada.
+        */}
+        <span className="text-caption text-inkMuted">
+          {criadaPor
+            ? `Criada por @${criadaPor.handle} em ${mesEAno(criadaEm)}`
+            : `Criada em ${mesEAno(criadaEm)}`}
+        </span>
+      </div>
+
+      {about ? <p className="text-body text-ink">{about}</p> : null}
 
       {regras.length > 0 ? (
         <details className="bg-surfacePage rounded-sm px-3 py-2">
@@ -48,17 +61,6 @@ export function SobreAComunidade({
           </ol>
         </details>
       ) : null}
-
-      {/*
-        Quem criou pode ter saído do Hub: a relação é `SetNull`, e aí a
-        linha fala só da data. Escrever "Criada por ninguém" seria pior do
-        que não escrever.
-      */}
-      <p className="text-caption text-inkMuted">
-        {criadaPor
-          ? `Criada por @${criadaPor.handle} em ${mesEAno(criadaEm)}`
-          : `Criada em ${mesEAno(criadaEm)}`}
-      </p>
     </section>
   );
 }

@@ -4,7 +4,7 @@ import { cn } from "../cn";
 
 /**
  * A marca # da página da comunidade é o próprio botão de entrar e sair:
- * contorno lavanda para visitante, preenchida em lavanda para membro.
+ * lavanda para quem está de fora, amarelo para quem já é membro.
  *
  * Como é um controle sem texto, leva rótulo de acessibilidade, e o estado vai
  * em `aria-pressed` — não só na cor.
@@ -39,8 +39,23 @@ export function CommunityDoor({
       }
       onClick={onToggle}
       className={cn(
-        "size-mark border-lavender text-subtitle text-ink box-border inline-grid cursor-pointer place-items-center rounded-sm border-2 font-extrabold",
-        member ? "bg-lavender" : "bg-paper",
+        "size-markCover text-subtitle text-ink relative box-border inline-grid cursor-pointer place-items-center rounded-sm font-extrabold",
+        /*
+          40 px de marca, 48 de alvo: o `after` estende a área de toque
+          para além do desenho, como o protótipo faz. O briefing pede pelo
+          menos 44, e aumentar o quadrado deixaria a marca maior que o nome.
+        */
+        "after:absolute after:-inset-1 after:content-['']",
+        /*
+          Lavanda para quem está de fora, amarelo para quem está dentro —
+          é o que o protótipo v6 mostra e o que o briefing escreveu. Era o
+          contrário: contorno lavanda fora, lavanda cheio dentro, e os dois
+          estados eram quase a mesma imagem.
+
+          O amarelo não está sozinho: `aria-pressed` diz o estado para quem
+          não distingue as duas cores.
+        */
+        member ? "bg-sun" : "bg-lavender",
         className,
       )}
     >

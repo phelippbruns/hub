@@ -10,7 +10,6 @@ import {
   minhasComunidades,
   paginaDaComunidade,
   topicosDaComunidade,
-  topicosQueSigoAqui,
   trocarCapa,
 } from "./comunidades";
 import {
@@ -324,12 +323,15 @@ describe("os tópicos da comunidade", () => {
     expect(lista.map((t) => t.name)).toEqual(["música de pista"]);
   });
 
-  it("o painel lista só os tópicos que a pessoa segue ali", async () => {
+  it('RN18: o filtro "Seguindo" lista só os tópicos que a pessoa segue aqui', async () => {
     const { comunidade, antigo, dona } = await cenario();
     await followTopic(viewerFor(dona.id), antigo.id);
 
-    const seguidos = await topicosQueSigoAqui(viewerFor(dona.id), comunidade.id);
+    const seguidos = await topicosDaComunidade(viewerFor(dona.id), comunidade.id, {
+      filtro: "seguindo",
+    });
     expect(seguidos.map((t) => t.name)).toEqual(["primeira festa"]);
+    expect(seguidos[0]?.seguindo).toBe(true);
   });
 });
 

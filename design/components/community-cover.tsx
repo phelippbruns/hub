@@ -51,7 +51,7 @@ export function CommunityCover({
   children?: ReactNode;
 }) {
   return (
-    <div className="bg-lavender min-h-cover relative flex flex-col justify-end overflow-hidden rounded-sm p-3">
+    <div className="bg-lavender min-h-cover relative flex flex-col justify-end overflow-hidden rounded-lg p-3">
       {coverUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- endereço assinado, de validade curta
         <img
@@ -91,13 +91,13 @@ export function CommunityCover({
       </div>
 
       {/*
-        A marca # fica **na linha do nome**, não embaixo dele — pedido do
-        PO em 29 de outubro. Ela é o botão de entrar e sair, então ao lado
-        do nome ela diz de que comunidade é a porta.
+        A marca # fica **na linha do nome e à esquerda dele**, como o
+        protótipo v6 mostra. Ela é o botão de entrar e sair, e à esquerda
+        ela é a primeira coisa que se lê: a porta antes do cômodo.
       */}
       <div className="relative z-20 flex items-center gap-2">
-        <h1 className="text-title text-paper">{name}</h1>
         {children}
+        <h1 className="text-coverTitle text-paper">{name}</h1>
       </div>
     </div>
   );
@@ -133,7 +133,7 @@ export function RoundIconButton({
       aria-controls={controla}
       onClick={onClick}
       className={cn(
-        "size-iconLg rounded-pill grid cursor-pointer place-items-center",
+        "size-btnRound rounded-pill grid cursor-pointer place-items-center",
         ativo ? "bg-sun text-ink" : "bg-paper text-ink",
       )}
     >

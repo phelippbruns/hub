@@ -7,7 +7,7 @@
 import { prisma } from "./prisma";
 import { ForbiddenError, NotFoundError } from "./errors";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
-import { enderecoDeMidia } from "@/lib/midia/deposito";
+import { enderecoDeMidia, enderecosDeMidia } from "@/lib/midia/deposito";
 import { linhasDasRegras } from "./validation";
 import type { Ancora, Medidas } from "@/lib/midia/enquadramento";
 
@@ -21,11 +21,48 @@ export type TopicoNaComunidade = {
   autor: { id: string; name: string; handle: string } | null;
   pessoas: number;
   respostas: number;
-  /** Quantas respostas desde a última vez — só para os tópicos que ela segue. */
-  novas?: number;
+  /**
+   * A última contribuição, para o cartão mostrar do que se está falando.
+   *
+   * Sem ela o cartão era só um nome e dois números, e a lista inteira
+   * parecia um índice. Nula quando ninguém contribuiu ainda.
+   */
+  ultima: {
+    texto: string;
+    autorNome: string;
+    autorHandle: string;
+    avatarUrl: string | null;
+    quando: Date;
+  } | null;
+  /** RN18: a pessoa segue este tópico. */
+  seguindo: boolean;
+  /**
+   * Contribuições desde a última vez que ela abriu o tópico.
+   *
+   * Zero para quem não segue: a marca de visita (`follows.last_seen_at`) só
+   * existe para tópico seguido, e inventar um "novas" para os demais faria
+   * a lista inteira piscar de novidade a cada visita.
+   */
+  novas: number;
 };
 
 export type OrdemDosTopicos = "respostas" | "recentes";
+
+/**
+ * Os filtros da lista, como o protótipo v6 os nomeia.
+ *
+ * Eram dois ícones sem rótulo, e ninguém sabia o que faziam sem clicar.
+ * "Seguindo" é o que absorveu a seção "Tópicos que você segue aqui", que
+ * ocupava o topo da tela mesmo quando a pessoa seguia um tópico só.
+ */
+export type FiltroDeTopicos = "alta" | "recentes" | "seguindo" | "novas";
+/*
+ * A leitura do valor da URL mora em `features/comunidades/shared.ts`, e não
+ * aqui: quem a chama é a tela, e um componente de cliente que importasse
+ * `lib/data/` arrastaria o Prisma para o pacote do navegador. A união está
+ * escrita nos dois lugares de propósito; `filtro-de-topicos.test.ts` reprova
+ * se as duas discordarem.
+ */
 
 type LinhaDeTopico = {
   id: string;
@@ -37,9 +74,16 @@ type LinhaDeTopico = {
   autor_handle: string | null;
   pessoas: string;
   respostas: string;
+  ultima_texto: string | null;
+  ultima_nome: string | null;
+  ultima_handle: string | null;
+  ultima_avatar: string | null;
+  ultima_quando: Date | null;
+  seguindo: boolean;
+  novas: string;
 };
 
-function montarTopico(linha: LinhaDeTopico): TopicoNaComunidade {
+function montarTopico(linha: LinhaDeTopico, avatarAssinado: string | null): TopicoNaComunidade {
   return {
     id: linha.id,
     slug: linha.slug,
@@ -51,26 +95,50 @@ function montarTopico(linha: LinhaDeTopico): TopicoNaComunidade {
         : null,
     pessoas: Number(linha.pessoas),
     respostas: Number(linha.respostas),
+    ultima:
+      linha.ultima_nome && linha.ultima_handle && linha.ultima_quando
+        ? {
+            texto: linha.ultima_texto ?? "",
+            autorNome: linha.ultima_nome,
+            autorHandle: linha.ultima_handle,
+            avatarUrl: avatarAssinado,
+            quando: linha.ultima_quando,
+          }
+        : null,
+    seguindo: linha.seguindo,
+    novas: Number(linha.novas),
   };
 }
 
 /**
  * Os tópicos de uma comunidade, ordenados e filtrados no banco.
  *
- * A ordem padrão é **por mais respostas** — é o que o protótipo mostra
- * selecionado. "Recentes" é por data de criação.
+ * "Em alta" é por número de respostas (RN12), que é o padrão do escopo;
+ * "Recentes" é por data de criação; "Seguindo" e "Com novidades" olham a
+ * relação da pessoa com cada tópico (RN18).
  *
- * O filtro reusa `hub_busca` da F06, então buscar "musica" aqui dentro acha
- * "Música" pelo mesmo critério da busca geral: duas noções de "mesmo texto"
- * no produto confundiriam.
+ * **O viewer importa.** Até esta rodada o parâmetro era `_viewer` e a
+ * consulta ignorava quem estava pedindo: o tópico de quem bloqueou a
+ * pessoa aparecia na lista, ao contrário do que acontece nas respostas.
+ * Agora o bloqueio vale nos dois sentidos aqui também (RN26).
+ *
+ * O filtro de texto reusa `hub_busca` da F06, então buscar "musica" aqui
+ * acha "Música" pelo mesmo critério da busca geral: duas noções de "mesmo
+ * texto" no produto confundiriam.
  */
 export async function topicosDaComunidade(
-  _viewer: Viewer,
+  viewer: Viewer,
   communityId: string,
-  opcoes: { ordem?: OrdemDosTopicos; termo?: string } = {},
+  opcoes: { ordem?: OrdemDosTopicos; termo?: string; filtro?: FiltroDeTopicos } = {},
 ): Promise<TopicoNaComunidade[]> {
-  const ordem = opcoes.ordem ?? "respostas";
+  const me = viewerProfileId(viewer);
   const termo = opcoes.termo?.trim() ?? "";
+  /*
+   * `ordem` é o parâmetro antigo, de quando havia só dois ícones. Ele
+   * continua valendo para quem já tinha um link salvo; o filtro novo
+   * manda quando os dois aparecem.
+   */
+  const filtro = opcoes.filtro ?? (opcoes.ordem === "recentes" ? "recentes" : "alta");
 
   const linhas = await prisma.$queryRaw<LinhaDeTopico[]>`
     SELECT t.id, t.slug, t.name, t.description,
@@ -78,20 +146,66 @@ export async function topicosDaComunidade(
            (SELECT count(DISTINCT a.author_id) FROM answers a
              WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS pessoas,
            (SELECT count(*) FROM answers a
-             WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS respostas
+             WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS respostas,
+           u.text AS ultima_texto,
+           u.name AS ultima_nome,
+           u.handle AS ultima_handle,
+           u.avatar_url AS ultima_avatar,
+           u.created_at AS ultima_quando,
+           (f.follower_id IS NOT NULL) AS seguindo,
+           COALESCE((
+             SELECT count(*) FROM answers a
+              WHERE a.topic_id = t.id
+                AND a.deleted_at IS NULL
+                AND f.last_seen_at IS NOT NULL
+                AND a.created_at > f.last_seen_at
+                AND a.author_id IS DISTINCT FROM ${me}::uuid
+           ), 0) AS novas
       FROM topics t
       LEFT JOIN profiles p ON p.id = t.author_id
+      LEFT JOIN follows f
+        ON f.topic_id = t.id
+       AND f.target = 'topic'
+       AND f.follower_id = ${me}::uuid
+      -- A última contribuição numa passada só, em vez de uma consulta por
+      -- tópico: é LATERAL justamente para o banco poder usar o índice
+      -- (topic_id, created_at) que já existe.
+      LEFT JOIN LATERAL (
+        SELECT a.text, a.created_at, ap.name, ap.handle, ap.avatar_url
+          FROM answers a
+          LEFT JOIN profiles ap ON ap.id = a.author_id
+         WHERE a.topic_id = t.id AND a.deleted_at IS NULL
+         ORDER BY a.created_at DESC
+         LIMIT 1
+      ) u ON true
      WHERE t.community_id = ${communityId}::uuid
        AND t.deleted_at IS NULL
        AND (${termo} = '' OR hub_busca(t.name) LIKE '%' || hub_busca(${termo}) || '%')
+       -- RN26: o bloqueio vale nos dois sentidos, e some com o tópico.
+       AND (
+         ${me}::uuid IS NULL
+         OR t.author_id IS NULL
+         OR NOT EXISTS (
+           SELECT 1 FROM blocks b
+            WHERE (b.blocker_id = ${me}::uuid AND b.blocked_id = t.author_id)
+               OR (b.blocker_id = t.author_id AND b.blocked_id = ${me}::uuid)
+         )
+       )
+       AND (${filtro} <> 'seguindo' OR f.follower_id IS NOT NULL)
      ORDER BY
-       CASE WHEN ${ordem} = 'respostas' THEN (
+       CASE WHEN ${filtro} = 'alta' THEN (
          SELECT count(*) FROM answers a WHERE a.topic_id = t.id AND a.deleted_at IS NULL
        ) END DESC,
        t.created_at DESC
   `;
 
-  return linhas.map(montarTopico);
+  // As fotos são caminho no depósito privado: o endereço é assinado agora,
+  // numa chamada só para a lista inteira.
+  const avatares = await enderecosDeMidia(linhas.map((linha) => linha.ultima_avatar));
+  const topicos = linhas.map((linha, i) => montarTopico(linha, avatares.at(i) ?? null));
+
+  // "Com novidades" filtra depois da contagem, que é onde ela existe.
+  return filtro === "novas" ? topicos.filter((topico) => topico.novas > 0) : topicos;
 }
 
 export type PaginaDaComunidade = {
@@ -99,6 +213,8 @@ export type PaginaDaComunidade = {
   slug: string;
   name: string;
   intro: string;
+  /** O texto longo do cartão Sobre. Vazio enquanto ninguém escreveu. */
+  about: string;
   /**
    * As regras da comunidade, já quebradas em linhas e sem as vazias.
    *
@@ -123,6 +239,21 @@ export type PaginaDaComunidade = {
    * Alinhar a RN28 está em docs/pendencias.md.
    */
   contribuicoesCount: number;
+  /**
+   * Contribuições nas últimas 24 horas (RN11).
+   *
+   * É o número que a linha sob a capa mostra **quando há movimento**; sem
+   * movimento ela mostra a data de criação. Comunidade parada dizendo "0
+   * contribuições hoje" anuncia o vazio; dizendo quando nasceu, não.
+   */
+  contribuicoesHoje: number;
+  /**
+   * As primeiras caras da comunidade, para os avatares sobrepostos.
+   *
+   * Cinco: é o que cabe na linha sem empurrar o texto, e o número total
+   * vem logo ao lado de qualquer jeito.
+   */
+  primeirosMembros: { nome: string; avatarUrl: string | null }[];
   criadaEm: Date;
   /** Quem criou. Nulo quando a conta saiu do Hub (`onDelete: SetNull`). */
   criadaPor: { name: string; handle: string } | null;
@@ -153,6 +284,7 @@ export async function paginaDaComunidade(
       slug: true,
       name: true,
       intro: true,
+      about: true,
       rules: true,
       coverUrl: true,
       coverWidth: true,
@@ -180,7 +312,9 @@ export async function paginaDaComunidade(
   });
   if (!comunidade) throw new NotFoundError("Comunidade");
 
-  const [minha, contribuicoes] = await Promise.all([
+  const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const [minha, contribuicoes, hoje, primeiros] = await Promise.all([
     me
       ? prisma.membership.findUnique({
           where: { communityId_profileId: { communityId: comunidade.id, profileId: me } },
@@ -190,13 +324,30 @@ export async function paginaDaComunidade(
     prisma.answer.count({
       where: { deletedAt: null, topic: { communityId: comunidade.id, deletedAt: null } },
     }),
+    prisma.answer.count({
+      where: {
+        deletedAt: null,
+        createdAt: { gte: ontem },
+        topic: { communityId: comunidade.id, deletedAt: null },
+      },
+    }),
+    prisma.membership.findMany({
+      where: { communityId: comunidade.id, bannedAt: null, profile: { deletedAt: null } },
+      orderBy: { joinedAt: "asc" },
+      take: 5,
+      select: { profile: { select: { name: true, avatarUrl: true } } },
+    }),
   ]);
+
+  // Caminho no depósito privado vira endereço assinado, numa chamada só.
+  const avatares = await enderecosDeMidia(primeiros.map((m) => m.profile.avatarUrl));
 
   return {
     id: comunidade.id,
     slug: comunidade.slug,
     name: comunidade.name,
     intro: comunidade.intro,
+    about: comunidade.about,
     regras: linhasDasRegras(comunidade.rules),
     // O depósito é privado: o endereço é assinado na hora de desenhar.
     coverUrl: await enderecoDeMidia(comunidade.coverUrl),
@@ -214,6 +365,11 @@ export async function paginaDaComunidade(
     membersCount: comunidade.membersCount,
     topicosCount: comunidade._count.topics,
     contribuicoesCount: contribuicoes,
+    contribuicoesHoje: hoje,
+    primeirosMembros: primeiros.map((m, i) => ({
+      nome: m.profile.name,
+      avatarUrl: avatares.at(i) ?? null,
+    })),
     criadaEm: comunidade.createdAt,
     criadaPor: comunidade.createdBy,
     universo: comunidade.universe,
@@ -222,32 +378,6 @@ export async function paginaDaComunidade(
     estouBanida: Boolean(minha?.bannedAt),
     moderadores: comunidade.memberships.map((m) => m.profile),
   };
-}
-
-/** RN18: os tópicos que a pessoa segue **nesta** comunidade, para o painel. */
-export async function topicosQueSigoAqui(
-  viewer: Viewer,
-  communityId: string,
-): Promise<TopicoNaComunidade[]> {
-  const me = viewerProfileId(viewer);
-
-  const linhas = await prisma.$queryRaw<LinhaDeTopico[]>`
-    SELECT t.id, t.slug, t.name, t.description,
-           p.id AS autor_id, p.name AS autor_nome, p.handle AS autor_handle,
-           (SELECT count(DISTINCT a.author_id) FROM answers a
-             WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS pessoas,
-           (SELECT count(*) FROM answers a
-             WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS respostas
-      FROM follows f
-      JOIN topics t ON t.id = f.topic_id AND t.deleted_at IS NULL
-      LEFT JOIN profiles p ON p.id = t.author_id
-     WHERE f.follower_id = ${me}::uuid
-       AND f.target = 'topic'
-       AND t.community_id = ${communityId}::uuid
-     ORDER BY t.created_at DESC
-  `;
-
-  return linhas.map(montarTopico);
 }
 
 export type MinhaComunidade = {

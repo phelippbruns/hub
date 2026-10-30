@@ -43,6 +43,10 @@
   --text-title--line-height: 32px;
   --text-title--font-weight: 800;
   --text-title--letter-spacing: -0.02em;
+  --text-coverTitle: 40px;
+  --text-coverTitle--line-height: 46px;
+  --text-coverTitle--font-weight: 800;
+  --text-coverTitle--letter-spacing: -0.02em;
   --text-question: 22px;
   --text-question--line-height: 26px;
   --text-question--font-weight: 800;
@@ -100,13 +104,15 @@
   --spacing-cabinList: 340px;
   --spacing-avatarSm: 32px;
   --spacing-controlXs: 32px;
-  --spacing-cover: 180px;
+  --spacing-cover: 230px;
   --spacing-avatarPerfil: 125px;
   --spacing-fotoAjuste: 240px;
   --spacing-stageColumn: 1120px;
   --spacing-demoCard: 500px;
   --spacing-demoPanel: 400px;
   --spacing-markLg: 88px;
+  --spacing-markCover: 40px;
+  --spacing-btnRound: 44px;
 
   --radius-sm: 12px;
   --radius-md: 18px;

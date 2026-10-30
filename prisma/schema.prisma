@@ -317,6 +317,9 @@ model Community {
   /// valor em cada create. Se o gatilho falhar, o índice único denuncia.
   slug           String  @unique @default("") @db.VarChar(80)
   intro          String  @db.VarChar(240)
+  /// O texto longo do cartão Sobre. A descrição curta continua em `intro`:
+  /// são dois trabalhos diferentes, e um campo só não cabia em nenhum.
+  about          String  @default("") @db.VarChar(500)
   /// Regras da comunidade, uma por linha, no máximo 5 (CHECK no banco).
   /// Vazio quer dizer "sem regras escritas", e é o que decide se a porta
   /// pergunta algo antes de deixar entrar.

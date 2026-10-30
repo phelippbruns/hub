@@ -634,7 +634,7 @@ Faltam seis, nesta ordem:
 
 | # | O quê | Tamanho |
 | --- | --- | --- |
-| 2 | **A lista de tópicos**: filtros Em alta · Recentes · Seguindo · "Com novidades (n)" no lugar dos dois ícones sem rótulo; a última contribuição no cartão, com avatar e @; busca só a partir de 10 tópicos; e `topicosDaComunidade` passando a respeitar o bloqueio (RN26), que hoje ignora o viewer | 1 dia |
+| 2 | ~~A lista de tópicos~~ — **feito.** Filtros com nome, última contribuição no cartão, busca a partir de 10, bloqueio respeitado (RN26), coluna da direita de volta como `<aside>` desta página, e a passada de design para a tela ficar igual ao protótipo v6. | feito |
 | 3 | **O painel do tópico**: rota interceptada `(.)[topico]` num slot, com a página inteira preservada para o link colado e o 404; separador de contribuições novas; compositor redesenhado | 1,5 dia |
 | 4 | **Enquetes**: `polls`, `poll_options`, `poll_votes`; a contagem **não sai do servidor** para quem não votou; um voto por pessoa garantido pelo banco | 2 dias |
 | 5 | **Eventos**: `events`, `event_attendances`; o link do encontro online só chega a quem confirmou; lotado conferido no servidor | 2 dias |

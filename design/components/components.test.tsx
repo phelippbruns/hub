@@ -24,7 +24,6 @@ import {
   SectionTitle,
   Segmented,
   Skeleton,
-  SortToggle,
   SuccessMessage,
   SuggestionRow,
   Switch,
@@ -121,7 +120,6 @@ const cases: Array<[string, React.ReactElement]> = [
   ],
   ["seguir, desligado", <FollowButton seguindo={false} oQue="Lia Souza" />],
   ["seguir, ligado", <FollowButton seguindo oQue="Lia Souza" />],
-  ["ordem por atividade", <SortToggle ordem="atividade" onChange={() => undefined} />],
   ["título de seção", <SectionTitle>Universos</SectionTitle>],
   // O # numa lista diz qual comunidade, não só "a comunidade".
   ["porta da comunidade, com nome", <CommunityDoor member={false} oQue="Vinil" />],
