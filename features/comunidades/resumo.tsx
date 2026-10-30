@@ -21,6 +21,7 @@ export function ResumoDaComunidade({ comunidade }: { comunidade: PaginaDaComunid
   return (
     <aside
       aria-label="Resumo da comunidade"
+      data-resumo
       className="min-[1100px]:max-w-contextPanel flex w-full shrink-0 flex-col gap-2"
     >
       <section className="bg-paper flex flex-col gap-2 rounded-md p-3">

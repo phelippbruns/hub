@@ -1,5 +1,10 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { cadastroConcluido, concluirOnboarding, preencherNovaComunidade } from "./apoio-tela";
+import {
+  cadastroConcluido,
+  campoDeContribuicao,
+  concluirOnboarding,
+  preencherNovaComunidade,
+} from "./apoio-tela";
 
 /**
  * Notificações e marcar com @ (F15).
@@ -73,9 +78,7 @@ test.describe("marcar com @", () => {
       await expect(outra.page.getByRole("button", { name: /^Membro de / })).toBeVisible();
 
       await page.goto(topico);
-      await page
-        .getByRole("textbox", { name: "Sua resposta" })
-        .fill(`@${outra.handle} você viu isso?`);
+      await campoDeContribuicao(page).fill(`@${outra.handle} você viu isso?`);
       await page.getByRole("button", { name: "Responder" }).click();
       await expect(page.locator("article").filter({ hasText: "você viu isso?" })).toBeVisible();
 
@@ -111,9 +114,7 @@ test.describe("marcar com @", () => {
       await expect(outra.page.getByRole("button", { name: /^Membro de / })).toBeVisible();
 
       await page.goto(topico);
-      await page
-        .getByRole("textbox", { name: "Sua resposta" })
-        .fill(`@${outra.handle} e @ninguemaqui`);
+      await campoDeContribuicao(page).fill(`@${outra.handle} e @ninguemaqui`);
       await page.getByRole("button", { name: "Responder" }).click();
 
       const resposta = page.locator("article").filter({ hasText: outra.handle });
@@ -143,9 +144,7 @@ test.describe("marcar com @", () => {
       await page.goto(topico);
       // Sem isto, marcar exige decorar o @ exato — e errar uma letra não dá
       // erro nenhum: o texto fica lá sem avisar ninguém.
-      await page
-        .getByRole("textbox", { name: "Sua resposta" })
-        .fill(`@${outra.handle.slice(0, 4)}`);
+      await campoDeContribuicao(page).fill(`@${outra.handle.slice(0, 4)}`);
 
       const sugestao = page
         .getByRole("group", { name: "Marcar alguém" })
@@ -153,9 +152,7 @@ test.describe("marcar com @", () => {
       await expect(sugestao).toBeVisible();
 
       await sugestao.click();
-      await expect(page.getByRole("textbox", { name: "Sua resposta" })).toHaveValue(
-        `@${outra.handle} `,
-      );
+      await expect(campoDeContribuicao(page)).toHaveValue(`@${outra.handle} `);
     } finally {
       await outra.contexto.close();
     }
@@ -175,7 +172,7 @@ test.describe("a central", () => {
       await expect(outra.page.getByRole("button", { name: /^Membro de / })).toBeVisible();
 
       await page.goto(topico);
-      await page.getByRole("textbox", { name: "Sua resposta" }).fill(`@${outra.handle} oi`);
+      await campoDeContribuicao(page).fill(`@${outra.handle} oi`);
       await page.getByRole("button", { name: "Responder" }).click();
       await expect(page.locator("article").filter({ hasText: "oi" })).toBeVisible();
 
@@ -233,7 +230,7 @@ test.describe("a central", () => {
       ).toHaveAttribute("aria-checked", "false");
 
       await page.goto(topico);
-      await page.getByRole("textbox", { name: "Sua resposta" }).fill(`@${outra.handle} oi`);
+      await campoDeContribuicao(page).fill(`@${outra.handle} oi`);
       await page.getByRole("button", { name: "Responder" }).click();
       await expect(page.locator("article").filter({ hasText: "oi" })).toBeVisible();
 

@@ -314,6 +314,29 @@ export async function temNovidade(viewer: Viewer): Promise<boolean> {
  * Só mexe em quem segue: para quem não segue, não há "novas" a zerar, e
  * gravar seria escrita a cada visita sem nada em troca.
  */
+/**
+ * Quando a pessoa viu este tópico pela última vez.
+ *
+ * Precisa ser lido **antes** de `marcarTopicoComoVisto`, e na mesma tela:
+ * abrir o tópico zera a marca, então quem perguntar depois recebe "agora" e
+ * a linha de "novas desde a sua última visita" nunca apareceria. Foi o
+ * primeiro jeito que tentei, e a linha simplesmente não existia.
+ *
+ * Nulo para quem não segue o tópico: sem seguir não há marca de visita, e
+ * inventar uma faria toda contribuição parecer nova em toda visita.
+ */
+export async function quandoVisitouOTopico(viewer: Viewer, topicId: string): Promise<Date | null> {
+  const me = viewerProfileId(viewer);
+  if (!me) return null;
+
+  const seguindo = await prisma.follow.findFirst({
+    where: { followerId: me, topicId, target: "topic" },
+    select: { lastSeenAt: true },
+  });
+
+  return seguindo?.lastSeenAt ?? null;
+}
+
 export async function marcarTopicoComoVisto(viewer: Viewer, topicId: string): Promise<void> {
   const me = viewerProfileId(viewer);
   if (!me) return;

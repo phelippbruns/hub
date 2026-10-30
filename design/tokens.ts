@@ -231,6 +231,8 @@ export const size = {
   markCover: "40px",
   /** Botão redondo de ícone sobre a capa e no topo do tópico. 44 px é o alvo de toque mínimo, o mesmo de navItem. */
   btnRound: "44px",
+  /** Largura do painel do tópico, aberto ao lado da lista da comunidade. 520 px é a medida do protótipo v6: cabe a abertura e o compositor sem quebrar o texto a cada três palavras. */
+  topicPanel: "520px",
 } as const;
 
 export const fontFamily =

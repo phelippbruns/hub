@@ -165,3 +165,16 @@ export async function seguirNoPerfil(page: Page, handle: string): Promise<void> 
 export async function abrirConvites(page: Page): Promise<void> {
   await page.getByRole("tab", { name: /^Convites/ }).click();
 }
+
+/**
+ * O campo de escrever uma contribuição.
+ *
+ * Centralizado porque **o rótulo já mudou uma vez**: "Sua resposta" virou
+ * "Sua contribuição" na rodada do protótipo v6, e trinta e três jornadas
+ * reprovaram de uma vez, em oito arquivos. O Faustão já registrava o
+ * padrão — mudou rótulo de tela, os testes entram por ele — e a correção é
+ * esta: um lugar só por onde todos entram.
+ */
+export function campoDeContribuicao(escopo: Page | Locator) {
+  return escopo.getByLabel("Sua contribuição");
+}

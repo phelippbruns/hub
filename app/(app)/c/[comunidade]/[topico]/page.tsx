@@ -1,80 +1,21 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ContentColumn, EmptyState, PaginaCarregando, TopicOpening } from "@/design/components";
-import { CampoDeResposta } from "@/features/respostas/campo";
-import { LinhaDeResposta } from "@/features/respostas/linha";
-import { OrdemDasRespostas as ControleDaOrdem } from "@/features/respostas/ordem";
+import { ContentColumn } from "@/design/components";
+import { CorpoDoTopico } from "@/features/topicos/corpo";
 import { CabecalhoDoTopico } from "@/features/topicos/cabecalho";
 import { TelaDeConvite } from "@/features/convite/tela";
 import { metadataCompartilhavel } from "@/features/convite/metadata";
 import { enderecoDeMidia } from "@/lib/midia/deposito";
 import { getViewer } from "@/lib/auth/session";
 import type { OrdemDasRespostas } from "@/lib/data/topics";
-import {
-  LIMITE_RESPOSTAS_PARA_APAGAR,
-  respostasDoTopico,
-  topicoPorEndereco,
-} from "@/lib/data/topics";
+import { LIMITE_RESPOSTAS_PARA_APAGAR, topicoPorEndereco } from "@/lib/data/topics";
 import { NotFoundError } from "@/lib/data/errors";
-import { haQuantoTempo } from "@/lib/tempo";
-import { marcarTopicoComoVisto } from "@/lib/data/inicio";
+import { marcarTopicoComoVisto, quandoVisitouOTopico } from "@/lib/data/inicio";
 import { sugestoesParaConvidar } from "@/lib/data/cabins";
-import { serverEnv } from "@/lib/env";
 
 type Params = Promise<{ comunidade: string; topico: string }>;
-
-/** A lista de respostas, pedida depois do cabeçalho. */
-async function Respostas({
-  topicId,
-  endereco,
-  ordem,
-}: {
-  topicId: string;
-  endereco: string;
-  ordem: OrdemDasRespostas;
-}) {
-  const viewer = await getViewer();
-  const respostas = await respostasDoTopico(viewer, topicId, ordem);
-
-  if (!respostas || respostas.length === 0) {
-    return (
-      <EmptyState
-        title="Nenhuma resposta ainda"
-        description="Seja a primeira pessoa a responder."
-      />
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-2">
-      {respostas.map((resposta) => (
-        <LinhaDeResposta
-          key={resposta.id}
-          endereco={endereco}
-          resposta={{
-            id: resposta.id,
-            texto: resposta.text,
-            marcacoes: resposta.marcacoes,
-            comunidade: resposta.comunidadeDoTopico,
-            quando: haQuantoTempo(resposta.createdAt),
-            souAutor: resposta.souAutor,
-            imagem: resposta.mediaHref,
-            tipoDaMidia: resposta.mediaKind,
-            autor: resposta.author
-              ? {
-                  nome: resposta.author.name,
-                  handle: resposta.author.handle,
-                  avatarUrl: resposta.author.avatarUrl,
-                }
-              : null,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 async function carregar(params: Params) {
   const { comunidade, topico } = await params;
@@ -178,6 +119,9 @@ export default async function TopicoPage({
    * Sem `await`: marcar o visto não pode atrasar a tela, e se falhar o pior
    * que acontece é o número continuar lá na próxima visita.
    */
+  // Lido **antes** de marcar: depois, a marca já seria "agora" e a linha de
+  // contribuições novas nunca apareceria.
+  const vistoEm = await quandoVisitouOTopico(viewer, dados.id);
   void marcarTopicoComoVisto(viewer, dados.id);
 
   return (
@@ -199,41 +143,17 @@ export default async function TopicoPage({
         paraCompartilhar={await sugestoesParaConvidar(viewer)}
       />
 
-      <TopicOpening
-        autor={dados.author?.name}
+      <CorpoDoTopico
+        topicId={dados.id}
+        endereco={endereco}
         abertura={dados.description}
+        autor={dados.author?.name}
         pessoas={dados.peopleCount}
         respostas={dados.answerCount}
+        podeVerRespostas={dados.podeVerRespostas}
+        ordem={ordem}
+        vistoEm={vistoEm}
       />
-
-      {/* RN16: sem conta, a lista de respostas não vem do servidor. */}
-      {!dados.podeVerRespostas ? (
-        <EmptyState
-          title="Entre para ver as respostas"
-          description="As respostas aparecem para quem tem conta no Hub."
-        />
-      ) : (
-        <>
-          <CampoDeResposta
-            topicId={dados.id}
-            endereco={endereco}
-            gifLigado={Boolean(serverEnv().GIPHY_API_KEY)}
-          />
-
-          <div className="flex justify-end">
-            <ControleDaOrdem endereco={endereco} atual={ordem} />
-          </div>
-
-          <Suspense
-            key={ordem}
-            fallback={
-              <PaginaCarregando titulo={false} linhas={2} label="Carregando as respostas" />
-            }
-          >
-            <Respostas topicId={dados.id} endereco={endereco} ordem={ordem} />
-          </Suspense>
-        </>
-      )}
     </ContentColumn>
   );
 }

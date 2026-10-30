@@ -1,6 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
-import { cadastroConcluido, concluirOnboarding, preencherNovaComunidade } from "./apoio-tela";
+import {
+  cadastroConcluido,
+  campoDeContribuicao,
+  concluirOnboarding,
+  preencherNovaComunidade,
+} from "./apoio-tela";
 
 /**
  * Meio-dia de ontem **no fuso do ciclo**, como instante.
@@ -179,7 +184,7 @@ test.describe("com conteúdo", () => {
     const comunidade = await cenarioComDestaque(page);
 
     await page.goto(`${comunidade}/assunto-do-inicio`);
-    await page.getByRole("textbox", { name: "Sua resposta" }).fill("minha resposta");
+    await campoDeContribuicao(page).fill("minha resposta");
     await page.getByRole("button", { name: "Responder" }).click();
     await expect(page.locator("article").filter({ hasText: "minha resposta" })).toBeVisible();
 

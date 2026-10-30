@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import {
   cadastroConcluido,
+  campoDeContribuicao,
   concluirOnboarding,
   preencherNovaComunidade,
   respostaPublicada,
@@ -86,7 +87,7 @@ async function minhaComunidadeComTopico(page: Page, prefixo: string, assunto = "
 
 async function responder(page: Page, topico: string, texto: string) {
   await page.goto(topico);
-  await page.getByRole("textbox", { name: "Sua resposta" }).fill(texto);
+  await campoDeContribuicao(page).fill(texto);
   await page.getByRole("button", { name: "Responder" }).click();
   /*
    * 15 s, e não os 5 s padrão.
@@ -151,7 +152,7 @@ test.describe("marcar comunidade e tópico", () => {
     await page.goto(topico);
     // Sem isto, marcar exige decorar o endereço exato — e errar uma letra
     // não dá erro nenhum: o texto fica lá sem virar link.
-    await page.getByRole("textbox", { name: "Sua resposta" }).fill(`#${slug.slice(0, 5)}`);
+    await campoDeContribuicao(page).fill(`#${slug.slice(0, 5)}`);
 
     const sugestao = page
       .getByRole("group", { name: "Marcar uma comunidade" })
@@ -159,7 +160,7 @@ test.describe("marcar comunidade e tópico", () => {
     await expect(sugestao).toBeVisible();
 
     await sugestao.click();
-    await expect(page.getByRole("textbox", { name: "Sua resposta" })).toHaveValue(`#${slug} `);
+    await expect(campoDeContribuicao(page)).toHaveValue(`#${slug} `);
   });
 });
 

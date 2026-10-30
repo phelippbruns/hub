@@ -3,9 +3,10 @@ import { consultar, esperarNoBanco } from "./apoio-banco";
 import {
   alerta,
   cadastroConcluido,
-  respostaPublicada,
+  campoDeContribuicao,
   concluirOnboarding,
   preencherNovaComunidade,
+  respostaPublicada,
 } from "./apoio-tela";
 
 /**
@@ -305,7 +306,7 @@ test.describe("a lista de tópicos", () => {
     await page.getByRole("button", { name: "Criar tópico" }).click();
     await page.waitForURL(/\/c\/[^/]+\/[^/]+$/);
 
-    await page.getByLabel("Sua resposta").fill("A minha foi num porão em 2009.");
+    await campoDeContribuicao(page).fill("A minha foi num porão em 2009.");
     await page.getByRole("button", { name: "Responder" }).click();
     await respostaPublicada(page, "A minha foi num porão em 2009.");
 

@@ -1034,3 +1034,17 @@
     transition: none;
   }
 }
+
+/*
+ * O resumo da comunidade sai da tela enquanto o tópico está aberto ao lado.
+ *
+ * Em CSS e não em React porque quem sabe do painel é ele mesmo e quem
+ * desenha o resumo é a página, que é Server Component. A marca é posta no
+ * `<body>` pelo próprio painel, ao abrir.
+ *
+ * Com os dois na tela, o conteúdo ficava espremido em três faixas
+ * estreitas; o protótipo esconde a coluna pelo mesmo motivo.
+ */
+body[data-painel="aberto"] [data-resumo] {
+  display: none;
+}
