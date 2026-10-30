@@ -1,8 +1,8 @@
 "use client";
 
 import { useActionState, useId, useRef, useState } from "react";
-import { Button, TextField } from "@/design/components";
-import { GifIcon, ImageIcon } from "@/design/icons";
+import { Button, RoundIconButton } from "@/design/components";
+import { GifIcon, ImageIcon, SendIcon } from "@/design/icons";
 import { EscolherGif, type GifEscolhido } from "./escolher-gif";
 import { acharLink } from "@/lib/texto/links";
 import { TAMANHO_MAXIMO_EM_MB, problemaNaImagem } from "@/lib/midia/limites";
@@ -37,7 +37,10 @@ export function CampoDeResposta({
   const [gif, setGif] = useState<GifEscolhido | null>(null);
   const [escolhendoGif, setEscolhendoGif] = useState(false);
   const arquivoRef = useRef<HTMLInputElement>(null);
+  const formulario = useRef<HTMLFormElement>(null);
   const idDoLimite = useId();
+  const idDoCampo = useId();
+  const idDoFalta = useId();
   /**
    * Onde está o cursor, para saber se há um @ sendo escrito (F15).
    *
@@ -99,26 +102,171 @@ export function CampoDeResposta({
   }
 
   return (
-    <form action={acao} className="flex flex-col gap-2">
+    <form ref={formulario} action={acao} className="flex flex-col gap-2">
       <input type="hidden" name="topicId" value={topicId} />
       <input type="hidden" name="endereco" value={endereco} />
 
-      <TextField
-        label="Sua resposta"
-        name="text"
-        maxLength={LIMITE}
-        tall
-        value={texto}
-        onValueChange={(valor) => {
-          setTexto(valor);
-          // Volta ao fim; se o cursor estiver no meio, o `onSelect` logo
-          // em seguida corrige.
-          setCursor(null);
-        }}
-        onSelect={(evento) => setCursor(evento.currentTarget.selectionStart ?? null)}
-        className="w-full"
-        error={link ? `Tire o endereço: "${link.trecho}"` : undefined}
-      />
+      {/*
+        Uma caixa arredondada só, com o texto e os controles dentro — é o
+        compositor do protótipo v6. Antes eram três blocos empilhados
+        (rótulo, campo, fileira de botões), e numa coluna de 520 px eles
+        ocupavam quase um terço da altura do painel.
+
+        A borda fica no embrulho e acende junto com o foco do campo
+        (`focus-within`): sem isso o anel de foco apareceria dentro da
+        caixa, e quem navega por teclado veria dois retângulos.
+      */}
+      <div className="bg-paper border-inkMuted focus-within:border-ink flex flex-col gap-1 rounded-md border p-2">
+        <label htmlFor={idDoCampo} className="sr-only">
+          Sua contribuição
+        </label>
+        <textarea
+          id={idDoCampo}
+          name="text"
+          rows={2}
+          maxLength={LIMITE}
+          placeholder="Escreva uma contribuição"
+          value={texto}
+          onChange={(evento) => {
+            setTexto(evento.target.value);
+            // Volta ao fim; se o cursor estiver no meio, o `onSelect` logo
+            // em seguida corrige.
+            setCursor(null);
+          }}
+          onSelect={(evento) => setCursor(evento.currentTarget.selectionStart ?? null)}
+          onKeyDown={(evento) => {
+            /*
+              Enter envia, Shift+Enter quebra a linha.
+
+              `isComposing` é a guarda que falta em quase toda versão disto:
+              quem digita acento ou usa teclado de outra língua aperta Enter
+              para confirmar o caractere, e sem a conferência a mensagem
+              saía pela metade.
+            */
+            if (evento.key !== "Enter" || evento.shiftKey) return;
+            if (evento.nativeEvent.isComposing) return;
+            if (oQueFalta !== null || pendente) return;
+            evento.preventDefault();
+            formulario.current?.requestSubmit();
+          }}
+          className="text-body text-ink placeholder:text-inkMuted max-h-composeMax min-h-avatarMd w-full resize-none bg-transparent outline-none"
+        />
+
+        {link ? (
+          <p role="alert" className="text-caption text-error">
+            Tire o endereço: &quot;{link.trecho}&quot;
+          </p>
+        ) : null}
+
+        {/* A prévia do que vai junto fica dentro da caixa, acima da fileira. */}
+        {imagem ? <span className="text-caption text-inkMuted truncate">{imagem.name}</span> : null}
+
+        {gif ? (
+          <span className="flex items-center gap-1">
+            {/* Mesmo motivo do `<img>` da resposta: o endereço é do GIPHY. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={gif.url} alt={gif.descricao} className="h-avatarMd w-auto rounded-sm" />
+            <Button variant="secondary" size="sm" onClick={() => setGif(null)}>
+              Tirar GIF
+            </Button>
+          </span>
+        ) : null}
+
+        <div className="flex items-center gap-1">
+          {/*
+            `key` muda a cada envio aceito: é o que faz o navegador esquecer
+            o arquivo escolhido. Campo de arquivo não se limpa por
+            propriedade.
+          */}
+          <input
+            key={enviadas}
+            ref={arquivoRef}
+            type="file"
+            name="imagem"
+            accept="image/jpeg,image/png,image/webp"
+            className="sr-only"
+            aria-hidden="true"
+            tabIndex={-1}
+            onChange={(evento) => {
+              /*
+               * Conferir aqui não substitui o servidor — ele continua sendo
+               * a regra. Evita a pior falha: o envio ser cortado no caminho
+               * e a pessoa receber um erro que não diz nada.
+               */
+              const escolhido = evento.target.files?.[0] ?? null;
+              setProblemaDaImagem(escolhido ? problemaNaImagem(escolhido) : null);
+              setImagem(escolhido);
+            }}
+          />
+
+          {/*
+            O limite vem como **descrição**, não dentro do nome do botão:
+            enfiar a regra no nome deixaria o botão se chamando "Adicionar
+            imagem — JPEG, PNG ou WebP, até 4 MB", que é o que o leitor de
+            tela anuncia a cada passagem.
+          */}
+          <RoundIconButton
+            label="Adicionar imagem"
+            disabled={gif !== null}
+            disabledHint="Já há um GIF nesta contribuição"
+            onClick={() => arquivoRef.current?.click()}
+          >
+            <ImageIcon decorative className="size-icon" />
+          </RoundIconButton>
+          <span id={idDoLimite} className="sr-only">
+            JPEG, PNG ou WebP, até {TAMANHO_MAXIMO_EM_MB} MB
+          </span>
+
+          {/*
+            O GIF só aparece com a chave do GIPHY configurada, do mesmo jeito
+            que o botão do Google. Botão que não funciona é promessa
+            quebrada. RN13 aceita imagem **ou** GIF, nunca os dois.
+          */}
+          {gifLigado ? (
+            <RoundIconButton
+              label="Adicionar GIF"
+              disabled={imagem !== null}
+              disabledHint="Já há uma imagem nesta contribuição"
+              onClick={() => setEscolhendoGif(true)}
+            >
+              <GifIcon decorative className="size-icon" />
+            </RoundIconButton>
+          ) : null}
+
+          <span className="text-caption text-inkMuted ml-auto">
+            {texto.length} de {LIMITE}
+          </span>
+
+          {/*
+            Botão redondo que acende: lavanda claro enquanto não há o que
+            enviar, lavanda cheio quando há. A cor não está sozinha —
+            `disabled` e o `disabledHint` dizem o que falta.
+          */}
+          <Button
+            type="submit"
+            variant="icon"
+            disabled={pendente || oQueFalta !== null}
+            aria-label="Responder"
+            aria-describedby={oQueFalta ? idDoFalta : undefined}
+            className="size-btnRound shrink-0"
+          >
+            <SendIcon decorative className="size-icon" />
+          </Button>
+        </div>
+      </div>
+
+      {/*
+        O que falta para poder enviar fica **abaixo da caixa**, e não colado
+        ao botão pelo `disabledHint`: dentro da fileira ele espremia os
+        ícones e o contador contra a borda. O botão aponta para esta linha
+        por `aria-describedby`, então quem usa leitor de tela continua
+        ouvindo o motivo logo depois do nome.
+      */}
+      {oQueFalta ? (
+        <p id={idDoFalta} className="text-caption text-inkMuted">
+          {oQueFalta}
+        </p>
+      ) : null}
 
       {/* F15: quem marcar, enquanto o @ está sendo escrito. */}
       <SugerirMarcacao
@@ -133,107 +281,6 @@ export function CampoDeResposta({
           setCursor(inicio + trecho.length + 1);
         }}
       />
-
-      <div className="flex items-center gap-2">
-        {/*
-          Imagem e GIF como ícones do mesmo tamanho, como a tela 15 mostra.
-        */}
-        {/*
-          `key` muda a cada envio aceito: é o que faz o navegador esquecer o
-          arquivo escolhido. Campo de arquivo não se limpa por propriedade.
-        */}
-        <input
-          key={enviadas}
-          ref={arquivoRef}
-          type="file"
-          name="imagem"
-          accept="image/jpeg,image/png,image/webp"
-          className="sr-only"
-          aria-label="Adicionar imagem à resposta"
-          onChange={(evento) => {
-            /*
-             * Conferir aqui não substitui o servidor — ele continua sendo a
-             * regra. Evita a pior falha: o envio ser cortado no caminho e a
-             * pessoa receber um erro que não diz nada.
-             */
-            const escolhido = evento.target.files?.[0] ?? null;
-            setProblemaDaImagem(escolhido ? problemaNaImagem(escolhido) : null);
-            setImagem(escolhido);
-          }}
-        />
-        {/*
-          O limite vem como **descrição**, não dentro do nome do botão: o
-          composer é estreito e uma linha fixa de regra roubaria espaço da
-          resposta, mas enfiar a regra no nome deixaria o botão se chamando
-          "Adicionar imagem — JPEG, PNG ou WebP, até 4 MB", que é o que o
-          leitor de tela anuncia a cada passagem. `aria-describedby` diz a
-          mesma coisa depois do nome, e `title` atende o mouse.
-        */}
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => arquivoRef.current?.click()}
-          aria-label="Adicionar imagem"
-          aria-describedby={idDoLimite}
-          title={`JPEG, PNG ou WebP, até ${TAMANHO_MAXIMO_EM_MB} MB`}
-          disabled={gif !== null}
-        >
-          <ImageIcon decorative className="size-icon" />
-        </Button>
-        <span id={idDoLimite} className="sr-only">
-          JPEG, PNG ou WebP, até {TAMANHO_MAXIMO_EM_MB} MB
-        </span>
-
-        {/*
-          O GIF só aparece com a chave do GIPHY configurada, do mesmo jeito
-          que o botão do Google. Botão que não funciona é promessa quebrada.
-
-          Desativado quando já há imagem: RN13 aceita um ou outro, nunca os
-          dois, e desativar explica melhor do que recusar depois.
-        */}
-        {gifLigado ? (
-          <Button
-            variant="secondary"
-            size="sm"
-            aria-label="Adicionar GIF"
-            disabled={imagem !== null}
-            onClick={() => setEscolhendoGif(true)}
-          >
-            <GifIcon decorative className="size-icon" />
-          </Button>
-        ) : null}
-
-        {imagem ? (
-          <span className="text-caption text-inkMuted min-w-0 flex-1 truncate">{imagem.name}</span>
-        ) : null}
-
-        {gif ? (
-          <span className="flex min-w-0 flex-1 items-center gap-1">
-            {/* Mesmo motivo do `<img>` da resposta: o endereço é do GIPHY. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={gif.url} alt={gif.descricao} className="h-avatarMd w-auto rounded-sm" />
-            <Button variant="secondary" size="sm" onClick={() => setGif(null)}>
-              Tirar GIF
-            </Button>
-          </span>
-        ) : null}
-
-        {/*
-          `ml-auto` no embrulho, e não no botão: com `disabledHint` o botão
-          passa a morar dentro de um `span` próprio, e a margem presa nele
-          empurraria o botão dentro do embrulho em vez do embrulho na linha.
-        */}
-        <div className="ml-auto">
-          <Button
-            type="submit"
-            size="sm"
-            disabled={pendente || oQueFalta !== null}
-            disabledHint={oQueFalta ?? undefined}
-          >
-            Responder
-          </Button>
-        </div>
-      </div>
 
       {/*
         O aviso da imagem fica **aqui**, logo abaixo do botão que a escolhe, e

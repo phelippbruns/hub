@@ -635,7 +635,7 @@ Faltam seis, nesta ordem:
 | # | O quê | Tamanho |
 | --- | --- | --- |
 | 2 | ~~A lista de tópicos~~ — **feito.** Filtros com nome, última contribuição no cartão, busca a partir de 10, bloqueio respeitado (RN26), coluna da direita de volta como `<aside>` desta página, e a passada de design para a tela ficar igual ao protótipo v6. | feito |
-| 3 | **O painel do tópico**: rota interceptada `(.)[topico]` num slot, com a página inteira preservada para o link colado e o 404; separador de contribuições novas; compositor redesenhado | 1,5 dia |
+| 3 | ~~O painel do tópico~~ — **feito.** Rota interceptada `@topico/(.)[topico]`, a página inteira preservada para o link colado e o 404, separador de contribuições novas, e o compositor redesenhado em caixa única com Enter para enviar. | feito |
 | 4 | **Enquetes**: `polls`, `poll_options`, `poll_votes`; a contagem **não sai do servidor** para quem não votou; um voto por pessoa garantido pelo banco | 2 dias |
 | 5 | **Eventos**: `events`, `event_attendances`; o link do encontro online só chega a quem confirmou; lotado conferido no servidor | 2 dias |
 | 6 | **Moderar numa janela**, em duas seções, e a comunidade passando a ser **editável** depois de criada (nome, intro, sobre, regras); botão Moderar na capa com contador de denúncias | 1 dia |

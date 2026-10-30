@@ -41,6 +41,15 @@ export function BackIcon(props: IconProps) {
   );
 }
 
+/** Fechar: o X do painel do tópico e das folhas. */
+export function CloseIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </IconBase>
+  );
+}
+
 export function ForwardIcon(props: IconProps) {
   return (
     <IconBase {...props}>

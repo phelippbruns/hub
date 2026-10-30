@@ -3,6 +3,7 @@ import { consultar } from "./apoio-banco";
 import {
   avancarApresentacao,
   cadastroConcluido,
+  campoDeContribuicao,
   concluirOnboarding,
   escolherComunidades,
   preencherNovaComunidade,
@@ -52,7 +53,7 @@ async function topicoComResposta(page: Page, texto: string) {
   await page.waitForURL(/\/assunto-compartilhado$/);
   const topico = new URL(page.url()).pathname;
 
-  await page.getByRole("textbox", { name: "Sua resposta" }).fill(texto);
+  await campoDeContribuicao(page).fill(texto);
   await page.getByRole("button", { name: "Responder" }).click();
   await expect(page.locator("article").filter({ hasText: texto })).toBeVisible();
 

@@ -63,6 +63,7 @@ import {
   BlockIcon,
   CabinNavIcon,
   ChronologicalIcon,
+  CloseIcon,
   CommunitiesNavIcon,
   CommunityHash,
   ConfirmedIcon,
@@ -144,6 +145,7 @@ const navItems = [
 
 const icons = [
   { Icon: MoreAnswersIcon, label: "Mais respostas" },
+  { Icon: CloseIcon, label: "Fechar" },
   { Icon: SearchIcon, label: "Buscar" },
   { Icon: CreateIcon, label: "Criar" },
   { Icon: BackIcon, label: "Voltar" },

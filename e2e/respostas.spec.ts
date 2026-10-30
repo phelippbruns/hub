@@ -3,6 +3,7 @@ import { consultar, esperarNoBanco } from "./apoio-banco";
 import {
   alerta,
   cadastroConcluido,
+  campoDeContribuicao,
   concluirOnboarding,
   preencherNovaComunidade,
   respostaPublicada,
@@ -57,7 +58,7 @@ test.describe("responder", () => {
     await entrarNoApp(page, "responder");
     await meuTopico(page, "Para Responder");
 
-    await page.getByRole("textbox", { name: "Sua resposta" }).fill("Um galpão em Curitiba, 2019.");
+    await campoDeContribuicao(page).fill("Um galpão em Curitiba, 2019.");
     await page.getByRole("button", { name: "Responder" }).click();
 
     await expect(respostaPublicada(page, "Um galpão em Curitiba, 2019.")).toBeVisible();
@@ -69,7 +70,7 @@ test.describe("responder", () => {
     await entrarNoApp(page, "linkaviso");
     await meuTopico(page, "Com Link");
 
-    const campo = page.getByRole("textbox", { name: "Sua resposta" });
+    const campo = campoDeContribuicao(page);
     await campo.fill("olha lá o meusite.com que eu fiz");
 
     // Citar o trecho é o que diz à pessoa o que apagar.
@@ -89,7 +90,7 @@ test.describe("responder", () => {
     await entrarNoApp(page, "contador");
     await meuTopico(page, "Com Contador");
 
-    await page.getByRole("textbox", { name: "Sua resposta" }).fill("a".repeat(240));
+    await campoDeContribuicao(page).fill("a".repeat(240));
     await expect(page.getByText("240 de 240")).toBeVisible();
   });
 
@@ -97,7 +98,7 @@ test.describe("responder", () => {
     await entrarNoApp(page, "menuresposta");
     await meuTopico(page, "Com Menu");
 
-    await page.getByRole("textbox", { name: "Sua resposta" }).fill("resposta que vou apagar");
+    await campoDeContribuicao(page).fill("resposta que vou apagar");
     await page.getByRole("button", { name: "Responder" }).click();
     await expect(respostaPublicada(page, "resposta que vou apagar")).toBeVisible();
 
@@ -112,7 +113,7 @@ test.describe("responder", () => {
     await entrarNoApp(page, "apagarresp");
     const topico = await meuTopico(page, "Vou Apagar");
 
-    await page.getByRole("textbox", { name: "Sua resposta" }).fill("some depois");
+    await campoDeContribuicao(page).fill("some depois");
     await page.getByRole("button", { name: "Responder" }).click();
     await expect(respostaPublicada(page, "some depois")).toBeVisible();
 
@@ -156,8 +157,8 @@ test.describe("imagem na resposta", () => {
     await entrarNoApp(page, "imagem");
     await meuTopico(page, "Com Imagem");
 
-    await page.getByRole("textbox", { name: "Sua resposta" }).fill("olha a foto");
-    await page.getByLabel("Adicionar imagem à resposta").setInputFiles({
+    await campoDeContribuicao(page).fill("olha a foto");
+    await page.locator('input[name="imagem"]').setInputFiles({
       name: "foto.jpg",
       mimeType: "image/jpeg",
       buffer: jpegComLocalizacao(),
@@ -192,7 +193,7 @@ test.describe("imagem na resposta", () => {
     await entrarNoApp(page, "somidia");
     await meuTopico(page, "So Midia");
 
-    await page.getByLabel("Adicionar imagem à resposta").setInputFiles({
+    await page.locator('input[name="imagem"]').setInputFiles({
       name: "foto.jpg",
       mimeType: "image/jpeg",
       buffer: jpegComLocalizacao(),
@@ -228,9 +229,9 @@ test.describe("imagem na resposta", () => {
     await entrarNoApp(page, "naoperde");
     await meuTopico(page, "Não Perde");
 
-    const campo = page.getByRole("textbox", { name: "Sua resposta" });
+    const campo = campoDeContribuicao(page);
     await campo.fill("escrevi isso com carinho e não quero perder");
-    await page.getByLabel("Adicionar imagem à resposta").setInputFiles({
+    await page.locator('input[name="imagem"]').setInputFiles({
       name: "disfarce.jpg",
       mimeType: "image/jpeg",
       buffer: Buffer.from("%PDF-1.4 isto não é uma imagem", "latin1"),
@@ -251,7 +252,7 @@ test.describe("imagem na resposta", () => {
     await entrarNoApp(page, "esvazia");
     await meuTopico(page, "Esvazia");
 
-    const campo = page.getByRole("textbox", { name: "Sua resposta" });
+    const campo = campoDeContribuicao(page);
     await campo.fill("resposta que vai passar");
     await page.getByRole("button", { name: "Responder" }).click();
 
@@ -262,9 +263,9 @@ test.describe("imagem na resposta", () => {
     await entrarNoApp(page, "naoimagem");
     await meuTopico(page, "Sem Imagem");
 
-    await page.getByRole("textbox", { name: "Sua resposta" }).fill("tentando enganar");
+    await campoDeContribuicao(page).fill("tentando enganar");
     // O cabeçalho diz JPEG; os bytes dizem PDF.
-    await page.getByLabel("Adicionar imagem à resposta").setInputFiles({
+    await page.locator('input[name="imagem"]').setInputFiles({
       name: "disfarce.jpg",
       mimeType: "image/jpeg",
       buffer: Buffer.from("%PDF-1.4 isto não é uma imagem", "latin1"),
@@ -295,7 +296,7 @@ test.describe("GIF na resposta", () => {
     await entrarNoApp(page, "gif");
     await meuTopico(page, "Com GIF");
 
-    await page.getByRole("textbox", { name: "Sua resposta" }).fill("não tenho palavras");
+    await campoDeContribuicao(page).fill("não tenho palavras");
     await page.getByRole("button", { name: "Adicionar GIF" }).click();
 
     // A grade vem da nossa rota, não do GIPHY: a chave fica no servidor.
@@ -352,8 +353,8 @@ test.describe("GIF na resposta", () => {
     await entrarNoApp(page, "umoutro");
     await meuTopico(page, "Um Ou Outro");
 
-    await page.getByRole("textbox", { name: "Sua resposta" }).fill("um de cada vez");
-    await page.getByLabel("Adicionar imagem à resposta").setInputFiles({
+    await campoDeContribuicao(page).fill("um de cada vez");
+    await page.locator('input[name="imagem"]').setInputFiles({
       name: "foto.jpg",
       mimeType: "image/jpeg",
       buffer: jpegComLocalizacao(),

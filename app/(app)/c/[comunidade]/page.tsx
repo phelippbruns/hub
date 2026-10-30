@@ -28,6 +28,13 @@ import { SobreAComunidade } from "@/features/comunidades/sobre";
 import { MembrosDaComunidade } from "@/features/comunidades/membros";
 import { PrimeirosPassos, TOPICOS_PARA_SUMIR } from "@/features/comunidades/primeiros-passos";
 import { ResumoDaComunidade } from "@/features/comunidades/resumo";
+import { LinkDoTopico } from "@/features/comunidades/link-do-topico";
+import { PainelDoTopico } from "@/features/topicos/painel";
+import { CorpoDoTopico } from "@/features/topicos/corpo";
+import { getViewer } from "@/lib/auth/session";
+import { LIMITE_RESPOSTAS_PARA_APAGAR, topicoPorEndereco } from "@/lib/data/topics";
+import type { OrdemDasRespostas } from "@/lib/data/topics";
+import { marcarTopicoComoVisto, quandoVisitouOTopico } from "@/lib/data/inicio";
 import { comunidadeDaRota } from "@/features/comunidades/dados";
 import { filtroDeMembros, membrosDaComunidade } from "@/lib/data/membros";
 import { topicosDaComunidade } from "@/lib/data/comunidades";
@@ -68,11 +75,13 @@ export default async function ComunidadePage({
     filtro?: string;
     /** O filtro da aba Membros: todos, moderacao ou novos. */
     papel?: string;
+    /** O endereço do tópico aberto no painel ao lado. */
+    t?: string;
     pessoa?: string;
   }>;
 }) {
   const { comunidade: slug } = await params;
-  const { q, ordem, convite, aba, filtro, pessoa, papel } = await searchParams;
+  const { q, ordem, convite, aba, filtro, pessoa, papel, t } = await searchParams;
   const pessoaFiltro = papel;
   const termo = q?.trim() ?? "";
   const abaAtual = abaDaComunidade(aba);
@@ -106,28 +115,40 @@ export default async function ComunidadePage({
 
   const paraCompartilhar = await sugestoesParaConvidar(viewer);
 
+  /*
+   * O painel do tópico, ao lado da lista (protótipo v6).
+   *
+   * Ele é parte **desta** página, ligado por `?t=`. Foi rota interceptada
+   * antes, para o endereço virar `/c/<comunidade>/<topico>`; a
+   * interceptação casa qualquer segmento irmão e engolia `/novo` e
+   * `/moderar`. Está no Faustão.
+   */
   return (
-    <ContentColumn larga>
-      <CabecalhoDaComunidade comunidade={dados} paraCompartilhar={paraCompartilhar} />
+    <div className="flex items-start">
+      <div className="min-w-0 flex-1">
+        <ContentColumn larga>
+          <CabecalhoDaComunidade comunidade={dados} paraCompartilhar={paraCompartilhar} />
 
-      <AbasDaComunidade base={`/c/${dados.slug}`} atual={abaAtual} />
+          <AbasDaComunidade base={`/c/${dados.slug}`} atual={abaAtual} />
 
-      {abaAtual === "membros" ? (
-        <Suspense
-          fallback={<PaginaCarregando titulo={false} linhas={3} label="Carregando os membros" />}
-        >
-          <AbaDeMembros
-            slug={dados.slug}
-            comunidadeId={dados.id}
-            total={dados.membersCount}
-            souModerador={dados.souModerador}
-            souMembro={dados.souMembro}
-            filtro={pessoaFiltro}
-            termo={pessoa?.trim() ?? ""}
-          />
-        </Suspense>
-      ) : (
-        /*
+          {abaAtual === "membros" ? (
+            <Suspense
+              fallback={
+                <PaginaCarregando titulo={false} linhas={3} label="Carregando os membros" />
+              }
+            >
+              <AbaDeMembros
+                slug={dados.slug}
+                comunidadeId={dados.id}
+                total={dados.membersCount}
+                souModerador={dados.souModerador}
+                souMembro={dados.souMembro}
+                filtro={pessoaFiltro}
+                termo={pessoa?.trim() ?? ""}
+              />
+            </Suspense>
+          ) : (
+            /*
           Duas colunas acima de 1100 px, como o protótipo v6: o conteúdo à
           esquerda e o resumo da comunidade à direita.
 
@@ -140,24 +161,24 @@ export default async function ComunidadePage({
           mas o Hub é só computador até a F21 e a regra do projeto proíbe
           breakpoint. A adaptação entra inteira lá, junto com o celular.
         */
-        <div className="flex items-start gap-3">
-          <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <SobreAComunidade
-              about={dados.about}
-              regras={dados.regras}
-              criadaPor={dados.criadaPor}
-              criadaEm={dados.criadaEm}
-            />
+            <div className="flex items-start gap-3">
+              <div className="flex min-w-0 flex-1 flex-col gap-3">
+                <SobreAComunidade
+                  about={dados.about}
+                  regras={dados.regras}
+                  criadaPor={dados.criadaPor}
+                  criadaEm={dados.criadaEm}
+                />
 
-            {/*
+                {/*
               Primeiros passos some sozinho ao terceiro tópico, e só aparece
               para quem é membro: a RN07 exige participação para criar.
             */}
-            {dados.souMembro && dados.topicosCount < TOPICOS_PARA_SUMIR ? (
-              <PrimeirosPassos slug={dados.slug} />
-            ) : null}
+                {dados.souMembro && dados.topicosCount < TOPICOS_PARA_SUMIR ? (
+                  <PrimeirosPassos slug={dados.slug} />
+                ) : null}
 
-            {/*
+                {/*
               RN09: o Hot Topic do dia, eleito às 00h pelo ciclo anterior.
               Comunidade sem respostas ontem não ganha destaque.
 
@@ -168,42 +189,116 @@ export default async function ComunidadePage({
               chama `notFound()`, como esta, isso transforma 404 em 200.
               Aconteceu em 15 de outubro e está no Faustão.
             */}
-            <Suspense
-              fallback={
-                <PaginaCarregando titulo={false} linhas={1} label="Carregando o Hot Topic" />
-              }
-            >
-              <DestaqueDaComunidade comunidadeId={dados.id} slug={dados.slug} termo={termo} />
-            </Suspense>
+                <Suspense
+                  fallback={
+                    <PaginaCarregando titulo={false} linhas={1} label="Carregando o Hot Topic" />
+                  }
+                >
+                  <DestaqueDaComunidade comunidadeId={dados.id} slug={dados.slug} termo={termo} />
+                </Suspense>
 
-            <SectionTitle
-              contagem={dados.topicosCount}
-              acao={dados.souMembro ? <BotaoNovoTopico slug={dados.slug} /> : undefined}
-            >
-              Tópicos
-            </SectionTitle>
+                <SectionTitle
+                  contagem={dados.topicosCount}
+                  acao={dados.souMembro ? <BotaoNovoTopico slug={dados.slug} /> : undefined}
+                >
+                  Tópicos
+                </SectionTitle>
 
-            <Suspense
-              fallback={
-                <PaginaCarregando titulo={false} linhas={3} label="Carregando os tópicos" />
-              }
-            >
-              <ListaDeTopicos
-                comunidadeId={dados.id}
-                slug={dados.slug}
-                nomeDaComunidade={dados.name}
-                termo={termo}
-                filtro={filtroAtual}
-                souMembro={dados.souMembro}
-                totalDeTopicos={dados.topicosCount}
-              />
-            </Suspense>
-          </div>
+                <Suspense
+                  fallback={
+                    <PaginaCarregando titulo={false} linhas={3} label="Carregando os tópicos" />
+                  }
+                >
+                  <ListaDeTopicos
+                    comunidadeId={dados.id}
+                    slug={dados.slug}
+                    nomeDaComunidade={dados.name}
+                    termo={termo}
+                    filtro={filtroAtual}
+                    souMembro={dados.souMembro}
+                    totalDeTopicos={dados.topicosCount}
+                  />
+                </Suspense>
+              </div>
 
-          <ResumoDaComunidade comunidade={dados} />
-        </div>
-      )}
-    </ContentColumn>
+              <ResumoDaComunidade comunidade={dados} />
+            </div>
+          )}
+        </ContentColumn>
+      </div>
+
+      {t ? (
+        <Suspense fallback={null}>
+          <PainelAoLado comunidade={slug} topico={t} ordem={ordem} />
+        </Suspense>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * O tópico aberto ao lado da lista.
+ *
+ * Em `<Suspense>` como o resto: a conferência de existência da comunidade
+ * já rodou, e o que chega depois é conteúdo. Tópico que não existe some do
+ * painel em silêncio em vez de derrubar a tela — o endereço que vale para
+ * dizer "não existe" é o do tópico, `/c/<comunidade>/<topico>`, e esse dá
+ * 404 como sempre deu.
+ */
+async function PainelAoLado({
+  comunidade,
+  topico,
+  ordem,
+}: {
+  comunidade: string;
+  topico: string;
+  ordem: string | undefined;
+}) {
+  const viewer = await getViewer();
+  if (viewer.kind !== "member") return null;
+
+  let dados;
+  try {
+    dados = await topicoPorEndereco(viewer, comunidade, topico, { comRespostas: false });
+  } catch (erro) {
+    if (erro instanceof NotFoundError) return null;
+    throw erro;
+  }
+
+  const endereco = `/c/${comunidade}/${topico}`;
+  const ordemDasRespostas: OrdemDasRespostas = ordem === "antigas" ? "antigas" : "recentes";
+
+  // Lido **antes** de marcar a visita de agora: depois, a marca já seria
+  // "agora" e a linha de contribuições novas nunca apareceria.
+  const vistoEm = await quandoVisitouOTopico(viewer, dados.id);
+  void marcarTopicoComoVisto(viewer, dados.id);
+
+  return (
+    <PainelDoTopico
+      nome={dados.name}
+      topicId={dados.id}
+      endereco={endereco}
+      comunidadeSlug={comunidade}
+      nomeDaComunidade={dados.community.name}
+      seguindoInicial={dados.following}
+      souAutor={dados.souAutor}
+      podeApagar={dados.podeApagar}
+      respostasDeOutros={dados.respostasDeOutros}
+      limite={LIMITE_RESPOSTAS_PARA_APAGAR}
+      paraCompartilhar={await sugestoesParaConvidar(viewer)}
+    >
+      <CorpoDoTopico
+        topicId={dados.id}
+        endereco={endereco}
+        abertura={dados.description}
+        autor={dados.author?.name}
+        pessoas={dados.peopleCount}
+        respostas={dados.answerCount}
+        podeVerRespostas={dados.podeVerRespostas}
+        ordem={ordemDasRespostas}
+        vistoEm={vistoEm}
+      />
+    </PainelDoTopico>
   );
 }
 
@@ -293,7 +388,7 @@ async function ListaDeTopicos({
       ) : (
         <div className="flex flex-col gap-2">
           {topicos.map((topico) => (
-            <Link key={topico.id} href={`/c/${slug}/${topico.slug}`} className="block">
+            <LinkDoTopico key={topico.id} slugDaComunidade={slug} slug={topico.slug}>
               <TopicCard
                 name={topico.name}
                 people={topico.pessoas}
@@ -303,7 +398,7 @@ async function ListaDeTopicos({
                 novas={topico.novas}
                 ultima={topico.ultima}
               />
-            </Link>
+            </LinkDoTopico>
           ))}
         </div>
       )}

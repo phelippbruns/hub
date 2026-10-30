@@ -116,6 +116,8 @@ export function RoundIconButton({
   ativo = false,
   controla,
   onClick,
+  disabled = false,
+  disabledHint,
   children,
 }: {
   label: string;
@@ -123,6 +125,16 @@ export function RoundIconButton({
   /** Id do que o botão abre, quando ele abre algo. */
   controla?: string;
   onClick?: () => void;
+  /**
+   * Desativado de verdade, com `disabled` e com a cor de desativado.
+   *
+   * Existe porque a alternativa tentada era pior: um `onClick` que não faz
+   * nada deixa o botão com cara de ativo e sem resposta, e a pessoa clica
+   * de novo achando que errou a mira.
+   */
+  disabled?: boolean;
+  /** O porquê, para o leitor de tela. Obrigatório por convenção quando desativado. */
+  disabledHint?: string;
   children: ReactNode;
 }) {
   return (
@@ -132,9 +144,13 @@ export function RoundIconButton({
       aria-expanded={controla ? ativo : undefined}
       aria-controls={controla}
       onClick={onClick}
+      disabled={disabled}
+      title={disabled ? disabledHint : undefined}
       className={cn(
-        "size-btnRound rounded-pill grid cursor-pointer place-items-center",
-        ativo ? "bg-sun text-ink" : "bg-paper text-ink",
+        "size-btnRound rounded-pill grid place-items-center",
+        disabled
+          ? "bg-line text-inkMuted cursor-not-allowed"
+          : cn("cursor-pointer", ativo ? "bg-sun text-ink" : "bg-paper text-ink"),
       )}
     >
       {children}

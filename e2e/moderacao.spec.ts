@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import {
   cadastroConcluido,
+  campoDeContribuicao,
   concluirOnboarding,
   preencherNovaComunidade,
   respostaPublicada,
@@ -69,7 +70,7 @@ async function responderComo(page: Page, comunidade: string, topico: string, tex
   await expect(page.getByRole("button", { name: /^Membro de / })).toBeVisible();
 
   await page.goto(topico);
-  await page.getByRole("textbox", { name: "Sua resposta" }).fill(texto);
+  await campoDeContribuicao(page).fill(texto);
   await page.getByRole("button", { name: "Responder" }).click();
   await expect(respostaPublicada(page, texto)).toBeVisible();
 }

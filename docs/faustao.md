@@ -1549,6 +1549,78 @@ inteira morrer, longe da causa. Utilitário compartilhado nasce em
 `shared.ts`; se está num arquivo com `"use client"`, ele é do navegador e
 de mais ninguém.
 
+### O `next dev` não enxerga rota paralela criada com ele de pé
+
+*O que aconteceu:* criei o encaixe `@topico` e a rota interceptada
+`(.)[topico]` com o servidor de desenvolvimento rodando. Abrir um tópico
+pela lista passou a devolver **404**: endereço certo, servidor respondendo
+200, e a tela em branco com o 404 do Next por cima.
+
+Perdi três rodadas de depuração procurando no código. A causa era o
+servidor: o `app-paths-manifest.json` não tinha a rota interceptada. Matar
+o processo, apagar `.next` e subir de novo resolveu, sem mudar uma linha.
+
+Aconteceu **três vezes** na mesma tarde, porque a cada ajuste de rota eu
+confiava no recarregamento automático de novo.
+
+*Por que passou:* não passou por conferência nenhuma — nenhuma ferramenta
+olha o manifesto. O sinal é um 404 que não distingue "esta rota não existe"
+de "esta rota ainda não foi compilada".
+
+👁 **Protegido só pela página.**
+
+**A lição:** mexeu em pasta de rota — `@encaixe`, `(.)interceptada`,
+`default.tsx`, `layout.tsx` —, reinicie o `next dev` e apague o `.next`
+antes de acreditar no que a tela mostra. Recarregamento automático é para
+conteúdo de arquivo, não para a árvore de rotas.
+
+### A rota interceptada engoliu as rotas irmãs
+
+*O que aconteceu:* o painel do tópico nasceu como rota interceptada
+(`@topico/(.)[topico]`), para o endereço virar `/c/<comunidade>/<topico>` e
+a lista continuar visível atrás. Funcionou — e **quebrou "Criar tópico"**.
+
+`(.)[topico]` é um segmento dinâmico: ela casa *qualquer* coisa abaixo de
+`/c/<comunidade>/`, inclusive `novo` e `moderar`. Quando a interceptação
+casa, o Next mantém o conteúdo anterior atrás do painel — essa é a graça
+dela. Então clicar em "Criar tópico" dava o endereço `/c/<slug>/novo` com a
+**comunidade** desenhada. A tela de criar simplesmente não abria mais.
+
+Tentei devolver `null` do painel para os endereços reservados. Não adianta:
+a interceptação já casou antes de o componente rodar, e quem fica para trás
+é o `children`. Também não dá para excluir rotas no nível do sistema de
+arquivos.
+
+Outras duas armadilhas da mesma empreitada, no caminho:
+
+- **Empurrar o endereço não desfazia a interceptação.** O X do painel
+  chamava `router.push("/c/<comunidade>")` e o clique não fazia nada — nem
+  erro, nem mudança de endereço. O encaixe paralelo guarda o último estado
+  dele, o Next calculava a mesma árvore e a navegação virava um nada.
+- **`waitForURL` não serve para navegação de cliente.** Ele espera um
+  evento de `load` que não acontece, e o teste reprova por tempo esgotado —
+  um sintoma que parece lentidão, não "o botão é um enfeite". O que mede é
+  `expect.poll` sobre `location.pathname`.
+
+*Por que passou:* nenhuma delas tem sintoma honesto. 404 sem causa, clique
+que não faz nada, teste que estoura o tempo. E o `next dev` ainda mentia
+por cima (entrada anterior).
+
+*Como foi resolvido:* o PO escolheu trocar o endereço do painel. Ele virou
+`?t=<endereço>` na própria página da comunidade — sem encaixe paralelo, sem
+`default.tsx`, sem interceptação e sem jogo com o histórico.
+`/c/<comunidade>/<topico>` continua existindo inteiro, com o 404 dele.
+
+🔒 **Com barreira** — a jornada "a comunidade tem o caminho para criar
+tópico" reprova se as rotas irmãs forem engolidas de novo, e cinco jornadas
+cobrem abrir, fechar, pular e contribuir pelo painel.
+
+**A lição:** rota interceptada com segmento dinâmico captura os irmãos
+dela, e o preço aparece longe — numa tela que nada tem a ver com o painel.
+Antes de escolher interceptação, conte quantos irmãos o segmento tem. Aqui
+eram dois, e um parâmetro de busca resolvia o mesmo problema sem nenhuma
+das quatro armadilhas.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

@@ -1,6 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
-import { cadastroConcluido, concluirOnboarding, preencherNovaComunidade } from "./apoio-tela";
+import {
+  cadastroConcluido,
+  campoDeContribuicao,
+  concluirOnboarding,
+  preencherNovaComunidade,
+} from "./apoio-tela";
 
 /**
  * O ciclo do Hot Topic (F10), na tela.
@@ -130,7 +135,7 @@ test.describe("a disputa em andamento", () => {
     await minhaComunidadeComTopico(page, "Com Posicao");
 
     // Uma resposta de hoje põe o tópico na disputa que fecha à meia-noite.
-    await page.getByRole("textbox", { name: "Sua resposta" }).fill("respondendo o meu");
+    await campoDeContribuicao(page).fill("respondendo o meu");
     await page.getByRole("button", { name: "Responder" }).click();
     await expect(page.locator("article").filter({ hasText: "respondendo o meu" })).toBeVisible();
 
