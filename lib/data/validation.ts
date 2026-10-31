@@ -228,6 +228,52 @@ export const criarEnqueteSchema = z.object({
   }),
 });
 
+/**
+ * RN38: o encontro da comunidade.
+ *
+ * Presencial exige local; online não tem local e pode ter a sala. O banco
+ * tem o mesmo CHECK — aqui mora a mensagem que a pessoa lê.
+ *
+ * O link da sala é a **única exceção à RN16 nos eventos**, pelo mesmo
+ * motivo do campo Links do perfil: é um endereço cujo trabalho é ser um
+ * endereço. O resto do texto do evento continua sem links.
+ */
+export const criarEventoSchema = z
+  .object({
+    communityId: uuidSchema,
+    titulo: userText(80, "O nome do encontro"),
+    descricao: z
+      .string()
+      .trim()
+      .max(300, "A descrição passa de 300 caracteres")
+      .default("")
+      .refine((texto) => !containsLink(texto), {
+        message: "RN16: links não são aceitos na descrição",
+      }),
+    formato: z.enum(["online", "presencial"]),
+    comeca: z.coerce.date().refine((data) => data.getTime() > Date.now(), {
+      message: "A data precisa ser no futuro",
+    }),
+    local: z.string().trim().max(80, "O local passa de 80 caracteres").default(""),
+    linkDoEncontro: z
+      .string()
+      .trim()
+      .max(300)
+      .regex(/^https?:\/\//, "O link do encontro precisa começar com http ou https")
+      .optional(),
+    vagas: z
+      .number()
+      .int()
+      .min(2, "O mínimo é 2 vagas")
+      .max(500, "O máximo é 500 vagas")
+      .nullable()
+      .default(null),
+  })
+  .refine((dados) => dados.formato !== "presencial" || dados.local.length > 0, {
+    message: "Encontro presencial precisa de um local",
+    path: ["local"],
+  });
+
 export const createCommunitySchema = z.object({
   universeId: uuidSchema.optional(),
   name: userText(60, "O nome da comunidade"),

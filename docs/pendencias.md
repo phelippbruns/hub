@@ -637,7 +637,7 @@ Faltam seis, nesta ordem:
 | 2 | ~~A lista de tópicos~~ — **feito.** Filtros com nome, última contribuição no cartão, busca a partir de 10, bloqueio respeitado (RN26), coluna da direita de volta como `<aside>` desta página, e a passada de design para a tela ficar igual ao protótipo v6. | feito |
 | 3 | ~~O painel do tópico~~ — **feito.** Rota interceptada `@topico/(.)[topico]`, a página inteira preservada para o link colado e o 404, separador de contribuições novas, e o compositor redesenhado em caixa única com Enter para enviar. | feito |
 | 4 | ~~Enquetes~~ — **feito.** RN37: `polls`, `poll_options`, `poll_votes`; a contagem não sai do servidor para quem não votou; um voto por pessoa garantido pela chave primária; trocar o voto enquanto aberta; contador na aba. | feito |
-| 5 | **Eventos**: `events`, `event_attendances`; o link do encontro online só chega a quem confirmou; lotado conferido no servidor | 2 dias |
+| 5 | ~~Eventos~~ — **feito.** RN38: `events` e `event_attendances`; o link da sala só sai para quem confirmou; presencial exige local por CHECK; lotado conferido no servidor; contador na aba. | feito |
 | 6 | **Moderar numa janela**, em duas seções, e a comunidade passando a ser **editável** depois de criada (nome, intro, sobre, regras); botão Moderar na capa com contador de denúncias | 1 dia |
 | 7 | **Acabamento**: foco, teclado, `Esc`, alvos de 44 px, e a passada final de termo — "contribuição", nunca "resposta" | meio dia |
 

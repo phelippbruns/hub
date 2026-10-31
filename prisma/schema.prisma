@@ -104,6 +104,14 @@ enum InviteStatus {
   @@map("invite_status")
 }
 
+/// RN38: onde o encontro acontece.
+enum EventFormat {
+  online
+  presencial
+
+  @@map("event_format")
+}
+
 enum ReportTarget {
   profile
   community
@@ -262,6 +270,8 @@ model Profile {
   platformBan        PlatformBan?
   polls              Poll[]            @relation("PollAuthor")
   pollVotes          PollVote[]
+  events             Event[]           @relation("EventHost")
+  attendances        EventAttendance[]
   notifications      Notification[]
   analyticsEvents    AnalyticsEvent[]
 
@@ -351,6 +361,61 @@ model PollVote {
   @@map("poll_votes")
 }
 
+// --------------------------------------------------------------- eventos
+
+/// RN38: um encontro da comunidade, online ou presencial.
+///
+/// `joinUrl` **só é entregue a quem confirmou presença** — quem garante
+/// isso é `lib/data/eventos.ts`. Um link de sala aberta na página pública
+/// é um convite para quem a comunidade não chamou.
+model Event {
+  id          String      @id @default(uuid()) @db.Uuid
+  communityId String      @map("community_id") @db.Uuid
+  hostId      String?     @map("host_id") @db.Uuid
+  title       String      @db.VarChar(80)
+  description String      @default("") @db.VarChar(300)
+  format      EventFormat
+
+  /// Quando começa. É instante, e o passado é o que separa "próximos" de
+  /// "anteriores" — não existe campo de "encerrado" para alguém esquecer
+  /// de virar.
+  startsAt DateTime @map("starts_at") @db.Timestamptz(6)
+
+  /// Obrigatório quando presencial, vazio quando online — CHECK no banco.
+  place String @default("") @db.VarChar(80)
+
+  /// A sala do encontro online. Nunca sai para quem não confirmou.
+  joinUrl String? @map("join_url") @db.VarChar(300)
+
+  /// Teto de presenças, de 2 a 500. Nulo é sem limite.
+  capacity Int?
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  community   Community         @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  host        Profile?          @relation("EventHost", fields: [hostId], references: [id], onDelete: SetNull)
+  attendances EventAttendance[]
+
+  @@index([communityId, startsAt])
+  @@map("events")
+}
+
+/// Presença confirmada. Uma por pessoa por evento — é a chave primária.
+model EventAttendance {
+  eventId     String   @map("event_id") @db.Uuid
+  profileId   String   @map("profile_id") @db.Uuid
+  confirmedAt DateTime @default(now()) @map("confirmed_at") @db.Timestamptz(6)
+
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, profileId])
+  @@index([profileId])
+  @@map("event_attendances")
+}
+
 // ------------------------------------------------------------ hierarquia
 
 /// RN02: Universos são criados e moderados somente pela plataforma.
@@ -423,6 +488,7 @@ model Community {
   moderationActions ModerationEntry[]
   modInvites        ModeratorInvite[]
   polls             Poll[]
+  events            Event[]
   reports           Report[]
   sharedInMessages  Message[]
 
