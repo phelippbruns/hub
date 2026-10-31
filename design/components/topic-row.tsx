@@ -28,7 +28,7 @@ export function TopicRow({
         </span>
         <span className="text-caption text-inkMuted block">
           {people} {people === 1 ? "pessoa" : "pessoas"} · {answers}{" "}
-          {answers === 1 ? "resposta" : "respostas"}
+          {answers === 1 ? "contribuição" : "contribuições"}
           {when ? ` · ${when}` : ""}
         </span>
       </span>

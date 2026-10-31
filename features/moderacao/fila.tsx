@@ -38,7 +38,7 @@ export function FilaDeDenuncias({
     return (
       <EmptyState
         title="Nenhuma denúncia aberta"
-        description="Quando alguém denunciar uma resposta, um tópico ou uma pessoa daqui, ela aparece nesta fila."
+        description="Quando alguém denunciar uma contribuição, um tópico ou uma pessoa daqui, ela aparece nesta fila."
       />
     );
   }

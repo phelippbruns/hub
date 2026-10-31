@@ -339,15 +339,20 @@ export function CabecalhoDaComunidade({
 
         <p className="text-caption text-inkMuted">
           {numero(membros)} {membros === 1 ? "membro" : "membros"} ·{" "}
-          {numero(comunidade.topicosCount)} {comunidade.topicosCount === 1 ? "tópico" : "tópicos"} ·{" "}
+          {/*
+            Um número de contribuições, e não "N tópicos · N contribuições".
+            Pela RN28 contribuição é resposta **ou** tópico criado, então os
+            dois lado a lado contariam cada tópico duas vezes na mesma
+            frase. A contagem de tópicos continua no título da seção.
+          */}
+          {numero(comunidade.contribuicoesCount)}{" "}
+          {comunidade.contribuicoesCount === 1 ? "contribuição" : "contribuições"} ·{" "}
           {/*
             Com movimento, o número de hoje; parada, a data de nascimento.
-            "0 contribuições hoje" anuncia o vazio de quem acabou de chegar.
+            "0 hoje" anuncia o vazio de quem acabou de chegar.
           */}
           {comunidade.contribuicoesHoje > 0
-            ? `${numero(comunidade.contribuicoesHoje)} ${
-                comunidade.contribuicoesHoje === 1 ? "contribuição" : "contribuições"
-              } hoje`
+            ? `${numero(comunidade.contribuicoesHoje)} hoje`
             : `criada em ${mesEAno(comunidade.criadaEm)}`}
         </p>
       </div>

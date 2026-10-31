@@ -33,9 +33,21 @@ export const variants: Record<Variant, string> = {
   claro: "bg-paper text-ink border-2 border-paper",
 };
 
+/**
+ * As duas alturas de botão.
+ *
+ * O `sm` era `py-1`, que dava 28 px de altura — abaixo do alvo de toque de
+ * qualquer diretriz. Com `py-2` ele chega a 36, a mesma altura dos chips,
+ * e a escala continua distinguindo os dois tamanhos pelo texto.
+ *
+ * Os 44 px que o briefing pede valem para os controles principais, que já
+ * os têm: os botões redondos da capa, a marca # e as abas. Levar **todo**
+ * controle a 44 muda a densidade de telas que hoje são só de computador —
+ * e esse é trabalho da F21, quando o toque entrar de verdade.
+ */
 export const sizes: Record<Size, string> = {
   md: "px-3 py-2 text-bodyStrong",
-  sm: "px-2 py-1 text-caption",
+  sm: "px-3 py-2 text-caption",
 };
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {

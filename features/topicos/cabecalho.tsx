@@ -143,8 +143,8 @@ export function CabecalhoDoTopico({
                 Apagar tópico · Indisponível
               </Button>
               <p className="text-caption text-inkMuted">
-                Tópicos com {limite} respostas ou mais de outras pessoas não podem ser apagados,
-                para preservar a participação de quem respondeu. Se houver um problema, denuncie
+                Tópicos com {limite} contribuições ou mais de outras pessoas não podem ser apagados,
+                para preservar a participação de quem contribuiu. Se houver um problema, denuncie
                 para a moderação.
               </p>
             </>
@@ -156,7 +156,7 @@ export function CabecalhoDoTopico({
         open={aberto === "apagar"}
         titulo="Apagar este tópico?"
         descricao={`Ele tem ${respostasDeOutros} ${
-          respostasDeOutros === 1 ? "resposta" : "respostas"
+          respostasDeOutros === 1 ? "contribuição" : "contribuições"
         } de outras pessoas, que também ${
           respostasDeOutros === 1 ? "será apagada" : "serão apagadas"
         }. Não dá para desfazer.`}

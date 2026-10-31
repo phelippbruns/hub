@@ -51,7 +51,7 @@ export async function responder(
   const endereco = String(formulario.get("endereco") ?? "");
   const texto = String(formulario.get("text") ?? "").trim();
 
-  if (texto.length > 240) return { erro: "A resposta passa de 240 caracteres." };
+  if (texto.length > 240) return { erro: "A contribuição passa de 240 caracteres." };
 
   /*
    * RN16: o aviso cita o trecho. "Links não são aceitos" num texto de 240

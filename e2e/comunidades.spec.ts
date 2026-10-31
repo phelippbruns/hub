@@ -186,7 +186,12 @@ test.describe("a página da comunidade", () => {
 
     // Parada, a linha diz quando nasceu — "0 contribuições hoje" só anuncia
     // o vazio de quem acabou de chegar.
-    await expect(page.getByText(/1 membro · 0 tópicos · criada em /)).toBeVisible();
+    /*
+      Um número de contribuições, e não "N tópicos · N contribuições":
+      pela RN28 o tópico também é contribuição, e os dois lado a lado o
+      contariam duas vezes na mesma frase.
+    */
+    await expect(page.getByText(/1 membro · 0 contribuições · criada em /)).toBeVisible();
   });
 
   /*
@@ -439,6 +444,79 @@ test.describe("o cartão Sobre e as regras", () => {
     await page.getByRole("link", { name: "Apresente-se aqui" }).click();
     await page.waitForURL(/\/novo/);
     await expect(page.getByLabel("Nome")).toHaveValue("Apresente-se aqui");
+  });
+});
+
+test.describe("acabamento: foco, teclado e alvo de toque", () => {
+  test("nenhum controle da comunidade é pequeno demais para acertar", async ({ page }) => {
+    await entrarNoApp(page, "alvos");
+    await preencherNova(page, novoNome("Com Alvos"));
+    await page.waitForURL(/\/c\//);
+
+    /*
+      Medido na tela, e não calculado: `py-1` parecia suficiente e dava 28
+      px de altura; um link com `underline` dava 18. Os dois passavam por
+      qualquer revisão de código.
+
+      O piso é 24, que é o mínimo de qualquer diretriz. Os 44 do briefing
+      valem para os controles principais — conferidos abaixo —, e levar
+      **todo** controle a 44 é trabalho da F21, quando o toque entrar.
+    */
+    const pequenos = await page.evaluate(() => {
+      const alvos = Array.from(
+        document.querySelectorAll<HTMLElement>("main button, main a[href], main select"),
+      );
+      return alvos
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          const nome = (el.getAttribute("aria-label") || el.textContent || el.tagName).trim();
+          return {
+            nome: nome.slice(0, 40),
+            largura: Math.round(r.width),
+            altura: Math.round(r.height),
+          };
+        })
+        .filter((a) => a.largura > 0 && a.altura > 0)
+        .filter((a) => a.altura < 24 || a.largura < 24);
+    });
+
+    expect(pequenos).toEqual([]);
+  });
+
+  test("os controles da capa têm 44 px, que é o alvo do briefing", async ({ page }) => {
+    await entrarNoApp(page, "alvos44");
+    await preencherNova(page, novoNome("Com 44"));
+    await page.waitForURL(/\/c\//);
+
+    for (const nome of ["Voltar", "Mais opções"]) {
+      const caixa = await page.getByRole("button", { name: nome }).boundingBox();
+      expect(caixa!.height).toBeGreaterThanOrEqual(44);
+      expect(caixa!.width).toBeGreaterThanOrEqual(44);
+    }
+
+    // As abas também: elas são a navegação da tela.
+    const aba = await page.getByRole("tab", { name: "Início" }).boundingBox();
+    expect(aba!.height).toBeGreaterThanOrEqual(44);
+  });
+
+  test("dá para chegar às abas e à porta pelo teclado, com foco visível", async ({ page }) => {
+    await entrarNoApp(page, "teclado");
+    await preencherNova(page, novoNome("Com Teclado"));
+    await page.waitForURL(/\/c\//);
+
+    const porta = page.getByRole("button", { name: /^Membro de/ });
+    await porta.focus();
+    await expect(porta).toBeFocused();
+
+    // O contorno de foco é do `:focus-visible` global, em ink e 3 px.
+    const contorno = await porta.evaluate((el) => getComputedStyle(el).outlineWidth);
+    expect(contorno).not.toBe("0px");
+
+    const aba = page.getByRole("tab", { name: "Membros" });
+    await aba.focus();
+    await expect(aba).toBeFocused();
+    await aba.press("Enter");
+    await page.waitForURL(/aba=membros/);
   });
 });
 
