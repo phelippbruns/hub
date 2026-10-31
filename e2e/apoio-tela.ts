@@ -176,5 +176,11 @@ export async function abrirConvites(page: Page): Promise<void> {
  * esta: um lugar só por onde todos entram.
  */
 export function campoDeContribuicao(escopo: Page | Locator) {
-  return escopo.getByLabel("Sua contribuição");
+  /*
+   * `exact` não é zelo: sem ele, `getByLabel` casa por trecho, e o botão
+   * do menu de uma contribuição publicada — "Opções da sua contribuição" —
+   * casa também. O teste passava aqui e reprovava na CI, porque aqui a
+   * asserção corria antes de o cartão da contribuição aparecer.
+   */
+  return escopo.getByLabel("Sua contribuição", { exact: true });
 }
