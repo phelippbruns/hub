@@ -7,11 +7,11 @@
  * "Attempted to call abaDaComunidade() from the server" — e nem o
  * `typecheck` nem o `lint` viam o problema.
  */
-export type AbaDaComunidade = "inicio" | "membros";
+export type AbaDaComunidade = "inicio" | "enquetes" | "membros";
 
 /** Qualquer lixo na URL cai no Início, que é a aba de sempre. */
 export function abaDaComunidade(valor: string | undefined): AbaDaComunidade {
-  return valor === "membros" ? "membros" : "inicio";
+  return valor === "membros" || valor === "enquetes" ? valor : "inicio";
 }
 
 /**

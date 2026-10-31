@@ -214,7 +214,7 @@ model Profile {
 
   /// F07: painel de contexto oculto. Preferência da pessoa, não do aparelho.
   /// Versão dos Termos aceita no cadastro (RN29).
-  termsVersion     String? @map("terms_version") @db.VarChar(20)
+  termsVersion String? @map("terms_version") @db.VarChar(20)
 
   /// RN23: quem pode me convidar para uma Cabine.
   invitePolicy InvitePolicy @default(community_members) @map("invite_policy")
@@ -260,6 +260,8 @@ model Profile {
   modInvitesSent     ModeratorInvite[] @relation("ModInviter")
   modInvitesReceived ModeratorInvite[] @relation("ModInvitee")
   platformBan        PlatformBan?
+  polls              Poll[]            @relation("PollAuthor")
+  pollVotes          PollVote[]
   notifications      Notification[]
   analyticsEvents    AnalyticsEvent[]
 
@@ -285,6 +287,68 @@ model ProfileLink {
 
   @@id([profileId, position])
   @@map("profile_links")
+}
+
+// -------------------------------------------------------------- enquetes
+
+/// RN37: uma pergunta da comunidade com 2 a 4 opções e um voto por pessoa.
+///
+/// O resultado **não sai do servidor** para quem ainda não votou numa
+/// enquete aberta — quem garante isso é `lib/data/enquetes.ts`, não a tela.
+/// Esconder na tela deixaria a contagem viajando no HTML.
+model Poll {
+  id          String  @id @default(uuid()) @db.Uuid
+  communityId String  @map("community_id") @db.Uuid
+  authorId    String? @map("author_id") @db.Uuid
+  question    String  @db.VarChar(120)
+
+  /// Quando a enquete fecha. Passada essa hora o resultado é de todos, e
+  /// ninguém mais vota. É instante e não duração: duração obrigaria a
+  /// recalcular a cada leitura, e a conta mudaria de resposta sozinha.
+  closesAt DateTime @map("closes_at") @db.Timestamptz(6)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  community Community    @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author    Profile?     @relation("PollAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  options   PollOption[]
+  votes     PollVote[]
+
+  @@index([communityId, closesAt])
+  @@map("polls")
+}
+
+/// A opção de uma enquete. **O limite de 4 é a chave primária**, como em
+/// `profile_links`: posição 0 a 3, com CHECK no banco.
+model PollOption {
+  pollId   String @map("poll_id") @db.Uuid
+  position Int    @db.SmallInt
+  text     String @db.VarChar(40)
+
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+
+  @@id([pollId, position])
+  @@map("poll_options")
+}
+
+/// Um voto por pessoa por enquete — **garantido pela chave primária**, não
+/// pelo código. Mudar de voto é atualizar a posição na mesma linha.
+model PollVote {
+  pollId    String   @map("poll_id") @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  position  Int      @db.SmallInt
+  votedAt   DateTime @default(now()) @map("voted_at") @db.Timestamptz(6)
+
+  poll    Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  profile Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  option  PollOption @relation(fields: [pollId, position], references: [pollId, position], onDelete: Cascade)
+
+  @@id([pollId, profileId])
+  @@index([pollId, position])
+  @@map("poll_votes")
 }
 
 // ------------------------------------------------------------ hierarquia
@@ -336,11 +400,11 @@ model Community {
   /// âncora diz que ponto da foto fica no mesmo lugar, que é o que o
   /// `object-position` do CSS faz — vale em qualquer largura. O avatar
   /// continua com ox/oy porque o quadro dele é sempre quadrado.
-  coverWidth   Int?   @map("cover_width")
-  coverHeight  Int?   @map("cover_height")
-  coverZoom    Float  @default(1) @map("cover_zoom")
-  coverAnchorX Float  @default(0.5) @map("cover_anchor_x")
-  coverAnchorY Float  @default(0.5) @map("cover_anchor_y")
+  coverWidth   Int?  @map("cover_width")
+  coverHeight  Int?  @map("cover_height")
+  coverZoom    Float @default(1) @map("cover_zoom")
+  coverAnchorX Float @default(0.5) @map("cover_anchor_x")
+  coverAnchorY Float @default(0.5) @map("cover_anchor_y")
 
   /// RN05: a comunidade entra no Explorar ao atingir 20 membros. Mantido por
   /// gatilho em memberships, para não depender de contagem a cada leitura.
@@ -358,6 +422,7 @@ model Community {
   follows           Follow[]
   moderationActions ModerationEntry[]
   modInvites        ModeratorInvite[]
+  polls             Poll[]
   reports           Report[]
   sharedInMessages  Message[]
 
@@ -535,7 +600,7 @@ model CabinMember {
   /// Quando todo mundo apagou e não sobrou mensagem depois das marcas, a
   /// Cabine é apagada de verdade: não faz sentido guardar o que ninguém
   /// mais alcança.
-  clearedAt  DateTime? @map("cleared_at") @db.Timestamptz(6)
+  clearedAt DateTime? @map("cleared_at") @db.Timestamptz(6)
 
   cabin   Cabin   @relation(fields: [cabinId], references: [id], onDelete: Cascade)
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
