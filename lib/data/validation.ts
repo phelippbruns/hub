@@ -203,6 +203,31 @@ export const regrasSchema = z
     message: "RN16: links não são aceitos nas regras",
   });
 
+/**
+ * RN37: a enquete da comunidade.
+ *
+ * De 2 a 4 opções, sem repetidas. O banco garante o teto pela chave
+ * primária (posição 0 a 3); aqui mora a mensagem que a pessoa lê, e a
+ * recusa de duas opções com o mesmo texto — que o banco aceitaria e a
+ * tela mostraria como duas barras idênticas.
+ */
+export const DURACOES_EM_DIAS = [1, 3, 7] as const;
+
+export const criarEnqueteSchema = z.object({
+  communityId: uuidSchema,
+  pergunta: userText(120, "A pergunta"),
+  opcoes: z
+    .array(userText(40, "A opção"))
+    .min(2, "A enquete precisa de pelo menos 2 opções")
+    .max(4, "São no máximo 4 opções")
+    .refine((opcoes) => new Set(opcoes.map((o) => o.trim().toLowerCase())).size === opcoes.length, {
+      message: "Há opções repetidas",
+    }),
+  dias: z.number().refine((valor) => (DURACOES_EM_DIAS as readonly number[]).includes(valor), {
+    message: "A duração é de 1, 3 ou 7 dias",
+  }),
+});
+
 export const createCommunitySchema = z.object({
   universeId: uuidSchema.optional(),
   name: userText(60, "O nome da comunidade"),

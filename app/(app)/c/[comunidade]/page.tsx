@@ -37,6 +37,8 @@ import type { OrdemDasRespostas } from "@/lib/data/topics";
 import { marcarTopicoComoVisto, quandoVisitouOTopico } from "@/lib/data/inicio";
 import { comunidadeDaRota } from "@/features/comunidades/dados";
 import { filtroDeMembros, membrosDaComunidade } from "@/lib/data/membros";
+import { enquetesDaComunidade, enquetesEsperandoMeuVoto } from "@/lib/data/enquetes";
+import { ListaDeEnquetes } from "@/features/enquetes/lista";
 import { topicosDaComunidade } from "@/lib/data/comunidades";
 import { hotTopicDeHoje } from "@/lib/data/ciclo";
 import { sugestoesParaConvidar } from "@/lib/data/cabins";
@@ -113,7 +115,12 @@ export default async function ComunidadePage({
     );
   }
 
-  const paraCompartilhar = await sugestoesParaConvidar(viewer);
+  const [paraCompartilhar, enquetesAbertas] = await Promise.all([
+    sugestoesParaConvidar(viewer),
+    // O contador da aba. Barato: é um `count` com índice, e a aba sempre
+    // aparece, então ele seria pedido de qualquer jeito ao trocar de aba.
+    enquetesEsperandoMeuVoto(viewer, dados.id),
+  ]);
 
   /*
    * O painel do tópico, ao lado da lista (protótipo v6).
@@ -129,9 +136,25 @@ export default async function ComunidadePage({
         <ContentColumn larga>
           <CabecalhoDaComunidade comunidade={dados} paraCompartilhar={paraCompartilhar} />
 
-          <AbasDaComunidade base={`/c/${dados.slug}`} atual={abaAtual} />
+          <AbasDaComunidade
+            base={`/c/${dados.slug}`}
+            atual={abaAtual}
+            enquetesAbertas={enquetesAbertas}
+          />
 
-          {abaAtual === "membros" ? (
+          {abaAtual === "enquetes" ? (
+            <Suspense
+              fallback={
+                <PaginaCarregando titulo={false} linhas={2} label="Carregando as enquetes" />
+              }
+            >
+              <AbaDeEnquetes
+                slug={dados.slug}
+                comunidadeId={dados.id}
+                souMembro={dados.souMembro}
+              />
+            </Suspense>
+          ) : abaAtual === "membros" ? (
             <Suspense
               fallback={
                 <PaginaCarregando titulo={false} linhas={3} label="Carregando os membros" />
@@ -456,6 +479,34 @@ function BotaoNovoTopico({ slug }: { slug: string }) {
       <TopicStar className="size-icon" />
       Criar tópico
     </Link>
+  );
+}
+
+/**
+ * A aba Enquetes (RN37).
+ *
+ * Em `<Suspense>` como as outras: a conferência de existência da
+ * comunidade já rodou, e o que vem depois é só conteúdo.
+ */
+async function AbaDeEnquetes({
+  slug,
+  comunidadeId,
+  souMembro,
+}: {
+  slug: string;
+  comunidadeId: string;
+  souMembro: boolean;
+}) {
+  const { viewer } = await comunidadeDaRota(slug);
+  const enquetes = await enquetesDaComunidade(viewer, comunidadeId);
+
+  return (
+    <ListaDeEnquetes
+      slug={slug}
+      communityId={comunidadeId}
+      enquetes={enquetes}
+      souMembro={souMembro}
+    />
   );
 }
 

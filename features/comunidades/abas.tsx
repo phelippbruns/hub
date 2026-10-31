@@ -20,7 +20,16 @@ import type { AbaDaComunidade } from "./shared";
  * Formato pílula, como o protótipo v6: alinhada à esquerda, sem esticar, e
  * com espaço para o contador que Enquetes e Eventos vão trazer.
  */
-export function AbasDaComunidade({ base, atual }: { base: string; atual: AbaDaComunidade }) {
+export function AbasDaComunidade({
+  base,
+  atual,
+  enquetesAbertas,
+}: {
+  base: string;
+  atual: AbaDaComunidade;
+  /** Enquetes abertas que eu ainda não votei. Zero não desenha contador. */
+  enquetesAbertas: number;
+}) {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -31,6 +40,7 @@ export function AbasDaComunidade({ base, atual }: { base: string; atual: AbaDaCo
         label="Seções da comunidade"
         tabs={[
           { id: "inicio", label: "Início" },
+          { id: "enquetes", label: "Enquetes", count: enquetesAbertas },
           { id: "membros", label: "Membros" },
         ]}
         activeId={atual}
