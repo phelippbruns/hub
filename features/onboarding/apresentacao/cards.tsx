@@ -212,8 +212,8 @@ export const CARDS: Card[] = [
             Como foi a primeira festa que te fez gostar de música eletrônica?
           </p>
           <Pilha className="text-caption text-paper">
-            <span className="hub-anima hub-antes">86 pessoas, 112 respostas</span>
-            <span className="hub-anima hub-depois">87 pessoas, 113 respostas</span>
+            <span className="hub-anima hub-antes">86 pessoas, 112 contribuições</span>
+            <span className="hub-anima hub-depois">87 pessoas, 113 contribuições</span>
           </Pilha>
           <BotaoFalso tom="highlight" className="self-stretch">
             Contribuir
@@ -350,8 +350,8 @@ export const CARDS: Card[] = [
         <Passos
           itens={[
             <>
-              <b className="font-semibold">Respostas:</b> tudo o que você respondeu, com o tópico de
-              origem.
+              <b className="font-semibold">Contribuições:</b> tudo o que você escreveu, com o tópico
+              de origem.
             </>,
             <>
               <b className="font-semibold">Comunidades:</b> onde você é membro.
@@ -377,7 +377,7 @@ export const CARDS: Card[] = [
 
         <div className="flex flex-wrap justify-center gap-3">
           {[
-            ["48", "respostas"],
+            ["48", "contribuições"],
             ["6", "comunidades"],
             ["21", "dias ativos"],
           ].map(([numero, rotulo]) => (
@@ -389,7 +389,7 @@ export const CARDS: Card[] = [
         </div>
 
         <div className="border-line -mb-px flex gap-3 border-b">
-          {["Respostas", "Comunidades", "Coleção"].map((nome, i) => (
+          {["Contribuições", "Comunidades", "Coleção"].map((nome, i) => (
             <span
               key={nome}
               className={`hub-anima hub-aba-${i + 1} text-label -mb-px inline-flex items-center gap-1 border-b-2 border-transparent py-1`}

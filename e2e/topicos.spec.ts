@@ -379,6 +379,6 @@ test.describe("apagar tópico", () => {
     await page.getByRole("button", { name: "Mais opções" }).click();
 
     await expect(page.getByRole("button", { name: /Indispon/ })).toBeDisabled();
-    await expect(page.getByText(/para preservar a participação de quem respondeu/)).toBeVisible();
+    await expect(page.getByText(/para preservar a participação de quem contribuiu/)).toBeVisible();
   });
 });

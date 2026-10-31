@@ -102,9 +102,9 @@ test.describe("responder", () => {
     await page.getByRole("button", { name: "Responder" }).click();
     await expect(respostaPublicada(page, "resposta que vou apagar")).toBeVisible();
 
-    await page.getByRole("button", { name: "Opções da sua resposta" }).click();
+    await page.getByRole("button", { name: "Opções da sua contribuição" }).click();
 
-    await expect(page.getByText("Para corrigir, apague e responda de novo.")).toBeVisible();
+    await expect(page.getByText("Para corrigir, apague e contribua de novo.")).toBeVisible();
     // Não existe editar: a regra é a ausência.
     await expect(page.getByRole("button", { name: /Editar/ })).toHaveCount(0);
   });
@@ -117,9 +117,9 @@ test.describe("responder", () => {
     await page.getByRole("button", { name: "Responder" }).click();
     await expect(respostaPublicada(page, "some depois")).toBeVisible();
 
-    await page.getByRole("button", { name: "Opções da sua resposta" }).click();
-    await page.getByRole("button", { name: "Apagar resposta", exact: true }).click();
-    await page.getByRole("button", { name: "Apagar resposta", exact: true }).click();
+    await page.getByRole("button", { name: "Opções da sua contribuição" }).click();
+    await page.getByRole("button", { name: "Apagar contribuição", exact: true }).click();
+    await page.getByRole("button", { name: "Apagar contribuição", exact: true }).click();
 
     // Esperar o banco antes de recarregar: recarregar na hora cancelaria a
     // requisição que ainda está indo.

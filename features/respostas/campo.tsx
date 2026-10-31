@@ -76,7 +76,7 @@ export function CampoDeResposta({
     (longoDemais
       ? `A resposta passa de ${LIMITE} caracteres.`
       : link
-        ? "Tire o endereço da resposta."
+        ? "Tire o endereço da contribuição."
         : !temConteudo
           ? "Escreva algo, ou escolha uma imagem ou um GIF."
           : null);

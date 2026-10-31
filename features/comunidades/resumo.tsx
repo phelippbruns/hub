@@ -37,9 +37,14 @@ export function ResumoDaComunidade({ comunidade }: { comunidade: PaginaDaComunid
           </div>
         ) : null}
 
+        {/*
+          Com `py-1` o link tinha 18 px de altura — menos que o mínimo de
+          24 de qualquer diretriz, e difícil de acertar mesmo com o mouse.
+          `inline-flex` com altura mínima resolve sem virar botão.
+        */}
         <Link
           href={`/c/${comunidade.slug}?aba=membros`}
-          className="text-label text-ink underline underline-offset-2"
+          className="text-label text-ink min-h-controlSm inline-flex items-center self-start underline underline-offset-2"
         >
           Ver todos
         </Link>

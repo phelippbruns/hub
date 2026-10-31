@@ -230,17 +230,20 @@ export type PaginaDaComunidade = {
   membersCount: number;
   topicosCount: number;
   /**
-   * As respostas da comunidade.
+   * As contribuições da comunidade: respostas **e** tópicos criados.
    *
-   * A tela chama isto de "contribuições", por decisão do PO em 29 de
-   * outubro. **No perfil a palavra conta outra coisa** — lá, pela RN28,
-   * contribuição é resposta *ou* tópico criado. Aqui os tópicos aparecem no
-   * número ao lado, e somá-los de novo contaria cada um duas vezes.
-   * Alinhar a RN28 está em docs/pendencias.md.
+   * RN28, e agora em todo lugar. Até 31 de outubro este número contava só
+   * as respostas, enquanto o do perfil somava os dois — a mesma palavra
+   * medindo coisas diferentes em duas telas, e quem comparasse concluiria
+   * que uma delas estava quebrada.
+   *
+   * A linha sob a capa deixou de mostrar os tópicos em separado por causa
+   * disso: com os dois lado a lado, cada tópico seria contado duas vezes
+   * na mesma frase.
    */
   contribuicoesCount: number;
   /**
-   * Contribuições nas últimas 24 horas (RN11).
+   * Contribuições nas últimas 24 horas — respostas e tópicos (RN11, RN28).
    *
    * É o número que a linha sob a capa mostra **quando há movimento**; sem
    * movimento ela mostra a data de criação. Comunidade parada dizendo "0
@@ -271,6 +274,30 @@ export type PaginaDaComunidade = {
  * Quem olha pode ser visitante: a página é aberta a quem tem sessão, membro
  * ou não — é assim que alguém decide se quer entrar.
  */
+/**
+ * Respostas e tópicos de uma comunidade, somados (RN28).
+ *
+ * `desde` limita às últimas horas, para o número de hoje.
+ */
+async function contarContribuicoes(communityId: string, desde?: Date): Promise<number> {
+  const quando = desde ? { gte: desde } : undefined;
+
+  const [respostas, topicos] = await Promise.all([
+    prisma.answer.count({
+      where: {
+        deletedAt: null,
+        ...(quando ? { createdAt: quando } : {}),
+        topic: { communityId, deletedAt: null },
+      },
+    }),
+    prisma.topic.count({
+      where: { communityId, deletedAt: null, ...(quando ? { createdAt: quando } : {}) },
+    }),
+  ]);
+
+  return respostas + topicos;
+}
+
 export async function paginaDaComunidade(
   viewer: Viewer,
   slug: string,
@@ -321,16 +348,9 @@ export async function paginaDaComunidade(
           select: { role: true, bannedAt: true },
         })
       : null,
-    prisma.answer.count({
-      where: { deletedAt: null, topic: { communityId: comunidade.id, deletedAt: null } },
-    }),
-    prisma.answer.count({
-      where: {
-        deletedAt: null,
-        createdAt: { gte: ontem },
-        topic: { communityId: comunidade.id, deletedAt: null },
-      },
-    }),
+    // RN28: contribuição é resposta **ou** tópico criado.
+    contarContribuicoes(comunidade.id),
+    contarContribuicoes(comunidade.id, ontem),
     prisma.membership.findMany({
       where: { communityId: comunidade.id, bannedAt: null, profile: { deletedAt: null } },
       orderBy: { joinedAt: "asc" },

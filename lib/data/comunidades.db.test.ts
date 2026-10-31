@@ -636,7 +636,42 @@ describe("os números da comunidade", () => {
 
     const pagina = await paginaDaComunidade(viewerFor(eu.id), comunidade.slug);
     expect(pagina.topicosCount).toBe(1);
-    expect(pagina.contribuicoesCount).toBe(1);
+    /*
+     * RN28: contribuição é resposta **ou** tópico criado. São dois aqui —
+     * o tópico e a resposta.
+     *
+     * Este número contava só as respostas até 31 de outubro, enquanto o do
+     * perfil somava os dois. A linha sob a capa deixou de mostrar os
+     * tópicos em separado junto com a mudança: com os dois lado a lado,
+     * cada tópico apareceria duas vezes na mesma frase.
+     */
+    expect(pagina.contribuicoesCount).toBe(2);
     expect(pagina.criadaEm).toBeInstanceOf(Date);
+  });
+
+  it("RN28: apagado não conta, nem resposta nem tópico", async () => {
+    const eu = await makeProfile();
+    const outra = await makeProfile();
+    const universo = await makeUniverse("Conta apagada");
+    const comunidade = await criar(universo.id, "Com Apagados", eu);
+    await joinCommunity(viewerFor(outra.id), comunidade.id);
+
+    const topico = await createTopic(viewerFor(eu.id), {
+      communityId: comunidade.id,
+      name: "Primeiro",
+      description: "Uma pergunta.",
+    });
+    const resposta = await createAnswer(viewerFor(outra.id), {
+      topicId: topico!.id,
+      text: "Uma resposta.",
+    });
+
+    await db.answer.update({
+      where: { id: resposta!.id },
+      data: { deletedAt: new Date() },
+    });
+
+    const pagina = await paginaDaComunidade(viewerFor(eu.id), comunidade.slug);
+    expect(pagina.contribuicoesCount).toBe(1);
   });
 });

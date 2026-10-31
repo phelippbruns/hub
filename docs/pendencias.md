@@ -583,24 +583,18 @@ na fonte do sistema. O arquivo `latin-ext` já está no repositório; servir
 os dois exige `unicode-range` por arquivo, que o `next/font/local` não
 expõe, e a saída seria escrever o `@font-face` à mão.
 
-## "Contribuição" quer dizer duas coisas
+## ~~"Contribuição" quer dizer duas coisas~~ — **resolvido em 31 de outubro**
 
-Na página da comunidade, **contribuições são as respostas**: ao lado delas
-já aparece o número de tópicos, e somar os tópicos de novo contaria cada um
-duas vezes. No perfil, pela **RN28**, contribuição é *resposta ou tópico
-criado* — o número soma os dois.
+A palavra contava respostas na comunidade e respostas + tópicos no perfil.
+Decisão do PO: **contribuição é resposta ou tópico criado, em todo lugar.**
 
-Nenhuma das duas telas está errada sozinha. A palavra é que passou a contar
-coisas diferentes, e quem comparar os dois números vai concluir que um deles
-está quebrado.
+O que mudou: o número da comunidade passou a somar os dois, e a linha sob
+a capa deixou de mostrar tópicos e contribuições lado a lado — juntos,
+contariam cada tópico duas vezes na mesma frase. A contagem de tópicos
+continua no título da seção Tópicos.
 
-**O que fazer:** decidir uma definição só. Ou contribuição é sempre
-resposta, e o número do perfil diminui; ou a comunidade ganha outra palavra
-para o número dela. É decisão de produto, não de código.
-
-**Tamanho:** dez minutos de decisão, meia hora de código em qualquer um dos
-caminhos — `contarContribuicoes` em `lib/data/perfil.ts` e
-`contribuicoesCount` em `lib/data/comunidades.ts`.
+Nada encolheu no perfil e nada sumiu de lista nenhuma. A RN28 foi
+reescrita, e a tela não diz mais "resposta" em lugar nenhum.
 
 ## A miniatura de 36 px ignora o enquadramento da capa
 
@@ -640,7 +634,7 @@ Faltam seis, nesta ordem:
 | 4 | ~~Enquetes~~ — **feito.** RN37: `polls`, `poll_options`, `poll_votes`; a contagem não sai do servidor para quem não votou; um voto por pessoa garantido pela chave primária; trocar o voto enquanto aberta; contador na aba. | feito |
 | 5 | ~~Eventos~~ — **feito.** RN38: `events` e `event_attendances`; o link da sala só sai para quem confirmou; presencial exige local por CHECK; lotado conferido no servidor; contador na aba. | feito |
 | 6 | ~~Moderar numa janela, e a comunidade editável~~ — **feito.** Componente `Janela` de verdade (véu, foco preso, Esc, clique fora, rolagem travada); toda confirmação do Hub passou a usá-la; botão Moderar na capa com contador; nome, descrição, Sobre e regras finalmente editáveis; renomear não muda o endereço. | feito |
-| 7 | **Acabamento**: foco, teclado, `Esc`, alvos de 44 px, e a passada final de termo — "contribuição", nunca "resposta" | meio dia |
+| 7 | ~~Acabamento~~ — **feito.** RN28 alinhada (contribuição é resposta ou tópico, em todo lugar), a tela não diz mais "resposta", alvos de toque medidos na tela com barreira, e foco e teclado conferidos por jornada. | feito |
 
 **Duas coisas que esses PRs obrigam a decidir**, e que já estão neste
 documento: alinhar a RN28 antes do PR 7, para "contribuição" querer dizer

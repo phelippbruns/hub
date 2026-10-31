@@ -87,7 +87,7 @@ test.describe("o laço da denúncia", () => {
 
       // Quem modera denuncia pelo menu da resposta, como qualquer pessoa.
       await page.goto(topico);
-      await page.getByRole("button", { name: /^Opções da resposta de / }).click();
+      await page.getByRole("button", { name: /^Opções da contribuição de / }).click();
       await page.getByRole("link", { name: "Denunciar" }).click();
       await page.waitForURL(/\/denuncia/);
 
@@ -113,7 +113,7 @@ test.describe("o laço da denúncia", () => {
 
       // E o autor foi avisado, com o motivo da categoria.
       await outra.page.goto("/notificacoes");
-      await expect(outra.page.getByText(/Sua resposta foi removida de/)).toBeVisible();
+      await expect(outra.page.getByText(/Sua contribuição foi removida de/)).toBeVisible();
       await expect(outra.page.getByText(/spam ou golpe/i)).toBeVisible();
     } finally {
       await outra.contexto.close();
@@ -236,7 +236,7 @@ test("todo script de /denuncia e /moderar leva nonce", async ({ page, browser })
 
     const resposta = await page.goto(topico);
     expect(resposta?.status()).toBe(200);
-    await page.getByRole("button", { name: /^Opções da resposta de / }).click();
+    await page.getByRole("button", { name: /^Opções da contribuição de / }).click();
     await page.getByRole("link", { name: "Denunciar" }).click();
     await page.waitForURL(/\/denuncia/);
 

@@ -88,7 +88,7 @@ export function TelaDeConvite({
 
           <p className="text-bodyStrong text-ink">
             {topico.respostas.toLocaleString("pt-BR")}{" "}
-            {topico.respostas === 1 ? "resposta" : "respostas"} de{" "}
+            {topico.respostas === 1 ? "contribuição" : "contribuições"} de{" "}
             {topico.pessoas.toLocaleString("pt-BR")} {topico.pessoas === 1 ? "pessoa" : "pessoas"}
           </p>
         </>
@@ -99,7 +99,7 @@ export function TelaDeConvite({
           href="/criar-conta"
           className={cn("rounded-pill inline-block", variants.primary, sizes.md)}
         >
-          {topico ? "Criar conta para ver as respostas" : "Criar conta para participar"}
+          {topico ? "Criar conta para ver as contribuições" : "Criar conta para participar"}
         </Link>
         <p className="text-caption text-inkMuted">
           Já tem conta?{" "}
