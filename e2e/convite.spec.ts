@@ -92,13 +92,13 @@ test.describe("o link aberto sem conta", () => {
        * mostram.
        */
       await expect(
-        anonima.getByRole("link", { name: "Criar conta para ver as respostas" }),
+        anonima.getByRole("link", { name: "Criar conta para ver as contribuições" }),
       ).toBeVisible();
 
       // A comunidade e o tópico aparecem (RN16).
       await expect(anonima.getByRole("heading", { name: "assunto compartilhado" })).toBeVisible();
       await expect(anonima.getByText("Uma pergunta que vale compartilhar.")).toBeVisible();
-      await expect(anonima.getByText("1 resposta de 1 pessoa")).toBeVisible();
+      await expect(anonima.getByText("1 contribuição de 1 pessoa")).toBeVisible();
 
       /*
        * O critério de aceite, conferido no HTML servido.
@@ -207,7 +207,7 @@ test.describe("RN31: do link ao tópico, passando pelo cadastro", () => {
 
     try {
       await nova.goto(topico);
-      await nova.getByRole("link", { name: "Criar conta para ver as respostas" }).click();
+      await nova.getByRole("link", { name: "Criar conta para ver as contribuições" }).click();
 
       await nova.getByLabel("Nome completo").fill("Pessoa Convidada");
       await nova.getByLabel("Email").fill(`${unico("convidada")}@teste.hub`);

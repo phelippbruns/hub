@@ -64,7 +64,7 @@ export function LinhaComunidade({
             <>
               <br />
               {numero(comunidade.respostasHoje)}{" "}
-              {comunidade.respostasHoje === 1 ? "resposta hoje" : "respostas hoje"}
+              {comunidade.respostasHoje === 1 ? "contribuição hoje" : "contribuições hoje"}
             </>
           ) : null}
         </span>
@@ -94,7 +94,7 @@ export function LinhaTopico({ topico }: { topico: TopicoNaBusca }) {
         <span className="text-caption text-inkMuted block">
           {topico.comunidade.name}. {numero(topico.pessoas)}{" "}
           {topico.pessoas === 1 ? "pessoa" : "pessoas"}, {numero(topico.respostas)}{" "}
-          {topico.respostas === 1 ? "resposta" : "respostas"}
+          {topico.respostas === 1 ? "contribuição" : "contribuições"}
         </span>
       </span>
     </a>

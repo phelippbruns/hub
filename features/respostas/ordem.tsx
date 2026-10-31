@@ -17,7 +17,7 @@ export function OrdemDasRespostas({ endereco, atual }: { endereco: string; atual
 
   return (
     <Segmented
-      label="Ordem das respostas"
+      label="Ordem das contribuições"
       atual={atual}
       opcoes={[
         { id: "recentes", label: "Mais novas" },

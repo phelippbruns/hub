@@ -112,7 +112,9 @@ export function LinhaDeResposta({
       </div>
 
       <RoundIconButton
-        label={resposta.souAutor ? "Opções da sua resposta" : `Opções da resposta de ${nome}`}
+        label={
+          resposta.souAutor ? "Opções da sua contribuição" : `Opções da contribuição de ${nome}`
+        }
         ativo={aberto === "menu"}
         controla={idDoMenu}
         onClick={() => setAberto((a) => (a === "menu" ? "nenhum" : "menu"))}
@@ -121,15 +123,15 @@ export function LinhaDeResposta({
       </RoundIconButton>
 
       <div id={idDoMenu}>
-        <BottomSheet title={resposta.souAutor ? "Sua resposta" : nome} open={aberto === "menu"}>
+        <BottomSheet title={resposta.souAutor ? "Sua contribuição" : nome} open={aberto === "menu"}>
           {resposta.souAutor ? (
             <>
               <Button variant="danger" onClick={() => setAberto("apagar")}>
-                Apagar resposta
+                Apagar contribuição
               </Button>
               {/* RN14: a ausência de "editar" precisa ser explicada. */}
               <p className="text-caption text-inkMuted">
-                Para corrigir, apague e responda de novo.
+                Para corrigir, apague e contribua de novo.
               </p>
             </>
           ) : (
@@ -153,9 +155,9 @@ export function LinhaDeResposta({
 
       <ConfirmSheet
         open={aberto === "apagar"}
-        titulo="Apagar esta resposta?"
+        titulo="Apagar esta contribuição?"
         descricao="Ela some para todo mundo. Não dá para desfazer."
-        confirmar="Apagar resposta"
+        confirmar="Apagar contribuição"
         pendente={pendente}
         onConfirm={() => iniciar(() => apagarResposta(resposta.id, endereco))}
         onCancel={() => setAberto("nenhum")}

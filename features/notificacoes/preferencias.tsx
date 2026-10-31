@@ -45,7 +45,7 @@ const INTERRUPTORES: {
     campo: "notifyMention",
     valor: (p) => p.notifyMention,
     rotulo: "Quando alguém te marca",
-    apoio: "Alguém escreveu @você numa resposta ou num tópico.",
+    apoio: "Alguém escreveu @você numa contribuição ou num tópico.",
   },
   {
     campo: "notifyTopicBecameHot",

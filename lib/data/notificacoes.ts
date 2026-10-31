@@ -215,7 +215,7 @@ function textoDe(tipo: TipoDeNotificacao, { topico, comunidade, quem, dados }: R
         dados.tipo === "topic"
           ? "Seu tópico foi removido"
           : dados.tipo === "answer"
-            ? "Sua resposta foi removida"
+            ? "Sua contribuição foi removida"
             : "Algo seu foi removido";
       return `${oQue} de ${nomeDaComunidade}${
         dados.motivo ? `: ${dados.motivo.toLowerCase()}.` : "."
@@ -228,7 +228,7 @@ function textoDe(tipo: TipoDeNotificacao, { topico, comunidade, quem, dados }: R
     case "followed_topics_digest": {
       const quantas = Number(dados.respostas ?? 0);
       const topicos = Number(dados.topicos ?? 0);
-      return `${quantas} ${quantas === 1 ? "resposta nova" : "respostas novas"} em ${topicos} ${
+      return `${quantas} ${quantas === 1 ? "contribuição nova" : "contribuições novas"} em ${topicos} ${
         topicos === 1 ? "tópico que você segue" : "tópicos que você segue"
       }.`;
     }

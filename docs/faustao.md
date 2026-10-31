@@ -1675,6 +1675,40 @@ rodaram. Antes de escrever a primeira tela que faz algo pela primeira vez
 que eles fazem nesse caminho. Um gatilho que nunca disparou não tem
 histórico de acerto: tem só ausência de erro.
 
+### Renomear criou um seletor ambíguo, e o verde local era temporização
+
+*O que aconteceu:* a troca de termo da rodada de acabamento renomeou o
+campo de "Sua resposta" para "Sua contribuição", e o menu de cada
+contribuição para "Opções da sua contribuição".
+
+`getByLabel` casa **por trecho**. Depois que uma contribuição é publicada,
+`getByLabel("Sua contribuição")` passa a achar dois elementos: o campo e o
+botão do menu do cartão recém-criado. "Opções da sua contribuição" contém
+"Sua contribuição".
+
+*Por que passou:* a suíte inteira ficou **verde aqui, duas vezes**, e
+reprovou na CI. A asserção corria antes de o cartão aparecer na tela;
+nesta máquina ele ainda não existia, na CI já estava lá. Não é um teste
+mal escrito que às vezes falha: é um seletor ambíguo que **sempre** estava
+errado e só às vezes encontrava o segundo elemento.
+
+Com o nome antigo a ambiguidade não existia — "Opções da sua resposta" e
+"Sua resposta"... também casariam. Ela existia desde sempre e nunca tinha
+sido exercitada no momento certo.
+
+*Como foi resolvido:* `{ exact: true }` no ajudante `campoDeContribuicao`,
+que já era o único caminho dos testes até o campo. A centralização feita
+na rodada anterior transformou o conserto em uma linha.
+
+🔒 **Com barreira** — o ajudante é exato, e qualquer teste que precise do
+campo passa por ele.
+
+**A lição:** `getByLabel` e `getByRole({ name })` casam por trecho, e
+rótulo que é prefixo de outro rótulo é uma bomba de relógio. Quando um
+nome novo contiver outro, use `exact`. E verde local que depende de o
+elemento **ainda não ter aparecido** não é verde: é uma corrida que você
+venceu dessa vez.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

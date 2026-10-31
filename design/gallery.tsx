@@ -193,7 +193,7 @@ export function DesignGallery() {
   const [janela, setJanela] = useState(false);
   const [selectedChip, setSelectedChip] = useState(true);
   const [member, setMember] = useState(false);
-  const [tab, setTab] = useState("respostas");
+  const [tab, setTab] = useState("contribuicoes");
   const [notify, setNotify] = useState(true);
   const [agree, setAgree] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(true);
@@ -335,10 +335,10 @@ export function DesignGallery() {
             />
           </Card>
 
-          <Card title="Perfil sem respostas">
+          <Card title="Perfil sem contribuições">
             <EmptyState
-              title="Nenhuma resposta ainda"
-              description="As respostas de @liasouza aparecem aqui."
+              title="Nenhuma contribuição ainda"
+              description="As contribuições de @liasouza aparecem aqui."
             />
           </Card>
 
@@ -638,13 +638,13 @@ export function DesignGallery() {
             <HomeRow
               nome="filmes que ninguém viu"
               href="#"
-              detalhe="Terror. 19 pessoas, 27 respostas"
+              detalhe="Terror. 19 pessoas, 27 contribuições"
               destaque="3 novas"
             />
             <HomeRow
               nome="qual lugar você fotografaria de novo"
               href="#"
-              detalhe="Destaque em Fotografia de Paisagem. 41 pessoas, 58 respostas"
+              detalhe="Destaque em Fotografia de Paisagem. 41 pessoas, 58 contribuições"
             />
           </div>
         </Card>
@@ -715,7 +715,7 @@ export function DesignGallery() {
 
         <Card title="Campo de texto com contador" wide>
           <TextField
-            label="Sua resposta"
+            label="Sua contribuição"
             maxLength={240}
             tall
             defaultValue="Achei uma prensagem japonesa num sebo do centro."
@@ -741,7 +741,7 @@ export function DesignGallery() {
           </div>
         </Card>
 
-        <Card title="Cartão de resposta" wide>
+        <Card title="Cartão de contribuição" wide>
           <div className="flex w-full flex-col gap-2">
             <AnswerCard author="Lia Souza" handle="liasouza" when="há 2 h">
               Um set de 6 horas num galpão. Saí de lá sabendo que era isso.
@@ -818,7 +818,7 @@ export function DesignGallery() {
               activeId={tab}
               onSelect={setTab}
               tabs={[
-                { id: "respostas", label: "Respostas" },
+                { id: "contribuicoes", label: "Contribuições" },
                 { id: "comunidades", label: "Comunidades" },
                 { id: "colecao", label: "Coleção" },
               ]}
