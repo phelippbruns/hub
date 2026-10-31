@@ -65,9 +65,11 @@ test.describe("criar comunidade", () => {
     await page.waitForURL(/\/c\/tecnologia-analogica-\d+/);
     await expect(page.getByRole("heading", { name: nome, level: 1 })).toBeVisible();
 
-    // RN06: quem cria é moderador — o menu mostra "Moderar".
+    // RN06: quem cria é moderador — e Moderar fica na capa, não escondido
+    // no menu, com o número de denúncias esperando decisão.
+    await expect(page.getByRole("button", { name: "Moderar" })).toBeVisible();
+
     await page.getByRole("button", { name: "Mais opções" }).click();
-    await expect(page.getByRole("link", { name: "Moderar" })).toBeVisible();
     await expect(page.getByText(/Moderada por/)).toBeVisible();
   });
 
@@ -135,8 +137,8 @@ test.describe("a página da comunidade", () => {
 
     // Navegar fecha: sem isso o menu ficaria por cima da tela nova.
     await opcoes.click();
-    await page.getByRole("link", { name: "Moderar" }).click();
-    await page.waitForURL(/\/moderar$/);
+    await page.getByRole("link", { name: "Denunciar comunidade" }).click();
+    await page.waitForURL(/\/denuncia/);
     await expect(menu).toBeHidden();
   });
 

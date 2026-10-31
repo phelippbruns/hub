@@ -41,6 +41,8 @@ import { enquetesDaComunidade, enquetesEsperandoMeuVoto } from "@/lib/data/enque
 import { ListaDeEnquetes } from "@/features/enquetes/lista";
 import { eventosDaComunidade, eventosFuturos } from "@/lib/data/eventos";
 import { ListaDeEventos } from "@/features/eventos/lista";
+import { denunciasPendentes, filaDeDenuncias } from "@/lib/data/moderacao";
+import { FilaDeDenuncias } from "@/features/moderacao/fila";
 import { topicosDaComunidade } from "@/lib/data/comunidades";
 import { hotTopicDeHoje } from "@/lib/data/ciclo";
 import { sugestoesParaConvidar } from "@/lib/data/cabins";
@@ -125,6 +127,11 @@ export default async function ComunidadePage({
     eventosFuturos(viewer, dados.id),
   ]);
 
+  // Zero para quem não modera, e sem erro: a capa é desenhada para todo
+  // mundo, e recusar aqui derrubaria a tela por causa de um número que
+  // nem apareceria.
+  const pendentes = await denunciasPendentes(viewer, dados.id);
+
   /*
    * O painel do tópico, ao lado da lista (protótipo v6).
    *
@@ -137,7 +144,21 @@ export default async function ComunidadePage({
     <div className="flex items-start">
       <div className="min-w-0 flex-1">
         <ContentColumn larga>
-          <CabecalhoDaComunidade comunidade={dados} paraCompartilhar={paraCompartilhar} />
+          <CabecalhoDaComunidade
+            comunidade={dados}
+            paraCompartilhar={paraCompartilhar}
+            denunciasPendentes={pendentes}
+            /*
+              A fila é desenhada aqui, no servidor, e entregue pronta à
+              janela: ela depende de permissão, e permissão se confere no
+              servidor. Para quem não modera não existe nem o nó.
+            */
+            filaDeDenuncias={
+              dados.souModerador ? (
+                <FilaDaComunidade slug={dados.slug} comunidadeId={dados.id} />
+              ) : undefined
+            }
+          />
 
           <AbasDaComunidade
             base={`/c/${dados.slug}`}
@@ -491,6 +512,39 @@ function BotaoNovoTopico({ slug }: { slug: string }) {
       <TopicStar className="size-icon" />
       Criar tópico
     </Link>
+  );
+}
+
+/**
+ * A fila de denúncias, para a janela de moderar.
+ *
+ * É a mesma de `/c/<comunidade>/moderar`, que continua existindo: a
+ * janela é um caminho a mais para ela, não um substituto. Endereço que já
+ * foi compartilhado não vira link quebrado.
+ */
+async function FilaDaComunidade({ slug, comunidadeId }: { slug: string; comunidadeId: string }) {
+  const { viewer } = await comunidadeDaRota(slug);
+  const denuncias = await filaDeDenuncias(viewer, comunidadeId);
+
+  return (
+    <FilaDeDenuncias
+      slug={slug}
+      communityId={comunidadeId}
+      denuncias={denuncias.map((denuncia) => ({
+        id: denuncia.id,
+        motivo: denuncia.motivo,
+        detalhes: denuncia.detalhes,
+        vezes: denuncia.vezes,
+        trecho: denuncia.alvo.trecho,
+        onde: denuncia.alvo.onde,
+        autor: denuncia.alvo.autor
+          ? { nome: denuncia.alvo.autor.nome, handle: denuncia.alvo.autor.handle }
+          : null,
+        // Perfil e comunidade não se "removem" pela fila: a ação sobre a
+        // pessoa vive na aba Membros da tela de moderação.
+        podeRemover: denuncia.alvo.tipo === "answer" || denuncia.alvo.tipo === "topic",
+      }))}
+    />
   );
 }
 

@@ -1,4 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
+import { esperarNoBanco } from "./apoio-banco";
 import {
   cadastroConcluido,
   campoDeContribuicao,
@@ -253,4 +254,102 @@ test("todo script de /denuncia e /moderar leva nonce", async ({ page, browser })
   } finally {
     await outra.contexto.close();
   }
+});
+
+test.describe("moderar pela janela, na própria comunidade", () => {
+  test("a janela abre da capa, em duas seções, e edita a comunidade", async ({ page }) => {
+    await entrarNoApp(page, "janela");
+    const nome = `Com Janela ${Date.now()}`;
+    await preencherNovaComunidade(page, nome);
+    await page.waitForURL(/\/c\/[^/]+$/);
+    const endereco = new URL(page.url()).pathname;
+
+    await page.getByRole("button", { name: "Moderar" }).click();
+
+    const janela = page.getByRole("dialog", { name: `Moderar ${nome}` });
+    await expect(janela).toBeVisible();
+
+    /*
+      Sem denúncia pendente, abre em Comunidade: quem abre a moderação com
+      a fila limpa veio mexer na comunidade.
+    */
+    await expect(janela.getByLabel("Sobre")).toBeVisible();
+
+    await janela.getByLabel("Sobre").fill("Um lugar para mostrar o que você está animando.");
+    await janela
+      .getByLabel(/^Regras/)
+      .fill("Mostre o processo.\nCritique o trabalho, nunca a pessoa.");
+    await janela.getByRole("button", { name: "Salvar alterações" }).click();
+
+    // O que prova é o que ficou no banco.
+    await esperarNoBanco(
+      `SELECT 1 FROM communities WHERE name = '${nome}' AND about <> '' AND rules <> ''`,
+    );
+
+    // E a tela passa a mostrar o que ninguém conseguia escrever até agora.
+    await page.goto(endereco);
+    await expect(page.getByRole("heading", { name: "Sobre" })).toBeVisible();
+    await expect(page.getByText("Regras da comunidade (2)")).toBeVisible();
+  });
+
+  test("renomear a comunidade não muda o endereço dela", async ({ page }) => {
+    await entrarNoApp(page, "renomear");
+    const nome = `Com Nome ${Date.now()}`;
+    await preencherNovaComunidade(page, nome);
+    await page.waitForURL(/\/c\/[^/]+$/);
+    const endereco = new URL(page.url()).pathname;
+
+    await page.getByRole("button", { name: "Moderar" }).click();
+    const janela = page.getByRole("dialog", { name: /^Moderar/ });
+    const novo = `Outro Nome ${Date.now()}`;
+    await janela.getByLabel("Nome").fill(novo);
+    await janela.getByRole("button", { name: "Salvar alterações" }).click();
+    await esperarNoBanco(`SELECT 1 FROM communities WHERE name = '${novo}'`);
+
+    /*
+      O endereço é o mesmo. O gatilho recalculava o slug a cada renomeação,
+      e como nada no produto renomeava, isso nunca tinha acontecido — a
+      primeira tela a renomear teria quebrado todo link compartilhado.
+    */
+    await page.goto(endereco);
+    await expect(page.getByRole("heading", { name: novo, level: 1 })).toBeVisible();
+  });
+
+  test("a janela fecha com Esc e com clique no véu", async ({ page }) => {
+    await entrarNoApp(page, "fechajanela");
+    await preencherNovaComunidade(page, `Com Fecha ${Date.now()}`);
+    await page.waitForURL(/\/c\/[^/]+$/);
+
+    const janela = page.getByRole("dialog", { name: /^Moderar/ });
+
+    await page.getByRole("button", { name: "Moderar" }).click();
+    await expect(janela).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(janela).toBeHidden();
+
+    // No véu, e não em qualquer lugar: clicar dentro não pode desfazer o
+    // que se estava preenchendo.
+    await page.getByRole("button", { name: "Moderar" }).click();
+    await expect(janela).toBeVisible();
+    await page.mouse.click(20, 400);
+    await expect(janela).toBeHidden();
+  });
+
+  test("quem não modera não vê o botão nem a janela", async ({ page, context }) => {
+    await entrarNoApp(page, "naomodera");
+    const nome = `Com Alheia ${Date.now()}`;
+    await preencherNovaComunidade(page, nome);
+    await page.waitForURL(/\/c\/[^/]+$/);
+    const endereco = new URL(page.url()).pathname;
+
+    const outra = await context.browser()!.newContext({
+      baseURL: test.info().project.use.baseURL,
+    });
+    const visita = await outra.newPage();
+    await entrarNoApp(visita, "naomodera2");
+    await visita.goto(endereco);
+
+    await expect(visita.getByRole("button", { name: "Moderar" })).toHaveCount(0);
+    await outra.close();
+  });
 });

@@ -62,12 +62,37 @@ describe("o endereço da comunidade", () => {
     expect(segunda.slug).toBe("rock-roll-2");
   });
 
-  it("renomear muda o endereço", async () => {
+  /*
+   * Esta asserção era o contrário até 31 de outubro: "renomear muda o
+   * endereço". Ela descrevia o que o gatilho fazia, não uma decisão — e
+   * nada no produto renomeava comunidade, então ninguém tinha pensado no
+   * assunto.
+   *
+   * A janela de moderar trouxe a primeira tela que renomeia, e aí a
+   * consequência apareceu: o endereço é o link do convite (F14), e trocá-lo
+   * quebraria tudo que já foi compartilhado. O Hub já diz isso em outro
+   * lugar — "endereço que já existiu nunca volta a ser livre".
+   */
+  it("renomear NÃO muda o endereço: ele já foi compartilhado", async () => {
     const eu = await makeProfile();
     const universo = await makeUniverse("Música");
     const comunidade = await criar(universo.id, "Vinil", eu);
 
     await db.community.update({ where: { id: comunidade.id }, data: { name: "Vinil Raro" } });
+    const depois = await db.community.findUniqueOrThrow({ where: { id: comunidade.id } });
+
+    expect(depois.slug).toBe("vinil");
+    expect(depois.name).toBe("Vinil Raro");
+  });
+
+  it("endereço vazio é recalculado: é a saída de emergência que ficou", async () => {
+    const eu = await makeProfile();
+    const universo = await makeUniverse("Música");
+    const comunidade = await criar(universo.id, "Vinil", eu);
+
+    await db.$executeRawUnsafe(
+      `UPDATE communities SET name = 'Vinil Raro', slug = '' WHERE id = '${comunidade.id}'`,
+    );
     const depois = await db.community.findUniqueOrThrow({ where: { id: comunidade.id } });
 
     expect(depois.slug).toBe("vinil-raro");

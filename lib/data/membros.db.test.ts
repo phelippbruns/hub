@@ -9,7 +9,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db, joinAs, makeCommunity, makeProfile, makeUniverse, resetDatabase } from "./testing/db";
 import { membrosDaComunidade } from "./membros";
-import { paginaDaComunidade, topicosDaComunidade } from "./comunidades";
+import { editarComunidade, paginaDaComunidade, topicosDaComunidade } from "./comunidades";
 import { blockProfile } from "./cabins";
 import { followProfile, followTopic } from "./follows";
 import { createAnswer, createTopic } from "./topics";
@@ -283,5 +283,80 @@ describe("a lista de tópicos da comunidade", () => {
     const [naLista] = await topicosDaComunidade(viewerFor(lia.id), comunidade.id);
     expect(naLista?.novas).toBe(0);
     expect(naLista?.seguindo).toBe(false);
+  });
+});
+
+describe("RN06: editar a comunidade depois de criada", () => {
+  it("quem modera muda nome, descrição, Sobre e regras", async () => {
+    const { lia, comunidade } = await cenario();
+
+    await editarComunidade(viewerFor(lia.id), comunidade.id, {
+      name: "Animação Brasileira",
+      intro: "Desenho, stop motion e o que mais vier.",
+      about: "Um lugar para mostrar o que você está animando.",
+      rules: "Mostre o processo.\nCritique o trabalho, nunca a pessoa.",
+    });
+
+    const pagina = await paginaDaComunidade(viewerFor(lia.id), comunidade.slug);
+    expect(pagina.name).toBe("Animação Brasileira");
+    expect(pagina.about).toBe("Um lugar para mostrar o que você está animando.");
+    expect(pagina.regras).toHaveLength(2);
+  });
+
+  it("o endereço não muda junto com o nome: ele já foi compartilhado", async () => {
+    const { lia, comunidade } = await cenario();
+    const endereco = comunidade.slug;
+
+    await editarComunidade(viewerFor(lia.id), comunidade.id, {
+      name: "Outro Nome Completamente Diferente",
+      intro: "Continua a mesma comunidade.",
+      about: "",
+      rules: "",
+    });
+
+    const guardada = await db.community.findUniqueOrThrow({ where: { id: comunidade.id } });
+    expect(guardada.slug).toBe(endereco);
+    expect(guardada.name).toBe("Outro Nome Completamente Diferente");
+  });
+
+  it("quem só é membro não edita", async () => {
+    const { jo, comunidade } = await cenario();
+
+    await expect(
+      editarComunidade(viewerFor(jo.id), comunidade.id, {
+        name: "Tomei a comunidade",
+        intro: "Oi.",
+        about: "",
+        rules: "",
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("RN04: renomear para um nome que já existe é recusado com a mensagem certa", async () => {
+    const { lia, comunidade } = await cenario();
+    const universo = await db.universe.findFirstOrThrow();
+    await makeCommunity(universo.id, lia.id, "Fotografia");
+
+    await expect(
+      editarComunidade(viewerFor(lia.id), comunidade.id, {
+        name: "fotografias",
+        intro: "Tentando roubar o nome.",
+        about: "",
+        rules: "",
+      }),
+    ).rejects.toThrow(/já existe/i);
+  });
+
+  it("RN16: Sobre com link é recusado", async () => {
+    const { lia, comunidade } = await cenario();
+
+    await expect(
+      editarComunidade(viewerFor(lia.id), comunidade.id, {
+        name: comunidade.name,
+        intro: "Oi.",
+        about: "Veja mais em exemplo.com",
+        rules: "",
+      }),
+    ).rejects.toThrow();
   });
 });

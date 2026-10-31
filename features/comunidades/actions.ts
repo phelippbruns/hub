@@ -14,9 +14,11 @@ import {
   joinCommunity,
   leaveCommunity,
 } from "@/lib/data/communities";
+import { ZodError } from "zod";
 import {
   CAPA_SEM_ENQUADRAMENTO,
   alternarFixada,
+  editarComunidade,
   comunidadePorSlug,
   trocarCapa,
   type EnquadramentoDaCapa,
@@ -303,4 +305,48 @@ export async function convidarParaModerar(
 
   revalidatePath(`/c/${slug}`);
   return { convidado: true };
+}
+
+/**
+ * RN06: quem modera muda nome, descrição curta, Sobre e regras.
+ *
+ * O endereço não muda junto com o nome — ele já foi compartilhado.
+ */
+export type EstadoDaEdicao = {
+  erro?: string;
+  salva?: boolean;
+};
+
+export async function editarComunidadeDaTela(
+  _anterior: EstadoDaEdicao,
+  formulario: FormData,
+): Promise<EstadoDaEdicao> {
+  const viewer = await quemPede();
+
+  const slug = String(formulario.get("comunidade") ?? "");
+  const communityId = String(formulario.get("communityId") ?? "");
+
+  try {
+    await editarComunidade(viewer, communityId, {
+      name: String(formulario.get("name") ?? ""),
+      intro: String(formulario.get("intro") ?? ""),
+      about: String(formulario.get("about") ?? ""),
+      rules: String(formulario.get("rules") ?? ""),
+    });
+  } catch (erro) {
+    if (erro instanceof ZodError) {
+      return { erro: erro.issues.at(0)?.message ?? "Confira os campos da comunidade." };
+    }
+    if (
+      erro instanceof ForbiddenError ||
+      erro instanceof NotFoundError ||
+      erro instanceof RuleViolationError
+    ) {
+      return { erro: erro.message };
+    }
+    throw erro;
+  }
+
+  revalidatePath(`/c/${slug}`);
+  return { salva: true };
 }

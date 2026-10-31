@@ -55,6 +55,7 @@ import {
   TextField,
   TopicName,
   TopicOpening,
+  Janela,
   TopicCard,
   TopicRow,
 } from "./components";
@@ -189,6 +190,7 @@ function NavProof({ tone }: { tone: "light" | "dark" }) {
 }
 
 export function DesignGallery() {
+  const [janela, setJanela] = useState(false);
   const [selectedChip, setSelectedChip] = useState(true);
   const [member, setMember] = useState(false);
   const [tab, setTab] = useState("respostas");
@@ -686,6 +688,9 @@ export function DesignGallery() {
             <Button>Responder</Button>
             <Button variant="secondary">Cancelar</Button>
             <Button variant="highlight">Responder</Button>
+            <span className="bg-ink rounded-sm p-2">
+              <Button variant="claro">Moderar</Button>
+            </span>
             <Button variant="icon" aria-label="Criar tópico">
               <CreateIcon decorative className="size-icon" />
             </Button>
@@ -765,6 +770,24 @@ export function DesignGallery() {
               action={<CommunityDoor member={member} onToggle={() => setMember((v) => !v)} />}
             />
             <TopicRow name="primeira festa" people={42} answers={87} when="há 10 min" />
+          </div>
+        </Card>
+
+        <Card title="Janela" wide>
+          <div className="flex w-full flex-col gap-2">
+            <p className="text-caption text-inkMuted">
+              Diálogo centrado, com véu, foco preso, Esc e clique fora. É o que o protótipo usa para
+              criar enquete, criar evento, moderar, entrar, sair e apagar.
+            </p>
+            <Button onClick={() => setJanela(true)}>Abrir a janela</Button>
+            <Janela titulo="Nova enquete" aberta={janela} onFechar={() => setJanela(false)}>
+              <p className="text-body text-ink">
+                O conteúdo entra aqui. A rolagem da página fica travada enquanto ela está aberta.
+              </p>
+              <Button variant="secondary" onClick={() => setJanela(false)}>
+                Fechar
+              </Button>
+            </Janela>
           </div>
         </Card>
 

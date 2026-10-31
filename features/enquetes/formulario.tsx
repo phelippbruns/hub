@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { BottomSheet, Button, Chip, Input } from "@/design/components";
+import { Button, Chip, Input, Janela } from "@/design/components";
 import { criarEnqueteDaComunidade, type EstadoDaEnquete } from "./actions";
 import { DURACOES_EM_DIAS } from "./shared";
 
@@ -37,7 +37,7 @@ export function FormularioDeEnquete({
   }, [estado.criada, aoFechar]);
 
   return (
-    <BottomSheet title="Nova enquete" open={aberto}>
+    <Janela titulo="Nova enquete" aberta={aberto} onFechar={aoFechar}>
       <form action={acao} className="flex flex-col gap-3">
         <input type="hidden" name="comunidade" value={slug} />
         <input type="hidden" name="communityId" value={communityId} />
@@ -102,6 +102,6 @@ export function FormularioDeEnquete({
           </Button>
         </div>
       </form>
-    </BottomSheet>
+    </Janela>
   );
 }

@@ -639,7 +639,7 @@ Faltam seis, nesta ordem:
 | 3 | ~~O painel do tópico~~ — **feito.** Rota interceptada `@topico/(.)[topico]`, a página inteira preservada para o link colado e o 404, separador de contribuições novas, e o compositor redesenhado em caixa única com Enter para enviar. | feito |
 | 4 | ~~Enquetes~~ — **feito.** RN37: `polls`, `poll_options`, `poll_votes`; a contagem não sai do servidor para quem não votou; um voto por pessoa garantido pela chave primária; trocar o voto enquanto aberta; contador na aba. | feito |
 | 5 | ~~Eventos~~ — **feito.** RN38: `events` e `event_attendances`; o link da sala só sai para quem confirmou; presencial exige local por CHECK; lotado conferido no servidor; contador na aba. | feito |
-| 6 | **Moderar numa janela**, em duas seções, e a comunidade passando a ser **editável** depois de criada (nome, intro, sobre, regras); botão Moderar na capa com contador de denúncias | 1 dia |
+| 6 | ~~Moderar numa janela, e a comunidade editável~~ — **feito.** Componente `Janela` de verdade (véu, foco preso, Esc, clique fora, rolagem travada); toda confirmação do Hub passou a usá-la; botão Moderar na capa com contador; nome, descrição, Sobre e regras finalmente editáveis; renomear não muda o endereço. | feito |
 | 7 | **Acabamento**: foco, teclado, `Esc`, alvos de 44 px, e a passada final de termo — "contribuição", nunca "resposta" | meio dia |
 
 **Duas coisas que esses PRs obrigam a decidir**, e que já estão neste

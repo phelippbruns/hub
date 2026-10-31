@@ -17,7 +17,7 @@
  */
 import { prisma } from "./prisma";
 import { ForbiddenError, NotFoundError } from "./errors";
-import { requireProfileId, type Viewer } from "./viewer";
+import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { avisar } from "./notificacoes";
 import { comAvatares } from "@/lib/midia/deposito";
 
@@ -150,6 +150,26 @@ export type DenunciaNaFila = {
 };
 
 /** A fila da comunidade: o que está aberto, mais recente primeiro. */
+/**
+ * Quantas denúncias esperam decisão — o contador vermelho na capa.
+ *
+ * Zero para quem não modera, e sem erro: a capa é desenhada para todo
+ * mundo, e recusar aqui faria a tela inteira cair por causa de um número
+ * que nem seria mostrado.
+ */
+export async function denunciasPendentes(viewer: Viewer, communityId: string): Promise<number> {
+  const me = viewerProfileId(viewer);
+  if (!me) return 0;
+
+  const minha = await prisma.membership.findUnique({
+    where: { communityId_profileId: { communityId, profileId: me } },
+    select: { role: true, bannedAt: true },
+  });
+  if (!minha || minha.role !== "moderator" || minha.bannedAt) return 0;
+
+  return prisma.report.count({ where: { communityId, status: "open" } });
+}
+
 export async function filaDeDenuncias(
   viewer: Viewer,
   communityId: string,
