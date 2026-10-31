@@ -24,11 +24,14 @@ export function AbasDaComunidade({
   base,
   atual,
   enquetesAbertas,
+  eventosFuturos,
 }: {
   base: string;
   atual: AbaDaComunidade;
   /** Enquetes abertas que eu ainda não votei. Zero não desenha contador. */
   enquetesAbertas: number;
+  /** Encontros que ainda vão acontecer. */
+  eventosFuturos: number;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -41,6 +44,7 @@ export function AbasDaComunidade({
         tabs={[
           { id: "inicio", label: "Início" },
           { id: "enquetes", label: "Enquetes", count: enquetesAbertas },
+          { id: "eventos", label: "Eventos", count: eventosFuturos },
           { id: "membros", label: "Membros" },
         ]}
         activeId={atual}

@@ -39,6 +39,8 @@ import { comunidadeDaRota } from "@/features/comunidades/dados";
 import { filtroDeMembros, membrosDaComunidade } from "@/lib/data/membros";
 import { enquetesDaComunidade, enquetesEsperandoMeuVoto } from "@/lib/data/enquetes";
 import { ListaDeEnquetes } from "@/features/enquetes/lista";
+import { eventosDaComunidade, eventosFuturos } from "@/lib/data/eventos";
+import { ListaDeEventos } from "@/features/eventos/lista";
 import { topicosDaComunidade } from "@/lib/data/comunidades";
 import { hotTopicDeHoje } from "@/lib/data/ciclo";
 import { sugestoesParaConvidar } from "@/lib/data/cabins";
@@ -115,11 +117,12 @@ export default async function ComunidadePage({
     );
   }
 
-  const [paraCompartilhar, enquetesAbertas] = await Promise.all([
+  const [paraCompartilhar, enquetesAbertas, proximosEncontros] = await Promise.all([
     sugestoesParaConvidar(viewer),
     // O contador da aba. Barato: é um `count` com índice, e a aba sempre
     // aparece, então ele seria pedido de qualquer jeito ao trocar de aba.
     enquetesEsperandoMeuVoto(viewer, dados.id),
+    eventosFuturos(viewer, dados.id),
   ]);
 
   /*
@@ -140,9 +143,18 @@ export default async function ComunidadePage({
             base={`/c/${dados.slug}`}
             atual={abaAtual}
             enquetesAbertas={enquetesAbertas}
+            eventosFuturos={proximosEncontros}
           />
 
-          {abaAtual === "enquetes" ? (
+          {abaAtual === "eventos" ? (
+            <Suspense
+              fallback={
+                <PaginaCarregando titulo={false} linhas={2} label="Carregando os encontros" />
+              }
+            >
+              <AbaDeEventos slug={dados.slug} comunidadeId={dados.id} souMembro={dados.souMembro} />
+            </Suspense>
+          ) : abaAtual === "enquetes" ? (
             <Suspense
               fallback={
                 <PaginaCarregando titulo={false} linhas={2} label="Carregando as enquetes" />
@@ -479,6 +491,29 @@ function BotaoNovoTopico({ slug }: { slug: string }) {
       <TopicStar className="size-icon" />
       Criar tópico
     </Link>
+  );
+}
+
+/** A aba Eventos (RN38). Em `<Suspense>` como as outras. */
+async function AbaDeEventos({
+  slug,
+  comunidadeId,
+  souMembro,
+}: {
+  slug: string;
+  comunidadeId: string;
+  souMembro: boolean;
+}) {
+  const { viewer } = await comunidadeDaRota(slug);
+  const eventos = await eventosDaComunidade(viewer, comunidadeId);
+
+  return (
+    <ListaDeEventos
+      slug={slug}
+      communityId={comunidadeId}
+      eventos={eventos}
+      souMembro={souMembro}
+    />
   );
 }
 

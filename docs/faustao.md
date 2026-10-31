@@ -1401,6 +1401,23 @@ ficar vermelho por um motivo que não está no repositório.
 que pareça. Vale a pena saber **quais** dependências externas o build tem,
 porque um dia uma delas cai no meio de uma revisão.
 
+**Voltou em 31 de outubro, e desta vez cobrou.** Duas rodadas locais de
+quinze minutos e a CI de um pull request morreram com
+`next/font/google queries have exactly one entry` — um erro que fala de
+"import map" e não diz uma palavra sobre rede. Entre as duas falhas locais
+o build passou, o que me fez concluir errado que era oscilação; a CI
+falhando logo depois desfez a dúvida.
+
+🔒 **Com barreira, agora** — a fonte mora em `design/fontes/` e o carregador
+é `next/font/local`. `design/fontes.test.ts` reprova se alguém importar
+`next/font/google` de novo, e confere que o arquivo baixado é mesmo um
+woff2 (assinatura `wOF2`), porque um HTML de erro salvo com o nome certo
+passaria pelo nome e morreria no navegador.
+
+**A lição que faltava:** dependência externa no caminho do build não é
+risco teórico que se anota e adia. Ela não avisa quando vai cobrar, e
+cobra no pior momento — aqui, no meio de uma entrega pronta.
+
 ### Desenhei a marca em vez de pedir o arquivo
 
 *O que aconteceu:* a chave `{` do Hub tinha aparecido torta três vezes

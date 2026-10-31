@@ -564,23 +564,24 @@ fácil de trocar.
 Em paralelo, e sem pressa de código: começar a conversa jurídica sobre
 verificação de idade. É o item que mais demora e o que mais bloqueia.
 
-## Fonte servida do repositório, não baixada no build
+## ~~Fonte servida do repositório~~ — **feito em 31 de outubro**
 
-`design/fonts.ts` usa `next/font/google`. Em runtime está certo — a fonte
-sai do nosso domínio, sem requisição ao Google —, mas **o build a baixa**,
-e já derrubou uma rodada de CI com um erro que não fala de rede (está no
-Faustão).
+Era a pendência mais antiga da lista, e ela cobrou: `next/font/google`
+derrubou duas rodadas locais e a CI de um pull request no mesmo dia,
+porque busca o arquivo da fonte **na hora de compilar**.
 
-**O que fazer:** guardar os arquivos `.woff2` da Bricolage Grotesque em
-`design/fontes/` e trocar para `next/font/local`. O build deixa de
-depender de o Google estar no ar.
+A Bricolage Grotesque passou a morar em `design/fontes/`, carregada por
+`next/font/local`. É a mesma fonte, no mesmo formato, servida do próprio
+domínio — o que mudou é que o build não fala mais com ninguém.
 
-**Tamanho:** meio dia, a maior parte em conferir que os pesos (400 a 800)
-e o subconjunto latino ficaram iguais aos de hoje.
+`design/fontes.test.ts` é a barreira: reprova se alguém importar
+`next/font/google` de novo.
 
-**Por que não foi feito junto:** apareceu no meio de um PR de acabamento,
-e acrescentar arquivos binários de fonte ali misturaria duas coisas que
-precisam ser revisadas separado.
+**Fica em aberto, pequeno:** só o subconjunto `latin` é servido, que cobre
+o português inteiro. Um nome com caractere de fora (`Łukasz`, `Þór`) cai
+na fonte do sistema. O arquivo `latin-ext` já está no repositório; servir
+os dois exige `unicode-range` por arquivo, que o `next/font/local` não
+expõe, e a saída seria escrever o `@font-face` à mão.
 
 ## "Contribuição" quer dizer duas coisas
 
@@ -637,7 +638,7 @@ Faltam seis, nesta ordem:
 | 2 | ~~A lista de tópicos~~ — **feito.** Filtros com nome, última contribuição no cartão, busca a partir de 10, bloqueio respeitado (RN26), coluna da direita de volta como `<aside>` desta página, e a passada de design para a tela ficar igual ao protótipo v6. | feito |
 | 3 | ~~O painel do tópico~~ — **feito.** Rota interceptada `@topico/(.)[topico]`, a página inteira preservada para o link colado e o 404, separador de contribuições novas, e o compositor redesenhado em caixa única com Enter para enviar. | feito |
 | 4 | ~~Enquetes~~ — **feito.** RN37: `polls`, `poll_options`, `poll_votes`; a contagem não sai do servidor para quem não votou; um voto por pessoa garantido pela chave primária; trocar o voto enquanto aberta; contador na aba. | feito |
-| 5 | **Eventos**: `events`, `event_attendances`; o link do encontro online só chega a quem confirmou; lotado conferido no servidor | 2 dias |
+| 5 | ~~Eventos~~ — **feito.** RN38: `events` e `event_attendances`; o link da sala só sai para quem confirmou; presencial exige local por CHECK; lotado conferido no servidor; contador na aba. | feito |
 | 6 | **Moderar numa janela**, em duas seções, e a comunidade passando a ser **editável** depois de criada (nome, intro, sobre, regras); botão Moderar na capa com contador de denúncias | 1 dia |
 | 7 | **Acabamento**: foco, teclado, `Esc`, alvos de 44 px, e a passada final de termo — "contribuição", nunca "resposta" | meio dia |
 
