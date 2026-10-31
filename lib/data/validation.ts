@@ -213,6 +213,32 @@ export const regrasSchema = z
  */
 export const DURACOES_EM_DIAS = [1, 3, 7] as const;
 
+/**
+ * O que quem modera pode mudar numa comunidade depois de criada (RN06).
+ *
+ * Os limites são os **que já existem no banco** — nome 60, intro 240 —, e
+ * não os do protótipo v6 (40 e 120). Baixar o teto sobre comunidades que
+ * já foram escritas recusaria salvar o que está lá hoje, e o primeiro a
+ * descobrir seria quem tentasse corrigir uma vírgula.
+ *
+ * O endereço (`slug`) **não** entra: ele é gerado do nome pelo gatilho e
+ * já foi compartilhado. Renomear a comunidade mantém o endereço antigo, de
+ * propósito — endereço que existiu não vira link quebrado.
+ */
+export const editarComunidadeSchema = z.object({
+  name: userText(60, "O nome da comunidade"),
+  intro: userText(240, "A descrição curta"),
+  about: z
+    .string()
+    .trim()
+    .max(500, "O texto Sobre passa de 500 caracteres")
+    .default("")
+    .refine((texto) => !containsLink(texto), {
+      message: "RN16: links não são aceitos no Sobre",
+    }),
+  rules: regrasSchema,
+});
+
 export const criarEnqueteSchema = z.object({
   communityId: uuidSchema,
   pergunta: userText(120, "A pergunta"),

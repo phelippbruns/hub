@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { useActionState, useId, useRef, useState, useTransition } from "react";
 import {
   Avatar,
-  BottomSheet,
   Button,
   CommunityDoor,
   ConfirmSheet,
+  Janela,
   MenuSuspenso,
   RoundIconButton,
 } from "@/design/components";
@@ -16,6 +16,8 @@ import { BackIcon, MoreOptionsIcon, ShareIcon } from "@/design/icons";
 import { alternarMembro, trocarCapaDaComunidade } from "./actions";
 import { CapaEditavel } from "./capa-editavel";
 import { Compartilhar, type PessoaParaCompartilhar } from "@/features/convite/compartilhar";
+import { JanelaDeModeracao } from "@/features/moderacao/janela";
+import type { ReactNode } from "react";
 import type { PaginaDaComunidade } from "@/lib/data/comunidades";
 
 function numero(valor: number) {
@@ -43,15 +45,27 @@ function mesEAno(data: Date) {
 export function CabecalhoDaComunidade({
   comunidade,
   paraCompartilhar,
+  denunciasPendentes = 0,
+  filaDeDenuncias,
 }: {
   comunidade: PaginaDaComunidade;
   /** Quem pode receber o link (F14). Vem pronto do servidor. */
   paraCompartilhar: PessoaParaCompartilhar[];
+  /** Zero para quem não modera: o número nem é calculado para os demais. */
+  denunciasPendentes?: number;
+  /**
+   * A fila, desenhada no servidor e entregue pronta.
+   *
+   * Vem por propriedade porque depende de permissão, e permissão se
+   * confere no servidor. Nula para quem não modera — e aí o botão de
+   * moderar nem aparece.
+   */
+  filaDeDenuncias?: ReactNode;
 }) {
   const router = useRouter();
-  const [aberto, setAberto] = useState<"nenhum" | "compartilhar" | "sair" | "menu" | "regras">(
-    "nenhum",
-  );
+  const [aberto, setAberto] = useState<
+    "nenhum" | "compartilhar" | "sair" | "menu" | "regras" | "moderar"
+  >("nenhum");
   const [membro, setMembro] = useState(comunidade.souMembro);
   const [membros, setMembros] = useState(comunidade.membersCount);
   const [pendente, iniciar] = useTransition();
@@ -209,6 +223,24 @@ export function CabecalhoDaComunidade({
                 </span>
               </span>
 
+              {/*
+                Moderar sai do menu de três pontos e sobe para a capa, com
+                o número de denúncias esperando decisão. Escondido num
+                menu, quem modera só descobria que havia fila ao procurar.
+              */}
+              {comunidade.souModerador ? (
+                <span className="relative">
+                  <Button size="sm" variant="claro" onClick={() => abrir("moderar")}>
+                    Moderar
+                    {denunciasPendentes > 0 ? (
+                      <span className="bg-error text-paper text-caption rounded-pill px-1 font-bold">
+                        {denunciasPendentes}
+                      </span>
+                    ) : null}
+                  </Button>
+                </span>
+              ) : null}
+
               <span className="relative">
                 <RoundIconButton
                   label="Mais opções"
@@ -233,17 +265,6 @@ export function CabecalhoDaComunidade({
                       desmonta o cabeçalho ao trocar de rota irmã.
                     */}
                     <div className="flex flex-col gap-1">
-                      {comunidade.souModerador ? (
-                        <Link
-                          href={`/c/${comunidade.slug}/moderar`}
-                          onClick={() => setAberto("nenhum")}
-                        >
-                          <Button variant="secondary" className="w-full">
-                            Moderar
-                          </Button>
-                        </Link>
-                      ) : null}
-
                       <Link
                         href={`/denuncia?comunidade=${comunidade.slug}`}
                         onClick={() => setAberto("nenhum")}
@@ -338,7 +359,11 @@ export function CabecalhoDaComunidade({
         para a moderação poder cobrar depois. Por isso o botão diz "Li e
         quero entrar", e não "OK".
       */}
-      <BottomSheet title={`Entrar em ${comunidade.name}`} open={aberto === "regras"}>
+      <Janela
+        titulo={`Entrar em ${comunidade.name}`}
+        aberta={aberto === "regras"}
+        onFechar={() => setAberto("nenhum")}
+      >
         <p className="text-body text-inkMuted">{comunidade.intro}</p>
         <div className="bg-surfacePage rounded-sm px-3 py-2">
           <p className="text-label text-ink">
@@ -360,7 +385,22 @@ export function CabecalhoDaComunidade({
             Li e quero entrar
           </Button>
         </div>
-      </BottomSheet>
+      </Janela>
+
+      {comunidade.souModerador && filaDeDenuncias ? (
+        <JanelaDeModeracao
+          aberta={aberto === "moderar"}
+          onFechar={() => setAberto("nenhum")}
+          slug={comunidade.slug}
+          communityId={comunidade.id}
+          nome={comunidade.name}
+          intro={comunidade.intro}
+          about={comunidade.about}
+          regras={comunidade.regras.join("\n")}
+          pendentes={denunciasPendentes}
+          denuncias={filaDeDenuncias}
+        />
+      ) : null}
 
       {/*
         A folha da saída só aparece nos dois casos em que sair faz mais do

@@ -5,10 +5,10 @@
  * que as telas 12 e 14 precisam ler.
  */
 import { prisma } from "./prisma";
-import { ForbiddenError, NotFoundError } from "./errors";
+import { ForbiddenError, NotFoundError, translateDatabaseError } from "./errors";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { enderecoDeMidia, enderecosDeMidia } from "@/lib/midia/deposito";
-import { linhasDasRegras } from "./validation";
+import { editarComunidadeSchema, linhasDasRegras } from "./validation";
 import type { Ancora, Medidas } from "@/lib/midia/enquadramento";
 
 /** Um tópico como as listas da comunidade o mostram (RN15: nunca um placar). */
@@ -378,6 +378,53 @@ export async function paginaDaComunidade(
     estouBanida: Boolean(minha?.bannedAt),
     moderadores: comunidade.memberships.map((m) => m.profile),
   };
+}
+
+/**
+ * Muda o que quem modera pode mudar: nome, descrição curta, Sobre e regras.
+ *
+ * **Até esta rodada, nada disso era editável.** A comunidade nascia com o
+ * nome e a intro do formulário de criação e ficava assim para sempre; as
+ * regras e o Sobre, criados nas rodadas do protótipo v6, só existiam para
+ * quem mexesse no banco.
+ *
+ * O endereço não muda junto com o nome. O gatilho só recalcula o slug em
+ * `INSERT`, e é assim de propósito: o endereço já foi compartilhado, e
+ * renomear a comunidade não pode quebrar os links que existem por aí.
+ *
+ * RN04 continua valendo — dois nomes que normalizam igual são recusados
+ * pelo índice único, e `translateDatabaseError` transforma isso na
+ * mensagem certa.
+ */
+export async function editarComunidade(
+  viewer: Viewer,
+  communityId: string,
+  entrada: unknown,
+): Promise<void> {
+  const me = requireProfileId(viewer);
+  const dados = editarComunidadeSchema.parse(entrada);
+
+  const minha = await prisma.membership.findUnique({
+    where: { communityId_profileId: { communityId, profileId: me } },
+    select: { role: true, bannedAt: true },
+  });
+  if (!minha || minha.role !== "moderator" || minha.bannedAt) {
+    throw new ForbiddenError("Só quem modera edita a comunidade");
+  }
+
+  try {
+    await prisma.community.update({
+      where: { id: communityId },
+      data: {
+        name: dados.name,
+        intro: dados.intro,
+        about: dados.about,
+        rules: dados.rules,
+      },
+    });
+  } catch (erro) {
+    translateDatabaseError(erro);
+  }
 }
 
 export type MinhaComunidade = {

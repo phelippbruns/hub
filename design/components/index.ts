@@ -18,6 +18,7 @@ export { TopicCard } from "./topic-card";
 export { TopicRow } from "./topic-row";
 export { Tabs, type Tab } from "./tabs";
 export { BottomSheet } from "./bottom-sheet";
+export { Janela } from "./janela";
 export { MenuSuspenso } from "./menu-suspenso";
 export { Checkbox } from "./checkbox";
 export { Switch } from "./switch";

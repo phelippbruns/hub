@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { BottomSheet, Button, Chip, Input, TextField } from "@/design/components";
+import { Button, Chip, Input, Janela, TextField } from "@/design/components";
 import { criarEventoDaComunidade, type EstadoDoEvento } from "./actions";
 
 /** O dia de hoje em `AAAA-MM-DD`, para o campo não aceitar ontem. */
@@ -41,7 +41,7 @@ export function FormularioDeEvento({
   }, [estado.criado, aoFechar]);
 
   return (
-    <BottomSheet title="Novo encontro" open={aberto}>
+    <Janela titulo="Novo encontro" aberta={aberto} onFechar={aoFechar}>
       <form action={acao} className="flex flex-col gap-3">
         <input type="hidden" name="comunidade" value={slug} />
         <input type="hidden" name="communityId" value={communityId} />
@@ -118,6 +118,6 @@ export function FormularioDeEvento({
           </Button>
         </div>
       </form>
-    </BottomSheet>
+    </Janela>
   );
 }

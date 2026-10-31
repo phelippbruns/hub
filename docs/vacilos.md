@@ -643,3 +643,31 @@ na mesma rodada — e ninguém teria reparado, porque a estrutura não reclama.
 **A lição:** quando uma peça de infraestrutura serve a **um** lugar,
 pergunte se o motivo dela ainda existe. O motivo some antes da peça, e em
 silêncio.
+
+## O endereço da comunidade seguia o nome, e ninguém tinha decidido isso
+
+**O que era:** o gatilho `communities_slug` recalculava o endereço a cada
+renomeação, e um teste de banco afirmava isso — "renomear muda o
+endereço". Sem comentário, sem razão escrita.
+
+**Por que ninguém notou:** da F07 até 31 de outubro, **nada no produto
+renomeava uma comunidade**. O nome era escrito na criação e ficava. O
+teste não documentava uma decisão; documentava o que o código fazia.
+
+**O que a mudança revelou:** a janela de moderar trouxe a primeira tela que
+renomeia. Com o gatilho como estava, corrigir um acento no nome mudaria
+`/c/<endereco>` e **quebraria todo link já compartilhado** — inclusive os
+convites da F14, que são o mecanismo de crescimento do Hub.
+
+**O que ficou:** renomear mantém o endereço. É a mesma regra que o
+CLAUDE.md já escrevia sobre o `@u`: endereço que já existiu nunca volta a
+ser livre. O teste foi reescrito ao contrário, com a razão junto.
+
+**A lição:** teste que descreve comportamento não é o mesmo que teste que
+protege decisão. Quando um deles for reescrito, pergunte qual dos dois ele
+era — e se a resposta for "ninguém sabe", é porque a decisão nunca foi
+tomada.
+
+👁 **Decisão nova, tomada em 31 de outubro.** Se o PO preferir que o
+endereço acompanhe o nome, é inverter uma condição no gatilho — mas aí
+vale decidir também o que acontece com os links antigos.

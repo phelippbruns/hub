@@ -1638,6 +1638,43 @@ Antes de escolher interceptação, conte quantos irmãos o segmento tem. Aqui
 eram dois, e um parâmetro de busca resolvia o mesmo problema sem nenhuma
 das quatro armadilhas.
 
+### O gatilho que trocaria o endereço de toda comunidade renomeada
+
+*O que aconteceu:* a janela de moderar trouxe a primeira tela do Hub que
+**renomeia** uma comunidade. O primeiro teste de banco dela falhou com
+"Comunidade não encontrado" ao reler a comunidade pelo endereço de antes.
+
+O gatilho `communities_slug` roda `BEFORE INSERT OR UPDATE OF name` e
+recalcula o slug. Renomear "Animação" para "Animação Brasileira" mudava
+`/c/animacao` para `/c/animacao-brasileira` — e **todo link já
+compartilhado parava de abrir**, incluindo os convites da F14, que são o
+mecanismo de crescimento do produto.
+
+*Por que passou:* o gatilho está no banco desde a F07, correto e inofensivo
+por três semanas, porque **nada no produto renomeava uma comunidade**. O
+nome era escrito na criação e ficava. Nenhum teste cobria o caminho porque
+o caminho não existia; nenhuma revisão o pegaria, porque o código do
+gatilho está certo para o que ele foi escrito.
+
+O Hub já era explícito sobre isso em outro lugar — "endereço que já existiu
+nunca volta a ser livre", no CLAUDE.md, sobre o `@u`. A regra existia; o
+gatilho não a conhecia.
+
+*Como foi resolvido:* o gatilho só calcula o endereço quando ele **não
+existe**. A condição era "o nome não mudou"; passou a ser "o slug está
+vazio". Zerar o slug continua forçando o recálculo, que é a saída de
+emergência que o preenchimento das comunidades antigas usou.
+
+🔒 **Com barreira** — teste de banco ("o endereço não muda junto com o
+nome") e jornada ("renomear a comunidade não muda o endereço dela"), que
+renomeia pela tela e volta pelo endereço antigo.
+
+**A lição:** abrir uma tela nova ativa caminhos de banco que nunca
+rodaram. Antes de escrever a primeira tela que faz algo pela primeira vez
+— renomear, apagar, transferir —, leia os gatilhos da tabela e pergunte o
+que eles fazem nesse caminho. Um gatilho que nunca disparou não tem
+histórico de acerto: tem só ausência de erro.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

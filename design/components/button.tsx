@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "../cn";
 
-type Variant = "primary" | "secondary" | "highlight" | "danger" | "icon";
+type Variant = "primary" | "secondary" | "highlight" | "danger" | "icon" | "claro";
 type Size = "md" | "sm";
 
 /**
@@ -23,6 +23,14 @@ export const variants: Record<Variant, string> = {
   danger: "bg-transparent text-error border-2 border-error",
   /** Botão só de ícone, em lavender. */
   icon: "bg-lavender text-ink border-2 border-lavender size-control p-0",
+  /**
+   * Sobre fundo escuro — hoje, só a capa da comunidade.
+   *
+   * O `secondary` é contorno em ink, que sobre a capa fica invisível. O
+   * `RoundIconButton` já resolvia isso com `bg-paper`; esta variante é a
+   * mesma ideia para um botão com texto.
+   */
+  claro: "bg-paper text-ink border-2 border-paper",
 };
 
 export const sizes: Record<Size, string> = {

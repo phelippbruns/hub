@@ -1,16 +1,23 @@
 "use client";
 
-import { BottomSheet } from "./bottom-sheet";
+import { Janela } from "./janela";
 import { Button } from "./button";
 
 /**
- * Confirmação de uma ação que a pessoa pode se arrepender (tela 14, sair).
+ * Confirmação de uma ação que a pessoa pode se arrepender.
  *
- * O texto diz o que ela perde **e o que continua** — "seus tópicos e respostas
- * continuam na comunidade" é o que impede a saída de parecer apagar tudo.
+ * O texto diz o que ela perde **e o que continua** — "seus tópicos e
+ * respostas continuam na comunidade" é o que impede a saída de parecer
+ * apagar tudo.
  *
- * O botão de continuar vem primeiro na ordem de foco: quem abriu sem querer
- * sai do caminho com um Tab, não com um clique no botão destrutivo.
+ * O botão de continuar vem primeiro na ordem de foco: quem abriu sem
+ * querer sai do caminho com um Tab, não com um clique no botão destrutivo.
+ *
+ * **Desenhada sobre a [Janela](./janela.tsx)**, e não mais como folha no
+ * fluxo da página. A folha não tinha véu, não prendia o foco e não fechava
+ * com `Esc`: ela pedia uma decisão sem suspender nada, e quem navegava por
+ * teclado continuava tabulando na página atrás. O nome `ConfirmSheet`
+ * ficou por ora para não renomear oito telas de uma vez.
  */
 export function ConfirmSheet({
   open,
@@ -35,7 +42,7 @@ export function ConfirmSheet({
 }) {
   return (
     <div id={id}>
-      <BottomSheet title={titulo} open={open}>
+      <Janela titulo={titulo} aberta={open} onFechar={onCancel} className="max-w-authColumn">
         <p className="text-body text-inkMuted">{descricao}</p>
         <div className="flex flex-col gap-1">
           <Button variant="secondary" onClick={onCancel}>
@@ -45,7 +52,7 @@ export function ConfirmSheet({
             {confirmar}
           </Button>
         </div>
-      </BottomSheet>
+      </Janela>
     </div>
   );
 }
