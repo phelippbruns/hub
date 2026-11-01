@@ -5,7 +5,9 @@ import {
   campoDeContribuicao,
   concluirOnboarding,
   preencherNovaComunidade,
+  respostaPublicada,
   criarTopico,
+  botaoDeContribuir,
 } from "./apoio-tela";
 
 /**
@@ -76,7 +78,14 @@ const ONTEM_AO_MEIO_DIA = `((hub_cycle_date(now()) - 1) + time '12:00') AT TIME 
 async function houveMovimentoOntemEOCicloVirou(slugDoTopico: string, pessoas: number) {
   await consultar(`
     WITH alvo AS (
-      SELECT id FROM topics WHERE slug = '${slugDoTopico}' AND deleted_at IS NULL LIMIT 1
+      -- Ordenado pelo mais recente, e não só LIMIT 1: depois do primeiro
+      -- teste do arquivo existem dois tópicos com este endereço, em
+      -- comunidades diferentes, e o LIMIT 1 sem ordem pegava o da rodada
+      -- anterior. As respostas de ontem iam para o tópico errado e a
+      -- eleição não achava nada -- sintoma: "o destaque não aparece".
+      -- (Sem acento grave aqui: ele fecharia este template.)
+      SELECT id FROM topics WHERE slug = '${slugDoTopico}' AND deleted_at IS NULL
+       ORDER BY created_at DESC LIMIT 1
     ), gente AS (
       SELECT id FROM profiles WHERE deleted_at IS NULL LIMIT ${pessoas}
     )
@@ -97,11 +106,44 @@ test.describe("depois da virada", () => {
 
     await page.goto(comunidade);
 
-    await expect(page.getByRole("heading", { name: "Hot Topic", exact: true })).toBeVisible();
-    await expect(page.getByText("A pergunta que vai virar destaque.")).toBeVisible();
-    // E o cartão leva ao tópico.
-    await page.getByRole("link", { name: "Responder" }).click();
+    /*
+      O rótulo mora **dentro** do cartão desde 31 de outubro: era um título
+      de seção acima dele, e título de seção promete uma lista.
+    */
+    await expect(page.getByRole("heading", { name: "Hot Topic", exact: true })).toHaveCount(0);
+
+    const cartao = page.locator("article", { hasText: "DESTAQUE DO DIA" });
+    await expect(cartao).toBeVisible();
+    await expect(cartao.getByText("assunto da virada")).toBeVisible();
+    await expect(cartao.getByText("A pergunta que vai virar destaque.")).toBeVisible();
+
+    // E o cartão leva ao tópico. O botão diz "Contribuir", não "Responder".
+    await cartao.getByRole("link", { name: "Contribuir" }).click();
     await page.waitForURL(/\/assunto-da-virada$/);
+  });
+
+  test("o cartão mostra a última contribuição, que é o que faz entrar", async ({ page }) => {
+    await entrarNoApp(page, "ultimahot");
+    const { comunidade, topico } = await minhaComunidadeComTopico(page, "Com Última");
+
+    /*
+      O cartão era título, abertura e dois números — o que diz que há
+      movimento, mas não diz qual. O protótipo v6 põe ali a última
+      contribuição, com a cara e o @ de quem escreveu.
+    */
+    await page.goto(topico);
+    await campoDeContribuicao(page).fill("o galpão lotou e ninguém saiu");
+    await page.getByRole("button", { name: "Contribuir" }).click();
+    await expect(respostaPublicada(page, "o galpão lotou e ninguém saiu")).toBeVisible();
+
+    await houveMovimentoOntemEOCicloVirou("assunto-da-virada", 3);
+    await page.goto(comunidade);
+
+    const cartao = page.locator("article", { hasText: "DESTAQUE DO DIA" });
+    await expect(cartao.getByText("o galpão lotou e ninguém saiu")).toBeVisible();
+    // E a contagem usa a palavra certa (RN28).
+    await expect(cartao.getByText(/contribuiç(ão|ões)/)).toBeVisible();
+    await expect(cartao.getByText(/respostas?\b/)).toHaveCount(0);
   });
 
   test("comunidade sem movimento não inventa destaque", async ({ page }) => {
@@ -111,7 +153,7 @@ test.describe("depois da virada", () => {
     await consultar(`SELECT hub_virar_ciclo(hub_cycle_date(now()) - 1)`);
     await page.goto(comunidade);
 
-    await expect(page.getByRole("heading", { name: "Hot Topic", exact: true })).toHaveCount(0);
+    await expect(page.locator("article", { hasText: "DESTAQUE DO DIA" })).toHaveCount(0);
     // A lista normal continua lá.
     await expect(page.getByRole("heading", { name: "Tópicos" })).toBeVisible();
   });
@@ -123,7 +165,7 @@ test.describe("depois da virada", () => {
     await houveMovimentoOntemEOCicloVirou("assunto-da-virada", 2);
 
     await page.goto(`${comunidade}?q=assunto`);
-    await expect(page.getByRole("heading", { name: "Hot Topic", exact: true })).toHaveCount(0);
+    await expect(page.locator("article", { hasText: "DESTAQUE DO DIA" })).toHaveCount(0);
   });
 });
 
@@ -134,7 +176,7 @@ test.describe("a disputa em andamento", () => {
 
     // Uma resposta de hoje põe o tópico na disputa que fecha à meia-noite.
     await campoDeContribuicao(page).fill("respondendo o meu");
-    await page.getByRole("button", { name: "Responder" }).click();
+    await botaoDeContribuir(page).click();
     await expect(page.locator("article").filter({ hasText: "respondendo o meu" })).toBeVisible();
 
     await page.goto("/comunidades/minhas");

@@ -10,7 +10,41 @@ O motivo para voltar é o ciclo diário — às 00h, o tópico com mais pessoas 
 
 Fonte completa: [docs/escopo.md](docs/escopo.md). Backlog e ordem das features: [docs/backlog.md](docs/backlog.md). O que falta: [docs/pendencias.md](docs/pendencias.md).
 
-**Leia [docs/faustao.md](docs/faustao.md) antes de dizer que algo está pronto.** É o registro dos erros já cometidos neste projeto: o que aconteceu, por que passou pelas verificações, como foi resolvido e se já existe barreira automática. Quase todos passaram por alguma conferência que parecia suficiente. Erro novo entra lá.
+## Como todo pedido é entregue
+
+Decidido pelo PO em 1º de novembro de 2026. Vale para feature, bug, adição e
+correção — qualquer coisa que ele mande.
+
+**Separe o pedido em blocos, e dê a cada bloco critério de aceite claro.** O
+plano **termina com os critérios juntos**, para ele aprovar. Ele aprova os
+critérios, não só o plano.
+
+**O que agrupa um bloco**, nesta ordem de peso:
+
+1. **A mesma jornada de quem usa** — dois ajustes que a pessoa encontra no
+   mesmo caminho se verificam na mesma passada.
+2. **Facilidade de implementar** — o barato sai primeiro, e o caro não fica
+   refém dele.
+3. **Os mesmos arquivos** — dois blocos no mesmo arquivo viram um, senão o
+   segundo nasce em conflito.
+4. **Código vizinho** — mesma camada, mesma regra, mesmo componente.
+
+**Critério de aceite é falsificável e traz o como-conferir ao lado.** "A capa
+fica bonita" não é critério. "Com o menu aberto, o último item cabe na
+janela — jornada em 800 px" é.
+
+A regra nasceu de um erro: eu escrevi uma causa em quatro lugares antes de
+medi-la, e a medida a derrubou. **Critério de aceite é causa obrigada a se
+expor** — escrever o critério força a dizer como se mede, que é o passo que
+eu havia pulado. Está no `faustao.md`, seção 6.0.
+
+**Leia [docs/faustao.md](docs/faustao.md) antes de dizer que algo está pronto**
+— e **inteiro a cada três rodadas**, como o PO pediu, porque ele tem 1900
+linhas e ler sempre é caro. A divisão é: aqui ficam as **regras**, que entram
+em toda sessão; lá ficam os **erros**, com a história de cada um: o que
+aconteceu, por que passou pelas verificações, como foi resolvido e se já
+existe barreira automática. Quase todos passaram por alguma conferência que
+parecia suficiente. Erro novo entra lá.
 
 **E [docs/vacilos.md](docs/vacilos.md) antes de decidir ordem de feature, mudar uma RN ou cortar escopo.** É o Faustão do produto: erros de decisão, não de código. Erro técnico quebra e avisa; erro de produto funciona perfeitamente e cobra depois. Decisão nova que contraria uma antiga entra lá.
 

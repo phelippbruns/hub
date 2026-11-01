@@ -17,6 +17,7 @@ import { alternarMembro, trocarCapaDaComunidade } from "./actions";
 import { CapaEditavel } from "./capa-editavel";
 import { Compartilhar, type PessoaParaCompartilhar } from "@/features/convite/compartilhar";
 import { JanelaDeModeracao } from "@/features/moderacao/janela";
+import { JanelaDeEntrada } from "./janela-de-entrada";
 import type { ReactNode } from "react";
 import type { PaginaDaComunidade } from "@/lib/data/comunidades";
 
@@ -69,8 +70,29 @@ export function CabecalhoDaComunidade({
   const [aberto, setAberto] = useState<
     "nenhum" | "convidar" | "sair" | "menu" | "regras" | "moderar"
   >("nenhum");
+  /*
+   * O estado da porta é otimista — o clique muda a marca antes de o
+   * servidor responder —, mas **acompanha a propriedade** quando ela muda.
+   *
+   * Sem acompanhar, entrar pela janela de entrada deixava a porta dizendo
+   * "Entrar em" depois de a pessoa já ser membro: a janela chama
+   * `router.refresh()`, que renderiza o servidor de novo e manda
+   * `souMembro: true` — e `useState` ignora, porque ele só lê o valor
+   * inicial na montagem. O cabeçalho não remonta numa navegação de
+   * cliente. Uma jornada pegou, e é o mesmo erro que a janela de criar
+   * tópico teve no PR anterior.
+   *
+   * O ajuste é o padrão do React para estado que segue propriedade:
+   * comparar com o visto da última vez, na renderização.
+   */
+  const [visto, setVisto] = useState(comunidade.souMembro);
   const [membro, setMembro] = useState(comunidade.souMembro);
   const [membros, setMembros] = useState(comunidade.membersCount);
+  if (visto !== comunidade.souMembro) {
+    setVisto(comunidade.souMembro);
+    setMembro(comunidade.souMembro);
+    setMembros(comunidade.membersCount);
+  }
   const [pendente, iniciar] = useTransition();
   const [estadoDaCapa, trocarCapa] = useActionState(trocarCapaDaComunidade, {});
   const formularioDaCapa = useRef<HTMLFormElement>(null);
@@ -338,7 +360,10 @@ export function CabecalhoDaComunidade({
         */}
         {comunidade.primeirosMembros.length > 0 ? (
           <span aria-hidden="true" className="flex">
-            {comunidade.primeirosMembros.map((pessoa, i) => (
+            {/* Cinco aqui, embora a consulta traga doze: sobrepostos, mais
+                que isso vira uma mancha. A grade da coluna da direita usa
+                os doze, onde eles têm espaço. */}
+            {comunidade.primeirosMembros.slice(0, 5).map((pessoa, i) => (
               <Avatar
                 key={i}
                 nome={pessoa.nome}
@@ -351,7 +376,25 @@ export function CabecalhoDaComunidade({
         ) : null}
 
         <p className="text-caption text-inkMuted">
-          {numero(membros)} {membros === 1 ? "membro" : "membros"} ·{" "}
+          {/*
+            "N membros" leva à aba Membros. Era texto morto ao lado de
+            avatares que convidam a clicar — e quem clica num rosto quer
+            exatamente a lista de gente.
+          */}
+          {/*
+            `min-h-controlSm` com `inline-flex`: como texto solto o link
+            tinha 14 px de altura, abaixo do mínimo de 24 que a jornada de
+            alvos de toque guarda. É o mesmo defeito que o "Ver todos" do
+            resumo já tinha tido — e o comentário dele estava a três linhas
+            de onde eu copiei este.
+          */}
+          <Link
+            href={`/c/${comunidade.slug}?aba=membros`}
+            className="min-h-controlSm inline-flex items-center underline underline-offset-2"
+          >
+            {numero(membros)} {membros === 1 ? "membro" : "membros"}
+          </Link>{" "}
+          ·{" "}
           {/*
             Um número de contribuições, e não "N tópicos · N contribuições".
             Pela RN28 contribuição é resposta **ou** tópico criado, então os
@@ -396,39 +439,22 @@ export function CabecalhoDaComunidade({
       </Janela>
 
       {/*
-        A folha de entrada, só para comunidade com regras escritas.
-
-        Não é um "tem certeza?": é o texto que a pessoa precisa ter lido
-        para a moderação poder cobrar depois. Por isso o botão diz "Li e
-        quero entrar", e não "OK".
+        A janela de entrada, agora um componente só
+        ([janela-de-entrada.tsx](./janela-de-entrada.tsx)): ela abre daqui,
+        das enquetes, dos eventos e do seguir. Era deste arquivo, e as
+        outras telas desabilitavam o botão em vez de convidar.
       */}
-      <Janela
-        titulo={`Entrar em ${comunidade.name}`}
+      <JanelaDeEntrada
+        comunidade={{
+          id: comunidade.id,
+          slug: comunidade.slug,
+          name: comunidade.name,
+          intro: comunidade.intro,
+          regras: comunidade.regras,
+        }}
         aberta={aberto === "regras"}
         onFechar={() => setAberto("nenhum")}
-      >
-        <p className="text-body text-inkMuted">{comunidade.intro}</p>
-        <div className="bg-surfacePage rounded-sm px-3 py-2">
-          <p className="text-label text-ink">
-            {comunidade.regras.length === 1
-              ? "Ao entrar, você concorda com a regra:"
-              : "Ao entrar, você concorda com as regras:"}
-          </p>
-          <ol className="text-body text-ink mt-1 flex list-decimal flex-col gap-1 pl-4">
-            {comunidade.regras.map((regra) => (
-              <li key={regra}>{regra}</li>
-            ))}
-          </ol>
-        </div>
-        <div className="flex flex-col gap-1">
-          <Button variant="secondary" onClick={() => setAberto("nenhum")}>
-            Agora não
-          </Button>
-          <Button onClick={entrar} disabled={pendente} disabledHint="Aguarde um instante">
-            Li e quero entrar
-          </Button>
-        </div>
-      </Janela>
+      />
 
       {comunidade.souModerador && filaDeDenuncias ? (
         <JanelaDeModeracao

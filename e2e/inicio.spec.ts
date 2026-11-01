@@ -6,6 +6,7 @@ import {
   concluirOnboarding,
   preencherNovaComunidade,
   criarTopico,
+  botaoDeContribuir,
 } from "./apoio-tela";
 
 /**
@@ -130,7 +131,7 @@ test.describe("com conteúdo", () => {
     await expect(page.getByRole("heading", { name: "Hot Topics" })).toBeVisible();
     await expect(page.getByText("A pergunta que vai virar destaque.")).toBeVisible();
 
-    await page.getByRole("link", { name: "Responder" }).click();
+    await page.getByRole("link", { name: "Contribuir" }).click();
     await page.waitForURL(/\/assunto-do-inicio$/);
   });
 
@@ -183,7 +184,7 @@ test.describe("com conteúdo", () => {
 
     await page.goto(`${comunidade}/assunto-do-inicio`);
     await campoDeContribuicao(page).fill("minha resposta");
-    await page.getByRole("button", { name: "Responder" }).click();
+    await botaoDeContribuir(page).click();
     await expect(page.locator("article").filter({ hasText: "minha resposta" })).toBeVisible();
 
     await consultar(`

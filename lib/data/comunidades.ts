@@ -354,7 +354,12 @@ export async function paginaDaComunidade(
     prisma.membership.findMany({
       where: { communityId: comunidade.id, bannedAt: null, profile: { deletedAt: null } },
       orderBy: { joinedAt: "asc" },
-      take: 5,
+      /*
+       * Doze, como a grade do protótipo v6 na coluna da direita. Eram
+       * cinco, porque o único consumidor era a linha sob a capa — e essa
+       * continua cortando em cinco na tela, que é o que cabe ali.
+       */
+      take: 12,
       select: { profile: { select: { name: true, avatarUrl: true } } },
     }),
   ]);

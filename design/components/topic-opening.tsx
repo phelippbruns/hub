@@ -3,12 +3,12 @@ import type { ReactNode } from "react";
 /**
  * A abertura do tópico, no cartão escuro da tela 15.
  *
- * Separada das respostas de propósito: a pergunta é o que o tópico é, e as
- * respostas são o que as pessoas fizeram com ela. Misturar as duas faria a
- * abertura parecer a primeira resposta.
+ * Separada das contribuições de propósito: a pergunta é o que o tópico é, e
+ * as contribuições são o que as pessoas fizeram com ela. Misturar as duas
+ * faria a abertura parecer a primeira contribuição.
  *
- * RN15: pessoas e respostas sempre visíveis. Nunca curtida, nunca contador
- * por resposta.
+ * RN15: pessoas e contribuições sempre visíveis. Nunca curtida, nunca
+ * contador por contribuição.
  */
 export function TopicOpening({
   autor,
@@ -33,7 +33,7 @@ export function TopicOpening({
       <div className="flex items-center justify-between gap-2">
         <p className="text-caption">
           {numero(pessoas)} {pessoas === 1 ? "pessoa" : "pessoas"}, {numero(respostas)}{" "}
-          {respostas === 1 ? "resposta" : "respostas"}
+          {respostas === 1 ? "contribuição" : "contribuições"}
         </p>
         {acoes ? <span className="flex items-center gap-1">{acoes}</span> : null}
       </div>

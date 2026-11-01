@@ -5,6 +5,7 @@ import {
   concluirOnboarding,
   preencherNovaComunidade,
   criarTopico,
+  botaoDeContribuir,
 } from "./apoio-tela";
 
 /**
@@ -77,7 +78,7 @@ test.describe("marcar com @", () => {
 
       await page.goto(topico);
       await campoDeContribuicao(page).fill(`@${outra.handle} você viu isso?`);
-      await page.getByRole("button", { name: "Responder" }).click();
+      await botaoDeContribuir(page).click();
       await expect(page.locator("article").filter({ hasText: "você viu isso?" })).toBeVisible();
 
       // O sino acende.
@@ -113,7 +114,7 @@ test.describe("marcar com @", () => {
 
       await page.goto(topico);
       await campoDeContribuicao(page).fill(`@${outra.handle} e @ninguemaqui`);
-      await page.getByRole("button", { name: "Responder" }).click();
+      await botaoDeContribuir(page).click();
 
       const resposta = page.locator("article").filter({ hasText: outra.handle });
       await expect(resposta).toBeVisible();
@@ -171,7 +172,7 @@ test.describe("a central", () => {
 
       await page.goto(topico);
       await campoDeContribuicao(page).fill(`@${outra.handle} oi`);
-      await page.getByRole("button", { name: "Responder" }).click();
+      await botaoDeContribuir(page).click();
       await expect(page.locator("article").filter({ hasText: "oi" })).toBeVisible();
 
       const barra = outra.page.getByRole("navigation", { name: "Navegação principal" });
@@ -229,7 +230,7 @@ test.describe("a central", () => {
 
       await page.goto(topico);
       await campoDeContribuicao(page).fill(`@${outra.handle} oi`);
-      await page.getByRole("button", { name: "Responder" }).click();
+      await botaoDeContribuir(page).click();
       await expect(page.locator("article").filter({ hasText: "oi" })).toBeVisible();
 
       await outra.page.goto("/notificacoes");

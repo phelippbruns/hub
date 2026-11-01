@@ -7,6 +7,7 @@ import {
   respostaPublicada,
   seguirNoPerfil,
   criarTopico,
+  botaoDeContribuir,
 } from "./apoio-tela";
 
 /**
@@ -86,7 +87,7 @@ async function minhaComunidadeComTopico(page: Page, prefixo: string, assunto = "
 async function responder(page: Page, topico: string, texto: string) {
   await page.goto(topico);
   await campoDeContribuicao(page).fill(texto);
-  await page.getByRole("button", { name: "Responder" }).click();
+  await botaoDeContribuir(page).click();
   /*
    * 15 s, e não os 5 s padrão.
    *

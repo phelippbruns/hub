@@ -1026,6 +1026,49 @@ natureza: coisa que se repete por falta de hábito.
 Estas práticas valem **a partir de agora**. Nenhuma delas corta verificação;
 todas cortam repetição.
 
+### 0. O método de entrega, pedido em 1º de novembro de 2026
+
+Phelipp fixou como todo pedido passa a ser organizado. Vale para feature,
+bug, adição e correção — qualquer coisa que ele mande.
+
+**Todo pedido é separado em blocos.** Cada bloco tem **critério de aceite
+claro**, e o plano termina com os critérios juntos, para ele aprovar. Ele
+aprova os critérios, não só o plano.
+
+**O que agrupa um bloco**, nesta ordem de peso:
+
+1. **A mesma jornada de quem usa.** Dois ajustes que a pessoa encontra no
+   mesmo caminho vão juntos, porque se verificam na mesma passada.
+2. **Facilidade de implementar.** O que é barato sai primeiro e cedo, e o
+   caro não fica refém do barato.
+3. **Os mesmos arquivos.** Dois blocos que editam o mesmo arquivo viram um,
+   senão o segundo nasce em conflito com o primeiro.
+4. **Código vizinho.** Mesma camada, mesma regra, mesmo componente.
+
+**Como o critério de aceite é escrito.** Falsificável, e com **o como
+conferir ao lado**. "A capa fica bonita" não é critério. "Com o menu aberto,
+o último item cabe na janela — jornada em 800 px" é.
+
+> Esta regra nasceu de um erro desta mesma sessão, e é a razão dela. Eu
+> escrevi "quatro prints, um defeito de layout na coluna da direita" como
+> **causa**, em quatro lugares, e a medida depois derrubou. Se eu tivesse
+> escrito aquilo como **critério** — "nenhum botão passa da borda da janela
+> em 800 px" —, a frase já me obrigaria a dizer como medir, e eu teria
+> medido antes de escrever. Critério de aceite é causa obrigada a se expor.
+
+**Quando ler este arquivo.** Phelipp sugeriu a cada três rodadas, e isso
+resolve o problema real: ele tem 1800 linhas e ler inteiro a cada vez é
+caro. Então a divisão é esta, e ela importa:
+
+| Onde | O quê | Quando é lido |
+| --- | --- | --- |
+| `CLAUDE.md` | As **regras** de método, curtas | Toda sessão, sempre |
+| Este arquivo | Os **erros**, com a história de cada um | Antes de dizer que algo está pronto, e inteiro a cada três rodadas |
+
+Regra de método que more **só** aqui não é seguida, porque não é lida. Por
+isso o método acima está resumido no `CLAUDE.md` também — aqui fica a razão,
+lá fica a regra.
+
 ### 1. Editar com a ferramenta que falha alto
 
 **O maior desperdício da sessão.** Eu trocava trechos de código procurando
@@ -1176,6 +1219,70 @@ vazia.
 Conferir arquivo por arquivo depende de lembrar a lista — e a lista cresce a
 cada edição. É a prática 1 de novo, por outro caminho: não confiar no
 silêncio de um script.
+
+### 13. A rodada dirigida durante o trabalho; a inteira uma vez
+
+Na rodada dos reparos do protótipo v6 eu rodei **a suíte inteira de jornadas
+três vezes** — 16 minutos cada — quando três arquivos tinham mudado. A
+rodada dirigida nesses três levava 4.
+
+A prática 7 já dizia "a suíte inteira roda na CI, não aqui e lá", e eu a
+descumpri de um jeito que ela não cobria: não foi "aqui **e** lá", foi aqui
+**três vezes**.
+
+**Prática:** durante o trabalho, `npx playwright test <arquivos afetados>`.
+A inteira **uma vez**, antes de abrir o PR, com a porta 3000 livre. A CI
+roda tudo de novo, em máquina limpa, e é ela a autoridade.
+
+### 14. Um nome de arquivo repetido apagou o trabalho de uma hora
+
+`features/eventos/lista.tsx` e `features/enquetes/lista.tsx` têm o **mesmo
+nome de arquivo**. Eu copiei os dois para uma pasta de backup pelo nome
+base, num laço, e o segundo sobrescreveu o primeiro. Quando precisei
+restaurar, o de eventos não existia mais — e eu reapliquei cinco edições à
+mão, do zero.
+
+**Prática:** backup de arquivo guarda o **caminho inteiro**, nunca o nome
+base. Neste repositório `lista.tsx`, `actions.ts`, `formulario.tsx` e
+`shared.ts` existem em várias features: o nome base não identifica nada.
+
+E a prática melhor, que eu não usei: o trabalho já estava **commitado** na
+branch. Reverter um arquivo é `git show <ref>:<caminho>`, que não depende de
+backup nenhum.
+
+### 15. Escrever a conclusão em quatro lugares antes de medir
+
+O erro mais caro desta sessão, e ele tem entrada própria na seção 2 pelo
+lado do método. Pelo lado do custo: eu escrevi a mesma causa no plano, no
+`CLAUDE.md`, num comentário de código e nesta página — **e depois reescrevi
+as quatro**, quando a medida derrubou a causa.
+
+Mais cinco rodadas de medição de 1,5 minuto cada, que eu poderia ter feito
+em **uma**: eu variei a largura numa rodada, o conteúdo em outra, a versão
+do código em outra. Era um laço só, com as três variações dentro.
+
+**Prática:** conclusão entra num lugar só até estar medida. E medição
+exploratória se faz **com todas as variações no mesmo laço** — o custo de
+uma rodada é subir o servidor, não o que ela mede.
+
+### 16. Ler o arquivo inteiro quando eu precisava de vinte linhas
+
+Repetido a sessão toda: abri componentes de 400 linhas para trocar uma
+classe. O `grep -n` diz a linha, e `sed -n 'a,bp'` traz o pedaço.
+
+**Prática:** localizar com `grep -n`, ler a faixa. Arquivo inteiro só quando
+vou reescrevê-lo.
+
+### 17. Renomear sem varrer os testes na mesma passada
+
+Eu centralizei o seletor de criar tópico em `apoio-tela.ts` — a prática 12bis
+funcionando. E no **mesmo PR** renomeei "Novo encontro" para "Novo evento"
+sem centralizar nada, e seis jornadas de eventos reprovaram depois, numa
+rodada de 16 minutos.
+
+**Prática:** antes de renomear qualquer texto de tela, `grep` pelo texto
+antigo em `e2e/` **na mesma passada da renomeação**. O rename e a varredura
+são uma tarefa, não duas.
 
 ---
 
@@ -1806,6 +1913,64 @@ passam por lá.
 **A lição:** esta entrada existe para registrar que a lição **funcionou**.
 A primeira vez custou uma tarde; esta custou dez minutos, porque o remédio
 já estava escrito aqui.
+
+### Tecla é evento único: clique se reespera, tecla não
+
+*O que aconteceu:* a jornada do atalho `/` passou **sozinha** e reprovou na
+suíte inteira. O teste apertava a tecla e depois esperava o campo ganhar
+foco, com `toBeFocused`, que repete por cinco segundos.
+
+*Por que passou:* porque a diferença entre clique e tecla não é óbvia.
+
+Um clique que chega cedo **se reespera**: `locator.click()` aguarda o
+elemento existir e estar clicável. Uma tecla não tem elemento — ela é
+disparada no documento, uma vez. O atalho mora num `useEffect`, que só
+existe depois de a página hidratar; apertada antes disso, a tecla
+**simplesmente não aconteceu**, e os cinco segundos de `toBeFocused`
+ficaram olhando um campo que nunca receberia foco.
+
+Sozinho o teste passava porque a máquina estava livre e a hidratação chegava
+antes. Na suíte, com 240 jornadas em série, não.
+
+*Como foi resolvido:* a tecla foi para **dentro** do laço de espera —
+`expect.poll` que aperta e confere, em vez de apertar e depois conferir.
+Repetir é seguro porque o próprio atalho se cala quando o foco já está num
+campo.
+
+🔒 **Com barreira** — o teste é o próprio guarda, e agora pelo lado certo.
+
+**A lição:** quando o teste depende de algo que **só existe depois da
+hidratação** — atalho de teclado, listener de `window`, arrastar —, a ação
+vai dentro da espera. A asserção repetida não recupera uma ação que não
+aconteceu. Vale para tecla, rolagem e qualquer evento disparado no
+documento, não num elemento.
+
+### Mudar o que visitante vê desenterrou uma corrida de três anos
+
+*O que aconteceu:* a jornada "lotado: o botão desaparece" nunca esperou a
+terceira pessoa virar membro antes de abrir a aba de eventos. Passou
+sempre — porque visitante não via **botão nenhum** na linha de presença, e
+uma asserção sobre "Lotado" não distinguia "não sou membro" de "está
+lotado".
+
+Quando visitante passou a ver "Confirmar presença" — o botão que abre a
+janela de entrar —, a corrida ganhou voz e o teste reprovou.
+
+*Por que passou:* o teste estava errado desde que foi escrito, e **a
+ausência de interface o escondia**. Um estado que não desenha nada é um
+estado que nenhuma asserção consegue distinguir dos outros.
+
+*Como foi resolvido:* esperar `Membro de` antes de abrir a aba, como a
+primeira pessoa da mesma jornada já fazia.
+
+👁 **Atenção** — o padrão não tem barreira: é "entrar na comunidade e seguir
+sem esperar". Vale procurar `getByRole("button", { name: /^Entrar em/ })`
+seguido de `goto` sem espera no meio.
+
+**A lição:** tela que não desenha nada para um estado esconde os erros
+daquele estado. Quando um estado vazio ganha interface, **espere testes
+antigos reprovarem** — e leia cada um antes de culpar a mudança: ali foi o
+teste que estava errado, não o código novo.
 
 ## 7. Placar
 

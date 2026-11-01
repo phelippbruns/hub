@@ -43,7 +43,12 @@ export function TopicCard({
   action?: ReactNode;
 }) {
   return (
-    <div className="bg-paper flex flex-col gap-2 rounded-sm p-3">
+    /*
+      Contorno ao passar o mouse, como o protótipo mostra: o cartão inteiro
+      é clicável e nada dizia isso — só o nome parecia link. `ring-inset`
+      para o contorno nascer dentro do cartão, sem empurrar o vizinho.
+    */
+    <div className="bg-paper hover:ring-lavender flex flex-col gap-2 rounded-sm p-3 hover:ring-2 hover:ring-inset">
       <div className="flex items-start gap-2">
         <span className="text-bodyStrong text-ink min-w-0 flex-1 truncate">
           <TopicStarInline className="text-ink mr-1" />

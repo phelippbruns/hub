@@ -7,6 +7,7 @@ import {
   preencherNovaComunidade,
   respostaPublicada,
   criarTopico,
+  botaoDeContribuir,
 } from "./apoio-tela";
 
 /**
@@ -70,7 +71,7 @@ async function responderComo(page: Page, comunidade: string, topico: string, tex
 
   await page.goto(topico);
   await campoDeContribuicao(page).fill(texto);
-  await page.getByRole("button", { name: "Responder" }).click();
+  await botaoDeContribuir(page).click();
   await expect(respostaPublicada(page, texto)).toBeVisible();
 }
 
@@ -214,6 +215,63 @@ test.describe("membros e moderadores", () => {
       const depois = await outra.page.goto(`${comunidade}/moderar`);
       expect(depois?.status()).toBe(200);
       await expect(outra.page.getByText("Nenhuma denúncia aberta")).toBeVisible();
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("RN33: tirar a moderação pela aba Membros, e quem criou continua protegido", async ({
+    page,
+    browser,
+  }) => {
+    await entrarNoApp(page, "tirarmod");
+    const outra = await outraSessao(browser, "tirada");
+
+    try {
+      const { comunidade } = await minhaComunidadeComTopico(page, "Com Tirada");
+
+      await outra.page.goto(comunidade);
+      await outra.page.getByRole("button", { name: /^Entrar em / }).click();
+      await expect(outra.page.getByRole("button", { name: /^Membro de / })).toBeVisible();
+
+      /*
+        A ação já existia, e só em `/moderar`. O protótipo a põe junto de
+        "Convidar para moderar", que é onde se olha para decidir: ver quem
+        modera numa tela e tirar a moderação em outra obriga a guardar a
+        lista de cabeça.
+      */
+      await page.goto(`${comunidade}?aba=membros`);
+      const linha = page.locator("li", { hasText: `@${outra.handle}` });
+      await linha.getByRole("button", { name: "Convidar para moderar" }).click();
+      await expect(linha.getByText("Convite enviado")).toBeVisible();
+
+      await outra.page.goto("/notificacoes");
+      await outra.page.getByRole("button", { name: "Aceitar" }).click();
+      await expect(outra.page.getByRole("button", { name: "Aceitar" })).toHaveCount(0);
+
+      // Agora modera, e o botão da linha é o de tirar.
+      await page.goto(`${comunidade}?aba=membros`);
+      /*
+        `exact`: sem ele, "Moderação" casa o selo **e** o botão "Tirar
+        moderação" da mesma linha, e o Playwright reprova com "strict mode
+        violation" — que não diz nada sobre a causa.
+      */
+      await expect(linha.getByText("Moderação", { exact: true })).toBeVisible();
+      await linha.getByRole("button", { name: "Tirar moderação" }).click();
+
+      await esperarNoBanco(
+        `SELECT 1 FROM memberships m JOIN profiles p ON p.id = m.profile_id
+          WHERE p.handle = '${outra.handle}' AND m.role = 'member'`,
+      );
+
+      /*
+        E quem criou não ganha o botão. A recusa existe no servidor
+        (`removerModerador`), mas oferecer o botão seria prometer o que vai
+        dar erro.
+      */
+      await page.goto(`${comunidade}?aba=membros`);
+      const minhaLinha = page.locator("li", { hasText: "Criadora" });
+      await expect(minhaLinha.getByRole("button", { name: "Tirar moderação" })).toHaveCount(0);
     } finally {
       await outra.contexto.close();
     }

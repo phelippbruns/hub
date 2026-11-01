@@ -165,6 +165,75 @@ test.describe("RN37: o resultado só aparece depois do voto", () => {
   });
 });
 
+test.describe("quem não participa é convidado, não recusado", () => {
+  test("clicar numa opção abre a janela de entrar, e não repete a dica", async ({
+    page,
+    context,
+  }) => {
+    await entrarNoApp(page, "convidavoto");
+    const comunidade = await minhaComunidade(page, "Com Convite");
+    await criarEnquete(page, comunidade, "Qual técnica no próximo desafio?");
+
+    const outra = await outraPessoa(context, "naomembro");
+    await outra.visita.goto(`${comunidade}?aba=enquetes`);
+
+    /*
+      O botão **não** é desabilitado: clicar abre a janela de entrar. Antes
+      ele vinha desligado, e o `disabledHint` imprimia "Entre na comunidade
+      para votar" **abaixo de cada opção** — duas vezes numa enquete de
+      duas.
+    */
+    await expect(outra.visita.getByText("Entre na comunidade para votar")).toHaveCount(0);
+
+    await outra.visita.getByRole("button", { name: "Stop motion" }).click();
+    const janela = outra.visita.getByRole("dialog", { name: /^Entrar em/ });
+    await expect(janela).toBeVisible();
+
+    // E entrar pela janela deixa a pessoa votando na mesma tela.
+    await janela.getByRole("button", { name: /Entrar na comunidade|Li e quero entrar/ }).click();
+    await expect(janela).toBeHidden();
+    await expect(outra.visita.getByRole("button", { name: /^Membro de|Participando/ })).toBeVisible(
+      { timeout: 15_000 },
+    );
+
+    await outra.contexto.close();
+  });
+
+  test("RN37: o resumo da comunidade não entrega o total a quem não votou", async ({
+    page,
+    context,
+  }) => {
+    await entrarNoApp(page, "resumovoto");
+    const comunidade = await minhaComunidade(page, "Com Resumo");
+    await criarEnquete(page, comunidade, "Qual técnica no próximo desafio?");
+
+    // Quem criou vota, para haver um total que poderia vazar.
+    await page.goto(`${comunidade}?aba=enquetes`);
+    await page.getByRole("button", { name: "Stop motion" }).click();
+    await expect(page.getByText("100%")).toBeVisible();
+
+    const outra = await outraPessoa(context, "resumo2");
+    await outra.visita.goto(comunidade);
+
+    const resumo = outra.visita.getByRole("complementary", { name: "Resumo da comunidade" });
+    await expect(resumo.getByText("ENQUETE ABERTA")).toBeVisible();
+    await expect(resumo.getByText("Qual técnica no próximo desafio?")).toBeVisible();
+
+    /*
+      A promessa da RN37 vale **neste bloco também**, e é por isso que ele
+      usa `enquetesDaComunidade` em vez de uma consulta própria: "1 voto"
+      numa enquete de duas opções já responde qual delas foi.
+
+      A conferência é no HTML inteiro, não no que está à vista: um número
+      escondido por CSS continua sendo um número entregue.
+    */
+    expect(await outra.visita.content()).not.toContain("1 voto");
+    await expect(resumo.getByRole("link", { name: "Votar" })).toBeVisible();
+
+    await outra.contexto.close();
+  });
+});
+
 test.describe("criar a enquete", () => {
   test("qualquer membro cria, e o formulário abre com duas opções", async ({ page }) => {
     await entrarNoApp(page, "criar");

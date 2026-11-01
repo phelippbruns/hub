@@ -216,3 +216,23 @@ export async function criarTopico(
   await janela.getByLabel("Abertura").fill(abertura);
   await janela.getByRole("button", { name: "Criar tópico" }).click();
 }
+
+/**
+ * O botão de enviar uma contribuição.
+ *
+ * Centralizado porque **é a terceira vez** que um rótulo de tela muda e os
+ * testes entram por ele: "Sua resposta" virou "Sua contribuição", "Nome"
+ * virou "Título", e agora "Responder" virou "Contribuir" — o substantivo
+ * havia mudado na rodada de acabamento e o verbo ficou atrás, dizendo uma
+ * coisa onde o campo dizia outra.
+ *
+ * Vinte e três jornadas, em oito arquivos, entravam pelo nome antigo. O
+ * Faustão registra o padrão na prática 17 da seção 6, e esta função é o
+ * remédio: um caminho só.
+ *
+ * `escopo` porque o botão existe no painel do tópico e na página inteira, e
+ * o cartão de destaque tem um link com o mesmo nome.
+ */
+export function botaoDeContribuir(escopo: Page | Locator) {
+  return escopo.getByRole("button", { name: "Contribuir", exact: true });
+}

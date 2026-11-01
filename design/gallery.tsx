@@ -692,9 +692,9 @@ export function DesignGallery() {
 
         <Card title="Botão" wide>
           <div className="flex flex-wrap items-center gap-2">
-            <Button>Responder</Button>
+            <Button>Contribuir</Button>
             <Button variant="secondary">Cancelar</Button>
-            <Button variant="highlight">Responder</Button>
+            <Button variant="highlight">Contribuir</Button>
             <span className="bg-ink rounded-sm p-2">
               <Button variant="claro">Moderar</Button>
             </span>
@@ -738,12 +738,36 @@ export function DesignGallery() {
         </Card>
 
         <Card title="Cartão de Hot Topic" wide>
-          <div className="w-full">
+          <div className="flex w-full flex-col gap-2">
+            {/*
+              Os dois estados: com a última contribuição, que é o normal, e
+              sem — o tópico eleito que ainda só tem a abertura.
+            */}
             <HotTopicCard
               topic="primeira festa"
               opening="Como foi a primeira festa que te fez gostar de música eletrônica?"
               people={42}
               answers={87}
+              autor="Caio Mendes"
+              ultima={{
+                texto: "Um set de 6 horas num galpão. Saí de lá sabendo que era isso.",
+                autorNome: "Lia Souza",
+                autorHandle: "liasouza",
+                autorAvatarUrl: null,
+                quando: "há 2 h",
+              }}
+              rostos={[
+                { nome: "Lia Souza", avatarUrl: null },
+                { nome: "Caio Mendes", avatarUrl: null },
+                { nome: "Ana Lima", avatarUrl: null },
+              ]}
+            />
+
+            <HotTopicCard
+              topic="o que você está ouvindo agora"
+              opening="Vale disco inteiro ou só a faixa?"
+              people={1}
+              answers={0}
             />
           </div>
         </Card>

@@ -24,6 +24,8 @@ export type RespostaNaTela = {
   comunidade: string;
   quando: string;
   souAutor: boolean;
+  /** Chegou desde a minha última visita ao tópico: ganha o anel amarelo. */
+  nova: boolean;
   imagem: string | null;
   /** Imagem enviada ou GIF: muda só o texto alternativo. */
   tipoDaMidia: "image" | "gif" | null;
@@ -64,6 +66,8 @@ export function LinhaDeResposta({
           author={nome}
           handle={handle}
           when={resposta.quando}
+          minha={resposta.souAutor}
+          nova={resposta.nova}
           avatar={autor ? <Link href={`/${handle}`}>{avatar}</Link> : avatar}
           media={
             resposta.imagem ? (

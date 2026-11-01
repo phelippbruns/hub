@@ -170,6 +170,14 @@ test.describe("vagas", () => {
     const segunda = await outraPessoa(context, "lotado3");
     await segunda.visita.goto(comunidade);
     await segunda.visita.getByRole("button", { name: /^Entrar em/ }).click();
+    /*
+      Esperar a entrada firmar antes de abrir a aba, como a primeira pessoa
+      já fazia. Sem isto a aba podia carregar com a pessoa ainda de fora, e
+      quem está de fora vê "Confirmar presença" — o botão que abre a janela
+      de entrar — em vez de "Lotado". Antes da correção de 1º de novembro
+      visitante não via botão nenhum, e a corrida ficava escondida.
+    */
+    await expect(segunda.visita.getByRole("button", { name: /^Membro de/ })).toBeVisible();
     await segunda.visita.goto(`${comunidade}?aba=eventos`);
     const cartao = segunda.visita.locator("article");
     await expect(cartao.getByRole("button", { name: "Lotado" })).toBeVisible();

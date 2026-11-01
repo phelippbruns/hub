@@ -246,7 +246,7 @@ export function CampoDeResposta({
             type="submit"
             variant="icon"
             disabled={pendente || oQueFalta !== null}
-            aria-label="Responder"
+            aria-label="Contribuir"
             aria-describedby={oQueFalta ? idDoFalta : undefined}
             className="size-btnRound shrink-0"
           >

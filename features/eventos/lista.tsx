@@ -5,6 +5,7 @@ import { Avatar, Button, EmptyState, SectionTitle } from "@/design/components";
 import { ClockIcon, ConfirmedIcon, GlobeIcon, PlaceIcon } from "@/design/icons";
 import { alternarPresenca } from "./actions";
 import { FormularioDeEvento } from "./formulario";
+import { JanelaDeEntrada, type ParaEntrar } from "@/features/comunidades/janela-de-entrada";
 import type { EventoNaTela } from "@/lib/data/eventos";
 
 /**
@@ -21,11 +22,14 @@ export function ListaDeEventos({
   communityId,
   eventos,
   souMembro,
+  paraEntrar,
 }: {
   slug: string;
   communityId: string;
   eventos: EventoNaTela[];
   souMembro: boolean;
+  /** O que a janela de entrada precisa saber, para quem não participa. */
+  paraEntrar: ParaEntrar;
 }) {
   const [criando, setCriando] = useState(false);
 
@@ -75,7 +79,13 @@ export function ListaDeEventos({
           <h3 className="text-label text-inkMuted">PRÓXIMOS</h3>
           <div className="flex flex-col gap-2">
             {proximos.map((evento) => (
-              <Evento key={evento.id} evento={evento} slug={slug} souMembro={souMembro} />
+              <Evento
+                key={evento.id}
+                evento={evento}
+                slug={slug}
+                souMembro={souMembro}
+                paraEntrar={paraEntrar}
+              />
             ))}
           </div>
         </>
@@ -86,7 +96,13 @@ export function ListaDeEventos({
           <h3 className="text-label text-inkMuted">ANTERIORES</h3>
           <div className="flex flex-col gap-2">
             {anteriores.map((evento) => (
-              <Evento key={evento.id} evento={evento} slug={slug} souMembro={souMembro} />
+              <Evento
+                key={evento.id}
+                evento={evento}
+                slug={slug}
+                souMembro={souMembro}
+                paraEntrar={paraEntrar}
+              />
             ))}
           </div>
         </>
@@ -102,14 +118,17 @@ function Evento({
   evento,
   slug,
   souMembro,
+  paraEntrar,
 }: {
   evento: EventoNaTela;
   slug: string;
   souMembro: boolean;
+  paraEntrar: ParaEntrar;
 }) {
   const [pendente, iniciar] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
+  const [entrando, setEntrando] = useState(false);
 
   function alternar() {
     setErro(null);
@@ -249,9 +268,19 @@ function Evento({
           </p>
         ) : null}
 
-        {!evento.passou && souMembro ? (
+        {!evento.passou ? (
           <div className="flex items-center gap-2">
-            {evento.lotado ? (
+            {/*
+              Quem não participa **vê o botão e o clica**: ele abre a janela
+              de entrar. Antes a linha inteira desaparecia para visitante, e
+              a tela não dizia que havia o que confirmar — o clique vira
+              convite, não ausência.
+            */}
+            {!souMembro ? (
+              <Button size="sm" onClick={() => setEntrando(true)}>
+                Confirmar presença
+              </Button>
+            ) : evento.lotado ? (
               <Button
                 size="sm"
                 disabled
@@ -294,6 +323,12 @@ function Evento({
           </p>
         ) : null}
       </div>
+
+      <JanelaDeEntrada
+        comunidade={paraEntrar}
+        aberta={entrando}
+        onFechar={() => setEntrando(false)}
+      />
     </article>
   );
 }
