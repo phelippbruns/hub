@@ -184,3 +184,35 @@ export function campoDeContribuicao(escopo: Page | Locator) {
    */
   return escopo.getByLabel("Sua contribuição", { exact: true });
 }
+
+/**
+ * Abre a janela de criar tópico e preenche os dois campos (RN08).
+ *
+ * **Criar tópico era uma página e virou janela**, por correção do PO em 31
+ * de outubro, e os rótulos mudaram junto: "Nome" virou "Título" e
+ * "Descrição" virou "Abertura". Onze jornadas, em oito arquivos, entravam
+ * pelos rótulos antigos.
+ *
+ * É exatamente o caso do `campoDeContribuicao()` logo acima, e o Faustão já
+ * registra o padrão: rótulo de tela muda, e quem entra por ele quebra em
+ * bloco. Então os onze passam por aqui.
+ *
+ * `/c/<slug>/novo` continua valendo e redireciona para a comunidade com a
+ * janela aberta — é por lá que a função entra, porque é o caminho que vem
+ * de fora.
+ */
+export async function criarTopico(
+  page: Page,
+  comunidade: string,
+  titulo: string,
+  abertura = "Uma pergunta de abertura.",
+): Promise<void> {
+  await page.goto(`${comunidade}/novo`);
+
+  const janela = page.getByRole("dialog", { name: "Novo tópico" });
+  await expect(janela).toBeVisible();
+
+  await janela.getByLabel("Título").fill(titulo);
+  await janela.getByLabel("Abertura").fill(abertura);
+  await janela.getByRole("button", { name: "Criar tópico" }).click();
+}

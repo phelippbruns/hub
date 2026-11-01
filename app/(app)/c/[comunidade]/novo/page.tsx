@@ -1,46 +1,33 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { ContentColumn, PageTitle } from "@/design/components";
-import { FormularioNovoTopico } from "@/features/topicos/formulario-novo";
-import { comunidadeDaRota } from "@/features/comunidades/dados";
-import { jaCrieiTopicoHoje } from "@/lib/data/topics";
-import { NotFoundError } from "@/lib/data/errors";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Novo tópico · Hub" };
-
-/** Tela 16: criar tópico na comunidade (RN07). */
+/**
+ * Tela 16: criar tópico na comunidade (RN07).
+ *
+ * **O formulário saiu daqui e virou janela** sobre a comunidade, por
+ * correção do PO em 31 de outubro — ele mora em
+ * [features/topicos/criar.tsx](../../../../../features/topicos/criar.tsx).
+ *
+ * O endereço continua existindo, e redireciona. Endereço que já foi
+ * compartilhado nunca vira 404: o atalho da barra lateral, os links de
+ * Primeiros passos e a tela 16 do escopo apontam para cá, e quem chega vê
+ * a comunidade com a janela aberta em cima — nunca uma tela órfã.
+ *
+ * A conferência de que a comunidade existe não é feita aqui: a página de
+ * destino já a faz, e duplicá-la custaria uma consulta a cada redirecionamento.
+ */
 export default async function NovoTopicoPage({
   params,
   searchParams,
 }: {
   params: Promise<{ comunidade: string }>;
-  /** `?nome=` vem das sugestões de Primeiros passos, na tela da comunidade. */
+  /** `?nome=` vem das sugestões de Primeiros passos. */
   searchParams: Promise<{ nome?: string }>;
 }) {
   const { comunidade: slug } = await params;
   const { nome } = await searchParams;
 
-  let dados;
-  let viewer;
-  try {
-    ({ comunidade: dados, viewer } = await comunidadeDaRota(slug));
-  } catch (erro) {
-    if (erro instanceof NotFoundError) notFound();
-    throw erro;
-  }
+  const busca = new URLSearchParams({ novo: "1" });
+  if (nome) busca.set("nome", nome.slice(0, 80));
 
-  const jaUsouODia = await jaCrieiTopicoHoje(viewer, dados.id);
-
-  return (
-    <ContentColumn>
-      <PageTitle>Novo tópico</PageTitle>
-      <p className="text-caption text-inkMuted">na comunidade de {dados.name}</p>
-      <FormularioNovoTopico
-        comunidadeSlug={dados.slug}
-        nomeDaComunidade={dados.name}
-        jaUsouODia={jaUsouODia}
-        nomeSugerido={nome?.slice(0, 80) ?? ""}
-      />
-    </ContentColumn>
-  );
+  redirect(`/c/${encodeURIComponent(slug)}?${busca.toString()}`);
 }

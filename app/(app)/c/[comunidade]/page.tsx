@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ContentColumn,
@@ -10,9 +9,6 @@ import {
   SectionTitle,
   TopicCard,
 } from "@/design/components";
-import { sizes, variants } from "@/design/components/button";
-import { TopicStar } from "@/design/icons";
-import { cn } from "@/design/cn";
 import { CabecalhoDaComunidade } from "@/features/comunidades/cabecalho";
 import { TelaDeConvite } from "@/features/convite/tela";
 import { metadataCompartilhavel } from "@/features/convite/metadata";
@@ -45,6 +41,8 @@ import { denunciasPendentes, filaDeDenuncias } from "@/lib/data/moderacao";
 import { FilaDeDenuncias } from "@/features/moderacao/fila";
 import { topicosDaComunidade } from "@/lib/data/comunidades";
 import { hotTopicDeHoje } from "@/lib/data/ciclo";
+import { jaCrieiTopicoHoje } from "@/lib/data/topics";
+import { CriarTopico } from "@/features/topicos/criar";
 import { sugestoesParaConvidar } from "@/lib/data/cabins";
 import { NotFoundError } from "@/lib/data/errors";
 
@@ -84,10 +82,20 @@ export default async function ComunidadePage({
     /** O endereço do tópico aberto no painel ao lado. */
     t?: string;
     pessoa?: string;
+    /*
+     * `?novo=1` abre a janela de criar tópico, e vem de `/novo`.
+     *
+     * Declarado aqui para documentar o endereço, mas lido no cliente, por
+     * `CriarTopico`: quem chega por `Link` para a mesma rota não remonta o
+     * componente, e um valor vindo do servidor ficava preso no inicial.
+     */
+    novo?: string;
+    /** A sugestão de Primeiros passos, que preenche o título. */
+    nome?: string;
   }>;
 }) {
   const { comunidade: slug } = await params;
-  const { q, ordem, convite, aba, filtro, pessoa, papel, t } = await searchParams;
+  const { q, ordem, convite, aba, filtro, pessoa, papel, t, nome } = await searchParams;
   const pessoaFiltro = papel;
   const termo = q?.trim() ?? "";
   const abaAtual = abaDaComunidade(aba);
@@ -119,12 +127,21 @@ export default async function ComunidadePage({
     );
   }
 
-  const [paraCompartilhar, enquetesAbertas, proximosEncontros] = await Promise.all([
+  const [paraCompartilhar, enquetesAbertas, proximosEncontros, jaUsouODia] = await Promise.all([
     sugestoesParaConvidar(viewer),
     // O contador da aba. Barato: é um `count` com índice, e a aba sempre
     // aparece, então ele seria pedido de qualquer jeito ao trocar de aba.
     enquetesEsperandoMeuVoto(viewer, dados.id),
     eventosFuturos(viewer, dados.id),
+    /*
+     * A RN07 é conferida **antes** de escrever, não como recusa depois.
+     *
+     * Vem com a página, e não só ao abrir a janela: a janela é client, e
+     * a conferência é do servidor. Um `count` com índice, na mesma volta
+     * das outras três — e só para quem é membro, que são os únicos que
+     * veem o botão.
+     */
+    dados.souMembro ? jaCrieiTopicoHoje(viewer, dados.id) : Promise.resolve(false),
   ]);
 
   // Zero para quem não modera, e sem erro: a capa é desenhada para todo
@@ -170,7 +187,7 @@ export default async function ComunidadePage({
           {abaAtual === "eventos" ? (
             <Suspense
               fallback={
-                <PaginaCarregando titulo={false} linhas={2} label="Carregando os encontros" />
+                <PaginaCarregando titulo={false} linhas={2} label="Carregando os eventos" />
               }
             >
               <AbaDeEventos slug={dados.slug} comunidadeId={dados.id} souMembro={dados.souMembro} />
@@ -255,7 +272,16 @@ export default async function ComunidadePage({
 
                 <SectionTitle
                   contagem={dados.topicosCount}
-                  acao={dados.souMembro ? <BotaoNovoTopico slug={dados.slug} /> : undefined}
+                  acao={
+                    dados.souMembro ? (
+                      <CriarTopico
+                        slug={dados.slug}
+                        nomeDaComunidade={dados.name}
+                        jaUsouODia={jaUsouODia}
+                        nomeSugerido={nome?.slice(0, 80) ?? ""}
+                      />
+                    ) : undefined
+                  }
                 >
                   Tópicos
                 </SectionTitle>
@@ -492,29 +518,6 @@ function vazio(filtro: FiltroDeTopicos, termo: string) {
  * dentro de link é HTML inválido e dá dois nomes acessíveis ao mesmo alvo.
  * Mesmo caminho do "Responder" do cartão de Hot Topic.
  */
-/**
- * O botão de criar tópico, em destaque e com o asterisco.
- *
- * É um só. Havia outro igual no estado vazio da lista, e o PO mandou tirá-lo:
- * o lugar deste já é o certo, e dois botões idênticos na mesma tela fazem
- * procurar diferença entre eles.
- *
- * `Link` estilizado, e não `Button` dentro de `Link`: botão dentro de link é
- * HTML inválido, e um `Button` que navega perderia o clique do meio e o
- * "abrir em nova aba".
- */
-function BotaoNovoTopico({ slug }: { slug: string }) {
-  return (
-    <Link
-      href={`/c/${slug}/novo`}
-      className={cn("rounded-pill inline-flex items-center gap-1", variants.primary, sizes.sm)}
-    >
-      <TopicStar className="size-icon" />
-      Criar tópico
-    </Link>
-  );
-}
-
 /**
  * A fila de denúncias, para a janela de moderar.
  *

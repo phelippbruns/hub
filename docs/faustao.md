@@ -1709,6 +1709,104 @@ nome novo contiver outro, use `exact`. E verde local que depende de o
 elemento **ainda não ter aparecido** não é verde: é uma corrida que você
 venceu dessa vez.
 
+### Escrevi a causa no Faustão antes de medi-la, e ela estava errada
+
+*O que aconteceu:* o PO mandou dez prints da tela da comunidade. Quatro
+pareciam o mesmo defeito — "Criar ev…", "+ Conv…", "Convidar para mode…",
+"Criar tópico" na borda direita. Lendo o código, achei a causa:
+`features/comunidades/resumo.tsx` tinha
+
+```
+min-[1100px]:max-w-contextPanel flex w-full shrink-0 flex-col
+```
+
+e `w-full` com `shrink-0` num item de flex é um pedido contraditório — "me
+dê tudo e não me tire nada". Abaixo de 1100 px nenhum teto segurava a
+coluna. A história fechava: a página ficaria mais larga que a janela e todo
+botão da borda sairia do campo de visão.
+
+Escrevi isso no plano, no `CLAUDE.md`, num comentário do código e **nesta
+página**. Depois escrevi a barreira — uma jornada que mede
+`scrollWidth` contra `innerWidth` nas quatro abas — e, para conferir que ela
+morde, reintroduzi a classe de propósito.
+
+**Ela passou verde.** Com o defeito de volta.
+
+Então medi. Uma jornada temporária, com conteúdo de verdade — comunidade de
+nome comprido, tópico, evento de título longo, segundo membro de nome longo
+—, varrendo **todo** elemento de `main` em onze larguras, de 1400 a 480 px,
+e procurando duas coisas: o que passa da borda da janela e o que está
+recortado por `overflow`. No código da rodada e no do `origin/main`, antes
+dos meus consertos.
+
+Resultado: **sobra zero em todas**. Nada passava da borda, nada era
+recortado além do campo de arquivo oculto e de um texto de leitor de tela.
+A causa que eu havia escrito não existe.
+
+*Por que passou:* porque ninguém confere o Faustão. Teste, build e lint
+reclamam; uma explicação não. Eu li o código, achei uma contradição real
+(`w-full` com `shrink-0` é ruim, e o breakpoint proibido também era), e
+**tratei "achei algo errado perto" como "achei a causa"**. As duas coisas se
+parecem muito e a diferença só aparece na medida.
+
+E o pior: a barreira passar verde era a informação, e eu quase a chamei de
+"barreira verificada". Só não chamei porque reintroduzi o defeito antes de
+dizer.
+
+*Como foi resolvido:* a classe contraditória e o breakpoint saíram — eram
+errados por conta própria, independentes do print. O resto dos consertos
+(botão na `acao` do `SectionTitle`, ações da linha de membro em grupo que
+não encolhe, cartão de evento refeito) ficou, porque põem a tela na forma do
+protótipo, que é o que o PO pediu. **Mas nenhum deles é "o conserto de um
+estouro medido", e esta página não vai dizer que é.**
+
+👁 **Sem barreira para o print original**, porque não sei o que ele mostra.
+As duas barreiras que ficaram valem pelo que provam:
+
+- `design/components/components.test.tsx`, "texto de gente nunca fura o
+  cartão" — desenha cada componente com uma palavra de 220 caracteres e
+  exige `wrap-anywhere` ou `truncate` numa tag que envolva o texto. **Esta
+  morde**: conferi tirando a classe.
+- `e2e/comunidades.spec.ts`, "nada sai pela borda direita" — percorre as
+  quatro abas em 1280 px e 800 px. É vigilância, não regressão: ela nunca
+  viu o defeito vermelho, e o comentário dela diz isso.
+
+**A lição, e é dupla.**
+
+A primeira: **barreira que você não viu reprovar não é barreira.** O passo
+"reintroduza o defeito e veja vermelho" não é zelo — foi ele que desmontou
+um diagnóstico que já estava escrito em quatro lugares. Sem ele, eu teria
+entregado a correção errada com a explicação errada e a página de erros
+contaminada.
+
+A segunda, maior: **o Faustão só vale se o que está nele foi medido.** Esta
+página existe para não repetir erro; uma causa inventada aqui faz o próximo
+erro parecer conhecido. Causa entra depois da medida, nunca antes — e
+quando não houver medida, entra escrito "não sei", como está aqui.
+
+Isso acrescenta um quinto hábito à seção 8: **explicar em vez de medir.** É
+o mais sedutório dos cinco, porque uma boa explicação dá a mesma sensação de
+um teste verde e não custa nada.
+
+### Rótulo de tela mudou de novo, e eram onze jornadas
+
+*O que aconteceu:* "Nome" virou "Título" e "Descrição" virou "Abertura" no
+formulário de criar tópico, e onze jornadas em oito arquivos entravam pelos
+rótulos antigos.
+
+*Por que passou:* não passou — foi previsto. É a terceira vez
+(`escolherComunidades`, `campoDeContribuicao`, e agora esta), e o Faustão já
+registrava o padrão em "Mudou rótulo de tela? Os testes entram por ele".
+
+*Como foi resolvido:* `criarTopico()` em `e2e/apoio-tela.ts`, e os onze
+passam por lá.
+
+🔒 **Com barreira** — pelo mesmo mecanismo das outras duas: um caminho só.
+
+**A lição:** esta entrada existe para registrar que a lição **funcionou**.
+A primeira vez custou uma tarde; esta custou dez minutos, porque o remédio
+já estava escrito aqui.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
@@ -1731,9 +1829,13 @@ Olhando a lista, quase tudo cai em três hábitos:
    servidor já aquecido, serviço de arquivos ligado, chave do GIPHY no
    ambiente — tudo que é verdade aqui e não é lá.
 
-E um quarto, que não é de produto e sim de ofício:
+E dois que não são de produto e sim de ofício:
 
 4. **Confiar no silêncio.** Substituição que não casa, teste que passa
    olhando o lugar errado, comando que termina sem fazer nada. Quase todo
    desperdício desta sessão começou com uma ferramenta que não reclamou — e
    a defesa é escolher ferramentas que reclamam, não prestar mais atenção.
+5. **Explicar em vez de medir.** Ler o código, achar algo errado por perto e
+   chamar aquilo de causa. Uma boa explicação dá a mesma sensação de um
+   teste verde e não custa nada — e foi assim que uma causa inventada chegou
+   a entrar nesta página. Causa entra depois da medida.

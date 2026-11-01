@@ -9,7 +9,7 @@ import { Avatar, Button, CampoDeBusca, Chip, EmptyState, SectionTitle } from "@/
 function mesEAno(data: Date) {
   return data.toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
 }
-import { alternarSeguirMembro, convidarParaModerar } from "./actions";
+import { alternarSeguirMembro, convidarParaModerar, tirarDaModeracao } from "./actions";
 import type { FiltroDeMembros, MembroNaComunidade } from "@/lib/data/membros";
 
 const FILTROS: { id: FiltroDeMembros; rotulo: string }[] = [
@@ -82,32 +82,39 @@ export function MembrosDaComunidade({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <SectionTitle contagem={total}>Membros</SectionTitle>
-          <p className="text-caption text-inkMuted">
-            Siga pessoas para ver o que elas fazem no seu Início.
-          </p>
-        </div>
+      {/*
+        O botão vai na `acao` do `SectionTitle`, e não numa linha montada à
+        mão: a linha à mão era `flex-wrap` e o botão saía da borda direita
+        numa janela estreita — foi o print de "+ Conv…" cortado.
 
-        {/*
-          Convidar é copiar o endereço da comunidade: quem abrir vê a capa,
-          o nome e a pergunta, e entra com um toque (RN16). Só para quem
-          participa — convidar para um lugar onde você não está é estranho.
-        */}
-        {souMembro ? (
-          <Button
-            size="sm"
-            onClick={() => {
-              void navigator.clipboard
-                ?.writeText(`${window.location.origin}/c/${slug}`)
-                .then(() => setConvidando(true))
-                .catch(() => setConvidando(false));
-            }}
-          >
-            {convidando ? "Link copiado" : "Convidar"}
-          </Button>
-        ) : null}
+        Convidar é copiar o endereço da comunidade: quem abrir vê a capa, o
+        nome e a pergunta, e entra com um toque (RN16). Só para quem
+        participa — convidar para um lugar onde você não está é estranho.
+      */}
+      <div className="flex flex-col gap-1">
+        <SectionTitle
+          contagem={total}
+          acao={
+            souMembro ? (
+              <Button
+                size="sm"
+                onClick={() => {
+                  void navigator.clipboard
+                    ?.writeText(`${window.location.origin}/c/${slug}`)
+                    .then(() => setConvidando(true))
+                    .catch(() => setConvidando(false));
+                }}
+              >
+                {convidando ? "Link copiado" : "Convidar"}
+              </Button>
+            ) : undefined
+          }
+        >
+          Membros
+        </SectionTitle>
+        <p className="text-caption text-inkMuted">
+          Siga pessoas para ver o que elas fazem no seu Início.
+        </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -196,6 +203,13 @@ function LinhaDeMembro({
     });
   }
 
+  function tirar() {
+    iniciar(async () => {
+      const { erro } = await tirarDaModeracao(communityId, slug, membro.id);
+      if (erro) setConvite("erro");
+    });
+  }
+
   /*
    * Um selo só por pessoa, e o mais específico ganha. Dois selos lado a
    * lado fazem procurar diferença entre eles — e quem criou também modera,
@@ -228,52 +242,75 @@ function LinhaDeMembro({
             ) : null}
           </span>
           <span className="text-caption text-inkMuted block truncate">
-            @{membro.handle} · entrou em {mesEAno(membro.desde)}
+            @{membro.handle} · entrou em {mesEAno(membro.desde)} ·{" "}
+            {/* RN28: resposta ou tópico criado, nesta comunidade. */}
+            {membro.contribuicoes.toLocaleString("pt-BR")}{" "}
+            {membro.contribuicoes === 1 ? "contribuição" : "contribuições"}
           </span>
         </span>
       </Link>
 
       {/*
-        No meu próprio cartão não há o que fazer, e para visitante sem
-        sessão o botão só levaria a uma recusa.
+        As ações num grupo `shrink-0`: a coluna do nome é que encolhe, e
+        ela já trunca. Sem isto, o botão comprido — "Convidar para
+        moderar" — ia sendo comido pela borda letra a letra.
       */}
-      {membro.souEu || membro.sigo === null ? null : (
-        <Button
-          size="sm"
-          variant={sigo ? "secondary" : "primary"}
-          onClick={seguir}
-          disabled={pendente}
-          disabledHint="Aguarde um instante"
-        >
-          {sigo ? "Seguindo" : "Seguir"}
-        </Button>
-      )}
-
-      {/*
-        RN06: o convite, nunca a promoção direta. Quem já modera não recebe
-        botão, e quem criou a comunidade também não — já é moderadora.
-      */}
-      {souModerador && souMembro && !membro.moderador && !membro.souEu ? (
-        convite === "enviado" ? (
-          <span className="text-caption text-inkMuted">Convite enviado</span>
-        ) : (
+      <div className="flex shrink-0 items-center gap-1">
+        {membro.souEu || membro.sigo === null ? null : (
           <Button
             size="sm"
-            variant="secondary"
-            onClick={convidar}
+            variant={sigo ? "secondary" : "primary"}
+            onClick={seguir}
             disabled={pendente}
             disabledHint="Aguarde um instante"
           >
-            Convidar para moderar
+            {sigo ? "Seguindo" : "Seguir"}
           </Button>
-        )
-      ) : null}
+        )}
 
-      {convite === "erro" ? (
-        <span role="alert" className="text-caption text-error">
-          Não deu para convidar
-        </span>
-      ) : null}
+        {/*
+        RN06: o convite, nunca a promoção direta. Quem já modera não recebe
+        botão, e quem criou a comunidade também não — já é moderadora.
+      */}
+        {souModerador && souMembro && !membro.moderador && !membro.souEu ? (
+          convite === "enviado" ? (
+            <span className="text-caption text-inkMuted">Convite enviado</span>
+          ) : (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={convidar}
+              disabled={pendente}
+              disabledHint="Aguarde um instante"
+            >
+              Convidar para moderar
+            </Button>
+          )
+        ) : null}
+
+        {/*
+        RN33: tirar a moderação, junto de quem a dá. Quem criou a
+        comunidade não aparece aqui — a recusa existe no servidor, mas
+        oferecer o botão seria prometer o que vai dar erro.
+      */}
+        {souModerador && souMembro && membro.moderador && !membro.criador && !membro.souEu ? (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={tirar}
+            disabled={pendente}
+            disabledHint="Aguarde um instante"
+          >
+            Tirar moderação
+          </Button>
+        ) : null}
+
+        {convite === "erro" ? (
+          <span role="alert" className="text-caption text-error">
+            Não deu para convidar
+          </span>
+        ) : null}
+      </div>
     </li>
   );
 }

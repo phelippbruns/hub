@@ -45,7 +45,9 @@ export function SobreAComunidade({
         </span>
       </div>
 
-      {about ? <p className="text-body text-ink">{about}</p> : null}
+      {/* `wrap-anywhere` em todo texto de gente: uma sequência longa sem
+          espaço atravessava o cartão e saía pela direita. */}
+      {about ? <p className="text-body text-ink wrap-anywhere">{about}</p> : null}
 
       {regras.length > 0 ? (
         <details className="bg-surfacePage rounded-sm px-3 py-2">
@@ -54,7 +56,7 @@ export function SobreAComunidade({
               ? "Regra da comunidade"
               : `Regras da comunidade (${regras.length})`}
           </summary>
-          <ol className="text-body text-ink mt-2 flex list-decimal flex-col gap-1 pl-4">
+          <ol className="text-body text-ink mt-2 flex list-decimal flex-col gap-1 pl-4 wrap-anywhere">
             {regras.map((regra) => (
               <li key={regra}>{regra}</li>
             ))}

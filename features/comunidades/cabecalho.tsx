@@ -12,7 +12,7 @@ import {
   MenuSuspenso,
   RoundIconButton,
 } from "@/design/components";
-import { BackIcon, MoreOptionsIcon, ShareIcon } from "@/design/icons";
+import { BackIcon, MoreOptionsIcon } from "@/design/icons";
 import { alternarMembro, trocarCapaDaComunidade } from "./actions";
 import { CapaEditavel } from "./capa-editavel";
 import { Compartilhar, type PessoaParaCompartilhar } from "@/features/convite/compartilhar";
@@ -32,15 +32,18 @@ function mesEAno(data: Date) {
 /**
  * A capa da comunidade e tudo que se abre a partir dela (tela 14).
  *
- * Os três estados — compartilhar, sair e o menu — moram aqui juntos porque
- * são **excludentes**: abrir um fecha os outros. Separados em componentes
- * diferentes, dois poderiam ficar abertos ao mesmo tempo.
+ * Os estados — menu, convidar, sair, regras e moderar — moram aqui juntos
+ * porque são **excludentes**: abrir um fecha os outros. Separados em
+ * componentes diferentes, dois poderiam ficar abertos ao mesmo tempo.
  *
- * Compartilhar e o menu abrem como **drop**, logo abaixo do botão que os
- * abriu, e não como folha subindo do rodapé: pedido do PO em 29 de outubro,
- * e o mesmo `MenuSuspenso` que o perfil e a Cabine já usam. A folha
- * continua existindo para a confirmação de saída, que é interrupção de
- * propósito.
+ * O menu abre como **drop**, logo abaixo do botão que o abriu, e não como
+ * folha subindo do rodapé: pedido do PO em 29 de outubro, e o mesmo
+ * `MenuSuspenso` que o perfil e a Cabine já usam.
+ *
+ * **O canto de cima tem um botão só.** Tinha três — compartilhar, moderar e
+ * o menu — e o PO corrigiu em 31 de outubro: Moderar foi para o canto de
+ * baixo da capa, e compartilhar virou dois itens do menu ("Copiar link da
+ * comunidade" e "Convidar pessoas").
  */
 export function CabecalhoDaComunidade({
   comunidade,
@@ -64,7 +67,7 @@ export function CabecalhoDaComunidade({
 }) {
   const router = useRouter();
   const [aberto, setAberto] = useState<
-    "nenhum" | "compartilhar" | "sair" | "menu" | "regras" | "moderar"
+    "nenhum" | "convidar" | "sair" | "menu" | "regras" | "moderar"
   >("nenhum");
   const [membro, setMembro] = useState(comunidade.souMembro);
   const [membros, setMembros] = useState(comunidade.membersCount);
@@ -73,7 +76,13 @@ export function CabecalhoDaComunidade({
   const formularioDaCapa = useRef<HTMLFormElement>(null);
 
   const idDoMenu = useId();
-  const idDeCompartilhar = useId();
+  const [linkCopiado, setLinkCopiado] = useState(false);
+
+  function copiarLink() {
+    void navigator.clipboard
+      ?.writeText(`${window.location.origin}/c/${comunidade.slug}`)
+      .then(() => setLinkCopiado(true));
+  }
 
   function abrir(qual: typeof aberto) {
     setAberto((atual) => (atual === qual ? "nenhum" : qual));
@@ -182,102 +191,106 @@ export function CabecalhoDaComunidade({
             </RoundIconButton>
           }
           direita={
-            <>
-              {/*
-                O `relative` é de cada botão, e não do bloco: é dele que o
-                drop se pendura. No bloco, os dois menus abririam a partir
-                do mesmo canto e o de compartilhar sairia torto.
-              */}
-              <span className="relative">
-                <RoundIconButton
-                  label={`Compartilhar ${comunidade.name}`}
-                  ativo={aberto === "compartilhar"}
-                  controla={idDeCompartilhar}
-                  onClick={() => abrir("compartilhar")}
+            /*
+              Um botão só no canto de cima: os três pontos.
+
+              Eram três — compartilhar, moderar e o menu —, e o PO corrigiu
+              em 31 de outubro: Moderar desceu para o canto de baixo da
+              capa (`inferiorDireita`) e compartilhar virou item do menu,
+              como "Copiar link da comunidade". O canto de cima de uma capa
+              não é lugar de barra de ferramentas.
+
+              O `relative` é do botão, e não do bloco: é dele que o drop se
+              pendura.
+            */
+            <span className="relative">
+              <RoundIconButton
+                label="Mais opções"
+                ativo={aberto === "menu"}
+                controla={idDoMenu}
+                onClick={() => abrir("menu")}
+              >
+                <MoreOptionsIcon decorative className="size-icon" />
+              </RoundIconButton>
+
+              <span id={idDoMenu}>
+                <MenuSuspenso
+                  titulo={comunidade.name}
+                  aberto={aberto === "menu"}
+                  onFechar={() => setAberto("nenhum")}
                 >
-                  <ShareIcon decorative className="size-icon" />
-                </RoundIconButton>
+                  <p className="text-body text-inkMuted">{quemModera}</p>
 
-                <span id={idDeCompartilhar}>
-                  <MenuSuspenso
-                    titulo={`Compartilhar ${comunidade.name}`}
-                    aberto={aberto === "compartilhar"}
-                    onFechar={() => setAberto("nenhum")}
-                  >
-                    {/*
-                      Montado só quando abre: a busca de pessoas é uma ida
-                      ao servidor, e ninguém paga por ela sem ter pedido
-                      para compartilhar.
-                    */}
-                    {aberto === "compartilhar" ? (
-                      <Compartilhar
-                        tipo="comunidade"
-                        id={comunidade.id}
-                        nome={comunidade.name}
-                        endereco={`/c/${comunidade.slug}`}
-                        pessoas={paraCompartilhar}
-                        aoFechar={() => setAberto("nenhum")}
-                      />
-                    ) : null}
-                  </MenuSuspenso>
-                </span>
-              </span>
+                  {/*
+                    Navegar fecha o menu. Sem isto ele continuaria aberto
+                    por cima da tela nova, porque o App Router não
+                    desmonta o cabeçalho ao trocar de rota irmã.
+                  */}
+                  <div className="flex flex-col gap-1">
+                    <Button variant="secondary" onClick={copiarLink}>
+                      {linkCopiado ? "Link copiado" : "Copiar link da comunidade"}
+                    </Button>
 
-              {/*
-                Moderar sai do menu de três pontos e sobe para a capa, com
-                o número de denúncias esperando decisão. Escondido num
-                menu, quem modera só descobria que havia fila ao procurar.
-              */}
-              {comunidade.souModerador ? (
-                <span className="relative">
-                  <Button size="sm" variant="claro" onClick={() => abrir("moderar")}>
-                    Moderar
-                    {denunciasPendentes > 0 ? (
-                      <span className="bg-error text-paper text-caption rounded-pill px-1 font-bold">
-                        {denunciasPendentes}
-                      </span>
-                    ) : null}
-                  </Button>
-                </span>
-              ) : null}
-
-              <span className="relative">
-                <RoundIconButton
-                  label="Mais opções"
-                  ativo={aberto === "menu"}
-                  controla={idDoMenu}
-                  onClick={() => abrir("menu")}
-                >
-                  <MoreOptionsIcon decorative className="size-icon" />
-                </RoundIconButton>
-
-                <span id={idDoMenu}>
-                  <MenuSuspenso
-                    titulo={comunidade.name}
-                    aberto={aberto === "menu"}
-                    onFechar={() => setAberto("nenhum")}
-                  >
-                    <p className="text-body text-inkMuted">{quemModera}</p>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setLinkCopiado(false);
+                        abrir("convidar");
+                      }}
+                    >
+                      Convidar pessoas
+                    </Button>
 
                     {/*
-                      Navegar fecha o menu. Sem isto ele continuaria aberto
-                      por cima da tela nova, porque o App Router não
-                      desmonta o cabeçalho ao trocar de rota irmã.
+                      Sair pelo menu, e não só pela marca #. É onde as
+                      pessoas procuram esse tipo de coisa, e o caminho é o
+                      mesmo `tocarNaPorta`: as duas exceções, a última
+                      pessoa (RN35) e quem modera (RN06), continuam
+                      pedindo confirmação.
                     */}
-                    <div className="flex flex-col gap-1">
-                      <Link
-                        href={`/denuncia?comunidade=${comunidade.slug}`}
-                        onClick={() => setAberto("nenhum")}
+                    {membro && !comunidade.estouBanida ? (
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setAberto("nenhum");
+                          tocarNaPorta();
+                        }}
+                        disabled={pendente}
                       >
-                        <Button variant="secondary" className="w-full">
-                          Denunciar comunidade
-                        </Button>
-                      </Link>
-                    </div>
-                  </MenuSuspenso>
-                </span>
+                        Sair da comunidade
+                      </Button>
+                    ) : null}
+
+                    <Link
+                      href={`/denuncia?comunidade=${comunidade.slug}`}
+                      onClick={() => setAberto("nenhum")}
+                    >
+                      <Button variant="secondary" className="w-full">
+                        Denunciar comunidade
+                      </Button>
+                    </Link>
+                  </div>
+                </MenuSuspenso>
               </span>
-            </>
+            </span>
+          }
+          /*
+            "Moderar N" no canto de baixo da capa, na linha do nome, como o
+            protótipo v6 mostra. O número de denúncias esperando decisão vai
+            junto: escondido num menu, quem modera só descobria que havia
+            fila ao procurar.
+          */
+          inferiorDireita={
+            comunidade.souModerador ? (
+              <Button size="sm" variant="claro" onClick={() => abrir("moderar")}>
+                Moderar
+                {denunciasPendentes > 0 ? (
+                  <span className="bg-error text-paper text-caption rounded-pill px-1 font-bold">
+                    {denunciasPendentes}
+                  </span>
+                ) : null}
+              </Button>
+            ) : undefined
           }
         >
           {/* Banida: nenhuma porta. Oferecer "Entrar" a quem não pode entrar
@@ -314,7 +327,7 @@ export function CabecalhoDaComunidade({
         Alinhar a RN28 está em docs/pendencias.md.
       */}
       {/* A descrição curta, logo abaixo da capa, como o protótipo mostra. */}
-      <p className="text-body text-ink">{comunidade.intro}</p>
+      <p className="text-body text-ink wrap-anywhere">{comunidade.intro}</p>
 
       <div className="flex flex-wrap items-center gap-2">
         {/*
@@ -356,6 +369,31 @@ export function CabecalhoDaComunidade({
             : `criada em ${mesEAno(comunidade.criadaEm)}`}
         </p>
       </div>
+
+      {/*
+        Convidar pessoas, que era o botão de compartilhar no canto da capa.
+
+        Numa `Janela` e não num drop: a busca de pessoas tem campo, lista e
+        um botão de enviar, e isso não cabe pendurado num canto. Montada só
+        quando abre — a busca é uma ida ao servidor, e ninguém paga por ela
+        sem ter pedido.
+      */}
+      <Janela
+        titulo={`Convidar para ${comunidade.name}`}
+        aberta={aberto === "convidar"}
+        onFechar={() => setAberto("nenhum")}
+      >
+        {aberto === "convidar" ? (
+          <Compartilhar
+            tipo="comunidade"
+            id={comunidade.id}
+            nome={comunidade.name}
+            endereco={`/c/${comunidade.slug}`}
+            pessoas={paraCompartilhar}
+            aoFechar={() => setAberto("nenhum")}
+          />
+        ) : null}
+      </Janela>
 
       {/*
         A folha de entrada, só para comunidade com regras escritas.

@@ -22,7 +22,19 @@ export function ResumoDaComunidade({ comunidade }: { comunidade: PaginaDaComunid
     <aside
       aria-label="Resumo da comunidade"
       data-resumo
-      className="min-[1100px]:max-w-contextPanel flex w-full shrink-0 flex-col gap-2"
+      /*
+       * `w-contextPanel`, e **nem `w-full` nem breakpoint**.
+       *
+       * Era `min-[1100px]:max-w-contextPanel w-full shrink-0`, e as duas
+       * coisas estavam erradas por conta própria: `w-full` com `shrink-0`
+       * pede a largura inteira e se recusa a encolher, e `min-[1100px]:` é
+       * um breakpoint, que o CLAUDE.md proíbe antes da F21.
+       *
+       * **Não é a causa dos prints de botão cortado**, embora eu tenha
+       * escrito que era. Medido em onze larguras, de 1400 a 480 px, com e
+       * sem esta classe: nada estoura. Está no faustao.md.
+       */
+      className="w-contextPanel flex shrink-0 flex-col gap-2"
     >
       <section className="bg-paper flex flex-col gap-2 rounded-md p-3">
         <h2 className="text-label text-inkMuted">

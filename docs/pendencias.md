@@ -644,3 +644,38 @@ numa fase entre a F16 e a F17 — hoje eles não existem em regra nenhuma.
 **A coluna lateral da direita volta no PR 2**, mas como coluna comum da
 página da comunidade: nunca a rota paralela e a coluna no banco que o
 `vacilos.md` registrou no item 17.
+
+## Os reparos do protótipo v6: o que o PO achou depois dos sete PRs
+
+Os sete PRs foram para produção e o PO abriu a tela com um PDF de dez
+correções.
+
+**Quatro delas continuam sem causa conhecida.** São os prints de botão
+comido pela borda direita — "Criar ev…", "+ Conv…", "Convidar para mode…",
+"Criar tópico". Medi todo elemento de `main` em onze larguras, de 1400 a
+480 px, antes e depois dos consertos: **nada estoura e nada é recortado**. A
+reorganização dos cabeçalhos põe a tela na forma do protótipo, e pode bem
+ser o que ele quis dizer com "deslocado", mas eu não reproduzi corte nenhum.
+Está no `faustao.md`, e **depende de o PO olhar o deploy e dizer se os
+quatro sumiram** — a janela dele é que produziu os prints.
+
+O resto está no PR A (o que estava quebrado e eu reproduzi) e no PR B (o que
+faltava).
+
+**O que ficou de fora por decisão dele**, em 31 de outubro:
+
+| Item do protótipo | Decisão |
+| --- | --- |
+| **Aviso temporário** depois de cada ação ("Voto registrado", "Link copiado") | Adiado. Hoje cada botão troca o próprio texto, que resolve mal mas resolve. Um aviso de verdade é um componente novo, com fila e tempo, e vale fazer uma vez para o Hub inteiro — não só para a comunidade. |
+| Selo **Fixado** no tópico | Depois. Precisa de campo no banco e de uma RN, e o Hot Topic já ocupa esse papel — com a vantagem de ser eleito pela participação, não escolhido. |
+| **Silenciar notificações** por comunidade | Não entra: o escopo diz que não há no MVP. |
+| Bloco **"Desde sua última visita"** | Descartado. No HTML do PO a função existe e nunca é chamada: era rascunho. |
+
+**E duas que são minhas, não dele:**
+
+- A **miniatura de 36 px** da comunidade ainda não obedece ao enquadramento
+  da capa: ela recorta o centro. Quem ajustou o zoom e a âncora vê um
+  recorte diferente na lista e na capa.
+- O botão de **copiar** aparece ao lado do link do evento com um "Copiado"
+  que nunca volta a "Copiar". É o mesmo problema do aviso temporário acima,
+  e sai junto com ele.

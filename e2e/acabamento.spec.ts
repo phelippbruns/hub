@@ -6,6 +6,7 @@ import {
   preencherNovaComunidade,
   respostaPublicada,
   seguirNoPerfil,
+  criarTopico,
 } from "./apoio-tela";
 
 /**
@@ -68,10 +69,7 @@ async function minhaComunidadeComTopico(page: Page, prefixo: string, assunto = "
   await page.waitForURL(/\/c\/[^/]+$/);
   const comunidade = new URL(page.url()).pathname;
 
-  await page.goto(`${comunidade}/novo`);
-  await page.getByLabel("Nome").fill(assunto);
-  await page.getByLabel("Descrição").fill("Uma pergunta de abertura.");
-  await page.getByRole("button", { name: "Criar tópico" }).click();
+  await criarTopico(page, comunidade, assunto);
 
   /*
    * Esperar o endereço **do tópico**, e não "qualquer coisa dentro da

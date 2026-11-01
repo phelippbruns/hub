@@ -31,7 +31,12 @@ export function SectionTitle({
           </span>
         )}
       </h2>
-      {acao}
+      {/*
+        `shrink-0`: a ação não encolhe. Sem isto o título tomava o espaço e
+        o botão da direita ia sendo comido pela borda — "Criar ev…", "+
+        Conv…", nos prints do PO de 31 de outubro.
+      */}
+      {acao ? <span className="shrink-0">{acao}</span> : null}
     </div>
   );
 }

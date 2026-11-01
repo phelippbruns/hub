@@ -53,7 +53,7 @@ export async function criarEventoDaComunidade(
     });
   } catch (erro) {
     if (erro instanceof ZodError) {
-      return { erro: erro.issues.at(0)?.message ?? "Confira os campos do encontro." };
+      return { erro: erro.issues.at(0)?.message ?? "Confira os campos do evento." };
     }
     if (erro instanceof ForbiddenError || erro instanceof NotFoundError) {
       return { erro: erro.message };

@@ -67,6 +67,7 @@ import {
   CloseIcon,
   CommunitiesNavIcon,
   CommunityHash,
+  ClockIcon,
   ConfirmedIcon,
   CopyLinkIcon,
   CreateIcon,
@@ -87,6 +88,8 @@ import {
   SettingsIcon,
   PinIcon,
   ShareIcon,
+  GlobeIcon,
+  PlaceIcon,
   WarningIcon,
 } from "./icons";
 import { color, radius, spacing, typography } from "./tokens";
@@ -162,6 +165,10 @@ const icons = [
   { Icon: ChronologicalIcon, label: "Cronológico" },
   { Icon: ConfirmedIcon, label: "Confirmado" },
   { Icon: WarningIcon, label: "Aviso" },
+  // A linha de dados do evento (RN38): hora, online, lugar.
+  { Icon: ClockIcon, label: "Hora" },
+  { Icon: GlobeIcon, label: "Online" },
+  { Icon: PlaceIcon, label: "Lugar" },
   { Icon: ReportIcon, label: "Denunciar" },
   { Icon: BlockIcon, label: "Bloquear" },
   { Icon: LeaveIcon, label: "Sair" },

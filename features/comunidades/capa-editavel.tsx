@@ -44,6 +44,7 @@ export function CapaEditavel({
   aoConfirmar,
   esquerda,
   direita,
+  inferiorDireita,
   children,
 }: {
   nome: string;
@@ -58,8 +59,10 @@ export function CapaEditavel({
   aoConfirmar?: () => void;
   /** Canto de cima à esquerda da capa: normalmente o voltar. */
   esquerda?: React.ReactNode;
-  /** Canto de cima à direita: compartilhar e o menu de três pontos. */
+  /** Canto de cima à direita: o menu de três pontos. */
   direita?: React.ReactNode;
+  /** Canto de baixo à direita, na linha do nome: "Moderar N". */
+  inferiorDireita?: React.ReactNode;
   /** O que aparece sobre a capa quando não se está ajustando. */
   children?: React.ReactNode;
 }) {
@@ -191,6 +194,7 @@ export function CapaEditavel({
           }
           esquerda={esquerda}
           direita={direita}
+          inferiorDireita={inferiorDireita}
         >
           {children}
         </CommunityCover>

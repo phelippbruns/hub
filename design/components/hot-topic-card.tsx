@@ -40,7 +40,7 @@ export function HotTopicCard({
   return (
     <article className="bg-ink text-paper flex flex-col gap-2 rounded-md p-3">
       <p className="text-caption">{topic}</p>
-      <h3 className="text-question">{opening}</h3>
+      <h3 className="text-question wrap-anywhere">{opening}</h3>
       <div className="flex items-center justify-between gap-2">
         <p className="text-caption">
           {people} {people === 1 ? "pessoa" : "pessoas"} · {answers}{" "}

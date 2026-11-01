@@ -44,7 +44,7 @@ import {
   UnauthenticatedError,
 } from "@/lib/data/errors";
 import { followProfile, unfollowProfile } from "@/lib/data/follows";
-import { convidarModerador } from "@/lib/data/moderacao";
+import { convidarModerador, removerModerador } from "@/lib/data/moderacao";
 import { createCommunitySchema } from "@/lib/data/validation";
 
 async function quemPede() {
@@ -305,6 +305,37 @@ export async function convidarParaModerar(
 
   revalidatePath(`/c/${slug}`);
   return { convidado: true };
+}
+
+/**
+ * RN33: tirar da moderação, pela aba Membros.
+ *
+ * A ação já existia, e só em `/c/<comunidade>/moderar`. O protótipo a põe
+ * junto de "Convidar para moderar", que é onde se olha para decidir: ver
+ * quem modera numa tela e tirar a moderação em outra obriga a guardar a
+ * lista de cabeça.
+ *
+ * Quem criou a comunidade continua protegido — a recusa vem de
+ * `removerModerador`, não daqui.
+ */
+export async function tirarDaModeracao(
+  communityId: string,
+  slug: string,
+  profileId: string,
+): Promise<{ erro?: string; removido?: boolean }> {
+  const viewer = await quemPede();
+
+  try {
+    await removerModerador(viewer, communityId, profileId);
+  } catch (erro) {
+    if (erro instanceof ForbiddenError || erro instanceof NotFoundError) {
+      return { erro: erro.message };
+    }
+    throw erro;
+  }
+
+  revalidatePath(`/c/${slug}`);
+  return { removido: true };
 }
 
 /**

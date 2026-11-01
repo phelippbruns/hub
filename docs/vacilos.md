@@ -671,3 +671,50 @@ tomada.
 👁 **Decisão nova, tomada em 31 de outubro.** Se o PO preferir que o
 endereço acompanhe o nome, é inverter uma condição no gatilho — mas aí
 vale decidir também o que acontece com os links antigos.
+
+## Criar tópico era uma página, e eu declarei que continuaria
+
+**O que era:** `/c/<comunidade>/novo`, uma tela própria com título, "na
+comunidade de X" e o formulário. No PR 6 eu escrevi, em texto, que ela
+continuaria sendo página: "é um endereço que o escopo documenta (tela 16), e
+o atalho da barra lateral depende dele".
+
+**Por que estava errado:** os dois argumentos eram verdadeiros e nenhum dos
+dois era sobre quem usa. O endereço continua existindo — só redireciona. O
+atalho continua funcionando — só chega noutro lugar. O que eu nunca
+perguntei foi o que acontece com **a pessoa**: a vontade de abrir um assunto
+nasce lendo a lista de tópicos, e sair da lista para escrever e voltar a ela
+é uma ida e volta que ninguém pediu. O protótipo do PO mostrava a janela
+desde o começo; eu tratei a estrutura do código como se fosse a decisão.
+
+**O que ficou:** janela sobre a comunidade, com a lista atrás. `/novo`
+redireciona para `/c/<comunidade>?novo=1`, e quem chega de fora vê a janela
+em cima da lista, nunca uma tela órfã.
+
+**A lição:** "o endereço existe" e "o atalho funciona" são razões de
+estrutura, e estrutura se muda. Quando eu justifico manter uma tela só com
+razões de estrutura, é sinal de que não tenho nenhuma razão de uso — e é aí
+que vale perguntar ao PO em vez de declarar.
+
+👁 **Decisão do PO em 31 de outubro**, por print do protótipo.
+
+## O segundo campo do tópico não era uma descrição
+
+**O que era:** o campo chamava "Descrição", e o schema o chamava
+`description`. O protótipo do PO chama "Primeira contribuição", e a tela do
+tópico desenha esse texto no cartão escuro do topo.
+
+**O que isso revelou:** o rótulo errado vinha ensinando a coisa errada.
+"Descrição" pede um resumo — "tópico sobre fotografia noturna" —, e o que a
+tela faz com o texto é usá-lo para **começar a conversa**. Quem escreve um
+resumo escreve algo que ninguém responde.
+
+**O que ficou:** o rótulo é **"Abertura"**, com o exemplo "Comece a
+conversa: o que te fez abrir este tópico?". A RN08 não mudou: continua
+obrigatório, continua 240 caracteres. O protótipo o fazia opcional, com 500,
+e isso deixaria o tópico nascer só com um título — o cartão escuro ficaria
+vazio, e é ele que provoca.
+
+**A lição:** rótulo de campo é instrução de escrita, não etiqueta. Quando o
+nome do campo e o uso do texto discordam, quem obedece é a pessoa que
+escreve — e ela escreve o que o rótulo pediu.

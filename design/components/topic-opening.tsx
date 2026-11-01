@@ -29,7 +29,7 @@ export function TopicOpening({
   return (
     <article className="bg-ink text-paper flex flex-col gap-2 rounded-md p-3">
       {autor ? <p className="text-caption">Tópico de {autor}</p> : null}
-      <h2 className="text-question">{abertura}</h2>
+      <h2 className="text-question wrap-anywhere">{abertura}</h2>
       <div className="flex items-center justify-between gap-2">
         <p className="text-caption">
           {numero(pessoas)} {pessoas === 1 ? "pessoa" : "pessoas"}, {numero(respostas)}{" "}

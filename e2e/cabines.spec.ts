@@ -7,6 +7,7 @@ import {
   preencherNovaComunidade,
   seguirNoPerfil,
   abrirConvites,
+  criarTopico,
 } from "./apoio-tela";
 
 /**
@@ -283,10 +284,7 @@ test.describe("compartilhar para a Cabine (F14)", () => {
       await page.waitForURL(/\/c\/[^/]+$/);
       const comunidade = new URL(page.url()).pathname;
 
-      await page.goto(`${comunidade}/novo`);
-      await page.getByLabel("Nome").fill("assunto do teste");
-      await page.getByLabel("Descrição").fill("Uma pergunta de abertura.");
-      await page.getByRole("button", { name: "Criar tópico" }).click();
+      await criarTopico(page, comunidade, "assunto do teste");
       await page.waitForURL(/\/assunto-do-teste$/);
       const endereco = new URL(page.url()).pathname;
 

@@ -267,7 +267,7 @@ export const criarEnqueteSchema = z.object({
 export const criarEventoSchema = z
   .object({
     communityId: uuidSchema,
-    titulo: userText(80, "O nome do encontro"),
+    titulo: userText(80, "O nome do evento"),
     descricao: z
       .string()
       .trim()
@@ -285,7 +285,7 @@ export const criarEventoSchema = z
       .string()
       .trim()
       .max(300)
-      .regex(/^https?:\/\//, "O link do encontro precisa começar com http ou https")
+      .regex(/^https?:\/\//, "O link do evento precisa começar com http ou https")
       .optional(),
     vagas: z
       .number()
@@ -296,7 +296,7 @@ export const criarEventoSchema = z
       .default(null),
   })
   .refine((dados) => dados.formato !== "presencial" || dados.local.length > 0, {
-    message: "Encontro presencial precisa de um local",
+    message: "Evento presencial precisa de um local",
     path: ["local"],
   });
 

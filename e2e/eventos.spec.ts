@@ -57,15 +57,29 @@ async function minhaComunidade(page: Page, prefixo: string): Promise<string> {
   return new URL(page.url()).pathname;
 }
 
-/** Cria um encontro online com sala, e espera o banco confirmar. */
+/**
+ * A janela de criar evento.
+ *
+ * O botão da aba e o de enviar **se chamam igual** — "Criar evento", como o
+ * protótipo pede —, então o de enviar só pode ser procurado dentro da
+ * janela. Sem escopo, `getByRole` acha dois e reprova com "strict mode
+ * violation", que não diz nada sobre a causa.
+ */
+function janelaDeEvento(page: Page) {
+  return page.getByRole("dialog", { name: "Novo evento" });
+}
+
+/** Cria um evento online com sala, e espera o banco confirmar. */
 async function criarEncontroOnline(page: Page, comunidade: string, titulo: string) {
   await page.goto(`${comunidade}?aba=eventos`);
   await page.getByRole("button", { name: "Criar evento" }).click();
-  await page.getByLabel("Nome do encontro").fill(titulo);
-  await page.getByLabel("Data").fill(daquiASemanas(1));
-  await page.getByLabel("Hora").fill("16:00");
-  await page.getByLabel("Link do encontro").fill(SALA);
-  await page.getByRole("button", { name: "Criar encontro" }).click();
+
+  const janela = janelaDeEvento(page);
+  await janela.getByLabel("Nome do evento").fill(titulo);
+  await janela.getByLabel("Data").fill(daquiASemanas(1));
+  await janela.getByLabel("Hora").fill("16:00");
+  await janela.getByLabel("Link do evento").fill(SALA);
+  await janela.getByRole("button", { name: "Criar evento" }).click();
   await esperarNoBanco(
     `SELECT 1 FROM events WHERE title = '${titulo.replace(/'/g, "''")}' AND deleted_at IS NULL`,
   );
@@ -111,7 +125,7 @@ test.describe("RN38: o link da sala só vai para quem confirmou", () => {
     await expect(page.getByText("1 confirmado")).toBeVisible();
     await esperarNoBanco(`SELECT 1 FROM event_attendances`);
 
-    await page.getByRole("button", { name: "Presença confirmada" }).click();
+    await page.getByRole("button", { name: "Você vai" }).click();
     await expect(page.getByRole("link", { name: SALA })).toHaveCount(0);
     await esperarNoBanco(`SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM event_attendances)`);
   });
@@ -129,13 +143,14 @@ test.describe("vagas", () => {
     // então o teste usa 2 e preenche as duas.
     await page.goto(`${comunidade}?aba=eventos`);
     await page.getByRole("button", { name: "Criar evento" }).click();
-    await page.getByLabel("Nome do encontro").fill("Oficina de massinha");
-    await page.getByLabel("Data").fill(daquiASemanas(1));
-    await page.getByLabel("Hora").fill("14:00");
-    await page.getByRole("button", { name: "Presencial" }).click();
-    await page.getByLabel("Local").fill("Vila Madalena, São Paulo");
-    await page.getByLabel("Vagas (opcional)").fill("2");
-    await page.getByRole("button", { name: "Criar encontro" }).click();
+    const janela = janelaDeEvento(page);
+    await janela.getByLabel("Nome do evento").fill("Oficina de massinha");
+    await janela.getByLabel("Data").fill(daquiASemanas(1));
+    await janela.getByLabel("Hora").fill("14:00");
+    await janela.getByRole("button", { name: "Presencial" }).click();
+    await janela.getByLabel("Local").fill("Vila Madalena, São Paulo");
+    await janela.getByLabel("Vagas (opcional)").fill("2");
+    await janela.getByRole("button", { name: "Criar evento" }).click();
     await esperarNoBanco(`SELECT 1 FROM events WHERE title = 'Oficina de massinha'`);
 
     await page.goto(`${comunidade}?aba=eventos`);
@@ -169,21 +184,22 @@ test.describe("vagas", () => {
   });
 });
 
-test.describe("criar o encontro", () => {
+test.describe("criar o evento", () => {
   test("presencial pede local; online oferece a sala no lugar dele", async ({ page }) => {
     await entrarNoApp(page, "formato");
     const comunidade = await minhaComunidade(page, "Com Formato");
 
     await page.goto(`${comunidade}?aba=eventos`);
     await page.getByRole("button", { name: "Criar evento" }).click();
+    const janela = janelaDeEvento(page);
 
     // Online, de saída: o campo é o da sala.
-    await expect(page.getByLabel("Link do encontro")).toBeVisible();
-    await expect(page.getByLabel("Local")).toHaveCount(0);
+    await expect(janela.getByLabel("Link do evento")).toBeVisible();
+    await expect(janela.getByLabel("Local")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Presencial" }).click();
-    await expect(page.getByLabel("Local")).toBeVisible();
-    await expect(page.getByLabel("Link do encontro")).toHaveCount(0);
+    await janela.getByRole("button", { name: "Presencial" }).click();
+    await expect(janela.getByLabel("Local")).toBeVisible();
+    await expect(janela.getByLabel("Link do evento")).toHaveCount(0);
   });
 
   test("data no passado é recusada, com a mensagem à vista", async ({ page }) => {
@@ -192,13 +208,14 @@ test.describe("criar o encontro", () => {
 
     await page.goto(`${comunidade}?aba=eventos`);
     await page.getByRole("button", { name: "Criar evento" }).click();
-    await page.getByLabel("Nome do encontro").fill("Ontem");
+    const janela = janelaDeEvento(page);
+    await janela.getByLabel("Nome do evento").fill("Ontem");
     /*
       O campo tem `min` com o dia de hoje, então o navegador já barraria —
       por isso o teste preenche pelo DOM, que é o caminho de quem manda o
       formulário por fora. O servidor é quem precisa recusar.
     */
-    await page.getByLabel("Data").evaluate((campo: HTMLInputElement) => {
+    await janela.getByLabel("Data").evaluate((campo: HTMLInputElement) => {
       // Sem tirar o `min`, o próprio navegador barra o envio e o servidor
       // nunca é chamado — e é o servidor que precisa recusar.
       campo.removeAttribute("min");
@@ -206,13 +223,13 @@ test.describe("criar o encontro", () => {
       campo.dispatchEvent(new Event("input", { bubbles: true }));
       campo.dispatchEvent(new Event("change", { bubbles: true }));
     });
-    await page.getByLabel("Hora").fill("10:00");
-    await page.getByRole("button", { name: "Criar encontro" }).click();
+    await janela.getByLabel("Hora").fill("10:00");
+    await janela.getByRole("button", { name: "Criar evento" }).click();
 
     await expect(alerta(page)).toContainText(/futuro/i);
   });
 
-  test("a aba conta os encontros que ainda vão acontecer", async ({ page }) => {
+  test("a aba conta os eventos que ainda vão acontecer", async ({ page }) => {
     await entrarNoApp(page, "contaev");
     const comunidade = await minhaComunidade(page, "Com Conta");
     await criarEncontroOnline(page, comunidade, "Crítica de portfólio");

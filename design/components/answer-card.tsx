@@ -31,12 +31,12 @@ export function AnswerCard({
     <article className="bg-paper flex flex-col gap-1 rounded-sm p-2">
       <div className="flex items-center gap-2">
         {avatar}
-        <span className="text-bodyStrong text-ink">{author}</span>
+        <span className="text-bodyStrong text-ink wrap-anywhere">{author}</span>
         <span className="text-caption text-inkMuted">
           @{handle} · {when}
         </span>
       </div>
-      {children ? <p className="text-body text-ink">{children}</p> : null}
+      {children ? <p className="text-body text-ink wrap-anywhere">{children}</p> : null}
       {/*
         O embrulho não é enfeite. O cartão é `flex flex-col`, e item de flex
         em coluna **estica na largura** por padrão (`align-items: stretch`):
