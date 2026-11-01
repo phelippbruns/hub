@@ -8,6 +8,7 @@ import {
   preencherNovaComunidade,
   respostaPublicada,
   criarTopico,
+  botaoDeContribuir,
 } from "./apoio-tela";
 
 /**
@@ -391,6 +392,116 @@ test.describe("nada sai pela borda direita", () => {
   }
 });
 
+test.describe("o resumo da direita", () => {
+  test("mostra o próximo evento e a enquete aberta, e some com eles quando não há", async ({
+    page,
+  }) => {
+    await entrarNoApp(page, "resumoagenda");
+    await preencherNova(page, novoNome("Com Agenda"));
+    await page.waitForURL(/\/c\//);
+    const comunidade = new URL(page.url()).pathname;
+
+    const resumo = page.getByRole("complementary", { name: "Resumo da comunidade" });
+
+    /*
+      Sem evento e sem enquete: o bloco da enquete não existe, e o do
+      evento aparece **só para quem modera**, com o atalho de criar.
+      Anunciar o vazio a quem não pode preenchê-lo é moldura.
+    */
+    await expect(resumo.getByText("ENQUETE ABERTA")).toHaveCount(0);
+    await expect(resumo.getByText("Nenhum evento marcado")).toBeVisible();
+
+    // Um evento, e o bloco passa a dizer quando é.
+    await page.goto(`${comunidade}?aba=eventos`);
+    await page.getByRole("button", { name: "Criar evento" }).click();
+    const janelaDoEvento = page.getByRole("dialog", { name: "Novo evento" });
+    await janelaDoEvento.getByLabel("Nome do evento").fill("Crítica aberta de dezembro");
+    await janelaDoEvento.getByRole("button", { name: "Criar evento" }).click();
+    await expect(janelaDoEvento).toBeHidden({ timeout: 15_000 });
+
+    await page.goto(comunidade);
+    await expect(resumo.getByText("PRÓXIMO EVENTO")).toBeVisible();
+    await expect(resumo.getByText("Crítica aberta de dezembro")).toBeVisible();
+
+    // Uma enquete, e o bloco dela aparece com o atalho de votar.
+    await page.goto(`${comunidade}?aba=enquetes`);
+    await page.getByRole("button", { name: "Criar enquete" }).click();
+    await page.getByLabel("Pergunta").fill("Qual tema do próximo mês?");
+    await page.getByLabel("Opção 1").fill("Retrato");
+    await page.getByLabel("Opção 2").fill("Paisagem");
+    await page.getByRole("button", { name: "Publicar enquete" }).click();
+
+    await page.goto(comunidade);
+    await expect(resumo.getByText("ENQUETE ABERTA")).toBeVisible();
+    await expect(resumo.getByText("Qual tema do próximo mês?")).toBeVisible();
+    await expect(resumo.getByRole("link", { name: "Votar" })).toBeVisible();
+  });
+
+  test('"N membros" leva à aba Membros', async ({ page }) => {
+    await entrarNoApp(page, "clicamembros");
+    await preencherNova(page, novoNome("Com Clique"));
+    await page.waitForURL(/\/c\//);
+
+    // Era texto morto ao lado de avatares que convidam a clicar.
+    await page.getByRole("link", { name: /^1 membro$/ }).click();
+    await page.waitForURL(/aba=membros/);
+    await expect(page.getByRole("tab", { name: "Membros" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  test("a tecla / foca a busca, e não rouba o cursor de dentro de um campo", async ({ page }) => {
+    await entrarNoApp(page, "atalhobarra");
+    await preencherNova(page, novoNome("Com Atalho"));
+    await page.waitForURL(/\/c\//);
+    const comunidade = new URL(page.url()).pathname;
+
+    /*
+      A busca de tópicos só aparece a partir de 10 tópicos, então o teste
+      usa a de membros, que aparece sempre — é o mesmo componente e o mesmo
+      atalho.
+    */
+    await page.goto(`${comunidade}?aba=membros`);
+    const busca = page.getByLabel("Buscar pessoas na comunidade");
+
+    /*
+      A tecla é apertada **dentro do poll**, e isto não é zelo.
+
+      `page.keyboard`, e não `locator("body").press()`: `press` num locator
+      foca o elemento primeiro, e o `body` não aceita foco — a tecla saía de
+      um alvo indefinido.
+
+      E o atalho é um `useEffect`: ele só existe depois de a página
+      hidratar. Uma tecla é um **evento único** — apertada antes da
+      hidratação, nenhuma espera depois a recupera, e `toBeFocused` repetia
+      por cinco segundos olhando um campo que nunca receberia foco. Sozinho
+      o teste passava, porque a máquina estava livre; na suíte inteira,
+      não. É o "verde local que depende de temporização" do Faustão.
+
+      Repetir a tecla é seguro: com o campo já focado, o próprio atalho se
+      cala — e o poll para na primeira vez que deu certo.
+    */
+    await expect
+      .poll(async () => {
+        await page.keyboard.press("/");
+        return busca.evaluate((campo) => campo === document.activeElement);
+      })
+      .toBe(true);
+    // E a barra não entra no campo: `preventDefault` antes do foco.
+    await expect(busca).toHaveValue("");
+
+    /*
+      Com o foco já num campo, a tecla é só uma barra. Sem isto, escrever
+      "e/ou" numa contribuição jogaria o cursor para a busca e comeria o
+      caractere.
+    */
+    await busca.fill("ana");
+    await busca.press("/");
+    await expect(busca).toHaveValue("ana/");
+  });
+});
+
 test.describe("a lista de tópicos", () => {
   test("os filtros têm nome, vivem na URL, e Seguindo só aparece para quem participa", async ({
     page,
@@ -432,7 +543,7 @@ test.describe("a lista de tópicos", () => {
     await page.waitForURL(/\/c\/[^/]+\/[^/]+$/);
 
     await campoDeContribuicao(page).fill("A minha foi num porão em 2009.");
-    await page.getByRole("button", { name: "Responder" }).click();
+    await botaoDeContribuir(page).click();
     await respostaPublicada(page, "A minha foi num porão em 2009.");
 
     await page.goto(endereco);

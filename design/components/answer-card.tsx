@@ -1,9 +1,22 @@
 import type { ReactNode } from "react";
+import { cn } from "../cn";
 
 /**
- * Cartão de resposta. Mostra o nome real do autor, como manda o princípio de
- * identidade real, e não tem curtida nem contador — participação, não
- * popularidade.
+ * Cartão de contribuição. Mostra o nome real do autor, como manda o
+ * princípio de identidade real, e não tem curtida nem contador —
+ * participação, não popularidade.
+ *
+ * Dois estados mudam o fundo, e os dois vêm do protótipo v6:
+ *
+ * - **`minha`**: a própria contribuição ganha fundo lavanda claro. Numa
+ *   conversa de dez linhas, achar a sua pelo nome obriga a ler dez nomes.
+ * - **`nova`**: contribuição que chegou desde a última visita ganha um anel
+ *   amarelo. O separador "NOVAS DESDE A SUA ÚLTIMA VISITA" já existe e diz
+ *   onde começam; o anel diz **quais são**, o que continua verdade depois
+ *   de rolar a tela e perder o separador de vista.
+ *
+ * Nenhum dos dois é só cor: `minha` repete o nome da pessoa no cabeçalho, e
+ * `nova` acompanha o separador, que é texto.
  *
  * O texto é renderizado como texto, nunca como HTML (regra de segurança 8).
  *
@@ -19,6 +32,8 @@ export function AnswerCard({
   children,
   avatar,
   media,
+  minha = false,
+  nova = false,
 }: {
   author: string;
   handle: string;
@@ -26,9 +41,21 @@ export function AnswerCard({
   children?: ReactNode;
   avatar?: ReactNode;
   media?: ReactNode;
+  /** A minha própria contribuição. */
+  minha?: boolean;
+  /** Chegou desde a minha última visita ao tópico. */
+  nova?: boolean;
 }) {
   return (
-    <article className="bg-paper flex flex-col gap-1 rounded-sm p-2">
+    <article
+      className={cn(
+        "flex flex-col gap-1 rounded-sm p-2",
+        // `surfacePage` é o lavanda claro do sistema: sem token novo, e o
+        // contraste do texto sobre ele já está medido (14,7:1 para `ink`).
+        minha ? "bg-surfacePage" : "bg-paper",
+        nova && "ring-sun ring-2",
+      )}
+    >
       <div className="flex items-center gap-2">
         {avatar}
         <span className="text-bodyStrong text-ink wrap-anywhere">{author}</span>

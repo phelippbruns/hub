@@ -8,6 +8,7 @@ import {
   preencherNovaComunidade,
   respostaPublicada,
   criarTopico,
+  botaoDeContribuir,
 } from "./apoio-tela";
 
 /**
@@ -57,11 +58,11 @@ test.describe("responder", () => {
     await meuTopico(page, "Para Responder");
 
     await campoDeContribuicao(page).fill("Um galpão em Curitiba, 2019.");
-    await page.getByRole("button", { name: "Responder" }).click();
+    await botaoDeContribuir(page).click();
 
     await expect(respostaPublicada(page, "Um galpão em Curitiba, 2019.")).toBeVisible();
     // RN15: pessoas e respostas, nunca curtida.
-    await expect(page.getByText(/1 pessoa, 1 resposta/)).toBeVisible();
+    await expect(page.getByText(/1 pessoa, 1 contribuição/)).toBeVisible();
   });
 
   test("RN16: o aviso aparece enquanto digita e cita o trecho", async ({ page }) => {
@@ -73,7 +74,7 @@ test.describe("responder", () => {
 
     // Citar o trecho é o que diz à pessoa o que apagar.
     await expect(page.getByText('Tire o endereço: "meusite.com"')).toBeVisible();
-    await expect(page.getByRole("button", { name: "Responder" })).toBeDisabled();
+    await expect(botaoDeContribuir(page)).toBeDisabled();
 
     // E o endereço escrito por extenso também.
     await campo.fill("me acha em meusite ponto com");
@@ -81,7 +82,7 @@ test.describe("responder", () => {
 
     // Tirou, liberou.
     await campo.fill("me acha por aí");
-    await expect(page.getByRole("button", { name: "Responder" })).toBeEnabled();
+    await expect(botaoDeContribuir(page)).toBeEnabled();
   });
 
   test("o contador mostra o limite de 240", async ({ page }) => {
@@ -97,7 +98,7 @@ test.describe("responder", () => {
     await meuTopico(page, "Com Menu");
 
     await campoDeContribuicao(page).fill("resposta que vou apagar");
-    await page.getByRole("button", { name: "Responder" }).click();
+    await botaoDeContribuir(page).click();
     await expect(respostaPublicada(page, "resposta que vou apagar")).toBeVisible();
 
     await page.getByRole("button", { name: "Opções da sua contribuição" }).click();
@@ -112,7 +113,7 @@ test.describe("responder", () => {
     const topico = await meuTopico(page, "Vou Apagar");
 
     await campoDeContribuicao(page).fill("some depois");
-    await page.getByRole("button", { name: "Responder" }).click();
+    await botaoDeContribuir(page).click();
     await expect(respostaPublicada(page, "some depois")).toBeVisible();
 
     await page.getByRole("button", { name: "Opções da sua contribuição" }).click();
@@ -161,7 +162,7 @@ test.describe("imagem na resposta", () => {
       mimeType: "image/jpeg",
       buffer: jpegComLocalizacao(),
     });
-    await page.getByRole("button", { name: "Responder" }).click();
+    await botaoDeContribuir(page).click();
 
     await expect(respostaPublicada(page, "olha a foto")).toBeVisible();
 
@@ -197,7 +198,7 @@ test.describe("imagem na resposta", () => {
       buffer: jpegComLocalizacao(),
     });
 
-    const enviar = page.getByRole("button", { name: "Responder" });
+    const enviar = botaoDeContribuir(page);
     await expect(enviar, "sem texto, a imagem sozinha deveria liberar o envio").toBeEnabled();
     await enviar.click();
 
@@ -220,7 +221,7 @@ test.describe("imagem na resposta", () => {
     await entrarNoApp(page, "semnada");
     await meuTopico(page, "Sem Nada");
 
-    await expect(page.getByRole("button", { name: "Responder" })).toBeDisabled();
+    await expect(botaoDeContribuir(page)).toBeDisabled();
   });
 
   test("recusada pelo servidor, o texto continua no campo", async ({ page }) => {
@@ -234,7 +235,7 @@ test.describe("imagem na resposta", () => {
       mimeType: "image/jpeg",
       buffer: Buffer.from("%PDF-1.4 isto não é uma imagem", "latin1"),
     });
-    await page.getByRole("button", { name: "Responder" }).click();
+    await botaoDeContribuir(page).click();
 
     await expect(alerta(page)).toBeVisible();
 
@@ -252,7 +253,7 @@ test.describe("imagem na resposta", () => {
 
     const campo = campoDeContribuicao(page);
     await campo.fill("resposta que vai passar");
-    await page.getByRole("button", { name: "Responder" }).click();
+    await botaoDeContribuir(page).click();
 
     await expect(campo).toHaveValue("");
   });
@@ -268,7 +269,7 @@ test.describe("imagem na resposta", () => {
       mimeType: "image/jpeg",
       buffer: Buffer.from("%PDF-1.4 isto não é uma imagem", "latin1"),
     });
-    await page.getByRole("button", { name: "Responder" }).click();
+    await botaoDeContribuir(page).click();
 
     await expect(alerta(page)).toContainText(/JPEG, PNG e WebP/);
     expect(await consultar(`SELECT 1 FROM answers WHERE text = 'tentando enganar'`)).toHaveLength(
@@ -306,7 +307,7 @@ test.describe("GIF na resposta", () => {
     await primeiro.click();
 
     await expect(page.getByRole("button", { name: "Tirar GIF" })).toBeVisible();
-    await page.getByRole("button", { name: "Responder" }).click();
+    await botaoDeContribuir(page).click();
 
     await expect(respostaPublicada(page, "não tenho palavras")).toBeVisible();
 

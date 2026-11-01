@@ -132,6 +132,12 @@ async function Contribuicoes({
               souAutor: resposta.souAutor,
               imagem: resposta.mediaHref,
               tipoDaMidia: resposta.mediaKind,
+              /*
+                Nova desde a última visita, para o anel amarelo. Mesmo
+                critério do separador — e a própria não conta, porque
+                ninguém volta para ver o que acabou de escrever.
+              */
+              nova: vistoEm ? resposta.createdAt > vistoEm && !resposta.souAutor : false,
               autor: resposta.author
                 ? {
                     nome: resposta.author.name,

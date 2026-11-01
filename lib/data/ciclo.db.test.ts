@@ -401,3 +401,76 @@ describe("o aviso de que o tópico virou Hot Topic", () => {
     ).toBe(1);
   });
 });
+
+/**
+ * O cartão do destaque mostra o que está sendo dito agora.
+ *
+ * `hotTopicDeHoje` passou a devolver a última contribuição e as primeiras
+ * caras, porque o cartão do protótipo v6 as mostra. Antes eram só título,
+ * abertura e dois números — o que diz que há movimento, mas não diz qual, e
+ * é o qual que faz alguém entrar.
+ */
+describe("o que o cartão do destaque mostra", () => {
+  it("devolve a última contribuição, e não a primeira", async () => {
+    const dona = await makeProfile();
+    const c = await comunidade("Fotografia", dona);
+    const { topico } = await topicoCom(c.id, "assunto", { pessoas: 2, quando: ONTEM() });
+
+    const quem = await makeProfile({ name: "Lia Souza", handle: "liasouza" });
+    await db.answer.create({
+      data: {
+        topicId: topico.id,
+        authorId: quem.id,
+        text: "a última de todas",
+        createdAt: new Date(),
+      },
+    });
+
+    await virarCiclo(new Date(await diaDoCiclo(ONTEM())));
+    const destaque = await hotTopicDeHoje(c.id);
+
+    expect(destaque?.ultima?.texto).toBe("a última de todas");
+    expect(destaque?.ultima?.autorHandle).toBe("liasouza");
+  });
+
+  it("devolve as caras de quem participou, uma por pessoa", async () => {
+    const dona = await makeProfile();
+    const c = await comunidade("Cinema", dona);
+    const { topico } = await topicoCom(c.id, "assunto", { pessoas: 3, quando: ONTEM() });
+
+    // A mesma pessoa contribuindo duas vezes aparece **uma** no rodapé: as
+    // caras contam gente, não contribuições.
+    const repetida = await makeProfile();
+    for (const texto of ["uma", "outra"]) {
+      await db.answer.create({
+        data: { topicId: topico.id, authorId: repetida.id, text: texto, createdAt: ONTEM() },
+      });
+    }
+
+    await virarCiclo(new Date(await diaDoCiclo(ONTEM())));
+    const destaque = await hotTopicDeHoje(c.id);
+
+    expect(destaque?.primeirosRostos).toHaveLength(4);
+  });
+
+  it("tópico que só tem a abertura não inventa última contribuição", async () => {
+    const dona = await makeProfile();
+    const c = await comunidade("Teatro", dona);
+
+    /*
+     * Um tópico eleito **precisa** ter tido contribuição ontem, senão não
+     * há eleição. Então o caso de `ultima` nula é o do tópico cujas
+     * contribuições foram todas apagadas — e aí o cartão volta a ser
+     * título, abertura e números, que é o que existe.
+     */
+    const { topico } = await topicoCom(c.id, "assunto", { pessoas: 2, quando: ONTEM() });
+    await virarCiclo(new Date(await diaDoCiclo(ONTEM())));
+    await db.answer.updateMany({ where: { topicId: topico.id }, data: { deletedAt: new Date() } });
+
+    const destaque = await hotTopicDeHoje(c.id);
+
+    expect(destaque?.ultima).toBeNull();
+    expect(destaque?.primeirosRostos).toEqual([]);
+    expect(destaque?.respostas).toBe(0);
+  });
+});

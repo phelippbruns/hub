@@ -6,6 +6,7 @@
  * meia-noite. Aqui ficam as leituras e o gatilho manual.
  */
 import { prisma } from "./prisma";
+import { enderecosDeMidia } from "@/lib/midia/deposito";
 import { viewerProfileId, type Viewer } from "./viewer";
 
 export type HotTopic = {
@@ -19,6 +20,23 @@ export type HotTopic = {
   /** Como está agora: estes números continuam correndo. */
   pessoas: number;
   respostas: number;
+  /**
+   * A última contribuição do tópico, para o cartão mostrar **o que está
+   * sendo dito agora**.
+   *
+   * O protótipo v6 põe isso dentro do cartão escuro, e é o que faz alguém
+   * entrar: um título e dois números dizem que há movimento, mas não dizem
+   * qual. Nulo no tópico que ainda só tem a abertura.
+   */
+  ultima: {
+    texto: string;
+    autorNome: string;
+    autorHandle: string;
+    autorAvatarUrl: string | null;
+    quando: Date;
+  } | null;
+  /** As primeiras caras de quem participou, para o rodapé do cartão. */
+  primeirosRostos: { nome: string; avatarUrl: string | null }[];
 };
 
 /**
@@ -41,6 +59,11 @@ export async function hotTopicDeHoje(communityId: string): Promise<HotTopic | nu
       elegeram: number;
       pessoas: string;
       respostas: string;
+      ultima_texto: string | null;
+      ultima_nome: string | null;
+      ultima_handle: string | null;
+      ultima_avatar: string | null;
+      ultima_quando: Date | null;
     }[]
   >`
     SELECT t.id, t.slug, t.name, t.description,
@@ -49,10 +72,26 @@ export async function hotTopicDeHoje(communityId: string): Promise<HotTopic | nu
            (SELECT count(DISTINCT a.author_id) FROM answers a
              WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS pessoas,
            (SELECT count(*) FROM answers a
-             WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS respostas
+             WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS respostas,
+           u.text AS ultima_texto,
+           u.name AS ultima_nome,
+           u.handle AS ultima_handle,
+           u.avatar_url AS ultima_avatar,
+           u.created_at AS ultima_quando
       FROM hot_topics h
       JOIN topics t ON t.id = h.topic_id AND t.deleted_at IS NULL
       LEFT JOIN profiles p ON p.id = t.author_id
+      -- A última contribuição, pelo mesmo LATERAL da lista de tópicos: é
+      -- o que permite ao banco usar o índice (topic_id, created_at).
+      -- Sem backtick no comentário: ele fecharia este template.
+      LEFT JOIN LATERAL (
+        SELECT a.text, a.created_at, ap.name, ap.handle, ap.avatar_url
+          FROM answers a
+          LEFT JOIN profiles ap ON ap.id = a.author_id
+         WHERE a.topic_id = t.id AND a.deleted_at IS NULL
+         ORDER BY a.created_at DESC
+         LIMIT 1
+      ) u ON true
      WHERE h.community_id = ${communityId}::uuid
        AND h.cycle_date = hub_cycle_date(now())
      LIMIT 1
@@ -60,6 +99,28 @@ export async function hotTopicDeHoje(communityId: string): Promise<HotTopic | nu
 
   const linha = linhas[0];
   if (!linha) return null;
+
+  /*
+   * As caras de quem participou, para o rodapé do cartão.
+   *
+   * Consulta separada, e não um `array_agg` na de cima: ela traz até seis
+   * linhas e a de cima traz uma, e juntá-las faria o Postgres repetir o
+   * tópico seis vezes para montar o mesmo resultado.
+   */
+  const rostos = await prisma.$queryRaw<{ nome: string; avatar: string | null }[]>`
+    SELECT DISTINCT ON (ap.id) ap.name AS nome, ap.avatar_url AS avatar
+      FROM answers a
+      JOIN profiles ap ON ap.id = a.author_id
+     WHERE a.topic_id = ${linha.id}::uuid AND a.deleted_at IS NULL
+     LIMIT 6
+  `;
+
+  // Os endereços das fotos são assinados numa chamada só, a última
+  // contribuição junto com os rostos.
+  const assinados = await enderecosDeMidia([
+    linha.ultima_avatar,
+    ...rostos.map((rosto) => rosto.avatar),
+  ]);
 
   return {
     id: linha.id,
@@ -73,6 +134,20 @@ export async function hotTopicDeHoje(communityId: string): Promise<HotTopic | nu
     pessoasQueElegeram: linha.elegeram,
     pessoas: Number(linha.pessoas),
     respostas: Number(linha.respostas),
+    ultima:
+      linha.ultima_nome && linha.ultima_handle && linha.ultima_quando
+        ? {
+            texto: linha.ultima_texto ?? "",
+            autorNome: linha.ultima_nome,
+            autorHandle: linha.ultima_handle,
+            autorAvatarUrl: assinados.at(0) ?? null,
+            quando: linha.ultima_quando,
+          }
+        : null,
+    primeirosRostos: rostos.map((rosto, i) => ({
+      nome: rosto.nome,
+      avatarUrl: assinados.at(i + 1) ?? null,
+    })),
   };
 }
 

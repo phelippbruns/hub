@@ -27,7 +27,7 @@ async function cenario() {
   const comunidade = await makeCommunity(universo.id, lia.id, "Animação");
   await joinAs(comunidade.id, jo.id);
   await joinAs(comunidade.id, rafa.id);
-  return { lia, jo, rafa, comunidade };
+  return { lia, jo, rafa, comunidade, universo };
 }
 
 describe("a aba Membros", () => {
@@ -41,6 +41,61 @@ describe("a aba Membros", () => {
     expect(membros[0]?.moderador).toBe(true);
     expect(membros[0]?.criador).toBe(true);
     expect(membros[0]?.souEu).toBe(true);
+  });
+
+  /**
+   * RN28: contribuição é resposta **ou** tópico criado.
+   *
+   * A linha de cada membro passou a mostrar "N contribuições", e o número é
+   * da **comunidade onde a lista está** — não do Hub inteiro. Uma soma
+   * global diria que a pessoa participa muito de um lugar onde ela nunca
+   * escreveu.
+   */
+  it("RN28: conta resposta e tópico, e só os desta comunidade", async () => {
+    const { lia, jo, comunidade, universo } = await cenario();
+
+    // Jo abre um tópico aqui e responde nele: duas contribuições.
+    const topico = await createTopic(viewerFor(jo.id), {
+      communityId: comunidade.id,
+      name: "Primeira festa",
+      description: "Conta aí como foi.",
+    });
+    await createAnswer(viewerFor(jo.id), { topicId: topico!.id, text: "a minha foi num galpão" });
+
+    // E escreve noutra comunidade, que não pode entrar na conta.
+    const outra = await makeCommunity(universo.id, jo.id, "Outra");
+    const laFora = await createTopic(viewerFor(jo.id), {
+      communityId: outra.id,
+      name: "Outro assunto",
+      description: "Outra abertura.",
+    });
+    await createAnswer(viewerFor(jo.id), { topicId: laFora!.id, text: "nada a ver" });
+
+    const membros = await membrosDaComunidade(viewerFor(lia.id), comunidade.id);
+    const dele = membros.find((m) => m.handle === "jo");
+
+    expect(dele?.contribuicoes).toBe(2);
+    // E quem não escreveu nada tem zero, não `undefined`.
+    expect(membros.find((m) => m.handle === "rafa")?.contribuicoes).toBe(0);
+  });
+
+  it("contribuição apagada deixa de contar", async () => {
+    const { lia, jo, comunidade } = await cenario();
+
+    const topico = await createTopic(viewerFor(jo.id), {
+      communityId: comunidade.id,
+      name: "Primeira festa",
+      description: "Conta aí como foi.",
+    });
+    const resposta = await createAnswer(viewerFor(jo.id), {
+      topicId: topico!.id,
+      text: "a minha foi num galpão",
+    });
+
+    await db.answer.update({ where: { id: resposta!.id }, data: { deletedAt: new Date() } });
+
+    const membros = await membrosDaComunidade(viewerFor(lia.id), comunidade.id);
+    expect(membros.find((m) => m.handle === "jo")?.contribuicoes).toBe(1);
   });
 
   it("RN26: quem me bloqueou não aparece, e quem eu bloqueei também não", async () => {

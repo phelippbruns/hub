@@ -8,6 +8,7 @@ import {
   escolherComunidades,
   preencherNovaComunidade,
   criarTopico,
+  botaoDeContribuir,
 } from "./apoio-tela";
 
 /**
@@ -57,7 +58,7 @@ async function topicoComResposta(page: Page, texto: string) {
   const topico = new URL(page.url()).pathname;
 
   await campoDeContribuicao(page).fill(texto);
-  await page.getByRole("button", { name: "Responder" }).click();
+  await botaoDeContribuir(page).click();
   await expect(page.locator("article").filter({ hasText: texto })).toBeVisible();
 
   return { comunidade, topico };

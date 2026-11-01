@@ -24,6 +24,7 @@ import { SobreAComunidade } from "@/features/comunidades/sobre";
 import { MembrosDaComunidade } from "@/features/comunidades/membros";
 import { PrimeirosPassos, TOPICOS_PARA_SUMIR } from "@/features/comunidades/primeiros-passos";
 import { ResumoDaComunidade } from "@/features/comunidades/resumo";
+import type { ParaEntrar } from "@/features/comunidades/janela-de-entrada";
 import { LinkDoTopico } from "@/features/comunidades/link-do-topico";
 import { PainelDoTopico } from "@/features/topicos/painel";
 import { CorpoDoTopico } from "@/features/topicos/corpo";
@@ -39,7 +40,8 @@ import { eventosDaComunidade, eventosFuturos } from "@/lib/data/eventos";
 import { ListaDeEventos } from "@/features/eventos/lista";
 import { denunciasPendentes, filaDeDenuncias } from "@/lib/data/moderacao";
 import { FilaDeDenuncias } from "@/features/moderacao/fila";
-import { topicosDaComunidade } from "@/lib/data/comunidades";
+import { topicosDaComunidade, type PaginaDaComunidade } from "@/lib/data/comunidades";
+import type { Viewer } from "@/lib/data/viewer";
 import { hotTopicDeHoje } from "@/lib/data/ciclo";
 import { jaCrieiTopicoHoje } from "@/lib/data/topics";
 import { CriarTopico } from "@/features/topicos/criar";
@@ -150,6 +152,20 @@ export default async function ComunidadePage({
   const pendentes = await denunciasPendentes(viewer, dados.id);
 
   /*
+   * O que a janela de entrar precisa saber, montado uma vez e passado às
+   * abas. Ela abre do cabeçalho, das enquetes e dos eventos — quem não
+   * participa e clica em votar ou confirmar recebe o convite, e não um
+   * botão desabilitado.
+   */
+  const paraEntrar = {
+    id: dados.id,
+    slug: dados.slug,
+    name: dados.name,
+    intro: dados.intro,
+    regras: dados.regras,
+  };
+
+  /*
    * O painel do tópico, ao lado da lista (protótipo v6).
    *
    * Ele é parte **desta** página, ligado por `?t=`. Foi rota interceptada
@@ -190,7 +206,12 @@ export default async function ComunidadePage({
                 <PaginaCarregando titulo={false} linhas={2} label="Carregando os eventos" />
               }
             >
-              <AbaDeEventos slug={dados.slug} comunidadeId={dados.id} souMembro={dados.souMembro} />
+              <AbaDeEventos
+                slug={dados.slug}
+                comunidadeId={dados.id}
+                souMembro={dados.souMembro}
+                paraEntrar={paraEntrar}
+              />
             </Suspense>
           ) : abaAtual === "enquetes" ? (
             <Suspense
@@ -202,6 +223,7 @@ export default async function ComunidadePage({
                 slug={dados.slug}
                 comunidadeId={dados.id}
                 souMembro={dados.souMembro}
+                paraEntrar={paraEntrar}
               />
             </Suspense>
           ) : abaAtual === "membros" ? (
@@ -303,7 +325,14 @@ export default async function ComunidadePage({
                 </Suspense>
               </div>
 
-              <ResumoDaComunidade comunidade={dados} />
+              {/*
+                O resumo em `<Suspense>`: ele pede o próximo evento e a
+                enquete aberta, e essas duas consultas não podem atrasar a
+                lista de tópicos, que é o que a pessoa veio ler.
+              */}
+              <Suspense fallback={<ResumoDaComunidade comunidade={dados} />}>
+                <ResumoComAgenda comunidade={dados} viewer={viewer} />
+              </Suspense>
             </div>
           )}
         </ContentColumn>
@@ -404,18 +433,55 @@ async function DestaqueDaComunidade({
   const hotTopic = await hotTopicDeHoje(comunidadeId);
   if (!hotTopic) return null;
 
+  /*
+    Sem `<SectionTitle>Hot Topic</SectionTitle>` acima: o rótulo "DESTAQUE DO
+    DIA" mora **dentro** do cartão agora, como o protótipo v6 mostra. Um
+    título de seção promete uma lista, e aqui é um cartão só.
+  */
   return (
-    <>
-      <SectionTitle>Hot Topic</SectionTitle>
-      <HotTopicCard
-        topic={hotTopic.name}
-        opening={hotTopic.description}
-        people={hotTopic.pessoas}
-        answers={hotTopic.respostas}
-        autor={hotTopic.autor?.name}
-        href={`/c/${slug}/${hotTopic.slug}`}
-      />
-    </>
+    <HotTopicCard
+      topic={hotTopic.name}
+      opening={hotTopic.description}
+      people={hotTopic.pessoas}
+      answers={hotTopic.respostas}
+      autor={hotTopic.autor?.name}
+      ultima={
+        hotTopic.ultima
+          ? { ...hotTopic.ultima, quando: haQuantoTempo(hotTopic.ultima.quando) }
+          : null
+      }
+      rostos={hotTopic.primeirosRostos}
+      href={`/c/${slug}/${hotTopic.slug}`}
+    />
+  );
+}
+
+/**
+ * O resumo da direita, com o próximo evento e a enquete aberta.
+ *
+ * As duas consultas são as **mesmas** das abas, e isso é a regra, não
+ * economia: `enquetesDaComunidade` é quem aplica a RN37 (quem não votou
+ * recebe `totalDeVotos: null`), e uma consulta escrita só para este bloco
+ * teria de repetir a regra — e um dia esqueceria.
+ */
+async function ResumoComAgenda({
+  comunidade,
+  viewer,
+}: {
+  comunidade: PaginaDaComunidade;
+  viewer: Viewer;
+}) {
+  const [eventos, enquetes] = await Promise.all([
+    eventosDaComunidade(viewer, comunidade.id),
+    enquetesDaComunidade(viewer, comunidade.id),
+  ]);
+
+  return (
+    <ResumoDaComunidade
+      comunidade={comunidade}
+      proximoEvento={eventos.find((evento) => !evento.passou) ?? null}
+      enqueteAberta={enquetes.find((enquete) => !enquete.encerrada) ?? null}
+    />
   );
 }
 
@@ -556,10 +622,12 @@ async function AbaDeEventos({
   slug,
   comunidadeId,
   souMembro,
+  paraEntrar,
 }: {
   slug: string;
   comunidadeId: string;
   souMembro: boolean;
+  paraEntrar: ParaEntrar;
 }) {
   const { viewer } = await comunidadeDaRota(slug);
   const eventos = await eventosDaComunidade(viewer, comunidadeId);
@@ -570,6 +638,7 @@ async function AbaDeEventos({
       communityId={comunidadeId}
       eventos={eventos}
       souMembro={souMembro}
+      paraEntrar={paraEntrar}
     />
   );
 }
@@ -584,10 +653,12 @@ async function AbaDeEnquetes({
   slug,
   comunidadeId,
   souMembro,
+  paraEntrar,
 }: {
   slug: string;
   comunidadeId: string;
   souMembro: boolean;
+  paraEntrar: ParaEntrar;
 }) {
   const { viewer } = await comunidadeDaRota(slug);
   const enquetes = await enquetesDaComunidade(viewer, comunidadeId);
@@ -598,6 +669,7 @@ async function AbaDeEnquetes({
       communityId={comunidadeId}
       enquetes={enquetes}
       souMembro={souMembro}
+      paraEntrar={paraEntrar}
     />
   );
 }

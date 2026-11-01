@@ -5,6 +5,7 @@ import { Avatar, Button, EmptyState, SectionTitle } from "@/design/components";
 import { ConfirmedIcon } from "@/design/icons";
 import { desfazerVoto, votarNaEnquete } from "./actions";
 import { FormularioDeEnquete } from "./formulario";
+import { JanelaDeEntrada, type ParaEntrar } from "@/features/comunidades/janela-de-entrada";
 import type { EnqueteNaTela } from "@/lib/data/enquetes";
 import { haQuantoTempo } from "@/lib/tempo";
 
@@ -21,11 +22,19 @@ export function ListaDeEnquetes({
   communityId,
   enquetes,
   souMembro,
+  paraEntrar,
 }: {
   slug: string;
   communityId: string;
   enquetes: EnqueteNaTela[];
   souMembro: boolean;
+  /**
+   * O que a janela de entrada precisa saber, para quem não participa.
+   *
+   * Vem pronta do servidor em vez de ser buscada aqui: a tela já tem esses
+   * dados, e um componente de cliente não fala com `lib/data/`.
+   */
+  paraEntrar: ParaEntrar;
 }) {
   const [criando, setCriando] = useState(false);
 
@@ -73,7 +82,13 @@ export function ListaDeEnquetes({
           <h3 className="text-label text-inkMuted">ABERTAS</h3>
           <div className="flex flex-col gap-2">
             {abertas.map((enquete) => (
-              <Enquete key={enquete.id} enquete={enquete} slug={slug} souMembro={souMembro} />
+              <Enquete
+                key={enquete.id}
+                enquete={enquete}
+                slug={slug}
+                souMembro={souMembro}
+                paraEntrar={paraEntrar}
+              />
             ))}
           </div>
         </>
@@ -84,7 +99,13 @@ export function ListaDeEnquetes({
           <h3 className="text-label text-inkMuted">ENCERRADAS</h3>
           <div className="flex flex-col gap-2">
             {encerradas.map((enquete) => (
-              <Enquete key={enquete.id} enquete={enquete} slug={slug} souMembro={souMembro} />
+              <Enquete
+                key={enquete.id}
+                enquete={enquete}
+                slug={slug}
+                souMembro={souMembro}
+                paraEntrar={paraEntrar}
+              />
             ))}
           </div>
         </>
@@ -97,13 +118,16 @@ function Enquete({
   enquete,
   slug,
   souMembro,
+  paraEntrar,
 }: {
   enquete: EnqueteNaTela;
   slug: string;
   souMembro: boolean;
+  paraEntrar: ParaEntrar;
 }) {
   const [pendente, iniciar] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
+  const [entrando, setEntrando] = useState(false);
 
   function escolher(posicao: number) {
     setErro(null);
@@ -149,13 +173,19 @@ function Enquete({
           */
           if (!enquete.resultadoAberto) {
             return (
+              /*
+                Para quem não participa, o botão **não** é desabilitado: ele
+                abre a janela de entrar. O clique vira convite, não recusa —
+                e o `disabledHint` imprimia a mesma frase abaixo de cada
+                opção, quatro vezes numa enquete de quatro.
+              */
               <Button
                 key={opcao.posicao}
                 variant="secondary"
                 className="justify-start"
-                disabled={pendente || !souMembro}
-                disabledHint={souMembro ? "Aguarde um instante" : "Entre na comunidade para votar"}
-                onClick={() => escolher(opcao.posicao)}
+                disabled={pendente}
+                disabledHint="Aguarde um instante"
+                onClick={() => (souMembro ? escolher(opcao.posicao) : setEntrando(true))}
               >
                 {opcao.texto}
               </Button>
@@ -221,6 +251,12 @@ function Enquete({
           {erro}
         </p>
       ) : null}
+
+      <JanelaDeEntrada
+        comunidade={paraEntrar}
+        aberta={entrando}
+        onFechar={() => setEntrando(false)}
+      />
     </article>
   );
 }

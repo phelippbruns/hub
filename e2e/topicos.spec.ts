@@ -81,7 +81,9 @@ test.describe("criar tópico", () => {
     await expect(page.getByRole("heading", { name: /primeira festa/ })).toBeVisible();
     await expect(page.getByText("Uma pergunta de abertura para o teste.")).toBeVisible();
     // RN15: pessoas e respostas sempre à vista.
-    await expect(page.getByText(/0 pessoas, 0 respostas/)).toBeVisible();
+    // RN15: pessoas e contribuições sempre à vista. O substantivo mudou na
+    // varredura de termo: a tela não diz mais "resposta".
+    await expect(page.getByText(/0 pessoas, 0 contribuições/)).toBeVisible();
   });
 
   test("RN07: o segundo tópico do dia na mesma comunidade é barrado", async ({ page }) => {

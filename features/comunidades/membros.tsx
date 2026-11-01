@@ -137,6 +137,7 @@ export function MembrosDaComunidade({
 
         <CampoDeBusca
           rotulo="Buscar pessoas na comunidade"
+          atalho
           placeholder="Buscar pessoas"
           className="min-w-0 flex-1"
           value={procurado}

@@ -67,8 +67,42 @@ const cases: Array<[string, React.ReactElement]> = [
     />,
   ],
   [
-    "cartão de resposta",
+    "cartão de Hot Topic com a última contribuição e as caras",
+    <HotTopicCard
+      topic="primeira festa"
+      opening="Como foi a primeira festa que te fez gostar de música eletrônica?"
+      people={42}
+      answers={87}
+      autor="Caio Mendes"
+      ultima={{
+        texto: "Um set de 6 horas num galpão. Saí de lá sabendo que era isso.",
+        autorNome: "Lia Souza",
+        autorHandle: "liasouza",
+        autorAvatarUrl: null,
+        quando: "há 2 h",
+      }}
+      rostos={[
+        { nome: "Lia Souza", avatarUrl: null },
+        { nome: "Caio Mendes", avatarUrl: null },
+        { nome: "Ana Lima", avatarUrl: null },
+      ]}
+    />,
+  ],
+  [
+    "cartão de contribuição",
     <AnswerCard author="Lia Souza" handle="liasouza" when="há 2 h">
+      Um set de 6 horas num galpão.
+    </AnswerCard>,
+  ],
+  [
+    "cartão de contribuição, a minha",
+    <AnswerCard author="Lia Souza" handle="liasouza" when="há 2 h" minha>
+      Um set de 6 horas num galpão.
+    </AnswerCard>,
+  ],
+  [
+    "cartão de contribuição, nova desde a última visita",
+    <AnswerCard author="Lia Souza" handle="liasouza" when="há 2 h" nova>
       Um set de 6 horas num galpão.
     </AnswerCard>,
   ],
@@ -243,7 +277,7 @@ const cases: Array<[string, React.ReactElement]> = [
     />,
   ],
   [
-    "abertura sem autor, com uma resposta só",
+    "abertura sem autor, com uma contribuição só",
     <TopicOpening abertura="Qual pista você quer conhecer?" pessoas={1} respostas={1} />,
   ],
 ];

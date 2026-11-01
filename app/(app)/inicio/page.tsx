@@ -26,8 +26,9 @@ import { haQuantoTempo } from "@/lib/tempo";
 
 export const metadata: Metadata = { title: "Hoje · Hub" };
 
-function contagem(pessoas: number, respostas: number) {
-  return `${pessoas.toLocaleString("pt-BR")} ${pessoas === 1 ? "pessoa" : "pessoas"}, ${respostas.toLocaleString("pt-BR")} ${respostas === 1 ? "resposta" : "respostas"}`;
+/** RN28: contribuição é resposta **ou** tópico criado, e a tela diz isso. */
+function contagem(pessoas: number, contribuicoes: number) {
+  return `${pessoas.toLocaleString("pt-BR")} ${pessoas === 1 ? "pessoa" : "pessoas"}, ${contribuicoes.toLocaleString("pt-BR")} ${contribuicoes === 1 ? "contribuição" : "contribuições"}`;
 }
 
 /**

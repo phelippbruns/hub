@@ -93,6 +93,7 @@ export function ControlesDeTopicos({
       {totalDeTopicos >= 10 ? (
         <CampoDeBusca
           rotulo={`Buscar tópicos em ${nomeDaComunidade}`}
+          atalho
           placeholder="Buscar tópicos"
           className="min-w-0 flex-1"
           value={termo}
