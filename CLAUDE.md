@@ -346,3 +346,39 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+**Criar tópico é janela, e `/novo` redireciona.** O formulário vive em
+[features/topicos/criar.tsx](features/topicos/criar.tsx), numa `Janela` sobre
+a página da comunidade: a vontade de abrir um assunto nasce lendo a lista, e
+sair dela para escrever é uma ida e volta que ninguém pediu. Era uma página
+até 31 de outubro, e a troca está no `vacilos.md`.
+
+O endereço `/c/<comunidade>/novo` **continua existindo** e redireciona para
+`/c/<comunidade>?novo=1` — endereço que já foi compartilhado nunca vira 404,
+e a tela 16 do escopo, o atalho da barra lateral e os links de Primeiros
+passos apontam todos para lá. O botão e a janela moram no mesmo componente
+porque o estado de aberto é um só; separados, abrir custaria uma volta ao
+servidor ou um contexto.
+
+**`w-full` com `shrink-0` no mesmo elemento é um pedido contraditório** —
+"me dê tudo e não me tire nada". Num item de flex é uma barra de rolagem
+horizontal esperando a janela certa, e a coluna da direita da comunidade
+carregava isso junto com um breakpoint que esta página proíbe. Saiu.
+
+**O que esse par custou vale mais que a regra:** eu escrevi, em quatro
+lugares, que ele era a causa de quatro prints do PO — e a medida diz que
+não. Nada estoura em largura nenhuma, de 1400 a 480 px. Está no
+`faustao.md`, e a lição é "causa entra depois da medida".
+
+A jornada "nada sai pela borda direita"
+([e2e/comunidades.spec.ts](e2e/comunidades.spec.ts)) roda as quatro abas em
+**1280 px e 800 px** e mede `scrollWidth` contra `innerWidth`. Ela é
+vigilância, não regressão: nunca viu o defeito vermelho.
+
+**Texto escrito por gente leva `wrap-anywhere`.** `@` de rede social, link
+colado e teclado travado produzem "palavras" de duzentos caracteres, e o
+navegador não quebra linha no meio de uma sem ser mandado — o texto
+atravessa o cartão e sai pela direita. O teste "texto de gente nunca fura o
+cartão" ([design/components/components.test.tsx](design/components/components.test.tsx))
+desenha cada componente com uma palavra de 220 caracteres e exige
+`wrap-anywhere` ou `truncate` em alguma tag que envolva o texto.

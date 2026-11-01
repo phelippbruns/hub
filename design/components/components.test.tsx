@@ -282,3 +282,61 @@ describe("acessibilidade dos controles sem texto", () => {
     expect(html).toContain("Preencha nome, intro, capa e Universo.");
   });
 });
+
+/**
+ * Texto de gente quebra linha.
+ *
+ * O PO mandou um print do cartão Sobre com uma sequência longa sem espaço
+ * atravessando o cartão e saindo pela direita. O navegador não quebra linha
+ * no meio de uma palavra sem ser mandado, e `@` de rede social, link colado
+ * e teclado travado produzem "palavras" de duzentos caracteres todo dia.
+ *
+ * A barreira olha o HTML desenhado: todo componente que mostra texto escrito
+ * por alguém tem de levar `wrap-anywhere` no elemento desse texto. Procurar
+ * a classe no código-fonte não serviria — ela precisa estar **no elemento
+ * certo**, e um `truncate` no lugar dela também resolve, porque corta em vez
+ * de furar.
+ */
+describe("texto de gente nunca fura o cartão", () => {
+  const PALAVRA = "A".repeat(220);
+
+  const casos: [string, React.ReactElement][] = [
+    ["abertura do tópico", <TopicOpening abertura={PALAVRA} pessoas={2} respostas={3} />],
+    [
+      "contribuição",
+      <AnswerCard author="Lia" handle="lia" when="há 2 h">
+        {PALAVRA}
+      </AnswerCard>,
+    ],
+    ["autor da contribuição", <AnswerCard author={PALAVRA} handle="lia" when="há 2 h" />],
+    [
+      "destaque do dia",
+      <HotTopicCard topic="Tópico" opening={PALAVRA} people={4} answers={9} href="/c/x/y" />,
+    ],
+    ["nome da comunidade na capa", <CommunityCover name={PALAVRA} coverUrl={null} />],
+    ["nome do tópico na linha", <TopicRow name={PALAVRA} people={1} answers={1} />],
+  ];
+
+  it.each(casos)("%s", (_nome, elemento) => {
+    const html = renderToStaticMarkup(elemento);
+
+    /*
+     * `overflow-wrap` e `text-overflow` são herdados, então a classe vale
+     * em qualquer elemento **que contenha** o texto — não só no mais
+     * próximo. Por isso a conferência monta a pilha de tags abertas até o
+     * ponto onde o texto aparece e olha todas elas: olhar só a tag mais
+     * próxima reprovava o `TopicRow`, onde o asterisco em SVG vem antes do
+     * nome dentro do mesmo `<span className="truncate">`.
+     */
+    const antes = html.slice(0, html.indexOf(PALAVRA));
+    const pilha: string[] = [];
+    for (const [tag] of antes.matchAll(/<\/?[a-zA-Z][^>]*>/g)) {
+      if (tag.startsWith("</")) pilha.pop();
+      else if (!tag.endsWith("/>")) pilha.push(tag);
+    }
+
+    expect(pilha.join(" "), `as tags que envolvem o texto são: ${pilha.join(" ")}`).toMatch(
+      /wrap-anywhere|truncate/,
+    );
+  });
+});

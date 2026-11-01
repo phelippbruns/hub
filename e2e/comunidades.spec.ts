@@ -7,6 +7,7 @@ import {
   concluirOnboarding,
   preencherNovaComunidade,
   respostaPublicada,
+  criarTopico,
 } from "./apoio-tela";
 
 /**
@@ -142,18 +143,33 @@ test.describe("a página da comunidade", () => {
     await expect(menu).toBeHidden();
   });
 
-  test("compartilhar também é drop, e traz as três saídas", async ({ page }) => {
+  /**
+   * Compartilhar saiu do canto da capa e virou dois itens do menu.
+   *
+   * Era um botão próprio, entre o de voltar e os três pontos, e o canto
+   * tinha três controles. O PO corrigiu em 31 de outubro: o canto de cima
+   * fica com um botão só, e o menu ganha "Copiar link da comunidade" (um
+   * clique, sem submenu) e "Convidar pessoas" (a janela com a busca).
+   */
+  test("compartilhar mora no menu: copiar o link, e convidar pessoas", async ({ page }) => {
     await entrarNoApp(page, "dropshare");
     await preencherNova(page, novoNome("Compartilhada"));
     await page.waitForURL(/\/c\//);
 
-    await page.getByRole("button", { name: /^Compartilhar / }).click();
+    // O canto de cima tem um botão de ícone só, além do voltar.
+    await expect(page.getByRole("button", { name: /^Compartilhar / })).toHaveCount(0);
 
-    const folha = page.getByRole("dialog", { name: /^Compartilhar / });
-    await expect(folha).toBeVisible();
-    await expect(folha.getByLabel("Buscar pessoas")).toBeVisible();
-    await expect(folha.getByRole("button", { name: "Copiar link" })).toBeVisible();
-    await expect(folha.getByRole("button", { name: "Outros apps" })).toBeVisible();
+    await page.getByRole("button", { name: "Mais opções" }).click();
+    const menu = page.getByRole("dialog");
+    await expect(menu.getByRole("button", { name: "Copiar link da comunidade" })).toBeVisible();
+
+    await menu.getByRole("button", { name: "Convidar pessoas" }).click();
+
+    const janela = page.getByRole("dialog", { name: /^Convidar para / });
+    await expect(janela).toBeVisible();
+    await expect(janela.getByLabel("Buscar pessoas")).toBeVisible();
+    await expect(janela.getByRole("button", { name: "Copiar link" })).toBeVisible();
+    await expect(janela.getByRole("button", { name: "Outros apps" })).toBeVisible();
   });
 
   /*
@@ -203,9 +219,15 @@ test.describe("a página da comunidade", () => {
     await preencherNova(page, novoNome("Um Botao"));
     await page.waitForURL(/\/c\//);
 
-    // Dentro do conteúdo: a barra lateral também tem um "Criar tópico", e
-    // ele é outra coisa — leva a escolher a comunidade antes.
-    const botoes = page.getByRole("main").getByRole("link", { name: "Criar tópico" });
+    /*
+      Dentro do conteúdo: a barra lateral também tem um "Criar tópico", e
+      ele é outra coisa — leva a escolher a comunidade antes.
+
+      Aqui é `button`, e na barra é `link`: o de dentro abre a janela sobre
+      a lista, e o da barra navega. A diferença de papel é o que mantém os
+      dois distinguíveis neste teste.
+    */
+    const botoes = page.getByRole("main").getByRole("button", { name: "Criar tópico" });
     await expect(botoes).toHaveCount(1);
     await expect(botoes.locator("svg")).toBeVisible();
   });
@@ -270,6 +292,105 @@ test.describe("as abas da comunidade", () => {
   });
 });
 
+/**
+ * Nada sai pela borda direita.
+ *
+ * **Esta é vigilância, não regressão** — e a diferença está escrita aqui de
+ * propósito.
+ *
+ * O PO mandou dez prints da tela da comunidade; quatro pareciam botões
+ * comidos pela borda direita. Lendo o código eu achei uma causa provável, e
+ * escrevi esta jornada para guardá-la. Ao reintroduzir o suposto defeito
+ * para ver a jornada reprovar, **ela passou verde** — e uma medida
+ * posterior, varrendo todo elemento de `main` em onze larguras de 1400 a
+ * 480 px, com e sem o defeito, não achou estouro nenhum.
+ *
+ * Então ela nunca viu vermelho, e não prova conserto de nada. Fica porque
+ * mede a coisa certa pelo lado certo: a geometria da tela, numa largura que
+ * nenhum outro teste exercitava. Se um dia um botão sair da janela, ela diz
+ * — e aí vira regressão de verdade.
+ *
+ * A largura estreita é **800 px**: o menor computador que o Hub atende (o
+ * CLAUDE.md fixa 768 px como piso até a F21). Rodar só a 1280 px, como toda
+ * a suíte fazia, deixa metade de qualquer regra de largura sem exercício.
+ */
+const LARGURAS = [
+  { nome: "1280 px", width: 1280, height: 720 },
+  { nome: "800 px, o menor computador que o Hub atende", width: 800, height: 720 },
+];
+
+test.describe("nada sai pela borda direita", () => {
+  for (const largura of LARGURAS) {
+    test(`as quatro abas cabem na janela de ${largura.nome}`, async ({ page }) => {
+      await page.setViewportSize({ width: largura.width, height: largura.height });
+
+      await entrarNoApp(page, "borda");
+      await preencherNova(page, novoNome("Com Borda"));
+      await page.waitForURL(/\/c\//);
+      const comunidade = new URL(page.url()).pathname;
+
+      for (const aba of ["Início", "Enquetes", "Eventos", "Membros"]) {
+        await page.getByRole("tab", { name: aba }).click();
+        // A aba trocou de verdade antes de medir: medir no meio da troca
+        // mediria a aba de antes, e passaria verde sem ter olhado nada.
+        await expect(page.getByRole("tab", { name: aba })).toHaveAttribute("aria-selected", "true");
+        await expect(page.getByRole("main")).toBeVisible();
+
+        /*
+         * 1. A página não é mais larga que a janela. Uma barra de rolagem
+         *    horizontal em qualquer lugar empurra a borda direita para
+         *    fora, e é o que fazia o botão "sair" da tela.
+         */
+        const sobra = await page.evaluate(
+          () => document.documentElement.scrollWidth - window.innerWidth,
+        );
+        expect(sobra, `a aba ${aba} é ${sobra} px mais larga que a janela`).toBeLessThanOrEqual(1);
+
+        /*
+         * 2. E todo botão de ação cabe inteiro. A conferência de cima não
+         *    basta: um botão pode estar cortado por `overflow: hidden` do
+         *    pai sem a página inteira crescer.
+         */
+        const janela = largura.width;
+        const botoes = page.getByRole("main").getByRole("button");
+        for (let i = 0; i < (await botoes.count()); i++) {
+          const botao = botoes.nth(i);
+          if (!(await botao.isVisible())) continue;
+          const caixa = await botao.boundingBox();
+          if (!caixa) continue;
+          const texto = (await botao.textContent())?.trim() ?? "(sem texto)";
+          expect(
+            Math.round(caixa.x + caixa.width),
+            `na aba ${aba}, o botão "${texto}" termina fora da janela`,
+          ).toBeLessThanOrEqual(janela);
+        }
+      }
+
+      /*
+       * O menu de três pontos abre **por cima** do que vem abaixo da capa,
+       * e não recortado por ela. A capa tinha `overflow-hidden` para
+       * arredondar a foto, e o mesmo recorte decepava o último item do
+       * menu — print 2 do PO.
+       */
+      await page.goto(comunidade);
+      await page.getByRole("button", { name: "Mais opções" }).click();
+
+      const denunciar = page.getByRole("link", { name: "Denunciar comunidade" });
+      await expect(denunciar).toBeVisible();
+
+      const capa = await page.getByRole("heading", { level: 1 }).boundingBox();
+      const item = await denunciar.boundingBox();
+      expect(capa).not.toBeNull();
+      expect(item).not.toBeNull();
+
+      // O último item do menu desce **além** da linha do nome na capa: se
+      // o recorte voltasse, ele terminaria dentro dela.
+      expect(item!.y + item!.height).toBeGreaterThan(capa!.y + capa!.height);
+      await expect(denunciar).toBeInViewport();
+    });
+  }
+});
+
 test.describe("a lista de tópicos", () => {
   test("os filtros têm nome, vivem na URL, e Seguindo só aparece para quem participa", async ({
     page,
@@ -307,10 +428,7 @@ test.describe("a lista de tópicos", () => {
     await page.waitForURL(/\/c\/([^/]+)$/);
     const endereco = new URL(page.url()).pathname;
 
-    await page.goto(`${endereco}/novo`);
-    await page.getByLabel("Nome").fill("Primeira festa");
-    await page.getByLabel("Descrição").fill("Conta aí como foi.");
-    await page.getByRole("button", { name: "Criar tópico" }).click();
+    await criarTopico(page, endereco, "Primeira festa", "Conta aí como foi.");
     await page.waitForURL(/\/c\/[^/]+\/[^/]+$/);
 
     await campoDeContribuicao(page).fill("A minha foi num porão em 2009.");
@@ -442,8 +560,11 @@ test.describe("o cartão Sobre e as regras", () => {
     await expect(bloco).toBeVisible();
 
     await page.getByRole("link", { name: "Apresente-se aqui" }).click();
-    await page.waitForURL(/\/novo/);
-    await expect(page.getByLabel("Nome")).toHaveValue("Apresente-se aqui");
+    // A sugestão abre a janela com o título já preenchido, sem sair da
+    // comunidade: antes era uma página, e virou janela em 31 de outubro.
+    await page.waitForURL(/novo=1/);
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await expect(janela.getByLabel("Título")).toHaveValue("Apresente-se aqui");
   });
 });
 

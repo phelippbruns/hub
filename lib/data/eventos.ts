@@ -183,13 +183,13 @@ export async function confirmarPresenca(viewer: Viewer, eventId: string): Promis
    * confirmar de novo. Encontro no passado é fato encerrado.
    */
   if (evento.startsAt <= new Date()) {
-    throw new ForbiddenError("Este encontro já aconteceu");
+    throw new ForbiddenError("Este evento já aconteceu");
   }
 
   // Já está dentro: confirmar de novo não faz nada, e não é erro.
   if (evento.attendances.length > 0) return;
   if (evento.capacity !== null && evento._count.attendances >= evento.capacity) {
-    throw new ForbiddenError("Este encontro está lotado");
+    throw new ForbiddenError("Este evento está lotado");
   }
 
   await prisma.eventAttendance.create({ data: { eventId, profileId: me } });
@@ -205,7 +205,7 @@ export async function cancelarPresenca(viewer: Viewer, eventId: string): Promise
   });
   if (!evento) throw new NotFoundError("Evento");
   if (evento.startsAt <= new Date()) {
-    throw new ForbiddenError("Este encontro já aconteceu");
+    throw new ForbiddenError("Este evento já aconteceu");
   }
 
   await prisma.eventAttendance.deleteMany({ where: { eventId, profileId: me } });

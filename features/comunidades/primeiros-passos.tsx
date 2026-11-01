@@ -40,7 +40,12 @@ export function PrimeirosPassos({ slug }: { slug: string }) {
         {SUGESTOES.map((sugestao) => (
           <Link
             key={sugestao}
-            href={`/c/${slug}/novo?nome=${encodeURIComponent(sugestao)}`}
+            /*
+              Vai direto para a comunidade com a janela aberta, em vez de
+              passar por `/novo` e tomar um redirecionamento. O `/novo`
+              continua valendo para quem chega de fora.
+            */
+            href={`/c/${slug}?novo=1&nome=${encodeURIComponent(sugestao)}`}
             className="bg-surfacePage text-bodyStrong text-ink flex items-center gap-2 rounded-sm p-3"
           >
             <TopicStar className="size-icon" />

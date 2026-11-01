@@ -7,6 +7,7 @@ import {
   concluirOnboarding,
   preencherNovaComunidade,
   respostaPublicada,
+  criarTopico,
 } from "./apoio-tela";
 
 /**
@@ -44,10 +45,7 @@ async function meuTopico(page: Page, prefixo: string): Promise<string> {
   await page.waitForURL(/\/c\/[^/]+$/);
   const comunidade = new URL(page.url()).pathname;
 
-  await page.goto(`${comunidade}/novo`);
-  await page.getByLabel("Nome").fill("assunto do teste");
-  await page.getByLabel("Descrição").fill("Uma pergunta de abertura.");
-  await page.getByRole("button", { name: "Criar tópico" }).click();
+  await criarTopico(page, comunidade, "assunto do teste");
   await page.waitForURL(/\/assunto-do-teste$/);
 
   return new URL(page.url()).pathname;

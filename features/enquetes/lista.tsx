@@ -34,19 +34,24 @@ export function ListaDeEnquetes({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <SectionTitle contagem={enquetes.length}>Enquetes</SectionTitle>
-          <p className="text-caption text-inkMuted">
-            O resultado aparece depois do seu voto, para ninguém ser influenciado.
-          </p>
-        </div>
-
-        {souMembro ? (
-          <Button size="sm" onClick={() => setCriando(true)}>
-            Criar enquete
-          </Button>
-        ) : null}
+      {/* O botão na `acao` do `SectionTitle`, como nas outras abas: a linha
+          montada à mão era `flex-wrap`, e o botão saía pela borda direita. */}
+      <div className="flex flex-col gap-1">
+        <SectionTitle
+          contagem={enquetes.length}
+          acao={
+            souMembro ? (
+              <Button size="sm" onClick={() => setCriando(true)}>
+                Criar enquete
+              </Button>
+            ) : undefined
+          }
+        >
+          Enquetes
+        </SectionTitle>
+        <p className="text-caption text-inkMuted">
+          O resultado aparece depois do seu voto, para ninguém ser influenciado.
+        </p>
       </div>
 
       <FormularioDeEnquete

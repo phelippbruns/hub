@@ -35,6 +35,7 @@ export function CommunityCover({
   ancora = ANCORA_PADRAO,
   esquerda,
   direita,
+  inferiorDireita,
   children,
 }: {
   name: string;
@@ -45,33 +46,52 @@ export function CommunityCover({
   ancora?: Ancora;
   /** Normalmente o botão de voltar. */
   esquerda?: ReactNode;
-  /** Compartilhar e os três pontos. */
+  /** Os três pontos. */
   direita?: ReactNode;
+  /**
+   * O canto de baixo, na linha do nome: é onde mora "Moderar N", como o
+   * protótipo v6 mostra. Antes ele ficava no canto de cima, apertado
+   * entre compartilhar e os três pontos, e o PO corrigiu.
+   */
+  inferiorDireita?: ReactNode;
   /** Fica na mesma linha do nome: a marca # de entrar e sair. */
   children?: ReactNode;
 }) {
   return (
-    <div className="bg-lavender min-h-cover relative flex flex-col justify-end overflow-hidden rounded-lg p-3">
-      {coverUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- endereço assinado, de validade curta
-        <img
-          src={coverUrl}
-          alt=""
-          className="absolute inset-0 size-full object-cover"
-          style={
-            medidas
-              ? {
-                  objectPosition: `${ancora.x * 100}% ${ancora.y * 100}%`,
-                  transform: `scale(${zoom})`,
-                  transformOrigin: `${ancora.x * 100}% ${ancora.y * 100}%`,
-                }
-              : undefined
-          }
-        />
-      ) : null}
+    /*
+     * **A capa não recorta.** Ela recortava: `overflow-hidden` no elemento
+     * de fora era o que arredondava a foto nos cantos. Só que os drops de
+     * compartilhar e do menu nascem dentro dela, e o mesmo recorte decepava
+     * o menu na borda de baixo da capa — não dava para ler o último item.
+     *
+     * Agora quem recorta é quem precisa: a foto e o véu moram num `<span>`
+     * próprio, com `overflow-hidden` e o mesmo raio. Os drops passam a
+     * flutuar por cima do conteúdo que vem abaixo, que é o que se espera
+     * de um menu.
+     */
+    <div className="bg-lavender min-h-cover relative flex flex-col justify-end rounded-lg p-3">
+      <span aria-hidden="true" className="absolute inset-0 overflow-hidden rounded-lg">
+        {coverUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- endereço assinado, de validade curta
+          <img
+            src={coverUrl}
+            alt=""
+            className="absolute inset-0 size-full object-cover"
+            style={
+              medidas
+                ? {
+                    objectPosition: `${ancora.x * 100}% ${ancora.y * 100}%`,
+                    transform: `scale(${zoom})`,
+                    transformOrigin: `${ancora.x * 100}% ${ancora.y * 100}%`,
+                  }
+                : undefined
+            }
+          />
+        ) : null}
 
-      {/* O véu é decorativo: está aqui pelo contraste, não pelo sentido. */}
-      <span aria-hidden="true" className="from-ink/80 to-ink/20 absolute inset-0 bg-linear-to-t" />
+        {/* O véu está aqui pelo contraste, não pelo sentido. */}
+        <span className="from-ink/80 to-ink/20 absolute inset-0 bg-linear-to-t" />
+      </span>
 
       {/*
         `z-20` nos controles, e não só a ordem no HTML: quando a capa
@@ -95,9 +115,14 @@ export function CommunityCover({
         protótipo v6 mostra. Ela é o botão de entrar e sair, e à esquerda
         ela é a primeira coisa que se lê: a porta antes do cômodo.
       */}
-      <div className="relative z-20 flex items-center gap-2">
-        {children}
-        <h1 className="text-coverTitle text-paper">{name}</h1>
+      <div className="relative z-20 flex items-end justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          {children}
+          {/* `wrap-anywhere`: nome de comunidade é texto de gente, e uma
+              sequência longa sem espaço furava a capa pela direita. */}
+          <h1 className="text-coverTitle text-paper wrap-anywhere">{name}</h1>
+        </div>
+        {inferiorDireita ? <span className="shrink-0">{inferiorDireita}</span> : null}
       </div>
     </div>
   );

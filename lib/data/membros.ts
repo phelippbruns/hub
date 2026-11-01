@@ -32,6 +32,15 @@ export type MembroNaComunidade = {
   souEu: boolean;
   /** Nulo para visitante sem sessão: não há o que alternar. */
   sigo: boolean | null;
+  /**
+   * Quanto esta pessoa participou **nesta** comunidade.
+   *
+   * RN28: contribuição é resposta **ou** tópico criado. É o mesmo número
+   * que a linha sob a capa soma para a comunidade inteira, aqui recortado
+   * por pessoa — a lista de membros existe para conhecer gente, e "entrou
+   * em out 2026" sozinho não diz se a pessoa participa.
+   */
+  contribuicoes: number;
 };
 
 export function filtroDeMembros(valor: string | undefined): FiltroDeMembros {
@@ -97,6 +106,35 @@ export async function membrosDaComunidade(
 
   const perfis = await comAvatares(membros.map((m) => m.profile));
 
+  /*
+   * As contribuições de cada pessoa, em duas consultas agrupadas — e não
+   * duas por membro. Com 50 membros na página, o jeito ingênuo custaria
+   * 100 idas ao banco para desenhar uma linha de texto.
+   */
+  const idsDaPagina = membros.map((m) => m.profileId);
+  const [respostasPorPessoa, topicosPorPessoa] = await Promise.all([
+    prisma.answer.groupBy({
+      by: ["authorId"],
+      where: {
+        authorId: { in: idsDaPagina },
+        deletedAt: null,
+        topic: { communityId, deletedAt: null },
+      },
+      _count: { _all: true },
+    }),
+    prisma.topic.groupBy({
+      by: ["authorId"],
+      where: { authorId: { in: idsDaPagina }, communityId, deletedAt: null },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const contribuicoes = new Map<string, number>();
+  for (const linha of [...respostasPorPessoa, ...topicosPorPessoa]) {
+    if (!linha.authorId) continue;
+    contribuicoes.set(linha.authorId, (contribuicoes.get(linha.authorId) ?? 0) + linha._count._all);
+  }
+
   // Uma consulta para todos os seguidos desta página, não uma por pessoa.
   const sigo = me
     ? new Set(
@@ -124,6 +162,7 @@ export async function membrosDaComunidade(
     desde: membro.joinedAt,
     souEu: membro.profileId === me,
     sigo: sigo ? sigo.has(membro.profileId) : null,
+    contribuicoes: contribuicoes.get(membro.profileId) ?? 0,
   }));
 }
 

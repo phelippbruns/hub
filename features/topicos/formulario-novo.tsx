@@ -6,11 +6,17 @@ import { GifIcon, ImageIcon } from "@/design/icons";
 import { criarTopico, type EstadoDaCriacao } from "./actions";
 
 /**
- * Tela 16: criar tópico.
+ * O corpo da criação de tópico (tela 16), dentro da janela de
+ * [CriarTopico](./criar.tsx).
  *
  * O aviso do limite aparece **antes** de escrever, e não como recusa depois:
  * descobrir que não pode publicar hoje com a pergunta já escrita é o pior
  * momento possível.
+ *
+ * **"Título" e "Abertura"**, e não "Nome" e "Descrição". Os rótulos vêm do
+ * protótipo v6: o segundo campo não descreve o tópico, ele começa a
+ * conversa — é o texto do cartão escuro no topo da tela do tópico. A RN08
+ * continua exigindo os dois, com os mesmos 80 e 240 caracteres.
  */
 export function FormularioNovoTopico({
   comunidadeSlug,
@@ -42,22 +48,25 @@ export function FormularioNovoTopico({
       ) : null}
 
       <Input
-        label="Nome"
+        label="Título"
         name="name"
         required
+        contador
         maxLength={80}
         autoComplete="off"
+        placeholder="Sobre o que você quer conversar?"
         defaultValue={nomeSugerido}
         disabled={jaUsouODia}
         error={estado.erros?.name}
       />
 
       <TextField
-        label="Descrição"
+        label="Abertura"
         name="description"
         maxLength={240}
         tall
         required
+        placeholder="Comece a conversa: o que te fez abrir este tópico?"
         disabled={jaUsouODia}
         error={estado.erros?.description}
         className="w-full"
@@ -89,9 +98,16 @@ export function FormularioNovoTopico({
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pendente || jaUsouODia}>
-        Criar tópico
-      </Button>
+      {/*
+        Um botão, à direita, e nada de "Cancelar" empilhado: o X da janela
+        já fecha, e dois botões do mesmo tamanho fazem procurar diferença
+        entre eles. Print do PO de 31 de outubro.
+      */}
+      <div className="flex justify-end">
+        <Button type="submit" disabled={pendente || jaUsouODia}>
+          Criar tópico
+        </Button>
+      </div>
     </form>
   );
 }

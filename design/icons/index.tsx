@@ -229,3 +229,41 @@ export function SettingsIcon(props: IconProps) {
     </IconBase>
   );
 }
+
+/*
+ * Relógio, globo e alfinete: a linha de dados do evento (RN38).
+ *
+ * Eram três pedaços de texto separados por ponto, e o PO corrigiu em 31 de
+ * outubro com o print do protótipo. O ícone diz **que tipo de dado é** antes
+ * de a pessoa ler o dado — hora, online, lugar —, e numa lista de eventos é
+ * isso que se procura.
+ *
+ * Todos decorativos onde são usados: o texto ao lado já diz o que eles
+ * dizem, e um `aria-label` aqui faria o leitor de tela ler duas vezes.
+ */
+export function ClockIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 8v4l3 2" />
+    </IconBase>
+  );
+}
+
+export function GlobeIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M4 12h16M12 4c2.5 2.2 2.5 13.6 0 16M12 4c-2.5 2.2-2.5 13.6 0 16" />
+    </IconBase>
+  );
+}
+
+export function PlaceIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 21c4-4.5 6-7.6 6-10a6 6 0 1 0-12 0c0 2.4 2 5.5 6 10z" />
+      <circle cx="12" cy="11" r="2" />
+    </IconBase>
+  );
+}

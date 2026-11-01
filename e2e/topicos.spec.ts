@@ -6,6 +6,7 @@ import {
   campoDeContribuicao,
   concluirOnboarding,
   preencherNovaComunidade,
+  criarTopico,
 } from "./apoio-tela";
 
 /**
@@ -68,20 +69,12 @@ async function esperarTopicoAberto(page: Page) {
   );
 }
 
-/** Preenche e envia a tela 16. */
-async function criarTopico(page: Page, comunidade: string, nome: string) {
-  await page.goto(`${comunidade}/novo`);
-  await page.getByLabel("Nome").fill(nome);
-  await page.getByLabel("Descrição").fill("Uma pergunta de abertura para o teste.");
-  await page.getByRole("button", { name: "Criar tópico" }).click();
-}
-
 test.describe("criar tópico", () => {
   test("cria, abre no endereço da comunidade e mostra a abertura", async ({ page }) => {
     await entrarNoApp(page, "criartopico");
     const comunidade = await minhaComunidade(page, "Tópicos de Teste");
 
-    await criarTopico(page, comunidade, "primeira festa");
+    await criarTopico(page, comunidade, "primeira festa", "Uma pergunta de abertura para o teste.");
 
     // O endereço vem do nome, dentro da comunidade.
     await page.waitForURL(`**${comunidade}/primeira-festa`);
@@ -100,34 +93,58 @@ test.describe("criar tópico", () => {
 
     // O aviso aparece **antes** de escrever, não como recusa depois.
     await page.goto(`${comunidade}/novo`);
-    const aviso = alerta(page.locator("form"));
-    await expect(aviso).toContainText("já criou um tópico");
-    await expect(page.getByRole("button", { name: "Criar tópico" })).toBeDisabled();
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await expect(alerta(janela)).toContainText("já criou um tópico");
+    await expect(janela.getByRole("button", { name: "Criar tópico" })).toBeDisabled();
   });
 
-  test("a comunidade tem o caminho para criar tópico", async ({ page }) => {
+  test("a comunidade abre a janela de criar, e a lista continua atrás", async ({ page }) => {
     /*
-     * Faltava. O único caminho era o atalho da barra lateral, que pergunta
-     * em qual comunidade — mas a vontade de abrir um assunto nasce lendo a
-     * comunidade, com ela já escolhida.
+     * Era uma página, e virou janela por correção do PO em 31 de outubro.
+     * **A lista tem de continuar atrás**: é o que diferencia a janela da
+     * página, e é por isso que a jornada confere as duas coisas na mesma
+     * tela.
      */
     await entrarNoApp(page, "cominho");
     const comunidade = await minhaComunidade(page, "Com Caminho");
 
     await page.goto(comunidade);
-    await page.locator("main").getByRole("link", { name: "Criar tópico" }).first().click();
+    await page.locator("main").getByRole("button", { name: "Criar tópico" }).first().click();
 
-    await page.waitForURL(`**${comunidade}/novo`);
-    await expect(page.getByRole("heading", { name: "Novo tópico" })).toBeVisible();
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await expect(janela).toBeVisible();
+    // A comunidade continua desenhada atrás: o endereço não mudou de tela.
+    await expect(page.getByRole("tab", { name: "Início" })).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe(comunidade);
+
+    // E o X fecha sem sair da comunidade.
+    await janela.getByRole("button", { name: "Fechar" }).click();
+    await expect(janela).toBeHidden();
+    expect(new URL(page.url()).pathname).toBe(comunidade);
   });
 
-  test("o aviso do ciclo aparece na tela de criar", async ({ page }) => {
+  test("o endereço /novo continua valendo e chega com a janela aberta", async ({ page }) => {
+    /*
+     * Endereço que já foi compartilhado nunca vira 404. `/novo` redireciona
+     * para a comunidade com `?novo=1`, e quem chega vê a janela em cima da
+     * lista — nunca uma tela órfã.
+     */
+    await entrarNoApp(page, "enderecopnovo");
+    const comunidade = await minhaComunidade(page, "Com Endereço");
+
+    await page.goto(`${comunidade}/novo`);
+    await page.waitForURL(`**${comunidade}?novo=1`);
+    await expect(page.getByRole("dialog", { name: "Novo tópico" })).toBeVisible();
+  });
+
+  test("o aviso do ciclo aparece na janela de criar", async ({ page }) => {
     await entrarNoApp(page, "avisociclo");
     const comunidade = await minhaComunidade(page, "Com Aviso");
 
     await page.goto(`${comunidade}/novo`);
-    await expect(page.getByText(/1 tópico por dia nesta comunidade/)).toBeVisible();
-    await expect(page.getByText(/às 00h, fica em destaque/)).toBeVisible();
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await expect(janela.getByText(/1 tópico por dia nesta comunidade/)).toBeVisible();
+    await expect(janela.getByText(/às 00h, fica em destaque/)).toBeVisible();
   });
 
   test("o botão da barra pergunta em qual comunidade", async ({ page }) => {
@@ -138,8 +155,10 @@ test.describe("criar tópico", () => {
     await expect(page.getByText("Em qual comunidade?")).toBeVisible();
 
     await page.getByRole("link").filter({ hasText: /\S/ }).last().click();
-    await page.waitForURL(/\/c\/[^/]+\/novo$/);
-    await expect(page.getByText(/^na comunidade de /)).toBeVisible();
+    // O atalho leva a `/novo`, que redireciona para a comunidade com a
+    // janela aberta: a escolha da comunidade continua sendo o caminho.
+    await page.waitForURL(/\/c\/[^/]+\?novo=1$/);
+    await expect(page.getByRole("dialog", { name: "Novo tópico" })).toBeVisible();
   });
 });
 
