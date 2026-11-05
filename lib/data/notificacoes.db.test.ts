@@ -11,7 +11,9 @@ import { db, joinAs, makeCommunity, makeProfile, makeUniverse, resetDatabase } f
 import {
   avisar,
   avisarMarcados,
+  centralDeNotificacoes,
   listarNotificacoes,
+  marcarNotificacaoComoAtendida,
   marcarNotificacoesComoLidas,
 } from "./notificacoes";
 import { createAnswer, createTopic } from "./topics";
@@ -377,5 +379,176 @@ describe("a central", () => {
     });
 
     expect(await listarNotificacoes(viewerFor(jo.id))).toHaveLength(0);
+  });
+});
+
+/**
+ * O aviso sai do topo quando **ele** é clicado.
+ *
+ * `readAt` e `openedAt` respondem perguntas diferentes, e a central depende
+ * das duas: abrir marca tudo como lido e apaga o ponto do sino; clicar num
+ * aviso marca só aquele e o tira da área "Só para te avisar".
+ *
+ * Antes de 4 de novembro só existia `readAt`, e a área de cima filtrava por
+ * "é pessoal" — nunca esvaziava. O PO tinha três avisos de duas semanas
+ * atrás parados lá.
+ */
+describe("atender um aviso", () => {
+  it("marca só o que foi clicado, e deixa os outros esperando", async () => {
+    const { lia, comunidade, topico } = await cenario();
+    await avisar(lia.id, "mention", { topicId: topico.id, communityId: comunidade.id });
+    await avisar(lia.id, "cabin_invite", { cabinId: "x" });
+
+    const antes = await listarNotificacoes(viewerFor(lia.id));
+    expect(antes.map((n) => n.atendida)).toEqual([false, false]);
+
+    const primeiro = antes[0]!;
+    await marcarNotificacaoComoAtendida(viewerFor(lia.id), primeiro.id);
+
+    const depois = await listarNotificacoes(viewerFor(lia.id));
+    expect(depois.find((n) => n.id === primeiro.id)?.atendida).toBe(true);
+    expect(depois.filter((n) => n.id !== primeiro.id).map((n) => n.atendida)).toEqual([false]);
+  });
+
+  it("abrir a central marca como lido, e **não** como atendido", async () => {
+    const { lia } = await cenario();
+    await avisar(lia.id, "cabin_invite", { cabinId: "x" });
+
+    await marcarNotificacoesComoLidas(viewerFor(lia.id));
+
+    const [aviso] = await listarNotificacoes(viewerFor(lia.id));
+    // Lido apaga o ponto do sino; atendido tira do topo. Se um sinal só
+    // servisse aos dois, abrir a central esvaziaria a área inteira.
+    expect(aviso?.lida).toBe(true);
+    expect(aviso?.atendida).toBe(false);
+  });
+
+  it("ninguém atende o aviso de outra pessoa", async () => {
+    const { lia, jo } = await cenario();
+    await avisar(lia.id, "cabin_invite", { cabinId: "x" });
+    const [aviso] = await listarNotificacoes(viewerFor(lia.id));
+
+    await marcarNotificacaoComoAtendida(viewerFor(jo.id), aviso!.id);
+
+    const [depois] = await listarNotificacoes(viewerFor(lia.id));
+    expect(depois?.atendida).toBe(false);
+  });
+
+  it("atender duas vezes não muda a hora da primeira", async () => {
+    const { lia } = await cenario();
+    await avisar(lia.id, "cabin_invite", { cabinId: "x" });
+    const [aviso] = await listarNotificacoes(viewerFor(lia.id));
+
+    await marcarNotificacaoComoAtendida(viewerFor(lia.id), aviso!.id);
+    const primeira = await db.notification.findUniqueOrThrow({ where: { id: aviso!.id } });
+
+    await marcarNotificacaoComoAtendida(viewerFor(lia.id), aviso!.id);
+    const segunda = await db.notification.findUniqueOrThrow({ where: { id: aviso!.id } });
+
+    /*
+     * O clique do meio dispara `onMouseDown` e `onClick`, então a ação
+     * chega duas vezes — e a segunda não pode reescrever a hora. Quem
+     * garante é o `openedAt: null` no `where`.
+     */
+    expect(segunda.openedAt?.getTime()).toBe(primeira.openedAt?.getTime());
+  });
+});
+
+/**
+ * As duas áreas da central (tela 8).
+ *
+ * A divisão é testada aqui, e não por jornada, porque as duas regras que
+ * importam têm data: o corte do domingo e o teto de cinco. Provar "o que é
+ * anterior ao domingo não aparece" numa jornada exigiria fabricar um aviso
+ * da semana passada pela tela, e não há tela que faça isso.
+ */
+describe("as duas áreas da central", () => {
+  /** Grava um aviso com a data cravada: o produto não deixa escolher quando. */
+  async function avisoEm(profileId: string, quando: Date, kind = "topic_became_hot") {
+    return db.notification.create({
+      data: { profileId, kind: kind as never, payload: {}, createdAt: quando },
+    });
+  }
+
+  const UMA_QUARTA = new Date("2026-11-04T17:00:00Z"); // 14h em São Paulo
+  const DOMINGO = new Date("2026-11-01T03:00:00Z"); // 00h em São Paulo
+  const umPoucoDepois = (quando: Date, minutos: number) =>
+    new Date(quando.getTime() + minutos * 60_000);
+
+  it("o que é anterior ao domingo não aparece em Essa semana", async () => {
+    const { lia } = await cenario();
+    await avisoEm(lia.id, umPoucoDepois(DOMINGO, -10));
+    await avisoEm(lia.id, umPoucoDepois(DOMINGO, 10));
+
+    const { naSemana } = await centralDeNotificacoes(viewerFor(lia.id), UMA_QUARTA);
+
+    expect(naSemana).toHaveLength(1);
+    expect(naSemana[0]?.quando.getTime()).toBe(umPoucoDepois(DOMINGO, 10).getTime());
+  });
+
+  it("mostra no máximo cinco, as mais novas", async () => {
+    const { lia } = await cenario();
+    for (let i = 1; i <= 12; i += 1) {
+      await avisoEm(lia.id, umPoucoDepois(DOMINGO, i));
+    }
+
+    const { naSemana } = await centralDeNotificacoes(viewerFor(lia.id), UMA_QUARTA);
+
+    expect(naSemana).toHaveLength(5);
+    // As cinco mais novas, não as cinco primeiras que o banco devolveu.
+    expect(naSemana.map((n) => n.quando.getTime())).toEqual(
+      [12, 11, 10, 9, 8].map((i) => umPoucoDepois(DOMINGO, i).getTime()),
+    );
+  });
+
+  it("o que é pessoal e não foi atendido fica em cima, fora da semana", async () => {
+    const { lia, comunidade, topico } = await cenario();
+    await db.notification.create({
+      data: {
+        profileId: lia.id,
+        kind: "mention",
+        payload: { topicId: topico.id, communityId: comunidade.id },
+        createdAt: umPoucoDepois(DOMINGO, 10),
+      },
+    });
+
+    const { paraTeAvisar, naSemana } = await centralDeNotificacoes(viewerFor(lia.id), UMA_QUARTA);
+
+    expect(paraTeAvisar).toHaveLength(1);
+    // E não aparece duas vezes: quem está em cima não desce.
+    expect(naSemana).toHaveLength(0);
+  });
+
+  it("atendido desce para a semana, em vez de sumir", async () => {
+    const { lia, comunidade, topico } = await cenario();
+    const aviso = await db.notification.create({
+      data: {
+        profileId: lia.id,
+        kind: "mention",
+        payload: { topicId: topico.id, communityId: comunidade.id },
+        createdAt: umPoucoDepois(DOMINGO, 10),
+      },
+    });
+
+    await marcarNotificacaoComoAtendida(viewerFor(lia.id), aviso.id);
+
+    const { paraTeAvisar, naSemana } = await centralDeNotificacoes(viewerFor(lia.id), UMA_QUARTA);
+    expect(paraTeAvisar).toHaveLength(0);
+    expect(naSemana).toHaveLength(1);
+  });
+
+  it("aviso pessoal **sem destino** nunca fica preso em cima", async () => {
+    const { lia } = await cenario();
+    /*
+     * "Seu conteúdo foi removido" sem comunidade no payload não tem para
+     * onde ir. Sem link não há clique, e sem clique não haveria como
+     * atender — ele moraria no topo para sempre.
+     */
+    await avisoEm(lia.id, umPoucoDepois(DOMINGO, 10), "content_removed");
+
+    const { paraTeAvisar, naSemana } = await centralDeNotificacoes(viewerFor(lia.id), UMA_QUARTA);
+
+    expect(paraTeAvisar).toHaveLength(0);
+    expect(naSemana).toHaveLength(1);
   });
 });

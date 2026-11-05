@@ -839,7 +839,14 @@ model Notification {
   kind      NotificationKind
   /// Só ids internos, nunca nome ou conteúdo (regra de segurança 10).
   payload   Json             @default("{}")
+  /// Abriu a central. É o que apaga o ponto do sino.
   readAt    DateTime?        @map("read_at") @db.Timestamptz(6)
+  /// Clicou **neste** aviso e foi até o destino. É o que o tira do topo.
+  ///
+  /// Diferente de `readAt` de propósito: abrir a central marca tudo como
+  /// lido de uma vez, e o PO decidiu que só a que foi clicada sai da área
+  /// "Só para te avisar". Um sinal só não conseguiria dizer as duas coisas.
+  openedAt  DateTime?        @map("opened_at") @db.Timestamptz(6)
   createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)

@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { after } from "next/server";
 import { Avatar, ContentColumn, EmptyState, PageTitle, SectionTitle } from "@/design/components";
 import { getViewer } from "@/lib/auth/session";
-import { listarNotificacoes, marcarNotificacoesComoLidas } from "@/lib/data/notificacoes";
+import {
+  centralDeNotificacoes,
+  marcarNotificacoesComoLidas,
+  type NotificacaoNaTela,
+} from "@/lib/data/notificacoes";
 import { convitesParaModerar } from "@/lib/data/moderacao";
 import { ConvitesParaModerar } from "@/features/moderacao/convites";
+import { AvisoClicavel } from "@/features/notificacoes/aviso";
 import { haQuantoTempo } from "@/lib/tempo";
 
 export const metadata: Metadata = { title: "Notificações · Hub" };
@@ -12,31 +17,41 @@ export const metadata: Metadata = { title: "Notificações · Hub" };
 /**
  * Tela 8: a central de notificações.
  *
- * Duas separações, e as duas vêm do protótipo. **Pede atenção** em cima:
- * convite, mensagem, marcação, conteúdo removido — são as que têm alguém do
- * outro lado esperando. Depois, **Agora** e **Ontem**.
+ * **Duas áreas**, e as duas vêm da correção do PO de 4 de novembro.
  *
- * Abrir marca tudo como lido, e é o que finalmente apaga o ponto do sino —
- * ele existe desde a F11 e nunca teve onde ser apagado.
+ * **Só para te avisar**, em cima: convite, mensagem, marcação, conteúdo
+ * removido — as que têm alguém do outro lado. Cada uma sai daqui **quando
+ * é clicada**, não quando a central é aberta: abrir não é atender, e com
+ * dois avisos a pessoa atende um e deixa o outro.
+ *
+ * **Essa semana**, embaixo: o que chegou desde o último domingo, no máximo
+ * cinco. Era "Agora" e "Ontem", duas áreas separadas por dia — e cada linha
+ * já escreve "há 1 dia", "há 4 dias", então a separação repetia o texto e
+ * ainda criava o caso de um aviso de hoje pertencer às duas.
+ *
+ * Nada é apagado: a janela é da tela. Aviso de moderação é registro.
  */
 export default async function NotificacoesPage() {
   const viewer = await getViewer();
-  const notificacoes = await listarNotificacoes(viewer);
+  const { paraTeAvisar, naSemana } = await centralDeNotificacoes(viewer);
   // Convite de moderação precisa de resposta, e o aviso sozinho não tem
   // onde responder: ele aparece em cima, com os dois botões.
   const convites = viewer.kind === "member" ? await convitesParaModerar(viewer) : [];
 
-  // Sem `await`: marcar não pode atrasar a tela, e se falhar o pior que
-  // acontece é o ponto continuar lá na próxima visita.
-  void marcarNotificacoesComoLidas(viewer);
-
-  const ontem = new Date();
-  ontem.setDate(ontem.getDate() - 1);
-
-  const pedemAtencao = notificacoes.filter((n) => n.pessoal);
-  const outras = notificacoes.filter((n) => !n.pessoal);
-  const agora = outras.filter((n) => n.quando > ontem);
-  const antes = outras.filter((n) => n.quando <= ontem);
+  /*
+   * Marcar como lido é o que apaga o ponto do sino, e não pode atrasar a
+   * tela — mas **também não pode ser descartado**.
+   *
+   * Era `void marcarNotificacoesComoLidas(viewer)`: uma promessa solta num
+   * Server Component, que o Next pode encerrar junto com a resposta. Quando
+   * isso acontecia, o ponto continuava aceso numa tela recém-lida. `after()`
+   * roda depois de a resposta ser enviada, e é esperado.
+   */
+  if (viewer.kind === "member") {
+    after(async () => {
+      await marcarNotificacoesComoLidas(viewer);
+    });
+  }
 
   return (
     <ContentColumn>
@@ -46,40 +61,37 @@ export default async function NotificacoesPage() {
         convites={convites.map((c) => ({ id: c.id, comunidade: c.community.name }))}
       />
 
-      {notificacoes.length === 0 && convites.length === 0 ? (
+      {paraTeAvisar.length === 0 && naSemana.length === 0 && convites.length === 0 ? (
         <EmptyState
           title="Nada por aqui"
           description="Avisos sobre o seu tópico, convites de Cabine e quando alguém te marca aparecem nesta tela."
         />
       ) : (
         <>
-          {pedemAtencao.length > 0 ? (
+          {paraTeAvisar.length > 0 ? (
             <>
-              <SectionTitle>Pedem atenção</SectionTitle>
-              <div className="flex flex-col gap-2">
-                {pedemAtencao.map((n) => (
+              <SectionTitle>Só para te avisar</SectionTitle>
+              {/*
+                `data-para-te-avisar` é gancho de teste, como o
+                `data-resumo` da comunidade: o aviso atendido **desce** para
+                a semana em vez de sumir, e lá ele continua sendo um link
+                com o mesmo texto. Sem um gancho, contar "quantos avisos de
+                marcação existem na tela" conta os dois, e a jornada que
+                prova "um saiu do topo" não teria como olhar só o topo.
+              */}
+              <div data-para-te-avisar className="flex flex-col gap-2">
+                {paraTeAvisar.map((n) => (
                   <Aviso key={n.id} notificacao={n} destacada />
                 ))}
               </div>
             </>
           ) : null}
 
-          {agora.length > 0 ? (
+          {naSemana.length > 0 ? (
             <>
-              <SectionTitle>Agora</SectionTitle>
+              <SectionTitle>Essa semana</SectionTitle>
               <div className="flex flex-col gap-2">
-                {agora.map((n) => (
-                  <Aviso key={n.id} notificacao={n} />
-                ))}
-              </div>
-            </>
-          ) : null}
-
-          {antes.length > 0 ? (
-            <>
-              <SectionTitle>Ontem</SectionTitle>
-              <div className="flex flex-col gap-2">
-                {antes.map((n) => (
+                {naSemana.map((n) => (
                   <Aviso key={n.id} notificacao={n} />
                 ))}
               </div>
@@ -95,7 +107,7 @@ function Aviso({
   notificacao,
   destacada = false,
 }: {
-  notificacao: Awaited<ReturnType<typeof listarNotificacoes>>[number];
+  notificacao: NotificacaoNaTela;
   destacada?: boolean;
 }) {
   const conteudo = (
@@ -119,10 +131,15 @@ function Aviso({
    */
   const classe = destacada ? "bg-lavender block rounded-sm p-3" : "bg-paper block rounded-sm p-3";
 
+  /*
+   * Com destino, o aviso é clicável **e** se marca como atendido ao ser
+   * clicado — por isso passa por um componente de cliente. Sem destino,
+   * continua um bloco de texto: não há para onde ir.
+   */
   return notificacao.href ? (
-    <Link href={notificacao.href} className={classe}>
+    <AvisoClicavel id={notificacao.id} href={notificacao.href} className={classe}>
       {conteudo}
-    </Link>
+    </AvisoClicavel>
   ) : (
     <div className={classe}>{conteudo}</div>
   );

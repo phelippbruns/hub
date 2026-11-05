@@ -16,6 +16,7 @@ import { prisma } from "./prisma";
 import { viewerProfileId, requireProfileId, type Viewer } from "./viewer";
 import { comAvatares } from "@/lib/midia/deposito";
 import { handlesMencionados } from "@/lib/texto/marcacoes";
+import { domingoMaisRecente } from "@/lib/tempo";
 
 export type TipoDeNotificacao =
   | "topic_became_hot"
@@ -108,6 +109,14 @@ export type NotificacaoNaTela = {
   /** Pede ação ou é pessoal: vai para o topo, destacada (tela 8). */
   pessoal: boolean;
   lida: boolean;
+  /**
+   * A pessoa já clicou **neste** aviso e foi ao destino.
+   *
+   * Diferente de `lida`: abrir a central marca tudo como lido de uma vez, e
+   * é isso que apaga o ponto do sino. Sair da área "Só para te avisar" é
+   * outra coisa, e depende do clique naquele aviso.
+   */
+  atendida: boolean;
   quando: Date;
   autor: { nome: string; handle: string; avatarUrl: string | null } | null;
 };
@@ -163,6 +172,7 @@ export async function listarNotificacoes(viewer: Viewer): Promise<NotificacaoNaT
       href: destinoDe(linha.kind as TipoDeNotificacao, { topico, comunidade, dados }),
       pessoal: EH_PESSOAL.has(linha.kind as TipoDeNotificacao),
       lida: linha.readAt !== null,
+      atendida: linha.openedAt !== null,
       quando: linha.createdAt,
       autor: quem ? { nome: quem.name, handle: quem.handle, avatarUrl: quem.avatarUrl } : null,
     };
@@ -286,6 +296,42 @@ async function carregarPessoas(payloads: Record<string, string>[]) {
   );
 }
 
+/** Quantos avisos a área "Essa semana" mostra. Pedido do PO em 4 de novembro. */
+export const DA_SEMANA = 5;
+
+/**
+ * As duas áreas da central (tela 8), já divididas.
+ *
+ * A divisão mora aqui, e não na tela, por um motivo prático: ela tem duas
+ * regras com data — o domingo e o teto de cinco — e regra com data só se
+ * prova cravando a data. Na tela, provar "o que é anterior ao domingo não
+ * aparece" exigiria uma jornada que fabricasse um aviso da semana passada.
+ *
+ * - **paraTeAvisar**: pessoal, com destino, ainda não atendido. Sai quando
+ *   a pessoa clica **nele** — abrir a central não é atender.
+ * - **naSemana**: o resto, desde o último domingo, no máximo cinco.
+ *
+ * Aviso **sem destino** nunca entra em cima, e a exceção é obrigatória: sem
+ * link não há clique, e sem clique não há como atender — ele moraria no
+ * topo para sempre. "Seu conteúdo foi removido" é o caso.
+ */
+export async function centralDeNotificacoes(
+  viewer: Viewer,
+  agora: Date = new Date(),
+): Promise<{ paraTeAvisar: NotificacaoNaTela[]; naSemana: NotificacaoNaTela[] }> {
+  const todas = await listarNotificacoes(viewer);
+  const desdeDomingo = domingoMaisRecente(agora);
+
+  const paraTeAvisar = todas.filter((n) => n.pessoal && n.href !== null && !n.atendida);
+  const emCima = new Set(paraTeAvisar.map((n) => n.id));
+
+  const naSemana = todas
+    .filter((n) => !emCima.has(n.id) && n.quando >= desdeDomingo)
+    .slice(0, DA_SEMANA);
+
+  return { paraTeAvisar, naSemana };
+}
+
 /**
  * Marca tudo como lido.
  *
@@ -297,6 +343,29 @@ export async function marcarNotificacoesComoLidas(viewer: Viewer): Promise<void>
   await prisma.notification.updateMany({
     where: { profileId: me, readAt: null },
     data: { readAt: new Date() },
+  });
+}
+
+/**
+ * Marca que a pessoa clicou **neste** aviso e foi ao destino.
+ *
+ * É o que o tira da área "Só para te avisar" (tela 8), e só ele: os outros
+ * continuam esperando, porque ninguém os atendeu. Decisão do PO em 4 de
+ * novembro — abrir a central não é atender.
+ *
+ * `updateMany` com o dono no `where`, e não `update` por id: assim o aviso
+ * de outra pessoa simplesmente não casa, em vez de a função ter de comparar
+ * o dono depois de já ter lido a linha. Uma conferência que não dá para
+ * esquecer é melhor que uma que dá.
+ */
+export async function marcarNotificacaoComoAtendida(
+  viewer: Viewer,
+  notificacaoId: string,
+): Promise<void> {
+  const me = requireProfileId(viewer);
+  await prisma.notification.updateMany({
+    where: { id: notificacaoId, profileId: me, openedAt: null },
+    data: { openedAt: new Date() },
   });
 }
 

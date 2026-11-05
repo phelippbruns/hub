@@ -1972,6 +1972,80 @@ daquele estado. Quando um estado vazio ganha interface, **espere testes
 antigos reprovarem** — e leia cada um antes de culpar a mudança: ali foi o
 teste que estava errado, não o código novo.
 
+### O teste exercitava a porta que o caminho real não usa
+
+*O que aconteceu:* o interruptor "Seu tópico virou Hot Topic", nas
+Configurações, **nunca funcionou**. Desligar não parava de avisar. Ficou
+assim da F15 até 4 de novembro de 2026, quando o PO pediu para eu
+"verificar se as notificações estão sendo enviadas corretamente" por outro
+motivo.
+
+O `CLAUDE.md` diz, em letra: *"`avisar()` é a única porta"* — ela confere a
+preferência (RN34) antes de gravar. Só que **o aviso de Hot Topic não passa
+por ela**: quem o cria é `hub_virar_ciclo()`, em SQL, para o resultado e o
+aviso ficarem na mesma transação. E o `INSERT` de lá não olhava
+`notify_topic_became_hot`.
+
+*Por que passou:* por cinco testes que pareciam cobrir exatamente isto.
+
+`lib/data/notificacoes.db.test.ts` tem cinco casos de `topic_became_hot`, e
+os cinco chamam `avisar()`. Eles provam que **a porta** confere a
+preferência — o que é verdade, e irrelevante, porque este tipo de aviso não
+entra pela porta. O teste e o código de produção usavam caminhos
+diferentes para a mesma coisa.
+
+E o irmão acertou: na migration do aviso diário, o `INSERT` tem
+`AND p.notify_followed_topics` com o comentário "RN34: respeita o
+interruptor na hora de criar". Os dois SQL foram escritos com cinco dias de
+diferença, e nada ligava um ao outro.
+
+*Como foi resolvido:* migration recriando `hub_virar_ciclo()` com o `JOIN`
+em `profiles` e a conferência. A eleição não mudou — quem desligou o aviso
+continua ganhando o destaque, só não é avisado.
+
+🔒 **Com barreira** — três casos em `lib/data/ciclo.db.test.ts` que chamam
+`hub_virar_ciclo()`, **o caminho real**, e nunca `avisar()`. Conferidos
+reprovando: reapliquei a função antiga no banco e o primeiro caso ficou
+vermelho na hora.
+
+**A lição:** quando existe uma "única porta" para alguma regra, o teste
+dela não prova nada sobre quem **não** entra por ali. A pergunta a fazer de
+cada teste é: *o produto chega aqui pelo mesmo caminho?* Se o teste chama
+uma função TypeScript e o produto executa SQL, são dois sistemas, e só um
+está testado.
+
+E a forma prática: quando uma regra tem mais de um lugar que a implementa
+— aqui, dois `INSERT` em SQL que deveriam checar o mesmo interruptor —, o
+teste tem de **entrar por cada um deles**. Foi assim que a divergência
+sobreviveu a uma suíte de 480 testes.
+
+### Promessa solta em Server Component pode nunca terminar
+
+*O que aconteceu:* a central de notificações fazia
+`void marcarNotificacoesComoLidas(viewer)` — dispara e não espera, para não
+atrasar a tela. Marcar como lido é o que apaga o ponto do sino.
+
+Num Server Component isso é uma promessa flutuante: o Next **pode encerrar
+a resposta antes de ela terminar**, e nada avisa. Quando acontece, o ponto
+continua aceso numa tela que a pessoa acabou de ler.
+
+*Por que passou:* na máquina de desenvolvimento e na CI a escrita é rápida,
+e termina antes. É falha de corrida — passa quase sempre.
+
+*Como foi resolvido:* `after()`, de `next/server`. Ele existe exatamente
+para isto: roda **depois** de a resposta ser enviada, sem atrasar a tela e
+sem ser descartado. Confirmado em
+`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/after.md`.
+
+👁 **Atenção** — o teste não distingue: ele confere que o ponto apaga, e
+com `void` apagava quase sempre. O que protege é a regra, e o padrão a
+procurar é `void algumaCoisa(` ou uma chamada `async` sem `await` dentro de
+um Server Component.
+
+**A lição:** "não espera" e "roda mesmo assim" são coisas diferentes, e o
+`void` só promete a primeira. Quando o trabalho **precisa** acontecer mas
+não pode atrasar a resposta, o nome disso é `after()`.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
