@@ -164,3 +164,77 @@ export async function getFollowers(viewer: Viewer, ownerId: string) {
 
   return seguidores.map((f, i) => ({ ...f, follower: pessoas.at(i) ?? null }));
 }
+
+/**
+ * Quem me segue, para a folha de compartilhar (RN18 + RN23 + RN26).
+ *
+ * **Só seguidores**, por decisão do PO em 5 de novembro. Antes a folha
+ * usava `sugestoesParaConvidar`, que junta membros de comunidade em comum
+ * com quem se segue mutuamente — mandar um tópico virava uma lista de
+ * gente que nunca demonstrou interesse em você.
+ *
+ * **Os dois filtros abaixo não são enfeite.** Compartilhar **abre uma
+ * Cabine** com cada pessoa escolhida, então as regras do convite valem
+ * aqui inteiras:
+ *
+ * - RN23: quem marcou "ninguém pode me convidar" fica de fora, mesmo
+ *   seguindo você. Seguir é acompanhar, não é abrir a porta.
+ * - RN26: bloqueio vale nos dois sentidos. Um seguidor que te bloqueou
+ *   (ou que você bloqueou) não aparece — e sem isto a folha seria um
+ *   caminho de volta para quem fechou a porta.
+ *
+ * É a mesma lista para a abertura e para a busca: filtrar no navegador o
+ * que já veio é uma busca que mente, e foi assim que a busca da Cabine
+ * quebrou uma vez.
+ */
+export async function meusSeguidoresParaCompartilhar(
+  viewer: Viewer,
+  termo = "",
+  limite = 20,
+): Promise<{ id: string; nome: string; handle: string; emComum: string[] }[]> {
+  const me = requireProfileId(viewer);
+  const busca = termo.trim();
+
+  const seguidores = await prisma.follow.findMany({
+    where: {
+      followedProfileId: me,
+      target: "profile",
+      follower: {
+        deletedAt: null,
+        // RN23: a escolha de quem aceita convite vence o laço de seguir.
+        invitePolicy: { not: "nobody" },
+        // RN26: bloqueio nos dois sentidos.
+        NOT: [
+          { blocksMade: { some: { blockedId: me } } },
+          { blocksReceived: { some: { blockerId: me } } },
+        ],
+        ...(busca
+          ? {
+              OR: [
+                { name: { contains: busca, mode: "insensitive" as const } },
+                { handle: { contains: busca.toLowerCase() } },
+              ],
+            }
+          : {}),
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: limite,
+    select: { follower: { select: { id: true, name: true, handle: true } } },
+  });
+
+  /*
+   * `emComum` vai vazio de propósito: a tela não o desenha, e descobrir
+   * as comunidades compartilhadas custaria uma consulta por pessoa para
+   * um dado que ninguém vê. O campo fica no formato porque a folha é a
+   * mesma do convite da Cabine, que o usa.
+   */
+  return seguidores
+    .filter((f) => f.follower !== null)
+    .map((f) => ({
+      id: f.follower!.id,
+      nome: f.follower!.name,
+      handle: f.follower!.handle,
+      emComum: [],
+    }));
+}

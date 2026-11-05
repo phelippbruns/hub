@@ -106,7 +106,6 @@ export function CabecalhoDoTopico({
             <Compartilhar
               tipo="topico"
               id={topicId}
-              nome={nome}
               endereco={endereco}
               pessoas={paraCompartilhar}
               aoFechar={() => setAberto("nenhum")}

@@ -18,6 +18,23 @@ export default defineConfig({
    */
   fullyParallel: false,
   workers: 1,
+  /*
+   * 60 s por teste, e não os 30 s padrão.
+   *
+   * **Toda** jornada aqui começa criando uma conta: cadastro, verificação
+   * de idade, sete cards de apresentação, três comunidades e o fim do
+   * onboarding. São uns 20 segundos antes de o teste chegar ao que ele
+   * veio medir, e vários ficavam a poucos segundos do limite — passavam
+   * sozinhos e reprovavam no minuto 20 da suíte, com a máquina ocupada.
+   *
+   * Isso é falha de relógio, não de produto, e ela custa caro: cada uma
+   * manda alguém investigar um defeito que não existe. 60 s continua
+   * curto o bastante para um travamento de verdade reprovar.
+   *
+   * Quem precisa de mais usa `test.slow()`, que triplica — é o caso das
+   * jornadas com três sessões abertas ao mesmo tempo.
+   */
+  timeout: 60_000,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "list",

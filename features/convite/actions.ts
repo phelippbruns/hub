@@ -11,6 +11,8 @@ import { getViewer } from "@/lib/auth/session";
 import { UnauthenticatedError } from "@/lib/data/errors";
 import { abrirCabine, cabineAbertaCom, sendMessage } from "@/lib/data/cabins";
 import { MAXIMO_DE_CONVIDADOS } from "@/features/cabines/shared";
+import { meusSeguidoresParaCompartilhar } from "@/lib/data/follows";
+import type { PessoaParaCompartilhar } from "./compartilhar";
 
 async function quemPede() {
   const viewer = await getViewer();
@@ -71,4 +73,21 @@ export async function compartilhar(
 
   revalidatePath("/cabines");
   return { enviadoPara: enviados };
+}
+
+/**
+ * Procura entre **quem me segue**, no servidor (F14, corrigido em 5 de
+ * novembro).
+ *
+ * Tem action própria, e não reaproveita a `procurarParaConvidar` da
+ * Cabine: lá a regra é comunidade em comum (RN21), aqui é seguir. Se as
+ * duas dividissem a função, trocar uma mudaria a outra sem ninguém
+ * reparar — e foi por isso que a lista inicial e a busca da folha
+ * precisaram trocar juntas: eu trocaria só a primeira e digitar um nome
+ * traria de volta quem não me segue.
+ */
+export async function procurarSeguidoresParaCompartilhar(
+  termo: string,
+): Promise<PessoaParaCompartilhar[]> {
+  return meusSeguidoresParaCompartilhar(await quemPede(), termo);
 }

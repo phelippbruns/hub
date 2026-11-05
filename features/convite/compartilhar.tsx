@@ -2,8 +2,11 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { Button, Chip, Input } from "@/design/components";
-import { procurarParaConvidar } from "@/features/cabines/actions";
-import { compartilhar, type EstadoDoCompartilhamento } from "./actions";
+import {
+  compartilhar,
+  procurarSeguidoresParaCompartilhar,
+  type EstadoDoCompartilhamento,
+} from "./actions";
 
 export type PessoaParaCompartilhar = {
   id: string;
@@ -20,36 +23,25 @@ type Pessoa = PessoaParaCompartilhar;
  * Uma só, e não uma por tela: as duas folhas faziam a mesma coisa e teriam
  * divergido na primeira mudança.
  *
- * Só aparece quem **pode** receber: a busca é a mesma da Cabine, que já
- * respeita a comunidade em comum (RN21), a escolha de quem aceita convite
- * (RN23) e o bloqueio nos dois sentidos (RN26).
+ * **Só aparece quem te segue** (decisão do PO, 5 de novembro). Antes era
+ * a mesma lista do convite da Cabine, que junta membros de comunidade em
+ * comum com quem se segue mutuamente — mandar um tópico virava uma lista
+ * de gente que nunca demonstrou interesse em você.
+ *
+ * As regras do convite continuam valendo, porque compartilhar **abre uma
+ * Cabine**: quem marcou "ninguém pode me convidar" fica de fora (RN23) e
+ * o bloqueio vale nos dois sentidos (RN26). Quem filtra é o servidor,
+ * em `meusSeguidoresParaCompartilhar`.
  */
-/** O compartilhamento do sistema, com cópia do link como saída. */
-async function compartilharFora(titulo: string, url: string) {
-  if (typeof navigator.share === "function") {
-    try {
-      await navigator.share({ title: titulo, url });
-      return;
-    } catch {
-      // Fechar a folha do sistema não é erro, e não vale cair na cópia.
-      return;
-    }
-  }
-
-  await navigator.clipboard?.writeText(url);
-}
-
 export function Compartilhar({
   tipo,
   id,
-  nome,
   endereco,
   pessoas,
   aoFechar,
 }: {
   tipo: "comunidade" | "topico";
   id: string;
-  nome: string;
   /** Caminho da página, para montar o link absoluto no navegador. */
   endereco: string;
   pessoas: Pessoa[];
@@ -72,7 +64,7 @@ export function Compartilhar({
     let valeu = true;
     const relogio = setTimeout(() => {
       iniciarBusca(async () => {
-        const achadas = await procurarParaConvidar(termo);
+        const achadas = await procurarSeguidoresParaCompartilhar(termo);
         if (valeu) setResultado({ termo, pessoas: achadas });
       });
     }, 250);
@@ -123,7 +115,7 @@ export function Compartilhar({
 
       {visiveis.length === 0 ? (
         <p className="text-caption text-inkMuted">
-          {termo ? "Nenhuma pessoa com esse nome." : "Ninguém das suas comunidades por aqui."}
+          {termo ? "Nenhuma pessoa com esse nome." : "Ninguém te segue ainda."}
         </p>
       ) : (
         <div role="group" aria-label="Pessoas" className="flex flex-wrap gap-2">
@@ -170,14 +162,12 @@ export function Compartilhar({
       </Button>
 
       {/*
-        `navigator.share` não existe em todo navegador, e só funciona em
-        HTTPS. Em vez de esconder o botão quando falta — o que exigiria
-        decidir isso depois da montagem, e piscaria —, ele **sempre faz
-        alguma coisa**: sem o compartilhamento do sistema, copia o link.
+        Não há mais "Outros apps" (`navigator.share`), tirado a pedido do
+        PO em 5 de novembro. Compartilhar no Hub é mandar para alguém do
+        Hub; quem quiser levar para fora copia o link, que é o endereço
+        canônico do tópico — o que abre a tela de convite para quem não
+        tem conta.
       */}
-      <Button variant="secondary" onClick={() => void compartilharFora(nome, linkAbsoluto())}>
-        Outros apps
-      </Button>
     </form>
   );
 }

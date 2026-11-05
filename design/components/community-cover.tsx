@@ -145,6 +145,7 @@ export function RoundIconButton({
   disabledHint,
   type = "button",
   descrito,
+  tamanho = "md",
   children,
 }: {
   label: string;
@@ -170,6 +171,19 @@ export function RoundIconButton({
   type?: "button" | "submit";
   /** Id de um texto que explica o estado, para o `aria-describedby`. */
   descrito?: string;
+  /**
+   * `md` são 44 px, o padrão, e é o tamanho sobre a capa da comunidade,
+   * onde o botão compete com uma foto atrás dele.
+   *
+   * `sm` são 36 px, pedidos pelo PO em 5 de novembro para a caixa de
+   * contribuição e a pílula de ordenar: ali são três ou quatro botões
+   * numa linha só, e a 44 px eles pesavam mais que o campo de texto.
+   *
+   * 36 px fica abaixo dos 44 px que o WCAG pede para alvo de **toque**.
+   * Vale enquanto o Hub é só desktop; a F21 tem de revisitar, e está
+   * anotado no `pendencias.md`.
+   */
+  tamanho?: "md" | "sm";
   children: ReactNode;
 }) {
   return (
@@ -183,7 +197,8 @@ export function RoundIconButton({
       disabled={disabled}
       title={disabled ? disabledHint : undefined}
       className={cn(
-        "size-btnRound rounded-pill grid place-items-center",
+        "rounded-pill grid place-items-center",
+        tamanho === "sm" ? "size-controlSm" : "size-btnRound",
         disabled
           ? "bg-line text-inkMuted cursor-not-allowed"
           : cn("cursor-pointer", ativo ? "bg-sun text-ink" : "bg-paper text-ink"),

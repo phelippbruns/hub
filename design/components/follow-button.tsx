@@ -40,9 +40,15 @@ export function FollowButton({
       onClick={onToggle}
       className={cn(
         "size-controlSm rounded-pill box-border grid shrink-0 cursor-pointer place-items-center border-2",
+        /*
+          Seguindo, no escuro, o círculo fica **cheio** em `sun` com o
+          desenho em `ink` (pedido do PO, 5 de novembro). Era contorno
+          amarelo com olho amarelo, e à distância de um cartão escuro os
+          dois estados se pareciam demais. Ink sobre sun: 12,3:1.
+        */
         tom === "escuro"
           ? seguindo
-            ? "border-sun text-sun"
+            ? "bg-sun border-sun text-ink"
             : "border-paper text-paper"
           : seguindo
             ? "bg-lavender border-lavender text-ink"

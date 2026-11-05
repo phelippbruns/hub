@@ -521,7 +521,7 @@ F15 e virou rodada própria (seção 4.7).
 | F18 | Termos e privacidade | F03 | Texto completo — **já destravada**, só falta o texto |
 | F19 | Métricas e eventos | F14 | Saber se funciona |
 | F20 | Qualidade final da web | todas | Revisão geral, mais a imagem da Cabine (o resto do upload saiu na F09 e na F12) |
-| F21 | Versão de celular | F20 | O mesmo código, acima e abaixo de 768 px |
+| F21 | Versão de celular | F20 | O mesmo código, acima e abaixo de 768 px. **Dois débitos já conhecidos:** os botões da caixa de contribuição e da pílula de ordenar têm **36 px**, abaixo dos 44 px que o WCAG pede para alvo de toque (pedido do PO em 5/11, e vale enquanto o Hub é só desktop); e o **toque duplo no cartão** para dar estrela (item 3.6 do protótipo v6) não foi implementado — falta impedir o zoom do toque duplo e ignorar o toque durante a rolagem. |
 
 **Atalhos que precisam ser preenchidos:** `/inicio`, `/topico/[id]` e `/termos`
 existem como páginas mínimas, só para os caminhos não caírem em 404. O
