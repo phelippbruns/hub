@@ -16,7 +16,7 @@ export function CommunityChip({ nome, href }: { nome: string; href: string }) {
   return (
     <Link
       href={href}
-      className="bg-surfacePage text-ink hover:bg-lavenderSoft h-btnRound inline-flex min-w-0 items-center gap-2 rounded-pill py-0 pr-3 pl-1 no-underline"
+      className="bg-surfacePage text-ink hover:bg-lavenderSoft h-btnRound rounded-pill inline-flex min-w-0 items-center gap-2 py-0 pr-3 pl-1 no-underline"
     >
       <LevelMark level="community" />
       <span className="text-bodyStrong truncate">{nome}</span>
