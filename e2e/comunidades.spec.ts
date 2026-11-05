@@ -170,7 +170,13 @@ test.describe("a página da comunidade", () => {
     await expect(janela).toBeVisible();
     await expect(janela.getByLabel("Buscar pessoas")).toBeVisible();
     await expect(janela.getByRole("button", { name: "Copiar link" })).toBeVisible();
-    await expect(janela.getByRole("button", { name: "Outros apps" })).toBeVisible();
+
+    /*
+     * **Não** há "Outros apps". O botão existiu até 5 de novembro, e saiu
+     * a pedido do PO: compartilhar no Hub é mandar para alguém do Hub, e
+     * quem quiser levar para fora copia o link.
+     */
+    await expect(janela.getByRole("button", { name: "Outros apps" })).toHaveCount(0);
   });
 
   /*

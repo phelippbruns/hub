@@ -430,7 +430,6 @@ export function CabecalhoDaComunidade({
           <Compartilhar
             tipo="comunidade"
             id={comunidade.id}
-            nome={comunidade.name}
             endereco={`/c/${comunidade.slug}`}
             pessoas={paraCompartilhar}
             aoFechar={() => setAberto("nenhum")}

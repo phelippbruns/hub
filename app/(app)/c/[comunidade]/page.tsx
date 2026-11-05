@@ -48,7 +48,7 @@ import type { Viewer } from "@/lib/data/viewer";
 import { hotTopicDeHoje } from "@/lib/data/ciclo";
 import { jaCrieiTopicoHoje } from "@/lib/data/topics";
 import { CriarTopico } from "@/features/topicos/criar";
-import { sugestoesParaConvidar } from "@/lib/data/cabins";
+import { meusSeguidoresParaCompartilhar } from "@/lib/data/follows";
 import { NotFoundError } from "@/lib/data/errors";
 
 export async function generateMetadata({
@@ -133,7 +133,10 @@ export default async function ComunidadePage({
   }
 
   const [paraCompartilhar, enquetesAbertas, proximosEncontros, jaUsouODia] = await Promise.all([
-    sugestoesParaConvidar(viewer),
+    // RN18: a folha de compartilhar lista **quem me segue**, não as
+    // sugestões da Cabine. A `/cabines/nova` continua com as sugestões:
+    // lá a regra é comunidade em comum (RN21), que é outra coisa.
+    meusSeguidoresParaCompartilhar(viewer),
     // O contador da aba. Barato: é um `count` com índice, e a aba sempre
     // aparece, então ele seria pedido de qualquer jeito ao trocar de aba.
     enquetesEsperandoMeuVoto(viewer, dados.id),
@@ -399,7 +402,7 @@ async function PainelAoLado({
       podeApagar={dados.podeApagar}
       respostasDeOutros={dados.respostasDeOutros}
       limite={LIMITE_RESPOSTAS_PARA_APAGAR}
-      paraCompartilhar={await sugestoesParaConvidar(viewer)}
+      paraCompartilhar={await meusSeguidoresParaCompartilhar(viewer)}
     >
       <CorpoDoTopico
         topicId={dados.id}

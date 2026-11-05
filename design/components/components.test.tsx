@@ -16,6 +16,7 @@ import {
   EndOfList,
   ErrorState,
   FollowButton,
+  RoundIconButton,
   HomeRow,
   HotTopicCard,
   LevelMark,
@@ -155,6 +156,21 @@ const cases: Array<[string, React.ReactElement]> = [
   ],
   ["seguir, desligado", <FollowButton seguindo={false} oQue="Lia Souza" />],
   ["seguir, ligado", <FollowButton seguindo oQue="Lia Souza" />],
+  /*
+    No cartão escuro do tópico: contorno branco sem seguir, e **círculo
+    cheio em sun com o desenho em ink** seguindo. O estado não depende só
+    da cor — `aria-pressed` e o rótulo mudam junto.
+  */
+  ["seguir no escuro, desligado", <FollowButton seguindo={false} tom="escuro" oQue="o tópico" />],
+  ["seguir no escuro, ligado", <FollowButton seguindo tom="escuro" oQue="o tópico" />],
+  ["botão redondo de 44 px", <RoundIconButton label="Compartilhar">{"·"}</RoundIconButton>],
+  /* 36 px: a caixa de contribuição e a pílula de ordenar, desde 5/11. */
+  [
+    "botão redondo de 36 px",
+    <RoundIconButton label="Adicionar imagem" tamanho="sm">
+      {"·"}
+    </RoundIconButton>,
+  ],
   ["título de seção", <SectionTitle>Universos</SectionTitle>],
   // O # numa lista diz qual comunidade, não só "a comunidade".
   ["porta da comunidade, com nome", <CommunityDoor member={false} oQue="Vinil" />],

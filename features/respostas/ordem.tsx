@@ -47,7 +47,7 @@ export function OrdemDasRespostas({
       className="bg-surfacePage rounded-pill inline-flex items-center gap-1 p-1"
     >
       <Opcao ativo={!porData} rotulo="Ordenar por mais estrelas" onClick={() => ir("estrelas")}>
-        <StarIcon decorative className="size-iconNav" />
+        <StarIcon decorative className="size-iconTool" />
       </Opcao>
 
       <Opcao
@@ -56,7 +56,7 @@ export function OrdemDasRespostas({
         // Primeiro clique: mais novas. Depois, alterna.
         onClick={() => ir(atual === "novas" ? "antigas" : "novas")}
       >
-        <ChronologicalIcon decorative className="size-iconNav" />
+        <ChronologicalIcon decorative className="size-iconTool" />
       </Opcao>
     </div>
   );
@@ -80,7 +80,8 @@ function Opcao({
       aria-label={rotulo}
       title={rotulo}
       onClick={onClick}
-      className={`size-controlLg rounded-pill grid cursor-pointer place-items-center ${
+      /* 36 px, o mesmo da caixa de contribuição: o PO pediu o par. */
+      className={`size-controlSm rounded-pill grid cursor-pointer place-items-center ${
         ativo ? "bg-ink text-paper" : "text-inkMuted hover:bg-lavenderSoft"
       }`}
     >

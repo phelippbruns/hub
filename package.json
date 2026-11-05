@@ -11,6 +11,7 @@
     "lint": "eslint --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "verificar": "npm run format && npm run tokens:check && npm run typecheck && npm run lint && npm run test",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

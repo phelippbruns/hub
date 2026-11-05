@@ -152,7 +152,6 @@ export function PainelDoTopico({
                 <Compartilhar
                   tipo="topico"
                   id={topicId}
-                  nome={nome}
                   endereco={endereco}
                   pessoas={paraCompartilhar}
                   aoFechar={() => setAberto("nenhum")}

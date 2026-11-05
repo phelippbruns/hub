@@ -6,9 +6,9 @@ import { useId, useState, useTransition } from "react";
 import {
   AnswerCard,
   Avatar,
-  BottomSheet,
   Button,
   ConfirmSheet,
+  MenuSuspenso,
   RoundIconButton,
   StarButton,
 } from "@/design/components";
@@ -104,15 +104,67 @@ export function LinhaDeResposta({
     return alvo?.closest("a,button,[role=button],img") === null;
   }
 
+  /*
+   * O menu abre **em balão, ancorado no botão** — `MenuSuspenso`, não
+   * `BottomSheet`.
+   *
+   * A folha é desenhada no fluxo da página: abrir empurra tudo que está
+   * embaixo, e dentro do cartão ela espremia o texto a uma letra por
+   * linha. O próprio componente registra que a Cabine saiu dela pelo
+   * mesmo motivo; o painel do tópico já usava o balão, e o cartão ficou
+   * para trás.
+   *
+   * O `relative` é obrigatório e mora aqui: quem põe o menu em posição é
+   * o pai, porque é ele que sabe onde o botão está.
+   */
   const menu = (
-    <RoundIconButton
-      label={resposta.souAutor ? "Opções da sua contribuição" : `Opções da contribuição de ${nome}`}
-      ativo={aberto === "menu"}
-      controla={idDoMenu}
-      onClick={() => setAberto((a) => (a === "menu" ? "nenhum" : "menu"))}
-    >
-      <MoreOptionsIcon decorative className="size-icon" />
-    </RoundIconButton>
+    <span className="relative">
+      <RoundIconButton
+        label={
+          resposta.souAutor ? "Opções da sua contribuição" : `Opções da contribuição de ${nome}`
+        }
+        ativo={aberto === "menu"}
+        controla={idDoMenu}
+        onClick={() => setAberto((a) => (a === "menu" ? "nenhum" : "menu"))}
+      >
+        <MoreOptionsIcon decorative className="size-icon" />
+      </RoundIconButton>
+
+      <span id={idDoMenu}>
+        <MenuSuspenso
+          titulo={resposta.souAutor ? "Sua contribuição" : nome}
+          aberto={aberto === "menu"}
+          onFechar={() => setAberto("nenhum")}
+        >
+          {resposta.souAutor ? (
+            <>
+              <Button variant="danger" onClick={() => setAberto("apagar")}>
+                Apagar contribuição
+              </Button>
+              {/* RN14: a ausência de "editar" precisa ser explicada. */}
+              <p className="text-caption text-inkMuted">
+                Para corrigir, apague e contribua de novo.
+              </p>
+            </>
+          ) : (
+            <>
+              {/* Ligados na F16. O `voltar` traz a pessoa de volta ao
+                  tópico: denunciar não é motivo para perder o lugar. */}
+              <Link href={`/denuncia?resposta=${resposta.id}&voltar=${caminho}`}>
+                <Button variant="secondary" className="w-full">
+                  Denunciar
+                </Button>
+              </Link>
+              <Link href={`/denuncia?bloquear=${handle}&voltar=${caminho}`}>
+                <Button variant="secondary" className="w-full">
+                  Bloquear {nome}
+                </Button>
+              </Link>
+            </>
+          )}
+        </MenuSuspenso>
+      </span>
+    </span>
   );
 
   return (
@@ -199,41 +251,6 @@ export function LinhaDeResposta({
             comunidade={resposta.comunidade}
           />
         </AnswerCard>
-      </div>
-
-      {/*
-        `contents` tira o embrulho do fluxo: ele existe só para carregar o
-        `id` que o `aria-controls` do botão aponta.
-      */}
-      <div id={idDoMenu} className="contents">
-        <BottomSheet title={resposta.souAutor ? "Sua contribuição" : nome} open={aberto === "menu"}>
-          {resposta.souAutor ? (
-            <>
-              <Button variant="danger" onClick={() => setAberto("apagar")}>
-                Apagar contribuição
-              </Button>
-              {/* RN14: a ausência de "editar" precisa ser explicada. */}
-              <p className="text-caption text-inkMuted">
-                Para corrigir, apague e contribua de novo.
-              </p>
-            </>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {/* Ligados na F16. O `voltar` traz a pessoa de volta ao
-                  tópico: denunciar não é motivo para perder o lugar. */}
-              <Link href={`/denuncia?resposta=${resposta.id}&voltar=${caminho}`}>
-                <Button variant="secondary" className="w-full">
-                  Denunciar
-                </Button>
-              </Link>
-              <Link href={`/denuncia?bloquear=${handle}&voltar=${caminho}`}>
-                <Button variant="secondary" className="w-full">
-                  Bloquear {nome}
-                </Button>
-              </Link>
-            </div>
-          )}
-        </BottomSheet>
       </div>
 
       <ConfirmSheet

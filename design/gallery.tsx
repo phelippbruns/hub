@@ -495,6 +495,11 @@ export function DesignGallery() {
           <div className="flex items-center gap-2">
             <FollowButton seguindo={false} oQue="Lia Souza" onToggle={() => setSeguindo(true)} />
             <FollowButton seguindo oQue="Lia Souza" onToggle={() => setSeguindo(false)} />
+            {/* O par do cartão escuro do tópico, sobre `ink`. */}
+            <span className="bg-ink flex items-center gap-2 rounded-sm p-2">
+              <FollowButton seguindo={false} tom="escuro" oQue="o tópico" />
+              <FollowButton seguindo tom="escuro" oQue="o tópico" />
+            </span>
             <FollowButton
               seguindo={seguindo}
               oQue="Lia Souza"

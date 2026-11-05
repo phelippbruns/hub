@@ -266,7 +266,8 @@ test.describe("a conversa em tempo real", () => {
 
 test.describe("compartilhar para a Cabine (F14)", () => {
   test("o cartão do tópico chega na conversa e leva até ele", async ({ page, browser }) => {
-    await entrarNoApp(page, "compartilha");
+    test.slow();
+    const { handle: meuHandle } = await entrarNoApp(page, "compartilha");
     const outra = await outraSessao(browser, "recebe");
 
     try {
@@ -287,6 +288,19 @@ test.describe("compartilhar para a Cabine (F14)", () => {
       await criarTopico(page, comunidade, "assunto do teste");
       await page.waitForURL(/\/assunto-do-teste$/);
       const endereco = new URL(page.url()).pathname;
+
+      /*
+       * **Quem recebe precisa me seguir** (RN18, desde 5 de novembro).
+       *
+       * Antes a folha listava quem dividia comunidade comigo, e aceitar o
+       * convite da Cabine já bastava. Agora não: a lista é de seguidores,
+       * e esta linha é a regra nova aparecendo na jornada.
+       */
+      await seguirNoPerfil(outra.page, meuHandle);
+      await esperarNoBanco(`
+        SELECT 1 FROM follows f
+          JOIN profiles p ON p.id = f.followed_profile_id
+         WHERE p.handle = '${meuHandle}' AND f.target = 'profile'`);
 
       await page.goto(endereco);
       await page.getByRole("button", { name: /^Compartilhar/ }).click();

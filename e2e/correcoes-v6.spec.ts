@@ -1,0 +1,238 @@
+import { expect, test, type Browser, type Page } from "@playwright/test";
+import {
+  cadastroConcluido,
+  campoDeContribuicao,
+  concluirOnboarding,
+  criarTopico,
+  preencherNovaComunidade,
+  seguirNoPerfil,
+} from "./apoio-tela";
+import { esperarNoBanco } from "./apoio-banco";
+
+/**
+ * As correções do PO de 5 de novembro, sobre o protótipo v6.
+ *
+ * Sete itens, e o que os junta é a **jornada**: tudo isto acontece na
+ * mesma passada por um tópico — abrir o menu, escrever, ordenar,
+ * compartilhar, seguir.
+ */
+
+function unico(p: string) {
+  return `${p}${Date.now() % 100000}${Math.floor(Math.random() * 100)}`;
+}
+
+async function entrarNoApp(page: Page, prefixo: string, nome = "Pessoa das Correções") {
+  const handle = unico("c").slice(0, 20);
+  await page.goto("/criar-conta");
+  await page.getByLabel("Nome completo").fill(nome);
+  await page.getByLabel("Email").fill(`${unico(prefixo)}@teste.hub`);
+  await page.getByLabel("@").fill(handle);
+  await page.getByLabel("Senha", { exact: true }).fill("senhaboa123");
+  await page.getByLabel("Data de nascimento").fill(`${new Date().getUTCFullYear() - 25}-03-10`);
+
+  const caixa = page.getByRole("checkbox");
+  await caixa.click();
+  await expect(caixa).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("button", { name: "Continuar" }).click();
+
+  await cadastroConcluido(page);
+  await concluirOnboarding(page);
+  return { handle, nome };
+}
+
+async function outraSessao(browser: Browser, prefixo: string, nome: string) {
+  const contexto = await browser.newContext();
+  const page = await contexto.newPage();
+  const quem = await entrarNoApp(page, prefixo, nome);
+  return { contexto, page, ...quem };
+}
+
+async function topicoComUmaContribuicao(page: Page, prefixo: string) {
+  await preencherNovaComunidade(page, unico(`Com ${prefixo} `));
+  await page.waitForURL(/\/c\/[^/]+$/);
+  const comunidade = new URL(page.url()).pathname;
+
+  await criarTopico(page, comunidade, "Primeiro disco");
+  await page.waitForURL(/\/primeiro-disco$/);
+
+  const texto = `uma contribuição ${unico("t")}`;
+  await campoDeContribuicao(page).fill(texto);
+  await campoDeContribuicao(page).press("ControlOrMeta+Enter");
+  await esperarNoBanco(`SELECT 1 FROM answers WHERE text = '${texto}' AND deleted_at IS NULL`);
+  await page.reload();
+
+  return { comunidade, endereco: new URL(page.url()).pathname, texto };
+}
+
+test.describe("o menu da contribuição abre em balão", () => {
+  test("abrir o menu não move o cartão", async ({ page }) => {
+    await entrarNoApp(page, "balao");
+    const { texto } = await topicoComUmaContribuicao(page, "Balao");
+
+    const cartao = page.locator("article").filter({ hasText: texto }).first();
+    await expect(cartao).toBeVisible();
+    const antes = (await cartao.boundingBox())!;
+
+    /*
+     * A folha inferior é desenhada **no fluxo**: abrir empurrava tudo que
+     * estava embaixo, e dentro do cartão espremia o texto a uma letra por
+     * linha. Medir a posição do cartão é o que distingue um balão de uma
+     * folha — e nenhum `toBeVisible` distinguiria.
+     */
+    const botao = cartao.getByRole("button", { name: /^Opções/ });
+    await botao.click();
+    await expect(page.getByRole("button", { name: "Apagar contribuição" })).toBeVisible();
+
+    const depois = (await cartao.boundingBox())!;
+    expect(depois.y).toBeCloseTo(antes.y, 0);
+    expect(depois.height).toBeCloseTo(antes.height, 0);
+  });
+
+  test("Esc fecha o menu e o foco volta ao botão", async ({ page }) => {
+    await entrarNoApp(page, "esc");
+    const { texto } = await topicoComUmaContribuicao(page, "Esc");
+
+    const cartao = page.locator("article").filter({ hasText: texto }).first();
+    const botao = cartao.getByRole("button", { name: /^Opções/ });
+    await botao.click();
+    await expect(page.getByRole("button", { name: "Apagar contribuição" })).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: "Apagar contribuição" })).toHaveCount(0);
+    await expect(botao).toBeFocused();
+  });
+});
+
+test.describe("a caixa de contribuição", () => {
+  test("abre com 2 linhas e cresce até 6", async ({ page }) => {
+    await entrarNoApp(page, "duas");
+    await topicoComUmaContribuicao(page, "Duas");
+
+    const campo = campoDeContribuicao(page);
+    const altura = async () => (await campo.boundingBox())!.height;
+
+    const vazia = await altura();
+    // 2 linhas de 22 px, mais a folga do campo. Uma linha daria metade.
+    expect(vazia).toBeGreaterThan(40);
+
+    await campo.fill("linha\n".repeat(8));
+    const cheia = await altura();
+    expect(cheia).toBeGreaterThan(vazia);
+    // O teto é 6 linhas (`max-h-composeMax`, 132 px); 8 linhas rolam.
+    expect(cheia).toBeLessThanOrEqual(140);
+  });
+
+  test("o que falta sai da tela, e continua sendo anunciado", async ({ page }) => {
+    await entrarNoApp(page, "falta");
+    await topicoComUmaContribuicao(page, "Falta");
+
+    const frase = "Escreva algo, ou escolha uma imagem ou um GIF.";
+
+    /*
+     * Fora da vista — **medido**, não `toBeHidden`.
+     *
+     * `sr-only` não esconde: deixa o elemento com 1×1 e recortado, e para
+     * o Playwright ele continua "visível". O que distingue "saiu da tela"
+     * de "está lá em cima" é o tamanho. Se alguém tirar o `sr-only`, a
+     * linha volta a ter a altura de um texto e esta medida reprova.
+     */
+    const linha = page.getByText(frase);
+    const caixa = (await linha.boundingBox())!;
+    expect(caixa.height).toBeLessThanOrEqual(1);
+
+    /*
+     * E continua chegando a quem não vê a tela. Botão desativado sem
+     * motivo é um beco — esconder com `hidden` quebraria isto, porque o
+     * que está `hidden` não é lido nem por `aria-describedby`.
+     */
+    const enviar = page.getByRole("button", { name: "Contribuir", exact: true });
+    await expect(enviar).toBeDisabled();
+    const descrito = await enviar.getAttribute("aria-describedby");
+    expect(descrito).not.toBeNull();
+    await expect(page.locator(`[id="${descrito}"]`)).toHaveText(frase);
+  });
+});
+
+test.describe("compartilhar", () => {
+  test("lista só quem me segue, e não tem mais Outros apps", async ({ page, browser }) => {
+    /*
+     * Três cadastros e três folhas abertas não cabem nos 30 s padrão.
+     * `slow()` triplica o limite — é isso, e não encurtar o teste: as
+     * três folhas são três arquivos diferentes montando a lista, e
+     * cobrir só uma já me deixou passar um defeito nesta rodada.
+     */
+    test.slow();
+
+    const eu = await entrarNoApp(page, "compart", "Dona do Topico");
+    const seguidora = await outraSessao(browser, "segue", "Ana Seguidora");
+    const colega = await outraSessao(browser, "colega", "Caio Colega");
+
+    try {
+      const { comunidade, endereco } = await topicoComUmaContribuicao(page, "Compart");
+
+      // As duas entram na comunidade: é o critério **antigo**, e é o que
+      // esta jornada precisa derrubar.
+      for (const outra of [seguidora, colega]) {
+        await outra.page.goto(comunidade);
+        await outra.page.getByRole("button", { name: /^Entrar em / }).click();
+        await expect(outra.page.getByRole("button", { name: /^Membro de / })).toBeVisible();
+      }
+
+      // Só uma delas me segue.
+      await seguirNoPerfil(seguidora.page, eu.handle);
+      await esperarNoBanco(`
+        SELECT 1 FROM follows f
+          JOIN profiles p ON p.id = f.followed_profile_id
+         WHERE p.handle = '${eu.handle}' AND f.target = 'profile'`);
+
+      await page.goto(endereco);
+      await page.getByRole("button", { name: /^Compartilhar/ }).click();
+
+      const lista = page.getByRole("group", { name: "Pessoas" });
+      await expect(lista.getByRole("button", { name: "Ana Seguidora" })).toBeVisible();
+
+      /*
+       * **Esta é a linha que importa.** Caio divide comunidade comigo e
+       * aparecia na lista antiga. Eu troquei a busca e esqueci a lista
+       * inicial, que vem da página — e sem esta jornada a troca teria
+       * passado: o teste de banco cobre a função, não quem a chama.
+       */
+      await expect(lista.getByRole("button", { name: "Caio Colega" })).toHaveCount(0);
+
+      // E a busca, que é a outra metade da mesma regra.
+      await page.getByLabel("Buscar pessoas").fill("Caio");
+      await expect(lista.getByRole("button", { name: "Caio Colega" })).toHaveCount(0);
+
+      await expect(page.getByRole("button", { name: "Outros apps" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Copiar link" })).toBeVisible();
+
+      /*
+       * **A mesma folha na comunidade, que é outra página.**
+       *
+       * São três lugares montando a lista (o tópico, o cabeçalho da
+       * comunidade e o painel), e eu já troquei um e esqueci os outros
+       * nesta mesma rodada. Uma jornada que olha só o tópico não é
+       * barreira dos três — conferi reprovando cada um.
+       */
+      // Na comunidade a mesma folha mora atrás de "Mais opções → Convidar
+      // pessoas", e não de um botão de compartilhar.
+      await page.goto(comunidade);
+      await page.getByRole("button", { name: "Mais opções" }).click();
+      await page.getByRole("button", { name: "Convidar pessoas" }).click();
+      const naComunidade = page.getByRole("group", { name: "Pessoas" });
+      await expect(naComunidade.getByRole("button", { name: "Ana Seguidora" })).toBeVisible();
+      await expect(naComunidade.getByRole("button", { name: "Caio Colega" })).toHaveCount(0);
+
+      // E no painel do tópico, que é o terceiro.
+      await page.goto(`${comunidade}?t=primeiro-disco`);
+      const painel = page.getByRole("complementary", { name: /Tópico/ });
+      await painel.getByRole("button", { name: /^Compartilhar/ }).click();
+      const noPainel = painel.getByRole("group", { name: "Pessoas" });
+      await expect(noPainel.getByRole("button", { name: "Ana Seguidora" })).toBeVisible();
+      await expect(noPainel.getByRole("button", { name: "Caio Colega" })).toHaveCount(0);
+    } finally {
+      await seguidora.contexto.close();
+      await colega.contexto.close();
+    }
+  });
+});

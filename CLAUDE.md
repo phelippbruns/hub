@@ -257,7 +257,15 @@ Não remova essa linha, e não marque rota como estática. O teste `todo script 
 
 ### App
 
+**Antes de qualquer `push`, rode `npm run verificar`.** Ele roda na ordem
+que não tem como mentir: `format` → `tokens:check` → `typecheck` → `lint`
+→ `test`. **Formatar depois de testar invalida o teste** — o plugin do
+Tailwind no Prettier reordena as classes do `className`, e um snapshot
+gravado antes da formatação deixa de bater. Aconteceu duas vezes, está no
+Faustão.
+
 ```bash
+npm run verificar    # formata e então mede: a ordem certa, antes do push
 npm run dev          # desenvolvimento em http://localhost:3000
 npm run build        # build de produção (falha se faltar variável de ambiente)
 npm run start        # servir o build

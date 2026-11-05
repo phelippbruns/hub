@@ -154,7 +154,7 @@ export function CampoDeResposta({
             ref={campo}
             id={idDoCampo}
             name="text"
-            rows={1}
+            rows={2}
             maxLength={LIMITE}
             placeholder={eu ? `Contribua como ${eu.primeiroNome}` : "Escreva uma contribuição"}
             value={texto}
@@ -301,22 +301,27 @@ export function CampoDeResposta({
               disabled={pendente || oQueFalta !== null}
               disabledHint={oQueFalta ?? undefined}
               descrito={oQueFalta ? idDoFalta : undefined}
+              tamanho="sm"
             >
-              <SendIcon decorative className="size-icon" />
+              <SendIcon decorative className="size-iconTool" />
             </RoundIconButton>
           </div>
         </div>
       </div>
 
       {/*
-        O que falta para poder enviar fica **abaixo da caixa**, e não colado
-        ao botão pelo `disabledHint`: dentro da fileira ele espremia os
-        ícones e o contador contra a borda. O botão aponta para esta linha
-        por `aria-describedby`, então quem usa leitor de tela continua
-        ouvindo o motivo logo depois do nome.
+        O que falta para enviar **não aparece mais na tela** — pedido do
+        PO em 5 de novembro: embaixo da caixa ele era uma linha de aviso
+        permanente, e a caixa já começa vazia em toda visita.
+        
+        Mas ele **continua sendo anunciado**: botão desativado sem motivo
+        é um beco para quem não vê a tela. O `aria-describedby` do botão
+        aponta para cá, e o `title` mostra a frase no passar do mouse.
+        Esconder com `hidden` não serviria — o que está `hidden` não é
+        lido nem por `aria-describedby`.
       */}
       {oQueFalta ? (
-        <p id={idDoFalta} className="text-caption text-inkMuted">
+        <p id={idDoFalta} className="sr-only">
           {oQueFalta}
         </p>
       ) : null}

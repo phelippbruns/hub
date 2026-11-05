@@ -13,7 +13,7 @@ import { getViewer } from "@/lib/auth/session";
 import { LIMITE_RESPOSTAS_PARA_APAGAR, topicoPorEndereco } from "@/lib/data/topics";
 import { NotFoundError } from "@/lib/data/errors";
 import { marcarTopicoComoVisto, quandoVisitouOTopico } from "@/lib/data/inicio";
-import { sugestoesParaConvidar } from "@/lib/data/cabins";
+import { meusSeguidoresParaCompartilhar } from "@/lib/data/follows";
 
 type Params = Promise<{ comunidade: string; topico: string }>;
 
@@ -147,7 +147,7 @@ export default async function TopicoPage({
           podeApagar={dados.podeApagar}
           respostasDeOutros={dados.respostasDeOutros}
           limite={LIMITE_RESPOSTAS_PARA_APAGAR}
-          paraCompartilhar={await sugestoesParaConvidar(viewer)}
+          paraCompartilhar={await meusSeguidoresParaCompartilhar(viewer)}
         />
 
         <CorpoDoTopico
