@@ -2074,10 +2074,41 @@ regra de negócio.
 **procurar as cópias dela**. Texto se espalha por cópia e cola, e a
 barreira que você escreve guarda a tela, nunca a frase.
 
+### Gerei o snapshot e formatei depois
+
+**Quando:** 5 de novembro de 2026, no PR das estrelas. Segunda vez em
+duas entregas que o Prettier derruba a CI.
+
+**O que aconteceu:** gerei os snapshots de três componentes novos, rodei
+`npm run format:check`, ele acusou um arquivo, rodei `npm run format` — e
+**não repeti os testes de unidade**. O plugin do Tailwind no Prettier
+reordena as classes do `className`, então o HTML que o componente passou
+a renderizar deixou de bater com o snapshot que eu tinha acabado de
+gravar. Aqui tudo verde; na CI, três reprovados.
+
+No PR anterior foi a versão mais simples do mesmo erro: criei um arquivo
+com um heredoc, nunca passei o Prettier nele, e a CI reprovou na
+formatação.
+
+**Por que passou:** eu rodo os comandos na ordem em que me ocorrem, e
+cada um deles é verde quando roda. O que falta não é atenção, é **ordem**:
+formatar depois de testar invalida o teste, e nada avisa — `format` não
+sabe que existe snapshot, e `test` não é rodado de novo.
+
+🛡 **Barreira** — `npm run verificar` roda tudo na ordem que não tem como
+mentir: `format` → `tokens:check` → `typecheck` → `lint` → `test`.
+Formatar **primeiro**, e só então medir. É o comando a rodar antes de
+qualquer `push`; o `CLAUDE.md` o traz na seção de comandos.
+
+**A lição:** quando dois comandos se influenciam, a ordem entre eles é
+parte da regra, e regra que mora na cabeça é regra que falha na terceira
+vez. Vira script.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
 barreira: migrations no deploy, jornadas em série, plural do português,
+a ordem de formatar e medir (`npm run verificar`),
 segredo no repositório, corrida entre testes, um ícone aceso por tela, os
 utilitários de zero, e os dois limites de camada que o build recusa.
 
