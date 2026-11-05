@@ -257,6 +257,29 @@ Não remova essa linha, e não marque rota como estática. O teste `todo script 
 
 ### App
 
+**Rodar a suíte inteira de jornadas é exceção, não rotina.** Decidido
+pelo PO em 5 de novembro de 2026, depois de uma rodada em que eu rodei
+os 22 minutos localmente **e** a CI rodou tudo de novo, quatro vezes.
+
+Durante o trabalho, só as specs do que foi tocado — e quem decide quais
+é um **`grep` pelos consumidores do que mudou**, nunca um palpite. Mexeu
+no `Compartilhar`? `grep -rn Compartilhar features app` acha
+`cabines.spec.ts` e `comunidades.spec.ts` em dois segundos, e foram
+exatamente as duas que quebraram.
+
+**A CI é a rede de segurança, não a segunda conferência.** Ela roda
+tudo. Uma CI vermelha com um commit de conserto custa minutos; a suíte
+local antes de cada PR custa 22, e a CI roda de novo mesmo assim.
+
+**A exceção é mudança transversal, e tem critério.** Rode tudo quando o
+que mudou é: um **endereço**, um **token**, um **componente do design
+system usado em mais de três features**, ou uma **regra da camada de
+dados**. Nesses casos o `grep` não alcança — ele acha quem chama, não
+quem depende do comportamento.
+
+Os 696 testes de unidade levam 3 segundos e rodam sempre, em todo caso:
+`npm run verificar` os inclui.
+
 **Antes de qualquer `push`, rode `npm run verificar`.** Ele roda na ordem
 que não tem como mentir: `format` → `tokens:check` → `typecheck` → `lint`
 → `test`. **Formatar depois de testar invalida o teste** — o plugin do
