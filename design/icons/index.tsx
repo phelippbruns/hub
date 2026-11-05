@@ -173,6 +173,27 @@ export function ChronologicalIcon(props: IconProps) {
   );
 }
 
+/**
+ * A estrela de cinco pontas da RN15: dar apreço a uma contribuição.
+ *
+ * **Não é o `TopicStar`.** Aquele é o asterisco do Hub, a marca que diz
+ * "isto é um tópico", e usá-lo aqui faria o mesmo desenho significar duas
+ * coisas na mesma tela — uma logo acima da outra.
+ *
+ * `preenchida` é a estrela dada: miolo em `sun` e contorno fino, para o
+ * estado não depender só da cor (o rótulo também muda).
+ */
+export function StarIcon({ preenchida = false, ...props }: IconProps & { preenchida?: boolean }) {
+  return (
+    <IconBase {...props}>
+      <path
+        d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"
+        fill={preenchida ? "currentColor" : "none"}
+      />
+    </IconBase>
+  );
+}
+
 export function ConfirmedIcon(props: IconProps) {
   return (
     <IconBase {...props}>

@@ -372,7 +372,8 @@ export async function marcarNotificacaoComoAtendida(
 /**
  * Avisa quem foi marcado com @ num texto (F15).
  *
- * **Marcar é convite, não intromissão.** Numa rede sem curtida, ser
+ * **Marcar é convite, não intromissão.** Numa rede em que nem a estrela
+ * avisa quem a recebeu (RN15), ser
  * arrastado para uma conversa por qualquer pessoa é um jeito fácil de
  * incomodar — por isso só vale entre membros da mesma comunidade, e o
  * bloqueio vale nos dois sentidos (RN26). Marcar quem está de fora não

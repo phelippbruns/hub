@@ -253,6 +253,7 @@ model Profile {
   memberships        Membership[]
   topics             Topic[]
   answers            Answer[]
+  answerStars        AnswerStar[]
   follows            Follow[]          @relation("Follower")
   followers          Follow[]          @relation("FollowedProfile")
   cabinMemberships   CabinMember[]
@@ -556,7 +557,8 @@ model Topic {
 }
 
 /// RN13: até 240 caracteres, com GIF ou 1 imagem. Não existem respostas dentro
-/// de respostas, e não há curtida nem contador por resposta (RN15).
+/// de respostas. A estrela (RN15) conta por **contribuição** e vive em
+/// `AnswerStar`; aqui em cima nunca entra — o cabeçalho mede participação.
 model Answer {
   id        String     @id @default(uuid()) @db.Uuid
   topicId   String     @map("topic_id") @db.Uuid
@@ -572,12 +574,49 @@ model Answer {
   /// RN14: a resposta não pode ser editada, só apagada pelo autor.
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  topic  Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  author Profile? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  /// RN15: quantas estrelas esta contribuição recebeu.
+  ///
+  /// Mantido por **gatilho** (`answer_stars_contar`), nunca pela aplicação:
+  /// duas estrelas no mesmo instante leriam o mesmo número e uma sumiria.
+  /// Existe como coluna, e não como `COUNT`, porque a ordem padrão da lista
+  /// é por ele — contar linha a linha em cada carga seria caro à toa.
+  starCount Int @default(0) @map("star_count")
+
+  topic  Topic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  author Profile?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  stars  AnswerStar[]
 
   @@index([topicId, createdAt])
   @@index([authorId, createdAt])
+  /// A ordem padrão da tela do tópico: mais estrelas, empate na mais recente.
+  @@index([topicId, starCount(sort: Desc), createdAt(sort: Desc)])
   @@map("answers")
+}
+
+/// RN15: a estrela de uma contribuição.
+///
+/// Uma por pessoa por contribuição, e a regra **é** a chave primária
+/// composta — não uma contagem no código. Dar de novo retira: a tela
+/// alterna, e o que existe ou não existe é a linha.
+///
+/// Não há lista de quem deu estrela, nem soma no perfil, nem efeito no Hot
+/// Topic: o destaque das 00h continua contando pessoas diferentes
+/// respondendo. A estrela mede apreço por uma contribuição; o ciclo mede
+/// participação. São coisas diferentes, e misturá-las transformaria o
+/// destaque em concurso de popularidade.
+model AnswerStar {
+  answerId  String   @map("answer_id") @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  answer  Answer  @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([answerId, profileId])
+  /// O limite de taxa lê por aqui: quantas estrelas esta pessoa deu no
+  /// último minuto. Sem tabela nova — a própria é o registro.
+  @@index([profileId, createdAt(sort: Desc)])
+  @@map("answer_stars")
 }
 
 /// RN18: seguir comunidade, tópico ou pessoa. Seguir um tópico o salva na

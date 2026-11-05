@@ -9,6 +9,7 @@
  */
 import { revalidatePath } from "next/cache";
 import {
+  alternarEstrela,
   comunidadesParaMarcar,
   createAnswer,
   deleteAnswer,
@@ -167,4 +168,24 @@ export async function sugerirParaMarcar(
 
   const pessoas = await pessoasParaMarcar(viewer, topicId, termo);
   return pessoas.map((p) => ({ valor: p.handle, nome: p.nome }));
+}
+
+/**
+ * RN15: dar ou tirar a estrela de uma contribuição.
+ *
+ * **Não revalida nada, e isso é a feature.** `revalidatePath` aqui
+ * redesenharia a lista com a ordem nova no instante do clique, e a
+ * contribuição saltaria de posição debaixo do dedo de quem clicou (item
+ * 5.5 do protótipo). A ordem só é recalculada ao carregar a página ou
+ * trocar a ordenação.
+ *
+ * Devolve o número de verdade, lido depois do gatilho. A tela já mudou
+ * sozinha antes de pedir — é otimista — e usa isto para se corrigir se o
+ * seu palpite estiver errado, o que acontece quando outra pessoa estrelou
+ * a mesma contribuição no meio do caminho.
+ */
+export async function alternarEstrelaDaContribuicao(
+  answerId: string,
+): Promise<{ estrelada: boolean; total: number }> {
+  return alternarEstrela(await quemPede(), answerId);
 }

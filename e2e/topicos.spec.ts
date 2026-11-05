@@ -524,6 +524,8 @@ test.describe("a tela do tópico, protótipo v6", () => {
      * painel. O teto é metade da janela, 640 — e é ele que tem de ganhar.
      */
     const alca = page.getByRole("separator", { name: "Largura do tópico" });
+    // `boundingBox()` não espera: medir antes de o elemento existir dá null.
+    await expect(alca).toBeVisible();
     const caixa = (await alca.boundingBox())!;
     await page.mouse.move(caixa.x + caixa.width / 2, caixa.y + 200);
     await page.mouse.down();
@@ -557,6 +559,8 @@ test.describe("a tela do tópico, protótipo v6", () => {
     await page.goto(endereco);
 
     const alca = page.getByRole("separator", { name: "Largura do tópico" });
+    // `boundingBox()` não espera: medir antes de o elemento existir dá null.
+    await expect(alca).toBeVisible();
     const caixa = (await alca.boundingBox())!;
     await page.mouse.move(caixa.x + caixa.width / 2, caixa.y + 200);
     await page.mouse.down();

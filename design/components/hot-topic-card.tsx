@@ -18,7 +18,8 @@ import { cn } from "../cn";
  * participou. Era só título, abertura e dois números — o que diz que há
  * movimento, mas não diz qual, e é o qual que faz alguém entrar.
  *
- * Contadores: pessoas e contribuições. Nunca curtida, nunca contador por
+ * Contadores: pessoas e contribuições. Nunca a estrela (RN15): ela é de
+ * uma contribuição, e o destaque das 00h é do tópico. Nunca contador por
  * contribuição.
  */
 export function HotTopicCard({

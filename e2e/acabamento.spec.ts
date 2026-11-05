@@ -164,7 +164,7 @@ test.describe("marcar comunidade e tópico", () => {
 });
 
 test.describe("ordem das respostas", () => {
-  test("a mais nova em cima, e dá para inverter", async ({ page, browser }) => {
+  test("sem estrela nenhuma, o padrão lê como a mais nova em cima", async ({ page, browser }) => {
     await entrarNoApp(page, "ordem");
     const outra = await outraSessao(browser, "responde");
 
@@ -179,14 +179,13 @@ test.describe("ordem das respostas", () => {
       await responder(outra.page, topico, "resposta mais nova");
 
       await page.goto(topico);
-      // Só as respostas: a abertura do tópico também é um `<article>`, e
-      // ela é sempre a primeira da página.
+
       /*
        * Só as duas respostas deste teste.
        *
        * A abertura do tópico também é um `<article>` e vem primeiro — e
        * filtrar por "resposta" não a tira, porque o rodapé dela diz
-       * "2 respostas". Por isso o filtro casa com o texto escrito aqui.
+       * "2 contribuições". Por isso o filtro casa com o texto escrito aqui.
        */
       const textos = () =>
         page
@@ -194,10 +193,22 @@ test.describe("ordem das respostas", () => {
           .filter({ hasText: /resposta (antiga de tudo|mais nova)/ })
           .allInnerTexts();
 
+      /*
+       * A ordem padrão virou **estrelas** no protótipo v6 (RN15). Com
+       * ninguém estrelado, as duas empatam em zero — e o empate cai na
+       * mais recente, que é por que a leitura continua a mesma de antes.
+       */
       const comoChega = await textos();
       expect(comoChega[0]).toContain("resposta mais nova");
 
-      await page.getByRole("radio", { name: "Mais antigas" }).click();
+      // O controle virou pílula de ícones: estrela e relógio.
+      const relogio = page.getByRole("button", {
+        name: "Ordenar por data, mais novas primeiro",
+      });
+      await relogio.click();
+      await page.waitForURL(/ordem=novas/);
+
+      await page.getByRole("button", { name: /Mais novas primeiro/ }).click();
       await page.waitForURL(/ordem=antigas/);
       // A lista volta a escorrer por um `<Suspense>`: ler o DOM antes de
       // ela chegar devolve zero resposta, e a falha diz "undefined".

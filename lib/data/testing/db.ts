@@ -34,6 +34,7 @@ const TABLES = [
   "cabins",
   "hot_topics",
   "follows",
+  "answer_stars",
   "answers",
   "topics",
   "memberships",

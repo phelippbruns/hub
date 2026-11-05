@@ -152,6 +152,9 @@ async function Contribuicoes({
               comunidade: resposta.comunidadeDoTopico,
               quando: haQuantoTempo(resposta.createdAt),
               souAutor: resposta.souAutor,
+              // RN15: o total, e se **eu** dei. Nunca quem deu.
+              estrelas: resposta.starCount,
+              estrelada: resposta.estrelada,
               imagem: resposta.mediaHref,
               tipoDaMidia: resposta.mediaKind,
               /*

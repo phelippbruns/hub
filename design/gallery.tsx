@@ -32,6 +32,7 @@ import {
   EndOfList,
   ErrorState,
   CommunityChip,
+  StarButton,
   FollowButton,
   HomeRow,
   HotTopicCard,
@@ -211,6 +212,7 @@ export function DesignGallery() {
   const [seguindo, setSeguindo] = useState(false);
   const [fixada, setFixada] = useState(false);
   const [seguindoTopico, setSeguindoTopico] = useState(false);
+  const [estrelada, setEstrelada] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [cardDaGaleria, setCardDaGaleria] = useState(0);
   const [buscaDaGaleria, setBuscaDaGaleria] = useState("");
@@ -556,6 +558,25 @@ export function DesignGallery() {
           <p className="text-body text-ink">
             Respondi em <TopicName>primeira festa</TopicName> hoje de manhã.
           </p>
+        </Card>
+
+        <Card title="Estrela da contribuição" wide>
+          <div className="flex w-full flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <StarButton estrelada={false} total={0} onToggle={() => {}} />
+              <StarButton estrelada={false} total={7} onToggle={() => {}} />
+              <StarButton estrelada total={8} onToggle={() => {}} />
+              <StarButton
+                estrelada={estrelada}
+                total={estrelada ? 13 : 12}
+                onToggle={() => setEstrelada((v) => !v)}
+              />
+            </div>
+            <p className="text-caption text-inkMuted">
+              RN15: uma por pessoa, e dar de novo retira. Zero não aparece como número — só o
+              contorno. A área de clique tem 48 px e cobre a estrela e o número.
+            </p>
+          </div>
         </Card>
 
         <Card title="Chip da comunidade">

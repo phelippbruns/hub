@@ -726,3 +726,65 @@ vazio, e é ele que provoca.
 **A lição:** rótulo de campo é instrução de escrita, não etiqueta. Quando o
 nome do campo e o uso do texto discordam, quem obedece é a pessoa que
 escreve — e ela escreve o que o rótulo pediu.
+
+---
+
+## 18. O princípio que eu teria defendido até o fim
+
+### A estrela entrou, e o Princípio 2 continuou de pé
+
+**Quando:** 5 de novembro de 2026, no protótipo v6 da tela do tópico.
+
+A RN15 dizia, desde o primeiro dia: *"Não há curtidas nem contador por
+resposta."* O Princípio 2 do escopo se chama **"Participação, não
+popularidade"**, e a RN15 era a frase dele. O schema do Prisma, a camada
+de dados e dois componentes do design system traziam a regra em
+comentário: *"nunca curtida"*.
+
+O PO mandou o protótipo pedindo **estrela em cada contribuição**, com
+contador, ordenação por mais estrelas, e ordenação por estrelas como
+padrão. É a curtida, com outro nome e outro desenho.
+
+*O que eu fiz:* parei antes de escrever a primeira linha e mostrei o
+conflito — a regra, o princípio e a frase inteira. Ofereci três saídas:
+virar a regra, guardar o número só para o autor, ou não fazer. **Ele
+escolheu virar a regra.**
+
+*O que custou não fazer:* nada, e é esse o ponto desta entrada. Se eu
+tivesse implementado calado, o Hub teria hoje uma regra escrita em quatro
+arquivos dizendo o contrário do que o produto faz — e a próxima pessoa a
+ler o escopo acreditaria no escopo. Se eu tivesse recusado em nome do
+princípio, teria trocado uma decisão do dono do produto pela minha leitura
+de um documento que ele mesmo escreveu.
+
+*Como ficou, e onde a linha parou:* a estrela entrou com **quatro
+limites**, e cada um deles existe para proteger exatamente o que o
+Princípio 2 protegia:
+
+| O limite | O que ele impede |
+| --- | --- |
+| Uma por pessoa por contribuição | Que intensidade vire volume |
+| **Não existe lista de quem deu** | Que alguém seja medido por quem o aplaudiu — é o limite que mais importa |
+| Não soma no perfil | Que a estrela vire placar de pessoa |
+| Não entra no ciclo das 00h | Que o Hot Topic vire concurso de popularidade em vez de medida de conversa |
+
+Os três primeiros estão no banco e nas consultas; o quarto é a ausência
+deliberada de um `JOIN` em `hub_virar_ciclo()`. O Hot Topic continua sendo
+**o tópico com mais pessoas diferentes respondendo**.
+
+A diferença entre a curtida que o Hub recusou e a estrela que ele aceitou
+é uma só, e cabe numa frase: **a estrela mede a contribuição, a curtida
+mede quem a escreveu.** O que faz a segunda acontecer é a lista de quem
+curtiu, e essa não existe.
+
+**Regra:** quando o pedido contraria uma regra escrita, o trabalho não é
+obedecer nem recusar — é **mostrar a regra, a consequência de virá-la e
+onde dá para parar**, e deixar a decisão com quem é dono dela. E quando a
+decisão vier, reescrever a regra no mesmo dia: regra que sobrevive ao
+produto é pior que regra nenhuma, porque ela é lida como verdade.
+
+📌 **Fixado** — a RN15, o Princípio 2 e a linha "Curtidas e lista de quem
+curtiu" do escopo foram reescritos. `lib/data/estrelas.db.test.ts` cobre
+os quatro limites, e a consulta da lista traz **só a minha** estrela, não
+as dos outros — a lista de quem deu não é escondida na tela, ela não sai
+do banco.
