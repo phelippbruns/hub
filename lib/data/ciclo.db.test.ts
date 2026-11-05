@@ -474,3 +474,58 @@ describe("o que o cartão do destaque mostra", () => {
     expect(destaque?.respostas).toBe(0);
   });
 });
+
+/**
+ * RN34: o aviso de Hot Topic respeita o interruptor.
+ *
+ * **Este teste existe porque os outros cinco não serviam.** Os testes de
+ * `topic_became_hot` em `notificacoes.db.test.ts` chamam `avisar()`, que
+ * confere a preferência — mas quem cria esse aviso de verdade é
+ * `hub_virar_ciclo()`, em SQL, que **não chama `avisar()`**. Eles provavam
+ * uma porta que o caminho real não usa, e o interruptor ficou decorativo da
+ * F15 até 4 de novembro: desligar não fazia nada.
+ *
+ * Por isso aqui a virada é chamada de verdade, e `avisar()` não aparece.
+ */
+describe("RN34: o aviso do destaque respeita o interruptor", () => {
+  async function virouDestaqueOntem(nomeDaComunidade: string, dona: { id: string }) {
+    const c = await comunidade(nomeDaComunidade, dona);
+    await topicoCom(c.id, "assunto", { pessoas: 3, quando: ONTEM(), autor: dona });
+    await virarCiclo(new Date(await diaDoCiclo(ONTEM())));
+    return c;
+  }
+
+  const avisosDoDestaque = (profileId: string) =>
+    db.notification.count({ where: { profileId, kind: "topic_became_hot" } });
+
+  it("desligado, virar o ciclo não cria o aviso", async () => {
+    const dona = await makeProfile();
+    await db.profile.update({ where: { id: dona.id }, data: { notifyTopicBecameHot: false } });
+
+    const c = await virouDestaqueOntem("Sem Aviso", dona);
+
+    expect(await avisosDoDestaque(dona.id)).toBe(0);
+    // E o destaque **existe**: o interruptor é sobre o aviso, não sobre a
+    // eleição. Quem desligou continua ganhando o topo da comunidade.
+    expect(await hotTopicDeHoje(c.id)).not.toBeNull();
+  });
+
+  it("ligado, continua criando", async () => {
+    const dona = await makeProfile();
+    const c = await virouDestaqueOntem("Com Aviso", dona);
+
+    expect(await avisosDoDestaque(dona.id)).toBe(1);
+    expect(await hotTopicDeHoje(c.id)).not.toBeNull();
+  });
+
+  it("o interruptor de outra pessoa não interfere", async () => {
+    const dona = await makeProfile();
+    const outra = await makeProfile();
+    await db.profile.update({ where: { id: outra.id }, data: { notifyTopicBecameHot: false } });
+
+    await virouDestaqueOntem("De Quem", dona);
+
+    expect(await avisosDoDestaque(dona.id)).toBe(1);
+    expect(await avisosDoDestaque(outra.id)).toBe(0);
+  });
+});

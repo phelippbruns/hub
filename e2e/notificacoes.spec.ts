@@ -89,7 +89,7 @@ test.describe("marcar com @", () => {
 
       // E o aviso leva até a resposta.
       await outra.page.goto("/notificacoes");
-      await expect(outra.page.getByText("Pedem atenção")).toBeVisible();
+      await expect(outra.page.getByText("Só para te avisar")).toBeVisible();
 
       const aviso = outra.page.getByRole("link", { name: /marcou você/ });
       await expect(aviso).toBeVisible();
@@ -206,6 +206,96 @@ test.describe("a central", () => {
 
       // O ponto existe desde a F11 e nunca tinha tido onde ser apagado.
       await expect(barra.getByRole("status")).toHaveCount(0);
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("as duas áreas se chamam Só para te avisar e Essa semana", async ({ page, browser }) => {
+    await entrarNoApp(page, "areas");
+    const outra = await outraSessao(browser, "areas2");
+
+    try {
+      const { comunidade, topico } = await meuTopico(page, "Com Areas");
+
+      await outra.page.goto(comunidade);
+      await outra.page.getByRole("button", { name: /^Entrar em / }).click();
+      await expect(outra.page.getByRole("button", { name: /^Membro de / })).toBeVisible();
+
+      await page.goto(topico);
+      await campoDeContribuicao(page).fill(`@${outra.handle} oi`);
+      await botaoDeContribuir(page).click();
+      await expect(page.locator("article").filter({ hasText: "oi" })).toBeVisible();
+
+      await outra.page.goto("/notificacoes");
+      await expect(outra.page.getByRole("heading", { name: "Só para te avisar" })).toBeVisible();
+
+      // Os nomes antigos saíram: "Pedem atenção", "Agora" e "Ontem".
+      for (const velho of ["Pedem atenção", "Agora", "Ontem"]) {
+        await expect(outra.page.getByRole("heading", { name: velho })).toHaveCount(0);
+      }
+    } finally {
+      await outra.contexto.close();
+    }
+  });
+
+  test("clicar num aviso tira **ele** do topo, e deixa o outro esperando", async ({
+    page,
+    browser,
+  }) => {
+    await entrarNoApp(page, "atende");
+    const outra = await outraSessao(browser, "atendida");
+
+    try {
+      const { comunidade, topico } = await meuTopico(page, "Com Atender");
+
+      await outra.page.goto(comunidade);
+      await outra.page.getByRole("button", { name: /^Entrar em / }).click();
+      await expect(outra.page.getByRole("button", { name: /^Membro de / })).toBeVisible();
+
+      // Duas marcações: é o que distingue "clicar atende" de "abrir atende".
+      for (const texto of ["primeira", "segunda"]) {
+        await page.goto(topico);
+        await campoDeContribuicao(page).fill(`@${outra.handle} ${texto}`);
+        await botaoDeContribuir(page).click();
+        await expect(page.locator("article").filter({ hasText: texto })).toBeVisible();
+      }
+
+      await outra.page.goto("/notificacoes");
+      await expect(outra.page.getByRole("heading", { name: "Só para te avisar" })).toBeVisible();
+
+      // Só o topo: o aviso atendido desce para a semana e continua sendo
+      // um link com o mesmo texto.
+      const topo = outra.page.locator("[data-para-te-avisar]");
+      const avisos = topo.getByRole("link", { name: /marcou você em/ });
+      await expect(avisos).toHaveCount(2);
+
+      /*
+       * Clicar leva ao tópico **e** marca. A ação roda ao lado da
+       * navegação, sem impedi-la: por isso a conferência é feita depois de
+       * voltar, não durante.
+       */
+      await avisos.first().click();
+      await outra.page.waitForURL(/\/assunto-com-marcacao$/);
+
+      await outra.page.goto("/notificacoes");
+
+      /*
+       * Um sumiu do topo e o outro ficou. Antes de 4 de novembro a área
+       * filtrava por "é pessoal" e nunca esvaziava — o PO tinha avisos de
+       * duas semanas parados lá.
+       */
+      await expect(outra.page.getByRole("heading", { name: "Só para te avisar" })).toBeVisible();
+      await expect(topo.getByRole("link", { name: /marcou você em/ })).toHaveCount(1);
+
+      // E o atendido não sumiu da tela: desceu para a semana.
+      await expect(outra.page.getByRole("heading", { name: "Essa semana" })).toBeVisible();
+
+      // O segundo também sai, e aí o topo deixa de existir.
+      await topo.getByRole("link", { name: /marcou você em/ }).click();
+      await outra.page.waitForURL(/\/assunto-com-marcacao$/);
+      await outra.page.goto("/notificacoes");
+      await expect(outra.page.getByRole("heading", { name: "Só para te avisar" })).toHaveCount(0);
     } finally {
       await outra.contexto.close();
     }
