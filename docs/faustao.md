@@ -2046,6 +2046,34 @@ um Server Component.
 `void` só promete a primeira. Quando o trabalho **precisa** acontecer mas
 não pode atrasar a resposta, o nome disso é `after()`.
 
+### Apaguei a promessa num lugar e deixei no outro
+
+**Quando:** 5 de novembro de 2026, levantando a tela do tópico.
+
+**O que aconteceu:** em 31 de outubro eu tirei do onboarding a frase *"Dá
+para editar por 5 minutos"*, porque é mentira — a RN14 proíbe editar e
+nunca existiu código de edição. Escrevi o `vacilos.md` #14, pus jornada
+para a frase não voltar, e marquei como resolvido.
+
+A **mesma promessa** continuava em `docs/design-system/README.md`, na
+seção de limites de conteúdo: *"Uma resposta pode ser editada por 5
+minutos."* Ficou lá cinco dias. Eu só a encontrei porque fui ler a tabela
+de tipografia por outro motivo.
+
+**Por que passou:** a jornada que eu escrevi procura a frase **na tela do
+onboarding**. É a barreira certa para o lugar que eu tinha olhado, e só
+para ele. Eu nunca varri o repositório atrás das outras cópias — tratei
+"achei a frase" como "achei a frase".
+
+👁 **Atenção** — `grep` no repositório inteiro, não só no arquivo em que a
+frase apareceu. Documento não tem teste, e `docs/` é onde promessa velha
+sobrevive mais tempo: ninguém abre o README do design system procurando
+regra de negócio.
+
+**A lição:** quando uma frase é falsa, o conserto não é apagá-la — é
+**procurar as cópias dela**. Texto se espalha por cópia e cola, e a
+barreira que você escreve guarda a tela, nunca a frase.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

@@ -4,7 +4,8 @@
 import { prisma } from "./prisma";
 import { ForbiddenError, translateDatabaseError } from "./errors";
 import { updateProfileSchema } from "./validation";
-import { requireProfileId, type Viewer } from "./viewer";
+import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
+import { comAvatar } from "@/lib/midia/deposito";
 import { generateUniqueHandle, suggestHandle, withSuffix } from "@/lib/auth/handle";
 import type { AgeVerificationMethod } from "@/lib/auth/age-verifier";
 
@@ -63,6 +64,34 @@ export async function meuHandle(viewer: Viewer): Promise<string> {
     select: { handle: true },
   });
   return perfil.handle;
+}
+
+/**
+ * Quem está escrevendo, para a caixa de contribuição.
+ *
+ * A caixa diz "Contribua como Phelipp" e mostra a foto: é o que distingue
+ * escrever **como você** de escrever num formulário anônimo. Só o primeiro
+ * nome e a foto, nada mais — é tudo que a tela usa.
+ */
+export async function quemEstaEscrevendo(
+  viewer: Viewer,
+): Promise<{ primeiroNome: string; avatarUrl: string | null; nome: string } | null> {
+  const me = viewerProfileId(viewer);
+  if (me === null) return null;
+
+  const perfil = await prisma.profile.findUnique({
+    where: { id: me },
+    select: { name: true, avatarUrl: true },
+  });
+  if (!perfil) return null;
+
+  return {
+    nome: perfil.name,
+    // O primeiro nome, e só ele: "Contribua como Maria Fernanda de Souza
+    // Albuquerque" não cabe no exemplo de um campo.
+    primeiroNome: perfil.name.trim().split(/\s+/)[0] ?? perfil.name,
+    avatarUrl: (await comAvatar(perfil)).avatarUrl,
+  };
 }
 
 export async function getProfileByAuthId(authUserId: string) {

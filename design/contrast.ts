@@ -55,11 +55,17 @@ export const pairs: Pair[] = [
   { foreground: "ink", background: "lavender", expected: 7.0, usage: "qualquer-texto" },
   { foreground: "ink", background: "sun", expected: 12.3, usage: "qualquer-texto" },
   { foreground: "inkMuted", background: "surfacePage", expected: 6.6, usage: "qualquer-texto" },
+  { foreground: "ink", background: "surfaceNeutral", expected: 15.2, usage: "qualquer-texto" },
+  { foreground: "inkMuted", background: "surfaceNeutral", expected: 6.8, usage: "qualquer-texto" },
+  { foreground: "ink", background: "lavenderSoft", expected: 13.0, usage: "qualquer-texto" },
+  { foreground: "inkMutedOnDark", background: "ink", expected: 10.6, usage: "qualquer-texto" },
   { foreground: "error", background: "paper", expected: 6.6, usage: "qualquer-texto" },
   { foreground: "success", background: "paper", expected: 6.4, usage: "qualquer-texto" },
   { foreground: "inkMuted", background: "lavender", expected: 3.1, usage: "texto-grande" },
   { foreground: "paper", background: "lavender", expected: 2.4, usage: "proibido" },
   { foreground: "lavender", background: "surfacePage", expected: 2.1, usage: "nao-e-sinal-unico" },
+  { foreground: "surfaceNeutral", background: "paper", expected: 1.1, usage: "nao-e-sinal-unico" },
+  { foreground: "inkLine", background: "ink", expected: 1.4, usage: "nao-e-sinal-unico" },
 ];
 
 export function ratioFor(pair: Pick<Pair, "foreground" | "background">): number {

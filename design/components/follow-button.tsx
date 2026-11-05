@@ -17,12 +17,19 @@ export function FollowButton({
   seguindo,
   onToggle,
   oQue,
+  tom = "claro",
   className,
 }: {
   seguindo: boolean;
   onToggle?: () => void;
   /** O que está sendo seguido, para o rótulo dizer o que o clique faz. */
   oQue: string;
+  /**
+   * `escuro` é o olho dentro do cartão do tópico, sobre `ink`: contorno
+   * `paper` quando não segue, `sun` quando segue. As cores de `claro`
+   * (`inkMuted` e lavanda) somem ali — `inkMuted` sobre `ink` dá 1,8:1.
+   */
+  tom?: "claro" | "escuro";
   className?: string;
 }) {
   return (
@@ -33,7 +40,13 @@ export function FollowButton({
       onClick={onToggle}
       className={cn(
         "size-controlSm rounded-pill box-border grid shrink-0 cursor-pointer place-items-center border-2",
-        seguindo ? "bg-lavender border-lavender text-ink" : "border-inkMuted text-inkMuted",
+        tom === "escuro"
+          ? seguindo
+            ? "border-sun text-sun"
+            : "border-paper text-paper"
+          : seguindo
+            ? "bg-lavender border-lavender text-ink"
+            : "border-inkMuted text-inkMuted",
         className,
       )}
     >

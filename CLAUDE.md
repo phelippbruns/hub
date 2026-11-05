@@ -394,6 +394,33 @@ passos apontam todos para lá. O botão e a janela moram no mesmo componente
 porque o estado de aberto é um só; separados, abrir custaria uma volta ao
 servidor ou um contexto.
 
+**A tela do tópico é branca, e o resto do app é lavanda.** Não é estética:
+os dois fundos de cartão de contribuição — `surfacePage` na sua,
+`surfaceNeutral` nas outras — só se distinguem sobre `paper`. Contra
+`paper` dão 1,07:1 e 1,11:1, separação sutil de propósito; sobre o
+`surfacePage` do resto do app a sua fica **exatamente da cor da página** e
+a dos outros dá 1,0:1, e a lista inteira vira texto corrido. O painel
+lateral já era `bg-paper`; a página inteira ganhou o mesmo embrulho na
+rodada do protótipo v6. Os pares estão medidos em `design/contrast.ts`.
+
+**A largura do painel do tópico vai num cookie, nunca em `localStorage`.**
+Ela precisa estar pronta no HTML que o servidor manda. Com `localStorage`
+só o navegador sabe dela, e a tela pintaria 520 px antes de pular para a
+largura escolhida — em toda navegação. Quem grava é o arrasto
+([features/topicos/alca.tsx](features/topicos/alca.tsx), ao **soltar**, não a cada pixel: o
+cookie viaja em toda requisição); quem lê é a página, com `cookies()`.
+Gravar cookie durante a renderização não é permitido no App Router, que é
+a mesma razão do cookie do convite. O teto é `max-width: 50vw` **no CSS**,
+e não só uma conta no arrasto: assim ele vale na primeira pintura, antes
+de qualquer JavaScript, e reaperta sozinho quando a janela encolhe.
+
+**Enter não envia contribuição — Ctrl ou Cmd com Enter, sim.** Mudou no
+protótipo v6, junto com a caixa que cresce até 6 linhas: com as duas
+coisas, o atalho antigo publicava no meio da frase toda vez que alguém
+quisesse um parágrafo. E contribuição não se edita (RN14), então o engano
+é definitivo. A jornada confere os dois lados — que Enter **não** publica,
+e que Ctrl+Enter publica.
+
 **`w-full` com `shrink-0` no mesmo elemento é um pedido contraditório** —
 "me dê tudo e não me tire nada". Num item de flex é uma barra de rolagem
 horizontal esperando a janela certa, e a coluna da direita da comunidade

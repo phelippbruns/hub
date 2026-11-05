@@ -35,6 +35,7 @@ export function Avatar({
   enquadramento = ENQUADRAMENTO_PADRAO,
   medidas,
   rotulo,
+  tom = "escuro",
   className,
 }: {
   /** De onde saem as iniciais quando não há foto. */
@@ -50,6 +51,13 @@ export function Avatar({
    * aparece ao lado em toda tela do Hub, e anunciá-lo duas vezes atrapalha.
    */
   rotulo?: string;
+  /**
+   * A caixa das iniciais, quando não há foto. O padrão é `escuro` (ink com
+   * texto paper). `claro` é `sun` com texto ink, e existe para o avatar
+   * **dentro do cartão escuro do tópico**: ali o padrão é ink sobre ink e
+   * o avatar simplesmente some.
+   */
+  tom?: "escuro" | "claro";
   className?: string;
 }) {
   const acessibilidade = rotulo
@@ -61,7 +69,8 @@ export function Avatar({
       {...acessibilidade}
       className={cn(
         CLASSE_DA_FORMA,
-        "bg-ink text-paper relative grid shrink-0 place-items-center overflow-hidden font-extrabold",
+        "relative grid shrink-0 place-items-center overflow-hidden font-extrabold",
+        tom === "claro" ? "bg-sun text-ink" : "bg-ink text-paper",
         tamanhos[tamanho],
         className,
       )}

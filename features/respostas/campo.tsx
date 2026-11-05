@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useId, useRef, useState } from "react";
-import { Button, RoundIconButton } from "@/design/components";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { Avatar, Button, RoundIconButton } from "@/design/components";
 import { GifIcon, ImageIcon, SendIcon } from "@/design/icons";
 import { EscolherGif, type GifEscolhido } from "./escolher-gif";
 import { acharLink } from "@/lib/texto/links";
@@ -10,6 +10,9 @@ import { responder, type EstadoDaResposta } from "./actions";
 import { SugerirMarcacao } from "./sugerir-marcacao";
 
 const LIMITE = 240;
+
+/** A partir daqui o contador fica vermelho: o fim está perto (item 7.8). */
+const AVISO_DO_CONTADOR = 230;
 
 /**
  * O campo de responder (tela 15).
@@ -25,10 +28,13 @@ export function CampoDeResposta({
   topicId,
   endereco,
   gifLigado,
+  eu,
 }: {
   topicId: string;
   endereco: string;
   gifLigado: boolean;
+  /** Quem está escrevendo: o exemplo do campo e a foto ao lado. */
+  eu: { primeiroNome: string; nome: string; avatarUrl: string | null } | null;
 }) {
   const [estado, acao, pendente] = useActionState<EstadoDaResposta, FormData>(responder, {});
   const [texto, setTexto] = useState("");
@@ -49,6 +55,27 @@ export function CampoDeResposta({
    * sempre dispara, e sem essa saída a sugestão nunca aparecia.
    */
   const [cursor, setCursor] = useState<number | null>(null);
+  const campo = useRef<HTMLTextAreaElement>(null);
+
+  /*
+   * A caixa cresce com o texto, até 6 linhas, e só então rola (item 7.3).
+   *
+   * Medir exige zerar a altura antes de ler `scrollHeight`: sem isso o
+   * valor lido é o da altura atual, e a caixa nunca encolhe quando a
+   * pessoa apaga uma linha.
+   *
+   * O teto não é calculado aqui — é o `max-h-composeMax` do CSS (132 px,
+   * 6 linhas de 22). `max-height` vence a altura inline, então a caixa
+   * para sozinha e o `overflow-y-auto` dá a barra de rolagem. Repetir o
+   * número em JavaScript seria um segundo lugar para ele divergir do
+   * token.
+   */
+  useEffect(() => {
+    const el = campo.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [texto]);
 
   // Derivado na renderização: função pura do que está escrito.
   const link = texto.trim() ? acharLink(texto) : null;
@@ -116,142 +143,168 @@ export function CampoDeResposta({
         (`focus-within`): sem isso o anel de foco apareceria dentro da
         caixa, e quem navega por teclado veria dois retângulos.
       */}
-      <div className="bg-paper border-inkMuted focus-within:border-ink flex flex-col gap-1 rounded-md border p-2">
-        <label htmlFor={idDoCampo} className="sr-only">
-          Sua contribuição
-        </label>
-        <textarea
-          id={idDoCampo}
-          name="text"
-          rows={2}
-          maxLength={LIMITE}
-          placeholder="Escreva uma contribuição"
-          value={texto}
-          onChange={(evento) => {
-            setTexto(evento.target.value);
-            // Volta ao fim; se o cursor estiver no meio, o `onSelect` logo
-            // em seguida corrige.
-            setCursor(null);
-          }}
-          onSelect={(evento) => setCursor(evento.currentTarget.selectionStart ?? null)}
-          onKeyDown={(evento) => {
-            /*
-              Enter envia, Shift+Enter quebra a linha.
+      <div className="flex items-start gap-2">
+        {eu ? <Avatar nome={eu.nome} url={eu.avatarUrl} tamanho="md" className="mt-1" /> : null}
 
-              `isComposing` é a guarda que falta em quase toda versão disto:
-              quem digita acento ou usa teclado de outra língua aperta Enter
-              para confirmar o caractere, e sem a conferência a mensagem
-              saía pela metade.
+        <div className="bg-surfacePage focus-within:border-ink flex min-w-0 flex-1 flex-col gap-1 rounded-lg border border-transparent p-2">
+          <label htmlFor={idDoCampo} className="sr-only">
+            Sua contribuição
+          </label>
+          <textarea
+            ref={campo}
+            id={idDoCampo}
+            name="text"
+            rows={1}
+            maxLength={LIMITE}
+            placeholder={eu ? `Contribua como ${eu.primeiroNome}` : "Escreva uma contribuição"}
+            value={texto}
+            onChange={(evento) => {
+              setTexto(evento.target.value);
+              // Volta ao fim; se o cursor estiver no meio, o `onSelect` logo
+              // em seguida corrige.
+              setCursor(null);
+            }}
+            onSelect={(evento) => setCursor(evento.currentTarget.selectionStart ?? null)}
+            onKeyDown={(evento) => {
+              /*
+              **Ctrl+Enter ou Cmd+Enter envia. Enter sozinho quebra a
+              linha** (item 7.5).
+
+              Era Enter que enviava. Com a caixa crescendo até 6 linhas, o
+              atalho antigo publicava a contribuição no meio da frase toda
+              vez que alguém quisesse um parágrafo — e contribuição não se
+              edita (RN14), então o engano é definitivo.
+
+              `isComposing` é a guarda que falta em quase toda versão
+              disto: quem digita acento ou usa teclado de outra língua
+              aperta Enter para confirmar o caractere, e sem a conferência
+              a mensagem saía pela metade.
             */
-            if (evento.key !== "Enter" || evento.shiftKey) return;
-            if (evento.nativeEvent.isComposing) return;
-            if (oQueFalta !== null || pendente) return;
-            evento.preventDefault();
-            formulario.current?.requestSubmit();
-          }}
-          className="text-body text-ink placeholder:text-inkMuted max-h-composeMax min-h-avatarMd w-full resize-none bg-transparent outline-none"
-        />
+              if (evento.key !== "Enter") return;
+              if (!evento.metaKey && !evento.ctrlKey) return;
+              if (evento.nativeEvent.isComposing) return;
+              if (oQueFalta !== null || pendente) return;
+              evento.preventDefault();
+              formulario.current?.requestSubmit();
+            }}
+            className="text-body text-ink placeholder:text-inkMuted max-h-composeMax w-full resize-none overflow-y-auto bg-transparent outline-none"
+          />
 
-        {link ? (
-          <p role="alert" className="text-caption text-error">
-            Tire o endereço: &quot;{link.trecho}&quot;
-          </p>
-        ) : null}
+          {link ? (
+            <p role="alert" className="text-caption text-error">
+              Tire o endereço: &quot;{link.trecho}&quot;
+            </p>
+          ) : null}
 
-        {/* A prévia do que vai junto fica dentro da caixa, acima da fileira. */}
-        {imagem ? <span className="text-caption text-inkMuted truncate">{imagem.name}</span> : null}
+          {/* A prévia do que vai junto fica dentro da caixa, acima da fileira. */}
+          {imagem ? (
+            <span className="text-caption text-inkMuted truncate">{imagem.name}</span>
+          ) : null}
 
-        {gif ? (
-          <span className="flex items-center gap-1">
-            {/* Mesmo motivo do `<img>` da resposta: o endereço é do GIPHY. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={gif.url} alt={gif.descricao} className="h-avatarMd w-auto rounded-sm" />
-            <Button variant="secondary" size="sm" onClick={() => setGif(null)}>
-              Tirar GIF
-            </Button>
-          </span>
-        ) : null}
+          {gif ? (
+            <span className="flex items-center gap-1">
+              {/* Mesmo motivo do `<img>` da resposta: o endereço é do GIPHY. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={gif.url} alt={gif.descricao} className="h-avatarMd w-auto rounded-sm" />
+              <Button variant="secondary" size="sm" onClick={() => setGif(null)}>
+                Tirar GIF
+              </Button>
+            </span>
+          ) : null}
 
-        <div className="flex items-center gap-1">
-          {/*
+          <div className="flex items-center gap-1">
+            {/*
             `key` muda a cada envio aceito: é o que faz o navegador esquecer
             o arquivo escolhido. Campo de arquivo não se limpa por
             propriedade.
           */}
-          <input
-            key={enviadas}
-            ref={arquivoRef}
-            type="file"
-            name="imagem"
-            accept="image/jpeg,image/png,image/webp"
-            className="sr-only"
-            aria-hidden="true"
-            tabIndex={-1}
-            onChange={(evento) => {
-              /*
-               * Conferir aqui não substitui o servidor — ele continua sendo
-               * a regra. Evita a pior falha: o envio ser cortado no caminho
-               * e a pessoa receber um erro que não diz nada.
-               */
-              const escolhido = evento.target.files?.[0] ?? null;
-              setProblemaDaImagem(escolhido ? problemaNaImagem(escolhido) : null);
-              setImagem(escolhido);
-            }}
-          />
+            <input
+              key={enviadas}
+              ref={arquivoRef}
+              type="file"
+              name="imagem"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              aria-hidden="true"
+              tabIndex={-1}
+              onChange={(evento) => {
+                /*
+                 * Conferir aqui não substitui o servidor — ele continua sendo
+                 * a regra. Evita a pior falha: o envio ser cortado no caminho
+                 * e a pessoa receber um erro que não diz nada.
+                 */
+                const escolhido = evento.target.files?.[0] ?? null;
+                setProblemaDaImagem(escolhido ? problemaNaImagem(escolhido) : null);
+                setImagem(escolhido);
+              }}
+            />
 
-          {/*
+            {/*
             O limite vem como **descrição**, não dentro do nome do botão:
             enfiar a regra no nome deixaria o botão se chamando "Adicionar
             imagem — JPEG, PNG ou WebP, até 4 MB", que é o que o leitor de
             tela anuncia a cada passagem.
           */}
-          <RoundIconButton
-            label="Adicionar imagem"
-            disabled={gif !== null}
-            disabledHint="Já há um GIF nesta contribuição"
-            onClick={() => arquivoRef.current?.click()}
-          >
-            <ImageIcon decorative className="size-icon" />
-          </RoundIconButton>
-          <span id={idDoLimite} className="sr-only">
-            JPEG, PNG ou WebP, até {TAMANHO_MAXIMO_EM_MB} MB
-          </span>
+            <RoundIconButton
+              label="Adicionar imagem"
+              disabled={gif !== null}
+              disabledHint="Já há um GIF nesta contribuição"
+              onClick={() => arquivoRef.current?.click()}
+            >
+              <ImageIcon decorative className="size-icon" />
+            </RoundIconButton>
+            <span id={idDoLimite} className="sr-only">
+              JPEG, PNG ou WebP, até {TAMANHO_MAXIMO_EM_MB} MB
+            </span>
 
-          {/*
+            {/*
             O GIF só aparece com a chave do GIPHY configurada, do mesmo jeito
             que o botão do Google. Botão que não funciona é promessa
             quebrada. RN13 aceita imagem **ou** GIF, nunca os dois.
           */}
-          {gifLigado ? (
-            <RoundIconButton
-              label="Adicionar GIF"
-              disabled={imagem !== null}
-              disabledHint="Já há uma imagem nesta contribuição"
-              onClick={() => setEscolhendoGif(true)}
-            >
-              <GifIcon decorative className="size-icon" />
-            </RoundIconButton>
-          ) : null}
+            {gifLigado ? (
+              <RoundIconButton
+                label="Adicionar GIF"
+                disabled={imagem !== null}
+                disabledHint="Já há uma imagem nesta contribuição"
+                onClick={() => setEscolhendoGif(true)}
+              >
+                <GifIcon decorative className="size-icon" />
+              </RoundIconButton>
+            ) : null}
 
-          <span className="text-caption text-inkMuted ml-auto">
-            {texto.length} de {LIMITE}
-          </span>
-
-          {/*
-            Botão redondo que acende: lavanda claro enquanto não há o que
-            enviar, lavanda cheio quando há. A cor não está sozinha —
-            `disabled` e o `disabledHint` dizem o que falta.
+            {/*
+            Vermelho a partir de 230, e não só em 240: avisar na linha de
+            chegada não dá tempo de encurtar nada.
           */}
-          <Button
-            type="submit"
-            variant="icon"
-            disabled={pendente || oQueFalta !== null}
-            aria-label="Contribuir"
-            aria-describedby={oQueFalta ? idDoFalta : undefined}
-            className="size-btnRound shrink-0"
-          >
-            <SendIcon decorative className="size-icon" />
-          </Button>
+            <span
+              className={`text-caption ml-auto ${
+                texto.length >= AVISO_DO_CONTADOR ? "text-error" : "text-inkMuted"
+              }`}
+            >
+              {texto.length} de {LIMITE}
+            </span>
+
+            {/*
+            O avião, e só ele. Apagado enquanto não há o que enviar, aceso
+            quando há — é o item 7.4 do protótipo. A cor não está sozinha:
+            `disabled` e o `title` dizem o que falta, e `aria-describedby`
+            aponta para a linha logo abaixo da caixa.
+
+            O nome continua "Contribuir" em todo estado. Pôr o motivo no
+            nome renomearia o controle a cada tecla — e é o nome que as 23
+            jornadas procuram.
+          */}
+            <RoundIconButton
+              type="submit"
+              label="Contribuir"
+              disabled={pendente || oQueFalta !== null}
+              disabledHint={oQueFalta ?? undefined}
+              descrito={oQueFalta ? idDoFalta : undefined}
+            >
+              <SendIcon decorative className="size-icon" />
+            </RoundIconButton>
+          </div>
         </div>
       </div>
 

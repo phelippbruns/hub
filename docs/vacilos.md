@@ -543,6 +543,14 @@ pedido de feature — não descrição do que existe.
 📌 **Fixado** — `e2e/onboarding.spec.ts` procura a frase e reprova se ela
 reaparecer.
 
+**Voltou em outro lugar.** Em 5 de novembro a mesma promessa apareceu em
+`docs/design-system/README.md`, onde estava desde antes e eu não tinha
+olhado. Saiu de lá também, e o README agora diz a RN14 em letra. O erro de
+ofício — apagar a frase sem varrer as cópias dela — está no `faustao.md`.
+Em 5 de novembro o PO voltou a pedir a edição em 5 minutos, no protótipo
+v6 da tela do tópico, e **recusou** quando eu mostrei esta entrada: a RN14
+fica como está.
+
 ---
 
 ## 15. Texto que envelheceu junto com a regra

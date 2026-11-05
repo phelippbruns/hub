@@ -8,6 +8,7 @@ export { Input } from "./input";
 export { PasswordInput } from "./password-input";
 export { CodeInput } from "./code-input";
 export { Steps } from "./steps";
+export { CommunityChip } from "./community-chip";
 export { LevelMark, type Level, type LevelMarkSize } from "./level-mark";
 export { Paginador } from "./paginador";
 export { CommunityDoor } from "./community-door";

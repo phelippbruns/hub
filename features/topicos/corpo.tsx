@@ -4,6 +4,7 @@ import { CampoDeResposta } from "@/features/respostas/campo";
 import { LinhaDeResposta } from "@/features/respostas/linha";
 import { OrdemDasRespostas as ControleDaOrdem } from "@/features/respostas/ordem";
 import { getViewer } from "@/lib/auth/session";
+import { quemEstaEscrevendo } from "@/lib/data/profiles";
 import { respostasDoTopico, type OrdemDasRespostas } from "@/lib/data/topics";
 import { haQuantoTempo } from "@/lib/tempo";
 import { serverEnv } from "@/lib/env";
@@ -18,9 +19,11 @@ import { serverEnv } from "@/lib/env";
  */
 export async function CorpoDoTopico({
   topicId,
+  nome,
   endereco,
   abertura,
   autor,
+  seguir,
   pessoas,
   respostas,
   podeVerRespostas,
@@ -28,9 +31,13 @@ export async function CorpoDoTopico({
   vistoEm,
 }: {
   topicId: string;
+  /** O nome do tópico: desde o protótipo v6 ele mora dentro do cartão. */
+  nome: string;
   endereco: string;
   abertura: string;
-  autor?: string;
+  autor?: { nome: string; avatarUrl?: string | null };
+  /** O olho de seguir, montado pela página porque precisa de estado. */
+  seguir?: React.ReactNode;
   pessoas: number;
   respostas: number;
   podeVerRespostas: boolean;
@@ -44,7 +51,14 @@ export async function CorpoDoTopico({
   if (!podeVerRespostas) {
     return (
       <>
-        <TopicOpening autor={autor} abertura={abertura} pessoas={pessoas} respostas={respostas} />
+        <TopicOpening
+          nome={nome}
+          autor={autor}
+          abertura={abertura}
+          pessoas={pessoas}
+          respostas={respostas}
+          seguir={seguir}
+        />
         {/* RN16: sem conta, a lista de respostas não vem do servidor. */}
         <EmptyState
           title="Entre para ver as contribuições"
@@ -56,12 +70,20 @@ export async function CorpoDoTopico({
 
   return (
     <>
-      <TopicOpening autor={autor} abertura={abertura} pessoas={pessoas} respostas={respostas} />
+      <TopicOpening
+        nome={nome}
+        autor={autor}
+        abertura={abertura}
+        pessoas={pessoas}
+        respostas={respostas}
+        seguir={seguir}
+      />
 
       <CampoDeResposta
         topicId={topicId}
         endereco={endereco}
         gifLigado={Boolean(serverEnv().GIPHY_API_KEY)}
+        eu={await quemEstaEscrevendo(await getViewer())}
       />
 
       <div className="flex justify-end">

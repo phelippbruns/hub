@@ -270,7 +270,8 @@ const cases: Array<[string, React.ReactElement]> = [
   [
     "abertura do tópico",
     <TopicOpening
-      autor="Caio Mendes"
+      nome="Primeira festa"
+      autor={{ nome: "Caio Mendes" }}
       abertura="Como foi a primeira festa que te fez gostar de música eletrônica?"
       pessoas={86}
       respostas={112}

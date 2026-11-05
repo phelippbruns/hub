@@ -82,8 +82,9 @@ test.describe("criar tópico", () => {
     await expect(page.getByText("Uma pergunta de abertura para o teste.")).toBeVisible();
     // RN15: pessoas e respostas sempre à vista.
     // RN15: pessoas e contribuições sempre à vista. O substantivo mudou na
-    // varredura de termo: a tela não diz mais "resposta".
-    await expect(page.getByText(/0 pessoas, 0 contribuições/)).toBeVisible();
+    // varredura de termo: a tela não diz mais "resposta". O separador virou
+    // "·" no protótipo v6.
+    await expect(page.getByText(/0 pessoas · 0 contribuições/)).toBeVisible();
   });
 
   test("RN07: o segundo tópico do dia na mesma comunidade é barrado", async ({ page }) => {
@@ -276,7 +277,7 @@ test.describe("o painel do tópico", () => {
     await expect.poll(() => new URL(page.url()).pathname).toBe(comunidade);
   });
 
-  test("dá para contribuir de dentro do painel, e Enter envia", async ({ page }) => {
+  test("dá para contribuir de dentro do painel, e Ctrl+Enter envia", async ({ page }) => {
     await entrarNoApp(page, "contribuir");
     const comunidade = await minhaComunidade(page, "Com Contrib");
     await criarTopico(page, comunidade, "Primeira festa");
@@ -288,8 +289,18 @@ test.describe("o painel do tópico", () => {
 
     const painel = page.getByRole("complementary", { name: /Tópico Primeira festa/ });
     await campoDeContribuicao(painel).fill("Enviada de dentro do painel.");
-    // Enter envia; Shift+Enter quebraria a linha.
+
+    /*
+     * **Enter sozinho não envia mais** (item 7.5 do protótipo v6): com a
+     * caixa crescendo até 6 linhas, ele publicava no meio da frase. Esta
+     * primeira metade é a barreira contra o atalho voltar sem querer.
+     */
     await campoDeContribuicao(painel).press("Enter");
+    await expect(
+      page.locator("article").filter({ hasText: "Enviada de dentro do painel." }),
+    ).toHaveCount(0);
+
+    await campoDeContribuicao(painel).press("ControlOrMeta+Enter");
 
     // O que prova é o que ficou no banco, não o que a tela mostrou.
     await esperarNoBanco(
@@ -401,5 +412,173 @@ test.describe("apagar tópico", () => {
 
     await expect(page.getByRole("button", { name: /Indispon/ })).toBeDisabled();
     await expect(page.getByText(/para preservar a participação de quem contribuiu/)).toBeVisible();
+  });
+});
+
+/**
+ * O protótipo v6 da tela do tópico (PR A).
+ *
+ * O que estas jornadas guardam é **o que a pessoa encontra na mesma
+ * passada**: abrir o tópico, ler a pergunta, escrever, e alargar a coluna.
+ */
+test.describe("a tela do tópico, protótipo v6", () => {
+  test("a pergunta, quem abriu, a contagem e o olho ficam dentro do cartão escuro", async ({
+    page,
+  }) => {
+    await entrarNoApp(page, "cartao");
+    const comunidade = await minhaComunidade(page, "Com Cartao");
+    await criarTopico(page, comunidade, "Qual paisagem marcou", "Conte onde foi.");
+    await page.waitForURL(/\/qual-paisagem-marcou$/);
+
+    /*
+     * O cartão é o `<article>` que contém o título. Procurar por ele, e
+     * não por uma classe, é o que faz esta jornada sobreviver a uma
+     * mudança de estilo e reprovar numa mudança de estrutura — que é o
+     * que aconteceu quando o título morava fora dele.
+     */
+    const cartao = page.locator("article").filter({ hasText: "Qual paisagem marcou" }).first();
+
+    await expect(cartao.getByRole("heading", { name: /Qual paisagem marcou/ })).toBeVisible();
+    await expect(cartao.getByText("Conte onde foi.")).toBeVisible();
+    await expect(cartao.getByText("abriu este tópico")).toBeVisible();
+    await expect(cartao.getByText(/0 pessoas · 0 contribuições/)).toBeVisible();
+    await expect(cartao.getByRole("button", { name: /^Seguir o tópico/ })).toBeVisible();
+
+    // O chip da comunidade é a saída, e é um link de verdade.
+    const chip = page.getByRole("main").getByRole("link", { name: /Com Cartao/ });
+    await expect(chip).toHaveAttribute("href", comunidade);
+
+    // E o mesmo cartão no painel lateral: um componente só, duas telas.
+    await page.goto(`${comunidade}?t=qual-paisagem-marcou`);
+    const painel = page.getByRole("complementary", { name: /Tópico Qual paisagem marcou/ });
+    const noPainel = painel.locator("article").filter({ hasText: "Qual paisagem marcou" }).first();
+    await expect(noPainel.getByRole("heading", { name: /Qual paisagem marcou/ })).toBeVisible();
+    await expect(noPainel.getByRole("button", { name: /^Seguir o tópico/ })).toBeVisible();
+  });
+
+  test("a caixa de envio recusa vazia e diz o que falta", async ({ page }) => {
+    await entrarNoApp(page, "caixa");
+    const comunidade = await minhaComunidade(page, "Com Caixa");
+    await criarTopico(page, comunidade, "Caixa de envio");
+    await page.waitForURL(/\/caixa-de-envio$/);
+
+    const enviar = page.getByRole("button", { name: "Contribuir", exact: true });
+    await expect(enviar).toBeDisabled();
+
+    /*
+     * O motivo precisa chegar a quem usa leitor de tela, e o nome do botão
+     * **não** pode carregá-lo: renomear o controle a cada tecla é o que
+     * quebrou 23 jornadas em novembro. Ele chega pela descrição.
+     */
+    const falta = "Escreva algo, ou escolha uma imagem ou um GIF.";
+    await expect(page.getByText(falta)).toBeVisible();
+    const descrito = await enviar.getAttribute("aria-describedby");
+    expect(descrito).not.toBeNull();
+    // Por atributo, e não por `#id`: o React gera ids com `:`, que num
+    // seletor CSS precisariam de escape que o Node não tem.
+    await expect(page.locator(`[id="${descrito}"]`)).toHaveText(falta);
+
+    await campoDeContribuicao(page).fill("Agora tem o que enviar.");
+    await expect(enviar).toBeEnabled();
+  });
+
+  test("o contador avisa em 230, e o texto para em 240", async ({ page }) => {
+    await entrarNoApp(page, "contador");
+    const comunidade = await minhaComunidade(page, "Com Contador");
+    await criarTopico(page, comunidade, "Contador");
+    await page.waitForURL(/\/contador$/);
+
+    const campo = campoDeContribuicao(page);
+    const cor = () => page.getByText(/ de 240$/).evaluate((el) => getComputedStyle(el).color);
+
+    await campo.fill("a".repeat(229));
+    const calmo = await cor();
+
+    await campo.fill("a".repeat(230));
+    const avisando = await cor();
+    expect(avisando).not.toBe(calmo);
+
+    // Colar mais do que cabe não estoura: o campo corta em 240.
+    await campo.fill("a".repeat(300));
+    expect((await campo.inputValue()).length).toBe(240);
+    await expect(page.getByText("240 de 240")).toBeVisible();
+  });
+
+  test("a borda do tópico arrasta até metade da janela, e o Hub lembra", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await entrarNoApp(page, "alca");
+    const comunidade = await minhaComunidade(page, "Com Alca");
+    await criarTopico(page, comunidade, "Topico largo");
+    await page.waitForURL(/\/topico-largo$/);
+
+    const endereco = `${comunidade}?t=topico-largo`;
+    await page.goto(endereco);
+
+    const painel = page.getByRole("complementary", { name: /Tópico Topico largo/ });
+    const largura = async () => (await painel.boundingBox())!.width;
+
+    expect(await largura()).toBe(520);
+
+    /*
+     * Arrastar 600 px para a esquerda numa janela de 1280 pede 1120 px de
+     * painel. O teto é metade da janela, 640 — e é ele que tem de ganhar.
+     */
+    const alca = page.getByRole("separator", { name: "Largura do tópico" });
+    const caixa = (await alca.boundingBox())!;
+    await page.mouse.move(caixa.x + caixa.width / 2, caixa.y + 200);
+    await page.mouse.down();
+    await page.mouse.move(caixa.x - 600, caixa.y + 200, { steps: 12 });
+    await page.mouse.up();
+
+    await expect.poll(largura).toBe(640);
+
+    // Não foi só na tela: recarregar e reabrir mantêm.
+    await page.reload();
+    await expect.poll(largura).toBe(640);
+    await page.goto(endereco);
+    await expect.poll(largura).toBe(640);
+
+    // E a alça funciona no teclado, senão ela não existe para metade das pessoas.
+    await alca.focus();
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(largura).toBe(600);
+    await page.keyboard.press("ArrowLeft");
+    await expect.poll(largura).toBe(640);
+  });
+
+  test("com o painel no máximo, nada sai pela borda direita", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await entrarNoApp(page, "borda");
+    const comunidade = await minhaComunidade(page, "Com Borda");
+    await criarTopico(page, comunidade, "Topico na borda");
+    await page.waitForURL(/\/topico-na-borda$/);
+
+    const endereco = `${comunidade}?t=topico-na-borda`;
+    await page.goto(endereco);
+
+    const alca = page.getByRole("separator", { name: "Largura do tópico" });
+    const caixa = (await alca.boundingBox())!;
+    await page.mouse.move(caixa.x + caixa.width / 2, caixa.y + 200);
+    await page.mouse.down();
+    await page.mouse.move(caixa.x - 600, caixa.y + 200, { steps: 12 });
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+
+    /*
+     * As duas larguras da jornada irmã em `comunidades.spec.ts`. Em 800 px
+     * o painel guardado (640) é maior que metade da janela (400): o
+     * `max-width: 50vw` tem de reapertar sozinho, senão a lista some e a
+     * página rola de lado.
+     */
+    for (const width of [1280, 800]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(endereco);
+      await page.waitForTimeout(400);
+      const medida = await page.evaluate(() => ({
+        rolagem: document.documentElement.scrollWidth,
+        janela: window.innerWidth,
+      }));
+      expect(medida.rolagem, `transbordo em ${width}px`).toBeLessThanOrEqual(medida.janela + 1);
+    }
   });
 });
