@@ -9,12 +9,20 @@ export const color = {
   ink: "#1E1A33",
   /** Texto secundário, metadados, glifos de canal (#) e tópico (*), contorno de chip não selecionado. 6,6:1 sobre surfacePage; 7,5:1 sobre paper. Sobre lavender só 3,1:1: use apenas em texto de 24px ou mais. */
   inkMuted: "#565170",
+  /** Filete dentro do cartão escuro do tópico, separando o rodapé. 1,4:1 com ink: é divisor decorativo, nunca borda de controle nem texto. */
+  inkLine: "#3A3456",
+  /** Texto secundário SOBRE ink: "abriu este tópico" e a contagem no cartão do tópico. 10,6:1 com ink. Nunca sobre fundo claro — contra paper dá 1,6:1. */
+  inkMutedOnDark: "#CFC9EE",
   /** Cartões de post, campos, chips não selecionados, fundo da barra de navegação. Nunca como texto sobre lavender (2,4:1, reprova). */
   paper: "#FFFFFF",
   /** Fundo de página em todas as telas. */
   surfacePage: "#F1EEFF",
+  /** Cartão da contribuição de OUTRA pessoa, sobre o fundo paper da tela do tópico. 15,2:1 com ink; 6,8:1 com inkMuted. Contra paper tem só 1,1:1 — é separação sutil de propósito, e só funciona sobre paper: sobre surfacePage dá 1,0:1 e some. */
+  surfaceNeutral: "#F3F3F5",
   /** Chip selecionado, botão de ícone, selo de posição no ciclo, marca de Universo secundária. Texto sobre ela sempre em ink. Contra surfacePage tem só 2,1:1, então estado selecionado precisa de um segundo sinal além da cor (o ✓ do chip). */
   lavender: "#A69CFB",
+  /** Hover do botão de estrela e espaço reservado da mídia enquanto carrega. 13,0:1 com ink; 5,8:1 com inkMuted. Fundo de estado, nunca de texto longo. */
+  lavenderSoft: "#E4DFFF",
   /** Destaque do ciclo: selo Em destaque, botão Responder dentro do cartão de destaque, aviso de ação pendente. Texto sobre ela em ink. Nunca como cor de texto. */
   sun: "#FFD95E",
   /** Divisores decorativos entre linhas de lista. Contraste 1,3:1 com surfacePage: não serve como borda de controle. */
@@ -92,6 +100,12 @@ export const typography = {
     lineHeight: "26px",
     fontWeight: 700,
     letterSpacing: "-0.01em",
+  },
+  /** A abertura do tópico dentro do cartão escuro. Entre o título e o texto de contribuição: é a única linha longa que precisa de hierarquia própria. */
+  lead: {
+    fontSize: "18px",
+    lineHeight: "27px",
+    fontWeight: 400,
   },
   /** Texto de post e de mensagem. */
   body: {
@@ -233,6 +247,10 @@ export const size = {
   btnRound: "44px",
   /** Largura do painel do tópico, aberto ao lado da lista da comunidade. 520 px é a medida do protótipo v6: cabe a abertura e o compositor sem quebrar o texto a cada três palavras. */
   topicPanel: "520px",
+  /** Área de clique dos controles da tela do tópico: estrela, ordenação, compartilhar, fechar e o olho de seguir. */
+  controlLg: "48px",
+  /** Miniatura quadrada de imagem e GIF na lista de contribuições. */
+  mediaThumb: "213px",
 } as const;
 
 export const fontFamily =

@@ -61,8 +61,10 @@ test.describe("responder", () => {
     await botaoDeContribuir(page).click();
 
     await expect(respostaPublicada(page, "Um galpão em Curitiba, 2019.")).toBeVisible();
-    // RN15: pessoas e respostas, nunca curtida.
-    await expect(page.getByText(/1 pessoa, 1 contribuição/)).toBeVisible();
+    // RN15: pessoas e contribuições do tópico inteiro — a estrela conta por
+    // contribuição e mora no cartão de cada uma, nunca aqui. O separador
+    // virou "·" no protótipo v6.
+    await expect(page.getByText(/1 pessoa · 1 contribuição/)).toBeVisible();
   });
 
   test("RN16: o aviso aparece enquanto digita e cita o trecho", async ({ page }) => {

@@ -1,19 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import type { ReactNode } from "react";
 import {
   Button,
+  CommunityChip,
   ConfirmSheet,
-  FollowButton,
   MenuSuspenso,
   RoundIconButton,
-  TopicName,
 } from "@/design/components";
 import { CloseIcon, MoreOptionsIcon, ShareIcon } from "@/design/icons";
-import { alternarSeguirTopico, apagarTopico } from "./actions";
+import { AlcaDoPainel } from "./alca";
+import { apagarTopico } from "./actions";
 import { Compartilhar, type PessoaParaCompartilhar } from "@/features/convite/compartilhar";
 
 /**
@@ -39,7 +38,7 @@ export function PainelDoTopico({
   endereco,
   comunidadeSlug,
   nomeDaComunidade,
-  seguindoInicial,
+  larguraInicial,
   podeApagar,
   respostasDeOutros,
   limite,
@@ -51,7 +50,8 @@ export function PainelDoTopico({
   endereco: string;
   comunidadeSlug: string;
   nomeDaComunidade: string;
-  seguindoInicial: boolean;
+  /** A largura guardada no cookie, já dentro dos limites. */
+  larguraInicial: number;
   souAutor: boolean;
   podeApagar: boolean;
   respostasDeOutros: number;
@@ -61,7 +61,7 @@ export function PainelDoTopico({
 }) {
   const router = useRouter();
   const [aberto, setAberto] = useState<"nenhum" | "compartilhar" | "menu" | "apagar">("nenhum");
-  const [seguindo, setSeguindo] = useState(seguindoInicial);
+  const [largura, setLargura] = useState(larguraInicial);
   const [pendente, iniciar] = useTransition();
   const painel = useRef<HTMLElement>(null);
 
@@ -112,28 +112,24 @@ export function PainelDoTopico({
     };
   }, []);
 
-  function alternarOlho() {
-    const estava = seguindo;
-    setSeguindo(!estava);
-    iniciar(async () => {
-      try {
-        await alternarSeguirTopico(topicId, estava, endereco);
-      } catch {
-        setSeguindo(estava);
-      }
-    });
-  }
-
   return (
     <aside
       ref={painel}
       tabIndex={-1}
       aria-label={`Tópico ${nome}`}
-      className="bg-paper border-line w-topicPanel sticky top-0 flex max-h-screen shrink-0 flex-col gap-3 overflow-y-auto border-l p-3"
+      /*
+        A largura é inline porque ela é um número que muda, não um degrau
+        da escala — e o teto fica no `max-width`, em `vw`: assim ele já
+        vale na primeira pintura, antes de o JavaScript existir.
+      */
+      style={{ width: `${largura}px`, maxWidth: "50vw" }}
+      className="bg-paper border-line sticky top-0 flex max-h-screen shrink-0 flex-col gap-3 overflow-y-auto border-l p-3"
     >
+      <AlcaDoPainel largura={largura} onLargura={setLargura} />
+
       <div className="flex items-center gap-2">
-        <span className="text-caption text-inkMuted min-w-0 flex-1 truncate">
-          {nomeDaComunidade}
+        <span className="min-w-0 flex-1">
+          <CommunityChip nome={nomeDaComunidade} href={`/c/${comunidadeSlug}`} />
         </span>
 
         <span className="relative">
@@ -165,13 +161,6 @@ export function PainelDoTopico({
             </MenuSuspenso>
           </span>
         </span>
-
-        {/* RN18: o olho segue, e seguir é sempre manual. */}
-        <FollowButton
-          seguindo={seguindo}
-          oQue={`o tópico ${nome}`}
-          onToggle={pendente ? undefined : alternarOlho}
-        />
 
         <span className="relative">
           <RoundIconButton
@@ -217,18 +206,6 @@ export function PainelDoTopico({
           <CloseIcon decorative className="size-icon" />
         </RoundIconButton>
       </div>
-
-      <h2 className="text-question text-ink">
-        <TopicName>{nome}</TopicName>
-      </h2>
-
-      {/*
-        A saída para a página inteira: é lá que mora o endereço canônico do
-        tópico, o que se manda para alguém que só quer este assunto.
-      */}
-      <Link href={endereco} className="text-caption text-inkMuted underline underline-offset-2">
-        Abrir o tópico inteiro
-      </Link>
 
       {children}
 

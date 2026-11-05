@@ -27,6 +27,9 @@ import { ResumoDaComunidade } from "@/features/comunidades/resumo";
 import type { ParaEntrar } from "@/features/comunidades/janela-de-entrada";
 import { LinkDoTopico } from "@/features/comunidades/link-do-topico";
 import { PainelDoTopico } from "@/features/topicos/painel";
+import { OlhoDoTopico } from "@/features/topicos/olho";
+import { cookies } from "next/headers";
+import { COOKIE_DA_LARGURA, larguraDoPainel } from "@/features/topicos/shared";
 import { CorpoDoTopico } from "@/features/topicos/corpo";
 import { getViewer } from "@/lib/auth/session";
 import { LIMITE_RESPOSTAS_PARA_APAGAR, topicoPorEndereco } from "@/lib/data/topics";
@@ -391,7 +394,7 @@ async function PainelAoLado({
       endereco={endereco}
       comunidadeSlug={comunidade}
       nomeDaComunidade={dados.community.name}
-      seguindoInicial={dados.following}
+      larguraInicial={larguraDoPainel((await cookies()).get(COOKIE_DA_LARGURA)?.value)}
       souAutor={dados.souAutor}
       podeApagar={dados.podeApagar}
       respostasDeOutros={dados.respostasDeOutros}
@@ -400,9 +403,20 @@ async function PainelAoLado({
     >
       <CorpoDoTopico
         topicId={dados.id}
+        nome={dados.name}
         endereco={endereco}
         abertura={dados.description}
-        autor={dados.author?.name}
+        autor={
+          dados.author ? { nome: dados.author.name, avatarUrl: dados.author.avatarUrl } : undefined
+        }
+        seguir={
+          <OlhoDoTopico
+            topicId={dados.id}
+            nome={dados.name}
+            endereco={endereco}
+            seguindoInicial={dados.following}
+          />
+        }
         pessoas={dados.peopleCount}
         respostas={dados.answerCount}
         podeVerRespostas={dados.podeVerRespostas}

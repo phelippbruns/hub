@@ -5,18 +5,22 @@ import { useId, useState, useTransition } from "react";
 import {
   BottomSheet,
   Button,
+  CommunityChip,
   ConfirmSheet,
-  FollowButton,
-  PageTitle,
   RoundIconButton,
-  TopicName,
 } from "@/design/components";
 import { BackIcon, MoreOptionsIcon, ShareIcon } from "@/design/icons";
-import { alternarSeguirTopico, apagarTopico } from "./actions";
+import { apagarTopico } from "./actions";
 import { Compartilhar, type PessoaParaCompartilhar } from "@/features/convite/compartilhar";
 
 /**
- * O cabeçalho do tópico (tela 15): voltar, compartilhar, seguir e o menu.
+ * A barra de cima da tela do tópico (tela 15, protótipo v6): voltar, o chip
+ * da comunidade, compartilhar e o menu.
+ *
+ * **O nome do tópico e o olho de seguir saíram daqui** e foram para dentro
+ * do cartão escuro (`TopicOpening`): no protótipo v6 a pergunta e a ação de
+ * guardá-la são o mesmo bloco. Sobrou a barra de ferramentas, que é o que
+ * ela sempre foi.
  *
  * Os estados moram juntos porque são excludentes — abrir um fecha os outros,
  * como no cabeçalho da comunidade.
@@ -26,7 +30,7 @@ export function CabecalhoDoTopico({
   nome,
   endereco,
   comunidadeSlug,
-  seguindoInicial,
+  nomeDaComunidade,
   souAutor,
   podeApagar,
   respostasDeOutros,
@@ -37,7 +41,7 @@ export function CabecalhoDoTopico({
   nome: string;
   endereco: string;
   comunidadeSlug: string;
-  seguindoInicial: boolean;
+  nomeDaComunidade: string;
   souAutor: boolean;
   podeApagar: boolean;
   respostasDeOutros: number;
@@ -47,7 +51,6 @@ export function CabecalhoDoTopico({
 }) {
   const router = useRouter();
   const [aberto, setAberto] = useState<"nenhum" | "compartilhar" | "menu" | "apagar">("nenhum");
-  const [seguindo, setSeguindo] = useState(seguindoInicial);
   const [pendente, iniciar] = useTransition();
 
   const idDoMenu = useId();
@@ -55,19 +58,6 @@ export function CabecalhoDoTopico({
 
   function abrir(qual: typeof aberto) {
     setAberto((atual) => (atual === qual ? "nenhum" : qual));
-  }
-
-  function alternarOlho() {
-    const estava = seguindo;
-    setSeguindo(!estava);
-
-    iniciar(async () => {
-      try {
-        await alternarSeguirTopico(topicId, estava, endereco);
-      } catch {
-        setSeguindo(estava);
-      }
-    });
   }
 
   return (
@@ -78,9 +68,7 @@ export function CabecalhoDoTopico({
         </RoundIconButton>
 
         <span className="min-w-0 flex-1">
-          <PageTitle>
-            <TopicName>{nome}</TopicName>
-          </PageTitle>
+          <CommunityChip nome={nomeDaComunidade} href={`/c/${comunidadeSlug}`} />
         </span>
 
         <RoundIconButton
@@ -91,13 +79,6 @@ export function CabecalhoDoTopico({
         >
           <ShareIcon decorative className="size-icon" />
         </RoundIconButton>
-
-        {/* RN18: o olho segue, e seguir é sempre manual. */}
-        <FollowButton
-          seguindo={seguindo}
-          oQue={`o tópico ${nome}`}
-          onToggle={pendente ? undefined : alternarOlho}
-        />
 
         {souAutor ? (
           <RoundIconButton
@@ -111,7 +92,14 @@ export function CabecalhoDoTopico({
         ) : null}
       </div>
 
-      <div id={idDeCompartilhar}>
+      {/*
+        `contents` tira estes dois embrulhos do fluxo: eles existem só para
+        carregar o `id` que o `aria-controls` do botão aponta, e como itens
+        de uma coluna com `gap` eles cobravam dois espaços de 16 px entre a
+        barra e o cartão do tópico, mesmo vazios. Era o vão que aparecia
+        acima da pergunta.
+      */}
+      <div id={idDeCompartilhar} className="contents">
         <BottomSheet title={`Compartilhar ${nome}`} open={aberto === "compartilhar"}>
           {/* Montada só quando a folha abre: a busca é uma ida ao servidor. */}
           {aberto === "compartilhar" ? (
@@ -127,7 +115,7 @@ export function CabecalhoDoTopico({
         </BottomSheet>
       </div>
 
-      <div id={idDoMenu}>
+      <div id={idDoMenu} className="contents">
         <BottomSheet title={nome} open={aberto === "menu"}>
           {podeApagar ? (
             <Button variant="danger" onClick={() => setAberto("apagar")}>

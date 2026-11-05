@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ContentColumn } from "@/design/components";
 import { CorpoDoTopico } from "@/features/topicos/corpo";
 import { CabecalhoDoTopico } from "@/features/topicos/cabecalho";
+import { OlhoDoTopico } from "@/features/topicos/olho";
 import { TelaDeConvite } from "@/features/convite/tela";
 import { metadataCompartilhavel } from "@/features/convite/metadata";
 import { enderecoDeMidia } from "@/lib/midia/deposito";
@@ -126,34 +126,55 @@ export default async function TopicoPage({
 
   return (
     <ContentColumn larga>
-      <Link href={`/c/${dados.community.slug}`} className="text-caption text-inkMuted">
-        {dados.community.name}
-      </Link>
+      {/*
+        A tela do tópico é branca, e o resto do app é lavanda.
 
-      <CabecalhoDoTopico
-        topicId={dados.id}
-        nome={dados.name}
-        endereco={endereco}
-        comunidadeSlug={dados.community.slug}
-        seguindoInicial={dados.following}
-        souAutor={dados.souAutor}
-        podeApagar={dados.podeApagar}
-        respostasDeOutros={dados.respostasDeOutros}
-        limite={LIMITE_RESPOSTAS_PARA_APAGAR}
-        paraCompartilhar={await sugestoesParaConvidar(viewer)}
-      />
+        Não é estética: os dois fundos de cartão de contribuição
+        (`surfacePage` na minha, `surfaceNeutral` nas outras) só se
+        distinguem sobre `paper`. Sobre `surfacePage` a minha fica
+        exatamente da cor da página e a dos outros dá 1,0:1 — a lista
+        inteira vira texto corrido. O painel lateral já era branco pelo
+        mesmo motivo; a página inteira ficou para trás.
+      */}
+      <div className="bg-paper flex flex-col gap-3 rounded-md p-3">
+        <CabecalhoDoTopico
+          topicId={dados.id}
+          nome={dados.name}
+          endereco={endereco}
+          comunidadeSlug={dados.community.slug}
+          nomeDaComunidade={dados.community.name}
+          souAutor={dados.souAutor}
+          podeApagar={dados.podeApagar}
+          respostasDeOutros={dados.respostasDeOutros}
+          limite={LIMITE_RESPOSTAS_PARA_APAGAR}
+          paraCompartilhar={await sugestoesParaConvidar(viewer)}
+        />
 
-      <CorpoDoTopico
-        topicId={dados.id}
-        endereco={endereco}
-        abertura={dados.description}
-        autor={dados.author?.name}
-        pessoas={dados.peopleCount}
-        respostas={dados.answerCount}
-        podeVerRespostas={dados.podeVerRespostas}
-        ordem={ordem}
-        vistoEm={vistoEm}
-      />
+        <CorpoDoTopico
+          topicId={dados.id}
+          nome={dados.name}
+          endereco={endereco}
+          abertura={dados.description}
+          autor={
+            dados.author
+              ? { nome: dados.author.name, avatarUrl: dados.author.avatarUrl }
+              : undefined
+          }
+          seguir={
+            <OlhoDoTopico
+              topicId={dados.id}
+              nome={dados.name}
+              endereco={endereco}
+              seguindoInicial={dados.following}
+            />
+          }
+          pessoas={dados.peopleCount}
+          respostas={dados.answerCount}
+          podeVerRespostas={dados.podeVerRespostas}
+          ordem={ordem}
+          vistoEm={vistoEm}
+        />
+      </div>
     </ContentColumn>
   );
 }

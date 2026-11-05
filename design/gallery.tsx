@@ -31,6 +31,7 @@ import {
   EmptyState,
   EndOfList,
   ErrorState,
+  CommunityChip,
   FollowButton,
   HomeRow,
   HotTopicCard,
@@ -209,6 +210,7 @@ export function DesignGallery() {
   const [motivo, setMotivo] = useState<string | null>(null);
   const [seguindo, setSeguindo] = useState(false);
   const [fixada, setFixada] = useState(false);
+  const [seguindoTopico, setSeguindoTopico] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [cardDaGaleria, setCardDaGaleria] = useState(0);
   const [buscaDaGaleria, setBuscaDaGaleria] = useState("");
@@ -556,13 +558,32 @@ export function DesignGallery() {
           </p>
         </Card>
 
+        <Card title="Chip da comunidade">
+          <div className="flex w-full flex-col gap-2">
+            <CommunityChip nome="Vinil" href="/c/vinil" />
+            <p className="text-caption text-inkMuted">
+              A saída do tópico de volta para a comunidade. O nome trunca: aqui ele é referência,
+              não conteúdo.
+            </p>
+          </div>
+        </Card>
+
         <Card title="Abertura do tópico" wide>
           <div className="w-full">
             <TopicOpening
-              autor="Caio Mendes"
+              nome="Primeira festa"
+              autor={{ nome: "Caio Mendes" }}
               abertura="Como foi a primeira festa que te fez gostar de música eletrônica?"
               pessoas={86}
               respostas={112}
+              seguir={
+                <FollowButton
+                  seguindo={seguindoTopico}
+                  tom="escuro"
+                  oQue="o tópico Primeira festa"
+                  onToggle={() => setSeguindoTopico((v) => !v)}
+                />
+              }
             />
           </div>
         </Card>

@@ -143,6 +143,8 @@ export function RoundIconButton({
   onClick,
   disabled = false,
   disabledHint,
+  type = "button",
+  descrito,
   children,
 }: {
   label: string;
@@ -160,14 +162,23 @@ export function RoundIconButton({
   disabled?: boolean;
   /** O porquê, para o leitor de tela. Obrigatório por convenção quando desativado. */
   disabledHint?: string;
+  /**
+   * `submit` existe para o avião da caixa de contribuição: ali o botão é o
+   * envio do formulário, não um gatilho de JavaScript. Sem isto a caixa
+   * precisaria de um `<button>` solto, fora do design system.
+   */
+  type?: "button" | "submit";
+  /** Id de um texto que explica o estado, para o `aria-describedby`. */
+  descrito?: string;
   children: ReactNode;
 }) {
   return (
     <button
-      type="button"
+      type={type}
       aria-label={label}
       aria-expanded={controla ? ativo : undefined}
       aria-controls={controla}
+      aria-describedby={descrito}
       onClick={onClick}
       disabled={disabled}
       title={disabled ? disabledHint : undefined}

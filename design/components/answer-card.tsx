@@ -10,6 +10,9 @@ import { cn } from "../cn";
  *
  * - **`minha`**: a própria contribuição ganha fundo lavanda claro. Numa
  *   conversa de dez linhas, achar a sua pelo nome obriga a ler dez nomes.
+ *   A dos outros fica em `surfaceNeutral`, o cinza claro. Era `paper`, e
+ *   sobre a tela branca do tópico o cartão não tinha borda nenhuma: a
+ *   lista parecia um texto corrido, sem separação entre quem falou o quê.
  * - **`nova`**: contribuição que chegou desde a última visita ganha um anel
  *   amarelo. O separador "NOVAS DESDE A SUA ÚLTIMA VISITA" já existe e diz
  *   onde começam; o anel diz **quais são**, o que continua verdade depois
@@ -50,9 +53,14 @@ export function AnswerCard({
     <article
       className={cn(
         "flex flex-col gap-1 rounded-sm p-2",
-        // `surfacePage` é o lavanda claro do sistema: sem token novo, e o
-        // contraste do texto sobre ele já está medido (14,7:1 para `ink`).
-        minha ? "bg-surfacePage" : "bg-paper",
+        /*
+          Os dois fundos só se distinguem sobre `paper`, que é a cor da
+          tela do tópico: contra `paper` dão 1,07:1 e 1,11:1, separação
+          sutil de propósito. Sobre o `surfacePage` do resto do app eles
+          sumiriam (1,0:1) — é por isso que a tela do tópico é branca, na
+          página inteira e no painel.
+        */
+        minha ? "bg-surfacePage" : "bg-surfaceNeutral",
         nova && "ring-sun ring-2",
       )}
     >

@@ -42,7 +42,13 @@ describe("a tela não diz resposta", () => {
     ],
     [
       "abertura do tópico",
-      <TopicOpening autor="Lia" abertura="Como foi?" pessoas={86} respostas={112} />,
+      <TopicOpening
+        nome="Primeira festa"
+        autor={{ nome: "Lia" }}
+        abertura="Como foi?"
+        pessoas={86}
+        respostas={112}
+      />,
     ],
     ["abertura com uma só", <TopicOpening abertura="Como foi?" pessoas={1} respostas={1} />],
     ["linha de tópico", <TopicRow name="Primeira festa" people={4} answers={9} when="há 2 h" />],

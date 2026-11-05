@@ -38,11 +38,17 @@ Frases curtas, verbo no imperativo nos botões, sentence case. O nome de uma aç
 | `ink` sobre `lavender` | 7,0:1 | qualquer texto |
 | `ink` sobre `sun` | 12,3:1 | qualquer texto |
 | `inkMuted` sobre `surfacePage` | 6,6:1 | qualquer texto |
+| `ink` sobre `surfaceNeutral` | 15,2:1 | qualquer texto |
+| `inkMuted` sobre `surfaceNeutral` | 6,8:1 | qualquer texto |
+| `ink` sobre `lavenderSoft` | 13,0:1 | qualquer texto |
+| `inkMutedOnDark` sobre `ink` | 10,6:1 | qualquer texto |
 | `error` sobre `paper` | 6,6:1 | qualquer texto |
 | `success` sobre `paper` | 6,4:1 | qualquer texto |
 | `inkMuted` sobre `lavender` | 3,1:1 | só texto de 24px ou mais |
 | `paper` sobre `lavender` | 2,4:1 | proibido |
 | `lavender` contra `surfacePage` | 2,1:1 | não pode ser o único sinal de estado |
+| `surfaceNeutral` contra `paper` | 1,1:1 | não pode ser o único sinal de estado |
+| `inkLine` contra `ink` | 1,4:1 | não pode ser o único sinal de estado |
 
 Valores pela fórmula de luminância relativa do WCAG 2.
 
@@ -50,9 +56,13 @@ Valores pela fórmula de luminância relativa do WCAG 2.
 
 Uma família, Bricolage Grotesque, pelo Google Fonts. Peso 800 em `title` e `question`, 700 em `subtitle`, 400 a 600 em texto.
 
+`lead` (18px/27px, peso 400) é a abertura do tópico dentro do cartão escuro, e só ela: é a única linha longa entre o título e o texto de contribuição que precisa de hierarquia própria.
+
 ## Limites de conteúdo
 
-Resposta e abertura de tópico: 240 caracteres, com GIF ou 1 imagem. Imagem e GIF têm ícones do mesmo tamanho nos campos de texto. Mensagem de Cabine: GIF ou 1 imagem por mensagem. Intro de comunidade: 240 caracteres. Sobre mim do perfil: 120 caracteres. Uma resposta pode ser editada por 5 minutos.
+Resposta e abertura de tópico: 240 caracteres, com GIF ou 1 imagem. Imagem e GIF têm ícones do mesmo tamanho nos campos de texto. Mensagem de Cabine: GIF ou 1 imagem por mensagem. Intro de comunidade: 240 caracteres. Sobre mim do perfil: 120 caracteres.
+
+**Contribuição não se edita** (RN14): para corrigir, o autor apaga e contribui de novo. Esta linha já disse o contrário, e era falso — não existia edição no código, nem coluna, nem action. A mesma frase foi apagada do onboarding em 31 de outubro pelo mesmo motivo (`docs/vacilos.md` #14), e sobreviveu aqui.
 
 **Links são bloqueados em todo texto, inclusive endereços digitados — menos num lugar.** O campo Links do perfil aceita até 3 endereços http ou https, e é a única exceção em toda a rede. O título de cada link continua sendo texto comum e também não aceita endereço, senão ele seria a porta dos fundos da regra. Links do perfil abrem em outra aba, sempre com `rel="noopener noreferrer"`.
 
