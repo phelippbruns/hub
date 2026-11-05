@@ -35,8 +35,12 @@ export function AnswerCard({
   children,
   avatar,
   media,
+  acoes,
+  rodape,
   minha = false,
   nova = false,
+  onDoubleClick,
+  onMouseDown,
 }: {
   author: string;
   handle: string;
@@ -44,14 +48,34 @@ export function AnswerCard({
   children?: ReactNode;
   avatar?: ReactNode;
   media?: ReactNode;
+  /** O menu de três pontos, no canto superior direito (protótipo v6). */
+  acoes?: ReactNode;
+  /** A estrela, no rodapé à direita. */
+  rodape?: ReactNode;
   /** A minha própria contribuição. */
   minha?: boolean;
   /** Chegou desde a minha última visita ao tópico. */
   nova?: boolean;
+  /**
+   * O clique duplo em área livre do cartão (item 3.2 do protótipo). Quem
+   * decide o que é "área livre" é quem passa o handler — o cartão não
+   * sabe o que há dentro dele.
+   */
+  onDoubleClick?: (evento: React.MouseEvent) => void;
+  /** Par do de cima: é aqui que se impede a seleção da palavra. */
+  onMouseDown?: (evento: React.MouseEvent) => void;
 }) {
   return (
     <article
+      onDoubleClick={onDoubleClick}
+      onMouseDown={onMouseDown}
+      /*
+        `manipulation` tira o atraso de 300 ms e o zoom do toque duplo no
+        celular (item 3.6). O resto daquele item é da F21, que é a fase do
+        celular; isto entra agora porque é uma classe.
+      */
       className={cn(
+        onDoubleClick && "touch-manipulation",
         "flex flex-col gap-1 rounded-sm p-2",
         /*
           Os dois fundos só se distinguem sobre `paper`, que é a cor da
@@ -70,6 +94,7 @@ export function AnswerCard({
         <span className="text-caption text-inkMuted">
           @{handle} · {when}
         </span>
+        {acoes ? <span className="-mt-1 ml-auto shrink-0 self-start">{acoes}</span> : null}
       </div>
       {children ? <p className="text-body text-ink wrap-anywhere">{children}</p> : null}
       {/*
@@ -83,6 +108,7 @@ export function AnswerCard({
         contra uma foto mais larga que o cartão furar a página.
       */}
       {media ? <div className="max-w-full self-start">{media}</div> : null}
+      {rodape ? <div className="flex justify-end">{rodape}</div> : null}
     </article>
   );
 }

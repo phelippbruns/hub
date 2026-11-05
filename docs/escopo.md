@@ -67,7 +67,7 @@ Os ícones aparecem ao lado do nome, nunca dentro dele: "Música Eletrônica", n
 ## Princípios de produto
 
 1. **Comunidades são o centro.** Tudo parte de uma comunidade. O conteúdo de pessoas não define o Início.
-2. **Participação, não popularidade.** Sem curtidas e sem contador por resposta. O número de seguidores aparece no perfil; o número de pessoas seguidas, só para o dono. Os contadores do perfil medem participação.
+2. **Participação, não popularidade.** A estrela é a única medida de apreço do Hub, e é **da contribuição, nunca da pessoa**: não soma no perfil, não vira ranking e não decide o Hot Topic. O número de seguidores aparece no perfil; o número de pessoas seguidas, só para o dono. Os contadores do perfil medem participação. Até 5 de novembro de 2026 este princípio proibia qualquer contador por resposta; a virada, e por que a linha ficou onde ficou, está em `docs/vacilos.md`.
 3. **A lista termina.** Não há feed infinito. O Início acaba em "Você está em dia".
 4. **Interesses vêm antes de pessoas.** Usuários seguem comunidades, tópicos e pessoas, mas o Início é organizado pelas comunidades.
 5. **Identidade real.** Todo conteúdo mostra o nome real do autor. A foto é opcional.
@@ -207,7 +207,7 @@ São 38 regras. Elas substituem integralmente as RN01 a RN23 do escopo anterior.
 | RN12 | Os demais tópicos aparecem por número de respostas por padrão. O usuário pode trocar para ordem cronológica. | Tópicos |
 | RN13 | A resposta tem até 240 caracteres, com GIF ou 1 imagem. O texto é opcional quando há GIF ou imagem — mídia sozinha já é resposta; vazia dos dois lados, não. Não existem respostas dentro de respostas. | Respostas |
 | RN14 | A resposta não pode ser editada. Para corrigir, o autor apaga e responde de novo. O autor pode apagar a própria resposta a qualquer momento. | Respostas |
-| RN15 | Não há curtidas nem contador por resposta. Todo tópico mostra o número de pessoas e de respostas. | Respostas |
+| RN15 | **A estrela**, e onde ela para. Cada pessoa dá no máximo **uma estrela por contribuição**, inclusive na própria; dar de novo retira. O número aparece no cartão da contribuição e ordena a lista. **Não existe lista de quem deu**, não há soma de estrelas no perfil, e a estrela **não** entra no ciclo das 00h — o Hot Topic continua sendo o tópico com mais pessoas diferentes respondendo. **A estrela não gera notificação**: receber "fulano deu estrela" transformaria o apreço num placar que persegue quem escreveu. Apagar a contribuição apaga as estrelas dela. Todo tópico mostra o número de pessoas e de contribuições. | Respostas |
 | RN16 | Links são bloqueados em todo texto, inclusive endereços digitados por extenso. **A única exceção é o campo Links do perfil** (RN27), com até 3 endereços http ou https; o título de cada um continua sendo texto, e também não aceita link. Compartilhar comunidades e tópicos é permitido: o botão de compartilhar envia para uma Cabine ou gera um link que abre o Hub. Quem abre o link sem conta vê a comunidade, os membros e o tópico; as respostas só aparecem depois do cadastro. | Todas |
 | RN17 | Todo conteúdo exibe nome real, @ e foto do autor, ou avatar padrão quando não há foto, com acesso ao perfil. O @ é único na plataforma. | Todas |
 | RN18 | Usuários seguem comunidades, tópicos e pessoas. Seguir um tópico usa o ícone de olho e salva o tópico na Coleção, aba privada do perfil próprio, que pode ser organizada por comunidade ou em ordem cronológica. Seguir é sempre manual: responder não segue o tópico, e tópicos respondidos e não seguidos ficam só na aba Respostas. | Seguir |
@@ -288,7 +288,7 @@ O maior risco é o Hot Topic premiar polêmica, porque contradiz a tese de uma r
 | Uma pessoa infla o tópico | Respostas repetidas da mesma pessoa | RN09: contar pessoas diferentes |
 | Comunidades fantasmas | Criação livre espalha pouca gente em muitos lugares | RN05: 20 membros para Explorar e comunidades curadas no lançamento |
 | Cabine como canal de assédio | Sem seguir mútuo, qualquer um poderia convidar | RN21 a RN23 e RN26 |
-| Pouco sinal de afinidade | Sem curtidas, nenhuma ação explícita mostra interesse | Medir acessos ao perfil com origem registrada |
+| Pouco sinal de afinidade | A estrela (RN15) passou a ser a ação explícita que mostra interesse por uma contribuição | Medir acessos ao perfil com origem registrada, e se quem recebe estrela de alguém acaba conversando com essa pessoa |
 | ~~Universo e Hot Topic dividem o amarelo~~ | Resolvido pela F12.1: o amarelo ficou só com o Hot Topic | — |
 | Moderação de imagens | GIF e imagem em todas as camadas custam mais que texto | Filtro automático e classificação restrita no GIPHY (confirmar opções da API) |
 | Links digitados | Endereços escritos por extenso escapam do bloqueio | Detecção de padrões de endereço em todo texto |
@@ -306,7 +306,7 @@ O modelo de pergunta do dia foi substituído pelo ciclo do Hot Topic. Os itens a
 | Pergunta do dia, revelação após responder e votação de tópicos | Substituídos pelo ciclo do Hot Topic |
 | Canal | Renomeado para comunidade |
 | Feed de publicações de pessoas seguidas | Parcial: o Início mostra até 3 interações recentes de pessoas seguidas, com fim visível. Não há feed infinito de pessoas. |
-| Curtidas e lista de quem curtiu | Removidas |
+| Curtidas e lista de quem curtiu | A curtida voltou como **estrela** em 5 de novembro de 2026 (RN15), com limites. A **lista de quem deu** continua removida, e é o que separa as duas coisas: sem a lista não há como medir ninguém por quem o aplaudiu. |
 | Comentários encadeados | Removidos; respostas ficam direto no tópico |
 | Cabine em modo história | Feature posterior |
 | Cabine só entre amigos mútuos | Substituída por convite com aceite entre membros de comunidades em comum |

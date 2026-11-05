@@ -1,29 +1,90 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Segmented } from "@/design/components";
+import { ChronologicalIcon, StarIcon } from "@/design/icons";
+import type { OrdemDasContribuicoes } from "./shared";
 
 /**
- * A ordem das respostas (tela 15).
+ * A ordem das contribuições (tela 15, protótipo v6).
  *
- * A escolha vai na URL, como a ordem dos tópicos na comunidade: o endereço
- * fica compartilhável e o botão voltar funciona.
+ * Pílula com dois botões: estrela e relógio. **O relógio alterna** a cada
+ * clique entre mais novas e mais antigas — são dois destinos num controle
+ * só porque "por data" é uma escolha, e "para que lado" é o ajuste dela.
  *
- * "Mais novas" é o padrão. Quem quiser ler o tópico como conversa, do começo,
- * escolhe "Mais antigas" — por isso as duas opções têm nome, e não ícone.
+ * O rótulo acessível **diz a ordem atual**, não só o que o clique faz:
+ * quem não vê qual dos dois está aceso precisa dessa frase para saber em
+ * que ordem está lendo.
+ *
+ * A escolha vai na URL, como as abas da comunidade: o endereço fica
+ * compartilhável e o botão voltar funciona. O valor padrão (`estrelas`)
+ * é omitido, para o endereço limpo ser o endereço normal.
  */
-export function OrdemDasRespostas({ endereco, atual }: { endereco: string; atual: string }) {
+export function OrdemDasRespostas({
+  endereco,
+  atual,
+}: {
+  endereco: string;
+  atual: OrdemDasContribuicoes;
+}) {
   const router = useRouter();
 
+  function ir(ordem: OrdemDasContribuicoes) {
+    router.push(ordem === "estrelas" ? endereco : `${endereco}?ordem=${ordem}`);
+  }
+
+  const porData = atual !== "estrelas";
+
+  const rotuloDoRelogio = !porData
+    ? "Ordenar por data, mais novas primeiro"
+    : atual === "novas"
+      ? "Mais novas primeiro. Toque para ver as mais antigas."
+      : "Mais antigas primeiro. Toque para ver as mais novas.";
+
   return (
-    <Segmented
-      label="Ordem das contribuições"
-      atual={atual}
-      opcoes={[
-        { id: "recentes", label: "Mais novas" },
-        { id: "antigas", label: "Mais antigas" },
-      ]}
-      onSelect={(id) => router.push(id === "recentes" ? endereco : `${endereco}?ordem=${id}`)}
-    />
+    <div
+      role="group"
+      aria-label="Ordem das contribuições"
+      className="bg-surfacePage rounded-pill inline-flex items-center gap-1 p-1"
+    >
+      <Opcao ativo={!porData} rotulo="Ordenar por mais estrelas" onClick={() => ir("estrelas")}>
+        <StarIcon decorative className="size-iconNav" />
+      </Opcao>
+
+      <Opcao
+        ativo={porData}
+        rotulo={rotuloDoRelogio}
+        // Primeiro clique: mais novas. Depois, alterna.
+        onClick={() => ir(atual === "novas" ? "antigas" : "novas")}
+      >
+        <ChronologicalIcon decorative className="size-iconNav" />
+      </Opcao>
+    </div>
+  );
+}
+
+function Opcao({
+  ativo,
+  rotulo,
+  onClick,
+  children,
+}: {
+  ativo: boolean;
+  rotulo: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={ativo}
+      aria-label={rotulo}
+      title={rotulo}
+      onClick={onClick}
+      className={`size-controlLg rounded-pill grid cursor-pointer place-items-center ${
+        ativo ? "bg-ink text-paper" : "text-inkMuted hover:bg-lavenderSoft"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

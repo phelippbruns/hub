@@ -3,13 +3,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ContentColumn } from "@/design/components";
 import { CorpoDoTopico } from "@/features/topicos/corpo";
+import { ordemDasContribuicoes } from "@/features/respostas/shared";
 import { CabecalhoDoTopico } from "@/features/topicos/cabecalho";
 import { OlhoDoTopico } from "@/features/topicos/olho";
 import { TelaDeConvite } from "@/features/convite/tela";
 import { metadataCompartilhavel } from "@/features/convite/metadata";
 import { enderecoDeMidia } from "@/lib/midia/deposito";
 import { getViewer } from "@/lib/auth/session";
-import type { OrdemDasRespostas } from "@/lib/data/topics";
 import { LIMITE_RESPOSTAS_PARA_APAGAR, topicoPorEndereco } from "@/lib/data/topics";
 import { NotFoundError } from "@/lib/data/errors";
 import { marcarTopicoComoVisto, quandoVisitouOTopico } from "@/lib/data/inicio";
@@ -81,7 +81,7 @@ export default async function TopicoPage({
   // Qualquer valor estranho na URL cai no padrão, em vez de dar erro: o
   // endereço é compartilhável, e endereço compartilhado é endereço editado.
   const { ordem: pedida } = await searchParams;
-  const ordem: OrdemDasRespostas = pedida === "antigas" ? "antigas" : "recentes";
+  const ordem = ordemDasContribuicoes(pedida);
 
   /*
    * Sem conta: a tela 2, o convite (F14).

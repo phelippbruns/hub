@@ -31,6 +31,7 @@ import {
   Tabs,
   TextField,
   TopicName,
+  StarButton,
   TopicOpening,
   TopicRow,
 } from "./index";
@@ -267,6 +268,9 @@ const cases: Array<[string, React.ReactElement]> = [
     "comunidade sugerida",
     <SuggestionRow nome="Vinil" universo="Música" membros={2100} href="/c/vinil" />,
   ],
+  ["estrela sem nenhuma", <StarButton estrelada={false} total={0} />],
+  ["estrela de outras pessoas", <StarButton estrelada={false} total={7} />],
+  ["estrela com a minha", <StarButton estrelada total={8} />],
   [
     "abertura do tópico",
     <TopicOpening

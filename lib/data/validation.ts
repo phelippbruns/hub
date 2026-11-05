@@ -429,3 +429,12 @@ export const inviteToCabinSchema = z.object({
   cabinId: uuidSchema.optional(),
   message: userText(240, "A mensagem do convite").nullable().default(null),
 });
+
+/**
+ * O id de uma contribuição, para as ações que só precisam dele.
+ *
+ * Regra de segurança 4: toda entrada passa por Zod, inclusive a que
+ * "obviamente" é um uuid. Sem isto, um corpo de requisição com um objeto
+ * no lugar do id chegaria ao Prisma e a mensagem de erro seria dele.
+ */
+export const idDeContribuicaoSchema = z.string().uuid();

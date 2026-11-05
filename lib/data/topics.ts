@@ -11,7 +11,7 @@ import {
   RuleViolationError,
   translateDatabaseError,
 } from "./errors";
-import { createAnswerSchema, createTopicSchema } from "./validation";
+import { createAnswerSchema, createTopicSchema, idDeContribuicaoSchema } from "./validation";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { assertNotBlocked, requireActiveMembership } from "./access";
 import { comAvatar, comAvatares, enderecosDeMidia } from "@/lib/midia/deposito";
@@ -87,10 +87,27 @@ export async function enderecoDoTopico(topicId: string): Promise<string | null> 
 /**
  * Ordem das respostas (tela 15).
  *
- * `recentes` é o padrão: quem abre um tópico de volta quer o que chegou
- * depois da última visita. Quem quer ler como conversa escolhe `antigas`.
+ * O padrão virou `estrelas` no protótipo v6, e o nome antigo `recentes`
+ * continua valendo na URL — quem traduz é `ordemDasContribuicoes()`, em
+ * `features/respostas/shared.ts`.
+ *
+ * A união está escrita nos dois lugares, e não importada de um para o
+ * outro, porque `lib/` não pode depender de `features/` e a tela não pode
+ * puxar `lib/data/` nem por um tipo. Divergir não passa despercebido: a
+ * página entrega o valor normalizado a esta função, e o `tsc` recusa o
+ * membro que faltar de um dos dois lados.
  */
-export type OrdemDasRespostas = "recentes" | "antigas";
+export type OrdemDasRespostas = "estrelas" | "novas" | "antigas";
+
+/**
+ * RN15: no máximo isto de estrelas por minuto, por pessoa.
+ *
+ * O teto é alto de propósito — ele não existe para moderar entusiasmo, e
+ * sim para que um laço automatizado não encha a tabela. Sessenta por
+ * minuto é mais rápido do que qualquer pessoa clica e mais lento do que
+ * qualquer script tentaria.
+ */
+export const ESTRELAS_POR_MINUTO = 60;
 
 export async function topicoPorEndereco(
   viewer: Viewer,
@@ -116,7 +133,8 @@ export async function topicoPorEndereco(
  *
  * RN16: visitante sem conta vê a comunidade e o tópico, mas **não as
  * respostas** — elas só aparecem depois do cadastro.
- * RN15: nunca curtida nem contador por resposta; só pessoas e respostas.
+ * RN15: aqui só pessoas e contribuições. A estrela conta por contribuição,
+ * vem em `starCount` na lista, e **não** soma no cabeçalho do tópico.
  */
 export async function getTopicForViewer(
   viewer: Viewer,
@@ -203,7 +221,7 @@ export async function getTopicForViewer(
 export async function respostasDoTopico(
   viewer: Viewer,
   topicId: string,
-  ordem: OrdemDasRespostas = "recentes",
+  ordem: OrdemDasRespostas = "estrelas",
 ) {
   const me = viewerProfileId(viewer);
   if (me === null) return null;
@@ -216,7 +234,7 @@ export async function respostasDoTopico(
  * As imagens são assinadas aqui, no momento de montar a lista: o depósito é
  * privado, então o endereço é temporário e não pode ser guardado no banco.
  */
-async function listAnswers(me: string, topicId: string, ordem: OrdemDasRespostas = "recentes") {
+async function listAnswers(me: string, topicId: string, ordem: OrdemDasRespostas = "estrelas") {
   const blocked = await prisma.block.findMany({
     where: { OR: [{ blockerId: me }, { blockedId: me }] },
     select: { blockerId: true, blockedId: true },
@@ -230,11 +248,30 @@ async function listAnswers(me: string, topicId: string, ordem: OrdemDasRespostas
       deletedAt: null,
       ...(hidden.size > 0 ? { authorId: { notIn: [...hidden] } } : {}),
     },
-    // A mais nova em cima por padrão: num tópico com quarenta respostas,
-    // quem volta para ver o que chegou não deveria ter de rolar tudo.
-    orderBy: { createdAt: ordem === "antigas" ? "asc" : "desc" },
+    /*
+      A ordem padrão é por estrelas (item 5.2), com o empate caindo na mais
+      recente — por isso são dois campos, e por isso existe o índice
+      `(topic_id, star_count DESC, created_at DESC)`.
+
+      A ordem é calculada **aqui**, no servidor, a cada carga da página. É
+      o que faz a lista não pular quando alguém dá estrela: a ação da
+      estrela não revalida nada, então nada reordena no meio do clique
+      (item 5.5).
+    */
+    orderBy:
+      ordem === "estrelas"
+        ? [{ starCount: "desc" as const }, { createdAt: "desc" as const }]
+        : [{ createdAt: ordem === "antigas" ? ("asc" as const) : ("desc" as const) }],
     include: {
       author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+      /*
+        RN15: só a **minha** estrela, nunca a lista de quem deu.
+
+        O filtro por `profileId` é o que torna isso impossível de vazar: a
+        consulta não traz as outras linhas, então nenhuma tela pode
+        mostrá-las por descuido. O número total vem de `starCount`.
+      */
+      stars: { where: { profileId: me }, select: { profileId: true } },
     },
   });
 
@@ -268,6 +305,8 @@ async function listAnswers(me: string, topicId: string, ordem: OrdemDasRespostas
     mediaHref: enderecos.at(i) ?? null,
     /** O que esta resposta marcou e existe: a tela desenha só isso como link. */
     marcacoes: marcacoesDoTexto(resposta.text, existentes),
+    /** RN15: se **eu** dei estrela nesta contribuição. */
+    estrelada: resposta.stars.length > 0,
     /** Para montar o endereço dos tópicos marcados com `*`. */
     comunidadeDoTopico: daComunidade?.community.slug ?? "",
     souAutor: resposta.authorId === me,
@@ -490,7 +529,104 @@ export async function deleteAnswer(viewer: Viewer, answerId: string) {
   const isModerator = await isCommunityModerator(me, answer.topic.communityId);
   if (!isAuthor && !isModerator) throw new ForbiddenError("Só o autor ou a moderação apaga");
 
-  return prisma.answer.update({ where: { id: answerId }, data: { deletedAt: new Date() } });
+  /*
+   * RN15, item 2.5: apagar a contribuição apaga as estrelas dela.
+   *
+   * O `ON DELETE CASCADE` da tabela **não** resolve sozinho, porque apagar
+   * no Hub é lógico: a linha de `answers` continua lá, com `deleted_at`.
+   * Sem este `deleteMany`, as estrelas sobreviveriam à contribuição — e
+   * se a moderação um dia desfizesse a remoção, o número antigo voltaria
+   * junto, como se nada tivesse acontecido.
+   *
+   * Numa transação só: apagar a contribuição e deixar as estrelas para
+   * trás é o estado que não pode existir nem por um instante.
+   */
+  const [apagada] = await prisma.$transaction([
+    prisma.answer.update({ where: { id: answerId }, data: { deletedAt: new Date() } }),
+    prisma.answerStar.deleteMany({ where: { answerId } }),
+  ]);
+  return apagada;
+}
+
+/**
+ * RN15: dar ou tirar a estrela de uma contribuição.
+ *
+ * **Alterna.** Não há "dar" e "tirar" separados porque não há estado
+ * intermediário: a linha existe ou não existe, e a chave primária
+ * composta garante que nunca haja duas.
+ *
+ * **Dá para dar estrela na própria contribuição** (item 2.2). Contraria o
+ * instinto e é decisão do PO: a estrela marca o que vale a pena reler, e
+ * proibir a própria obrigaria a tela a explicar uma exceção que ninguém
+ * pediu.
+ *
+ * O contador não é tocado aqui — quem soma é o gatilho
+ * `answer_stars_contar`. Ler, somar e escrever no app perderia estrela
+ * quando duas pessoas clicassem no mesmo instante.
+ *
+ * **Não chama `avisar()`, e isso é decisão, não esquecimento.** Receber
+ * "fulano deu estrela" transformaria a estrela num placar que persegue
+ * quem escreveu — e o Princípio 2 recusa exatamente isso. Quem quiser
+ * dizer algo a alguém tem a marcação com `@` e a Cabine; a estrela é
+ * sobre o texto, não sobre a pessoa.
+ */
+export async function alternarEstrela(
+  viewer: Viewer,
+  answerId: unknown,
+): Promise<{ estrelada: boolean; total: number }> {
+  const me = requireProfileId(viewer);
+  const id = idDeContribuicaoSchema.parse(answerId);
+
+  const answer = await prisma.answer.findFirst({
+    where: { id, deletedAt: null, topic: { deletedAt: null } },
+    select: {
+      id: true,
+      authorId: true,
+      topic: { select: { communityId: true } },
+    },
+  });
+  if (!answer) throw new NotFoundError("Contribuição");
+
+  // Regras 1 e 5: membro ativo da comunidade, e sem bloqueio entre as duas
+  // pessoas. Quem bloqueou não vê a contribuição; não pode premiá-la.
+  await requireActiveMembership(me, answer.topic.communityId);
+  if (answer.authorId !== null && answer.authorId !== me) {
+    await assertNotBlocked(me, answer.authorId);
+  }
+
+  /*
+   * Limite de taxa (item 2.4), sem tabela nova: a própria tabela é o
+   * registro. Tirar e pôr de novo grava linha nova a cada vez, então o
+   * aperta-solta repetido também cai aqui.
+   */
+  const umMinutoAtras = new Date(Date.now() - 60_000);
+  const recentes = await prisma.answerStar.count({
+    where: { profileId: me, createdAt: { gte: umMinutoAtras } },
+  });
+  if (recentes >= ESTRELAS_POR_MINUTO) {
+    throw new RuleViolationError("RN15", "Muitas estrelas em pouco tempo. Espere um instante.");
+  }
+
+  const existente = await prisma.answerStar.findUnique({
+    where: { answerId_profileId: { answerId: id, profileId: me } },
+  });
+
+  if (existente) {
+    await prisma.answerStar.delete({
+      where: { answerId_profileId: { answerId: id, profileId: me } },
+    });
+  } else {
+    await prisma.answerStar.create({ data: { answerId: id, profileId: me } });
+  }
+
+  // Relido depois do gatilho: é o número de verdade, não o que a tela
+  // chutou ao ser otimista.
+  const depois = await prisma.answer.findUniqueOrThrow({
+    where: { id },
+    select: { starCount: true },
+  });
+
+  return { estrelada: !existente, total: depois.starCount };
 }
 
 /**

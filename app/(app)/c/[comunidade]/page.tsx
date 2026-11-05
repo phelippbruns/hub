@@ -27,13 +27,13 @@ import { ResumoDaComunidade } from "@/features/comunidades/resumo";
 import type { ParaEntrar } from "@/features/comunidades/janela-de-entrada";
 import { LinkDoTopico } from "@/features/comunidades/link-do-topico";
 import { PainelDoTopico } from "@/features/topicos/painel";
+import { ordemDasContribuicoes } from "@/features/respostas/shared";
 import { OlhoDoTopico } from "@/features/topicos/olho";
 import { cookies } from "next/headers";
 import { COOKIE_DA_LARGURA, larguraDoPainel } from "@/features/topicos/shared";
 import { CorpoDoTopico } from "@/features/topicos/corpo";
 import { getViewer } from "@/lib/auth/session";
 import { LIMITE_RESPOSTAS_PARA_APAGAR, topicoPorEndereco } from "@/lib/data/topics";
-import type { OrdemDasRespostas } from "@/lib/data/topics";
 import { marcarTopicoComoVisto, quandoVisitouOTopico } from "@/lib/data/inicio";
 import { comunidadeDaRota } from "@/features/comunidades/dados";
 import { filtroDeMembros, membrosDaComunidade } from "@/lib/data/membros";
@@ -380,7 +380,7 @@ async function PainelAoLado({
   }
 
   const endereco = `/c/${comunidade}/${topico}`;
-  const ordemDasRespostas: OrdemDasRespostas = ordem === "antigas" ? "antigas" : "recentes";
+  const ordemDasRespostas = ordemDasContribuicoes(ordem);
 
   // Lido **antes** de marcar a visita de agora: depois, a marca já seria
   // "agora" e a linha de contribuições novas nunca apareceria.
