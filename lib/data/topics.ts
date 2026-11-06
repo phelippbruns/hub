@@ -63,6 +63,35 @@ export async function jaCrieiTopicoHoje(viewer: Viewer, communityId: string): Pr
 }
 
 /**
+ * RN07, para a janela que escolhe a comunidade: onde ainda cabe um
+ * tópico hoje, em **uma** consulta.
+ *
+ * A `jaCrieiTopicoHoje` responde por uma comunidade. Com o campo de
+ * escolher comunidade, a janela precisa da resposta de todas ao mesmo
+ * tempo: trocar a comunidade no campo tem de trocar o aviso junto, e um
+ * aviso que não acompanha o campo é um campo que mente.
+ *
+ * Uma consulta e não N: quem está em vinte comunidades pagaria vinte
+ * idas ao banco para abrir uma janela.
+ */
+export async function ondeAindaPossoCriarHoje(viewer: Viewer): Promise<Set<string>> {
+  const me = viewerProfileId(viewer);
+  if (!me) return new Set();
+
+  const usadas = await prisma.$queryRaw<{ community_id: string }[]>`
+    SELECT DISTINCT community_id
+      FROM topics
+     WHERE author_id = ${me}::uuid
+       AND deleted_at IS NULL
+       AND cycle_date = hub_cycle_date(now())
+  `;
+
+  // Devolve as **gastas**: quem pergunta sabe em quais comunidades está,
+  // e a lista de gastas é sempre a menor das duas.
+  return new Set(usadas.map((linha) => linha.community_id));
+}
+
+/**
  * Para onde `/topico/<id>` deve redirecionar.
  *
  * Só o endereço: quem confere permissão é a página de destino. Por isso não

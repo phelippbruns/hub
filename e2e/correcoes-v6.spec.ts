@@ -236,3 +236,87 @@ test.describe("compartilhar", () => {
     }
   });
 });
+
+/**
+ * O atalho de criar tópico da barra lateral (item 7, primeira metade).
+ *
+ * Era uma página que perguntava em qual comunidade, com lista de links, e
+ * só o clique abria a janela. Agora a janela abre direto, com um campo de
+ * comunidade — e o campo some quando não há o que escolher.
+ */
+test.describe("criar tópico pelo atalho da barra", () => {
+  test("a janela abre direto, com o campo de comunidade", async ({ page }) => {
+    test.slow();
+    await entrarNoApp(page, "atalho");
+
+    // Duas comunidades: é o que faz existir escolha.
+    for (const nome of [unico("Uma "), unico("Outra ")]) {
+      await preencherNovaComunidade(page, nome);
+      await page.waitForURL(/\/c\/[^/]+$/);
+    }
+
+    await page.goto("/criar-topico");
+
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await expect(janela).toBeVisible();
+    await expect(janela.getByLabel("Comunidade")).toBeVisible();
+
+    /*
+     * A lista de links da página antiga não existe mais. Procurar por ela
+     * é o que distingue "a janela abriu" de "a janela abriu **em vez da**
+     * página" — sem isto, as duas conviveriam e o teste não notaria.
+     */
+    await expect(page.getByText("Em qual comunidade?")).toHaveCount(0);
+  });
+
+  test("dentro de uma comunidade, não há campo de comunidade", async ({ page }) => {
+    await entrarNoApp(page, "semcampo");
+    await preencherNovaComunidade(page, unico("Só Uma "));
+    await page.waitForURL(/\/c\/[^/]+$/);
+    const comunidade = new URL(page.url()).pathname;
+
+    await page.goto(`${comunidade}?novo=1`);
+
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await expect(janela).toBeVisible();
+    // A janela já sabe onde o tópico nasce: perguntar seria ruído.
+    await expect(janela.getByLabel("Comunidade")).toHaveCount(0);
+  });
+
+  test("trocar a comunidade troca o aviso do limite do dia", async ({ page }) => {
+    test.slow();
+    await entrarNoApp(page, "limite");
+
+    const gasta = unico("Gasta ");
+    await preencherNovaComunidade(page, gasta);
+    await page.waitForURL(/\/c\/[^/]+$/);
+    const daGasta = new URL(page.url()).pathname;
+
+    const livre = unico("Livre ");
+    await preencherNovaComunidade(page, livre);
+    await page.waitForURL(/\/c\/[^/]+$/);
+
+    // RN07: um tópico por dia por comunidade. Gasta o da primeira.
+    await criarTopico(page, daGasta, "O do dia");
+    await page.waitForURL(/\/o-do-dia$/);
+
+    await page.goto("/criar-topico");
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    const campo = janela.getByLabel("Comunidade");
+
+    /*
+     * O aviso tem de **acompanhar o campo**. Com ele parado na primeira
+     * comunidade, a janela diria "já criou hoje" ao escolher a livre — e
+     * um aviso que responde pela comunidade errada é pior que nenhum.
+     */
+    await campo.selectOption({ label: gasta });
+    // Por texto literal, e não `new RegExp` com uma variável: o lint de
+    // segurança recusa o construtor com argumento montado.
+    await expect(janela.getByText(`Você já criou um tópico em ${gasta} hoje`)).toBeVisible();
+    await expect(janela.getByRole("button", { name: "Criar tópico" })).toBeDisabled();
+
+    await campo.selectOption({ label: livre });
+    await expect(janela.getByText(/Você já criou um tópico em/)).toHaveCount(0);
+    await expect(janela.getByRole("button", { name: "Criar tópico" })).toBeEnabled();
+  });
+});

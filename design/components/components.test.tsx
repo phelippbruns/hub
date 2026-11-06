@@ -32,6 +32,7 @@ import {
   Tabs,
   TextField,
   TopicName,
+  Select,
   StarButton,
   TopicOpening,
   TopicRow,
@@ -284,6 +285,17 @@ const cases: Array<[string, React.ReactElement]> = [
     "comunidade sugerida",
     <SuggestionRow nome="Vinil" universo="Música" membros={2100} href="/c/vinil" />,
   ],
+  [
+    "select de comunidade",
+    <Select
+      label="Comunidade"
+      opcoes={[
+        { valor: "vinil", rotulo: "Vinil" },
+        { valor: "fotografia", rotulo: "Fotografia" },
+      ]}
+    />,
+  ],
+  ["select com erro", <Select label="Comunidade" error="Escolha uma comunidade." opcoes={[]} />],
   ["estrela sem nenhuma", <StarButton estrelada={false} total={0} />],
   ["estrela de outras pessoas", <StarButton estrelada={false} total={7} />],
   ["estrela com a minha", <StarButton estrelada total={8} />],

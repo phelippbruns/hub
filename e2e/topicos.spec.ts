@@ -150,18 +150,23 @@ test.describe("criar tópico", () => {
     await expect(janela.getByText(/às 00h, fica em destaque/)).toBeVisible();
   });
 
-  test("o botão da barra pergunta em qual comunidade", async ({ page }) => {
+  test("o botão da barra abre a janela com o campo de comunidade", async ({ page }) => {
     await entrarNoApp(page, "escolher");
     await page.goto("/criar-topico");
 
-    // O onboarding deixou a pessoa em 3 comunidades, então há o que escolher.
-    await expect(page.getByText("Em qual comunidade?")).toBeVisible();
-
-    await page.getByRole("link").filter({ hasText: /\S/ }).last().click();
-    // O atalho leva a `/novo`, que redireciona para a comunidade com a
-    // janela aberta: a escolha da comunidade continua sendo o caminho.
-    await page.waitForURL(/\/c\/[^/]+\?novo=1$/);
-    await expect(page.getByRole("dialog", { name: "Novo tópico" })).toBeVisible();
+    /*
+     * **Era uma página** que perguntava "Em qual comunidade?" com uma
+     * lista de links, e só o clique nela abria a janela. O PO pediu em 5
+     * de novembro que a janela abrisse direto, com um campo de escolher
+     * no topo: perguntar numa tela e escrever noutra eram duas paradas
+     * para uma decisão só.
+     *
+     * O onboarding deixou a pessoa em 3 comunidades, então há escolha.
+     */
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await expect(janela).toBeVisible();
+    await expect(janela.getByLabel("Comunidade")).toBeVisible();
+    await expect(page.getByText("Em qual comunidade?")).toHaveCount(0);
   });
 });
 
