@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChronologicalIcon, StarIcon } from "@/design/icons";
 import type { OrdemDasContribuicoes } from "./shared";
 
@@ -27,9 +27,26 @@ export function OrdemDasRespostas({
   atual: OrdemDasContribuicoes;
 }) {
   const router = useRouter();
+  const parametros = useSearchParams();
 
+  /*
+   * **Preserva o que já está na URL**, e isso não é detalhe.
+   *
+   * O tópico vive em `/c/<comunidade>?t=<topico>` desde que a tela cheia
+   * saiu. Montar o endereço do zero — `${endereco}?ordem=...` — apagava o
+   * `?t=` junto: clicar no relógio **fechava o tópico** e devolvia a
+   * lista da comunidade. O padrão certo é o de
+   * `features/comunidades/controles-de-topicos.tsx`: copiar os
+   * parâmetros, mexer só no seu, e apagá-lo no valor padrão para o
+   * endereço limpo ser o endereço normal.
+   */
   function ir(ordem: OrdemDasContribuicoes) {
-    router.push(ordem === "estrelas" ? endereco : `${endereco}?ordem=${ordem}`);
+    const novos = new URLSearchParams(parametros.toString());
+    if (ordem === "estrelas") novos.delete("ordem");
+    else novos.set("ordem", ordem);
+
+    const busca = novos.toString();
+    router.push(busca ? `${endereco}?${busca}` : endereco, { scroll: false });
   }
 
   const porData = atual !== "estrelas";

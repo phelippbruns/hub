@@ -9,6 +9,9 @@ import {
   respostaPublicada,
   criarTopico,
   botaoDeContribuir,
+  esperarTopicoNoPainel,
+  enderecoAtual,
+  campoDeImagemDaContribuicao,
 } from "./apoio-tela";
 
 /**
@@ -47,9 +50,9 @@ async function meuTopico(page: Page, prefixo: string): Promise<string> {
   const comunidade = new URL(page.url()).pathname;
 
   await criarTopico(page, comunidade, "assunto do teste");
-  await page.waitForURL(/\/assunto-do-teste$/);
+  await esperarTopicoNoPainel(page, "assunto-do-teste");
 
-  return new URL(page.url()).pathname;
+  return enderecoAtual(page);
 }
 
 test.describe("responder", () => {
@@ -64,7 +67,9 @@ test.describe("responder", () => {
     // RN15: pessoas e contribuições do tópico inteiro — a estrela conta por
     // contribuição e mora no cartão de cada uma, nunca aqui. O separador
     // virou "·" no protótipo v6.
-    await expect(page.getByText(/1 pessoa · 1 contribuição/)).toBeVisible();
+    await expect(
+      page.getByRole("complementary", { name: /Tópico/ }).getByText(/1 pessoa · 1 contribuição/),
+    ).toBeVisible();
   });
 
   test("RN16: o aviso aparece enquanto digita e cita o trecho", async ({ page }) => {
@@ -159,7 +164,7 @@ test.describe("imagem na resposta", () => {
     await meuTopico(page, "Com Imagem");
 
     await campoDeContribuicao(page).fill("olha a foto");
-    await page.locator('input[name="imagem"]').setInputFiles({
+    await campoDeImagemDaContribuicao(page).setInputFiles({
       name: "foto.jpg",
       mimeType: "image/jpeg",
       buffer: jpegComLocalizacao(),
@@ -194,7 +199,7 @@ test.describe("imagem na resposta", () => {
     await entrarNoApp(page, "somidia");
     await meuTopico(page, "So Midia");
 
-    await page.locator('input[name="imagem"]').setInputFiles({
+    await campoDeImagemDaContribuicao(page).setInputFiles({
       name: "foto.jpg",
       mimeType: "image/jpeg",
       buffer: jpegComLocalizacao(),
@@ -232,7 +237,7 @@ test.describe("imagem na resposta", () => {
 
     const campo = campoDeContribuicao(page);
     await campo.fill("escrevi isso com carinho e não quero perder");
-    await page.locator('input[name="imagem"]').setInputFiles({
+    await campoDeImagemDaContribuicao(page).setInputFiles({
       name: "disfarce.jpg",
       mimeType: "image/jpeg",
       buffer: Buffer.from("%PDF-1.4 isto não é uma imagem", "latin1"),
@@ -266,7 +271,7 @@ test.describe("imagem na resposta", () => {
 
     await campoDeContribuicao(page).fill("tentando enganar");
     // O cabeçalho diz JPEG; os bytes dizem PDF.
-    await page.locator('input[name="imagem"]').setInputFiles({
+    await campoDeImagemDaContribuicao(page).setInputFiles({
       name: "disfarce.jpg",
       mimeType: "image/jpeg",
       buffer: Buffer.from("%PDF-1.4 isto não é uma imagem", "latin1"),
@@ -345,9 +350,23 @@ test.describe("GIF na resposta", () => {
     }));
 
     expect(medidas.natural, "o GIF não carregou, então a medida não diz nada").toBeGreaterThan(0);
-    expect(medidas.desenhada, "o GIF foi redimensionado em vez de ficar no tamanho original").toBe(
+
+    /*
+     * **A promessa de "tamanho original" morreu com a tela cheia.**
+     *
+     * Ela era do PO e valia quando o tópico tinha a largura da página.
+     * No painel, que tem 520 px, um GIF de 480 px mais o acolchoamento
+     * do cartão não cabe: o `max-w-full` encolhe para 463, e é o certo —
+     * a alternativa é ele furar o cartão.
+     *
+     * O que continua valendo, e é o que este teste guarda: a mídia
+     * **nunca é esticada** e nunca é achatada. O PR C troca isto por
+     * 213 × 213 com corte centralizado, e aí a medida vira outra.
+     */
+    expect(medidas.desenhada, "o GIF foi esticado além do tamanho natural").toBeLessThanOrEqual(
       medidas.natural,
     );
+    expect(medidas.desenhada, "o GIF sumiu ou foi achatado").toBeGreaterThan(medidas.natural * 0.8);
   });
 
   test("RN13: imagem e GIF são excludentes", async ({ page }) => {
@@ -355,7 +374,7 @@ test.describe("GIF na resposta", () => {
     await meuTopico(page, "Um Ou Outro");
 
     await campoDeContribuicao(page).fill("um de cada vez");
-    await page.locator('input[name="imagem"]').setInputFiles({
+    await campoDeImagemDaContribuicao(page).setInputFiles({
       name: "foto.jpg",
       mimeType: "image/jpeg",
       buffer: jpegComLocalizacao(),

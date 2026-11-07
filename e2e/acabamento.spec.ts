@@ -8,6 +8,8 @@ import {
   seguirNoPerfil,
   criarTopico,
   botaoDeContribuir,
+  enderecoAtual,
+  esperarTopicoNoPainel,
 } from "./apoio-tela";
 
 /**
@@ -73,15 +75,19 @@ async function minhaComunidadeComTopico(page: Page, prefixo: string, assunto = "
   await criarTopico(page, comunidade, assunto);
 
   /*
-   * Esperar o endereço **do tópico**, e não "qualquer coisa dentro da
-   * comunidade": `/c/<slug>/novo` também começa assim, então a espera
-   * terminava na hora, ainda no formulário, e o teste seguia com o
-   * endereço errado na mão.
+   * Esperar o tópico **no painel**, que é a única forma desde 6 de
+   * novembro de 2026 — a tela cheia saiu.
+   *
+   * A espera é pelo `?t=<slug>`, e não por "qualquer coisa dentro da
+   * comunidade": `/c/<slug>/novo` também começa assim, e a espera
+   * terminava na hora, ainda no formulário, com o endereço errado na mão.
    */
-  const destino = `${comunidade}/${assunto.replace(/\s+/g, "-")}`;
-  await page.waitForURL((url) => url.pathname === destino);
+  const slug = assunto.replace(/\s+/g, "-");
+  await esperarTopicoNoPainel(page, slug);
 
-  return { comunidade, nome, topico: destino };
+  // O `slug` vem junto: desde que o tópico vive em `?t=`, tirá-lo do
+  // fim do endereço com `split("/").pop()` devolve a comunidade inteira.
+  return { comunidade, nome, slug, topico: enderecoAtual(page) };
 }
 
 async function responder(page: Page, topico: string, texto: string) {
@@ -103,9 +109,12 @@ test.describe("marcar comunidade e tópico", () => {
   test("# e * viram link, e o que não existe fica texto", async ({ page }) => {
     await entrarNoApp(page, "marca");
 
-    const { comunidade, topico } = await minhaComunidadeComTopico(page, "Com Marcas");
+    const {
+      comunidade,
+      topico,
+      slug: slugDoTopico,
+    } = await minhaComunidadeComTopico(page, "Com Marcas");
     const slugDaComunidade = comunidade.replace("/c/", "");
-    const slugDoTopico = topico.split("/").pop()!;
 
     /*
      * Uma conta só, de propósito.

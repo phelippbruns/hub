@@ -8,6 +8,8 @@ import {
   seguirNoPerfil,
   abrirConvites,
   criarTopico,
+  esperarTopicoNoPainel,
+  enderecoAtual,
 } from "./apoio-tela";
 
 /**
@@ -286,8 +288,8 @@ test.describe("compartilhar para a Cabine (F14)", () => {
       const comunidade = new URL(page.url()).pathname;
 
       await criarTopico(page, comunidade, "assunto do teste");
-      await page.waitForURL(/\/assunto-do-teste$/);
-      const endereco = new URL(page.url()).pathname;
+      await esperarTopicoNoPainel(page, "assunto-do-teste");
+      const endereco = enderecoAtual(page);
 
       /*
        * **Quem recebe precisa me seguir** (RN18, desde 5 de novembro).

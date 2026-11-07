@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import {
   AnswerCard,
@@ -60,6 +60,17 @@ export function LinhaDeResposta({
   const [estrelando, estrelar] = useTransition();
   const idDoMenu = useId();
   const caminho = usePathname();
+  const parametros = useSearchParams();
+
+  /*
+   * Para onde a denúncia devolve a pessoa — **com a busca junto**.
+   *
+   * O tópico vive em `/c/<comunidade>?t=<topico>` desde que a tela cheia
+   * saiu. `usePathname()` devolve só `/c/<comunidade>`, então voltar da
+   * denúncia abria a lista e fechava o tópico — exatamente o que o
+   * "voltar" existe para impedir.
+   */
+  const daqui = parametros.size > 0 ? `${caminho}?${parametros.toString()}` : caminho;
 
   const autor = resposta.autor;
   const nome = autor?.nome ?? "Pessoa que saiu do Hub";
@@ -150,12 +161,12 @@ export function LinhaDeResposta({
             <>
               {/* Ligados na F16. O `voltar` traz a pessoa de volta ao
                   tópico: denunciar não é motivo para perder o lugar. */}
-              <Link href={`/denuncia?resposta=${resposta.id}&voltar=${caminho}`}>
+              <Link href={`/denuncia?resposta=${resposta.id}&voltar=${encodeURIComponent(daqui)}`}>
                 <Button variant="secondary" className="w-full">
                   Denunciar
                 </Button>
               </Link>
-              <Link href={`/denuncia?bloquear=${handle}&voltar=${caminho}`}>
+              <Link href={`/denuncia?bloquear=${handle}&voltar=${encodeURIComponent(daqui)}`}>
                 <Button variant="secondary" className="w-full">
                   Bloquear {nome}
                 </Button>

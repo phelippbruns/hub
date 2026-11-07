@@ -1,19 +1,13 @@
 import type { Metadata } from "next";
 
-import { notFound } from "next/navigation";
-import { ContentColumn } from "@/design/components";
-import { CorpoDoTopico } from "@/features/topicos/corpo";
-import { ordemDasContribuicoes } from "@/features/respostas/shared";
-import { CabecalhoDoTopico } from "@/features/topicos/cabecalho";
-import { OlhoDoTopico } from "@/features/topicos/olho";
+import { notFound, redirect } from "next/navigation";
 import { TelaDeConvite } from "@/features/convite/tela";
 import { metadataCompartilhavel } from "@/features/convite/metadata";
 import { enderecoDeMidia } from "@/lib/midia/deposito";
 import { getViewer } from "@/lib/auth/session";
-import { LIMITE_RESPOSTAS_PARA_APAGAR, topicoPorEndereco } from "@/lib/data/topics";
+import { topicoPorEndereco } from "@/lib/data/topics";
 import { NotFoundError } from "@/lib/data/errors";
-import { marcarTopicoComoVisto, quandoVisitouOTopico } from "@/lib/data/inicio";
-import { meusSeguidoresParaCompartilhar } from "@/lib/data/follows";
+import { enderecoDoTopico } from "@/lib/rotas";
 
 type Params = Promise<{ comunidade: string; topico: string }>;
 
@@ -59,14 +53,26 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 }
 
 /**
- * Tela 15: a página do tópico.
+ * Tela 15: o endereço canônico do tópico — **e só isso**.
  *
- * As respostas aparecem **só para ler**: a caixa de responder, o menu de cada
- * resposta e a ordenação são a F09. Mostrá-las agora é o que permite julgar a
- * tela com conteúdo de verdade, em vez de uma casca.
+ * Desde 6 de novembro de 2026 a tela cheia do tópico não existe mais, por
+ * decisão do PO: em todo o Hub o tópico abre no painel, ao lado da lista
+ * da comunidade. Esta rota **não some** — endereço que já foi
+ * compartilhado nunca vira 404 — e passou a fazer duas coisas, conforme
+ * quem chega:
  *
- * Na web o tópico ocupa a largura toda, sem painel lateral — item 7 do
- * escopo da feature.
+ * - **Com sessão**, redireciona para `/c/<comunidade>?t=<topico>`, que é
+ *   o painel.
+ * - **Sem conta**, continua mostrando a tela de convite (F14), com a
+ *   capa, o nome, os membros e a pergunta — nunca as respostas (RN16).
+ *
+ * A segunda metade é o motivo de a rota continuar inteira. É este o link
+ * que chega pelo WhatsApp: a prévia (capa, nome, abertura) sai do
+ * `generateMetadata` daqui, e quem abre sem conta precisa ver onde está
+ * antes de ver um painel dentro de uma tela que não conhece.
+ *
+ * O cookie que devolve a pessoa a este tópico no fim do cadastro (RN31)
+ * é gravado pelo proxy, nesta rota, e continua funcionando.
  */
 export default async function TopicoPage({
   params,
@@ -76,105 +82,36 @@ export default async function TopicoPage({
   searchParams: Promise<{ convite?: string; ordem?: string }>;
 }) {
   const { viewer, slugs, dados } = await carregar(params);
-  const endereco = `/c/${slugs.comunidade}/${slugs.topico}`;
 
-  // Qualquer valor estranho na URL cai no padrão, em vez de dar erro: o
-  // endereço é compartilhável, e endereço compartilhado é endereço editado.
-  const { ordem: pedida } = await searchParams;
-  const ordem = ordemDasContribuicoes(pedida);
-
-  /*
-   * Sem conta: a tela 2, o convite (F14).
-   *
-   * O cookie que faz o onboarding marcar esta comunidade e devolver a
-   * pessoa a este tópico (RN31) é gravado pelo **proxy** — gravar cookie
-   * durante a renderização não é permitido no App Router.
-   */
-  if (viewer.kind !== "member") {
-    const { convite } = await searchParams;
-
-    return (
-      <TelaDeConvite
-        comunidade={{
-          nome: dados.community.name,
-          slug: dados.community.slug,
-          intro: dados.community.intro,
-          membros: dados.community.membersCount,
-          capaUrl: await enderecoDeMidia(dados.community.coverUrl),
-        }}
-        topico={{
-          nome: dados.name,
-          abertura: dados.description,
-          respostas: dados.answerCount,
-          pessoas: dados.peopleCount,
-        }}
-        compartilhadoPor={convite}
-      />
-    );
+  if (viewer.kind === "member") {
+    /*
+     * A ordem (`?ordem=`) viaja junto: um link compartilhado com "mais
+     * antigas" tem de abrir o painel em "mais antigas", senão o endereço
+     * compartilhável deixa de ser compartilhável.
+     */
+    const { ordem } = await searchParams;
+    const destino = enderecoDoTopico(slugs.comunidade, slugs.topico);
+    redirect(ordem ? `${destino}&ordem=${encodeURIComponent(ordem)}` : destino);
   }
 
-  /*
-   * Abrir o tópico zera o "n novas" do Início (F11).
-   *
-   * Sem `await`: marcar o visto não pode atrasar a tela, e se falhar o pior
-   * que acontece é o número continuar lá na próxima visita.
-   */
-  // Lido **antes** de marcar: depois, a marca já seria "agora" e a linha de
-  // contribuições novas nunca apareceria.
-  const vistoEm = await quandoVisitouOTopico(viewer, dados.id);
-  void marcarTopicoComoVisto(viewer, dados.id);
+  const { convite } = await searchParams;
 
   return (
-    <ContentColumn larga>
-      {/*
-        A tela do tópico é branca, e o resto do app é lavanda.
-
-        Não é estética: os dois fundos de cartão de contribuição
-        (`surfacePage` na minha, `surfaceNeutral` nas outras) só se
-        distinguem sobre `paper`. Sobre `surfacePage` a minha fica
-        exatamente da cor da página e a dos outros dá 1,0:1 — a lista
-        inteira vira texto corrido. O painel lateral já era branco pelo
-        mesmo motivo; a página inteira ficou para trás.
-      */}
-      <div className="bg-paper flex flex-col gap-3 rounded-md p-3">
-        <CabecalhoDoTopico
-          topicId={dados.id}
-          nome={dados.name}
-          endereco={endereco}
-          comunidadeSlug={dados.community.slug}
-          nomeDaComunidade={dados.community.name}
-          souAutor={dados.souAutor}
-          podeApagar={dados.podeApagar}
-          respostasDeOutros={dados.respostasDeOutros}
-          limite={LIMITE_RESPOSTAS_PARA_APAGAR}
-          paraCompartilhar={await meusSeguidoresParaCompartilhar(viewer)}
-        />
-
-        <CorpoDoTopico
-          topicId={dados.id}
-          nome={dados.name}
-          endereco={endereco}
-          abertura={dados.description}
-          autor={
-            dados.author
-              ? { nome: dados.author.name, avatarUrl: dados.author.avatarUrl }
-              : undefined
-          }
-          seguir={
-            <OlhoDoTopico
-              topicId={dados.id}
-              nome={dados.name}
-              endereco={endereco}
-              seguindoInicial={dados.following}
-            />
-          }
-          pessoas={dados.peopleCount}
-          respostas={dados.answerCount}
-          podeVerRespostas={dados.podeVerRespostas}
-          ordem={ordem}
-          vistoEm={vistoEm}
-        />
-      </div>
-    </ContentColumn>
+    <TelaDeConvite
+      comunidade={{
+        nome: dados.community.name,
+        slug: dados.community.slug,
+        intro: dados.community.intro,
+        membros: dados.community.membersCount,
+        capaUrl: await enderecoDeMidia(dados.community.coverUrl),
+      }}
+      topico={{
+        nome: dados.name,
+        abertura: dados.description,
+        respostas: dados.answerCount,
+        pessoas: dados.peopleCount,
+      }}
+      compartilhadoPor={convite}
+    />
   );
 }

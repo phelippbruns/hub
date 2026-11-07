@@ -14,6 +14,7 @@ import { getViewer } from "@/lib/auth/session";
 import { RuleViolationError, UnauthenticatedError } from "@/lib/data/errors";
 import { createTopicSchema } from "@/lib/data/validation";
 import { comunidadePorSlug } from "@/lib/data/comunidades";
+import { enderecoDoTopico } from "@/lib/rotas";
 
 async function quemPede() {
   const viewer = await getViewer();
@@ -74,7 +75,7 @@ export async function criarTopico(
   }
 
   revalidatePath(`/c/${comunidadeSlug}`);
-  redirect(`/c/${comunidadeSlug}/${slug}`);
+  redirect(enderecoDoTopico(comunidadeSlug, slug));
 }
 
 /** RN18: o olho. Seguir é sempre manual — responder não segue. */

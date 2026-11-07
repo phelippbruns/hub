@@ -236,3 +236,44 @@ export async function criarTopico(
 export function botaoDeContribuir(escopo: Page | Locator) {
   return escopo.getByRole("button", { name: "Contribuir", exact: true });
 }
+
+/**
+ * Espera o tópico estar aberto — **no painel**, que é a única forma
+ * desde 6 de novembro de 2026.
+ *
+ * Criar um tópico, clicar num da lista ou abrir um link compartilhado
+ * acabam todos em `/c/<comunidade>?t=<topico>`. O endereço com o tópico
+ * no caminho continua existindo e **redireciona** para cá — por isso a
+ * espera é pelo parâmetro, e não pelo caminho.
+ */
+export async function esperarTopicoNoPainel(page: Page, slug?: string) {
+  await page.waitForURL((url) => {
+    const t = url.searchParams.get("t");
+    if (t === null) return false;
+    return slug === undefined || t === slug;
+  });
+}
+
+/**
+ * O endereço atual com o parâmetro: `/c/<com>?t=<topico>`.
+ *
+ * Desde que o tópico só abre no painel, guardar só o `pathname` depois de
+ * criar um devolve a **comunidade** — voltar para lá abriria a lista sem
+ * o tópico, e o teste mediria outra tela sem reclamar.
+ */
+export function enderecoAtual(page: Page): string {
+  const url = new URL(page.url());
+  return `${url.pathname}${url.search}`;
+}
+
+/**
+ * O campo de arquivo **da caixa de contribuição**.
+ *
+ * `input[name="imagem"]` não basta: a capa editável da comunidade usa o
+ * mesmo nome, e desde que o tópico abre no painel **sobre** a comunidade
+ * os dois estão na mesma tela. O que distingue é o formulário — só o da
+ * contribuição tem o `textarea` do texto.
+ */
+export function campoDeImagemDaContribuicao(escopo: Page | Locator): Locator {
+  return escopo.locator('form:has(textarea[name="text"]) input[name="imagem"]');
+}

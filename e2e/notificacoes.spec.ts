@@ -6,6 +6,8 @@ import {
   preencherNovaComunidade,
   criarTopico,
   botaoDeContribuir,
+  esperarTopicoNoPainel,
+  enderecoAtual,
 } from "./apoio-tela";
 
 /**
@@ -57,9 +59,9 @@ async function meuTopico(page: Page, prefixo: string) {
   const comunidade = new URL(page.url()).pathname;
 
   await criarTopico(page, comunidade, "assunto com marcação");
-  await page.waitForURL(/\/assunto-com-marcacao$/);
+  await esperarTopicoNoPainel(page, "assunto-com-marcacao");
 
-  return { comunidade, topico: new URL(page.url()).pathname };
+  return { comunidade, topico: enderecoAtual(page) };
 }
 
 test.describe("marcar com @", () => {
@@ -79,7 +81,13 @@ test.describe("marcar com @", () => {
       await page.goto(topico);
       await campoDeContribuicao(page).fill(`@${outra.handle} você viu isso?`);
       await botaoDeContribuir(page).click();
-      await expect(page.locator("article").filter({ hasText: "você viu isso?" })).toBeVisible();
+      // No painel: o cartão do tópico na lista atrás mostra o mesmo texto.
+      await expect(
+        page
+          .getByRole("complementary", { name: /Tópico/ })
+          .locator("article")
+          .filter({ hasText: "você viu isso?" }),
+      ).toBeVisible();
 
       // O sino acende.
       await outra.page.goto("/inicio");
@@ -276,7 +284,7 @@ test.describe("a central", () => {
        * voltar, não durante.
        */
       await avisos.first().click();
-      await outra.page.waitForURL(/\/assunto-com-marcacao$/);
+      await esperarTopicoNoPainel(outra.page, "assunto-com-marcacao");
 
       await outra.page.goto("/notificacoes");
 
@@ -293,7 +301,7 @@ test.describe("a central", () => {
 
       // O segundo também sai, e aí o topo deixa de existir.
       await topo.getByRole("link", { name: /marcou você em/ }).click();
-      await outra.page.waitForURL(/\/assunto-com-marcacao$/);
+      await esperarTopicoNoPainel(outra.page, "assunto-com-marcacao");
       await outra.page.goto("/notificacoes");
       await expect(outra.page.getByRole("heading", { name: "Só para te avisar" })).toHaveCount(0);
     } finally {

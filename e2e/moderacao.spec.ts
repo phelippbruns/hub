@@ -8,6 +8,8 @@ import {
   respostaPublicada,
   criarTopico,
   botaoDeContribuir,
+  esperarTopicoNoPainel,
+  enderecoAtual,
 } from "./apoio-tela";
 
 /**
@@ -58,9 +60,9 @@ async function minhaComunidadeComTopico(page: Page, prefixo: string) {
   const comunidade = new URL(page.url()).pathname;
 
   await criarTopico(page, comunidade, "assunto moderado");
-  await page.waitForURL(/\/assunto-moderado$/);
+  await esperarTopicoNoPainel(page, "assunto-moderado");
 
-  return { comunidade, topico: new URL(page.url()).pathname };
+  return { comunidade, topico: enderecoAtual(page) };
 }
 
 /** A outra pessoa entra na comunidade e responde. */
@@ -95,8 +97,18 @@ test.describe("o laço da denúncia", () => {
       await page.getByRole("radio", { name: "Spam ou golpe" }).click();
       await page.getByRole("button", { name: "Enviar denúncia" }).click();
 
-      // E volta para o tópico, não para o Início.
-      await page.waitForURL((url) => url.pathname === topico);
+      /*
+       * **E volta para o tópico, não para o Início nem para a lista da
+       * comunidade.**
+       *
+       * Esta linha é a barreira de um defeito que o PR F desenterrou: o
+       * link de voltar guardava só o caminho, e o tópico vive em
+       * `?t=<slug>` — denunciar fechava o tópico. Comparar o `pathname`
+       * com o endereço inteiro é o que deixava isso passar.
+       */
+      await page.waitForURL(
+        (url) => url.pathname === comunidade && url.searchParams.get("t") === "assunto-moderado",
+      );
 
       // A fila da moderação mostra o trecho, não só "alguém denunciou".
       await page.goto(`${comunidade}/moderar`);

@@ -36,7 +36,8 @@ export async function enviarDenuncia(formulario: FormData) {
 
   // Volta para a tela de onde a pessoa veio, com o aviso de recebido: ficar
   // numa tela de sucesso obrigaria mais um clique para voltar ao Hub.
-  redirect(`${destinoSeguro(formulario)}?denuncia=enviada`);
+  const destino = destinoSeguro(formulario);
+  redirect(`${destino}${destino.includes("?") ? "&" : "?"}denuncia=enviada`);
 }
 
 export async function bloquearPessoa(formulario: FormData) {
@@ -44,8 +45,23 @@ export async function bloquearPessoa(formulario: FormData) {
   if (viewer.kind !== "member") throw new UnauthenticatedError();
 
   await blockProfile(viewer, String(formulario.get("pessoaId") ?? ""));
-  redirect(`${destinoSeguro(formulario)}?bloqueio=feito`);
+  const destino = destinoSeguro(formulario);
+  redirect(`${destino}${destino.includes("?") ? "&" : "?"}bloqueio=feito`);
 }
+
+/**
+ * Os únicos parâmetros que sobrevivem ao `voltar`.
+ *
+ * `t` é o tópico aberto no painel — sem ele, voltar da denúncia fecha o
+ * tópico e devolve a lista da comunidade, que é justo o que o "voltar"
+ * existe para impedir. `ordem` e `aba` são o estado da tela.
+ *
+ * Lista fechada, e não "tudo que vier": o `voltar` chega do formulário,
+ * e repassar parâmetro arbitrário deixaria qualquer pessoa montar um
+ * link de denúncia que termina numa tela do Hub com o que ela escolher
+ * na barra de endereço.
+ */
+const PARAMETROS_QUE_VOLTAM = ["t", "ordem", "aba"] as const;
 
 /**
  * Para onde voltar.
@@ -55,5 +71,17 @@ export async function bloquearPessoa(formulario: FormData) {
  */
 function destinoSeguro(formulario: FormData): string {
   const voltar = String(formulario.get("voltar") ?? "");
-  return /^\/[^/\\]/.test(voltar) ? voltar.split("?")[0]! : "/inicio";
+  if (!/^\/[^/\\]/.test(voltar)) return "/inicio";
+
+  // `base` é descartada: só o caminho e a busca saem daqui.
+  const alvo = new URL(voltar, "http://hub.invalido");
+  const limpos = new URLSearchParams();
+  for (const nome of PARAMETROS_QUE_VOLTAM) {
+    const valor = alvo.searchParams.get(nome);
+    // Valores do vocabulário do Hub: endereço, não texto livre.
+    if (valor !== null && /^[A-Za-z0-9_-]{1,120}$/.test(valor)) limpos.set(nome, valor);
+  }
+
+  const busca = limpos.toString();
+  return busca ? `${alvo.pathname}?${busca}` : alvo.pathname;
 }

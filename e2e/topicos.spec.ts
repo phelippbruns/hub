@@ -7,6 +7,7 @@ import {
   concluirOnboarding,
   preencherNovaComunidade,
   criarTopico,
+  esperarTopicoNoPainel,
 } from "./apoio-tela";
 
 /**
@@ -63,10 +64,12 @@ async function minhaComunidade(page: Page, prefixo: string): Promise<string> {
  * que o Faustão registra em "esperar um endereço que o próprio formulário
  * já satisfaz", e ele voltou nesta rodada.
  */
+/**
+ * O tópico abre **no painel** desde 6 de novembro de 2026: a tela cheia
+ * não existe mais, e o endereço com o tópico no caminho redireciona.
+ */
 async function esperarTopicoAberto(page: Page) {
-  await page.waitForURL(
-    (url) => /^\/c\/[^/]+\/[^/]+$/.test(url.pathname) && !url.pathname.endsWith("/novo"),
-  );
+  await esperarTopicoNoPainel(page);
 }
 
 test.describe("criar tópico", () => {
@@ -77,14 +80,23 @@ test.describe("criar tópico", () => {
     await criarTopico(page, comunidade, "primeira festa", "Uma pergunta de abertura para o teste.");
 
     // O endereço vem do nome, dentro da comunidade.
-    await page.waitForURL(`**${comunidade}/primeira-festa`);
-    await expect(page.getByRole("heading", { name: /primeira festa/ })).toBeVisible();
-    await expect(page.getByText("Uma pergunta de abertura para o teste.")).toBeVisible();
-    // RN15: pessoas e respostas sempre à vista.
+    await esperarTopicoNoPainel(page, "primeira-festa");
+
+    /*
+     * Tudo escopado ao painel.
+     *
+     * Com a tela cheia fora, o tópico abre **sobre a comunidade** — e a
+     * lista atrás dele mostra o mesmo nome e a mesma contagem. Sem o
+     * escopo, `getByText` acha dois e o teste reprova por ambiguidade,
+     * não por defeito.
+     */
+    const painel = page.getByRole("complementary", { name: /Tópico primeira festa/ });
+    await expect(painel.getByRole("heading", { name: /primeira festa/ })).toBeVisible();
+    await expect(painel.getByText("Uma pergunta de abertura para o teste.")).toBeVisible();
     // RN15: pessoas e contribuições sempre à vista. O substantivo mudou na
     // varredura de termo: a tela não diz mais "resposta". O separador virou
     // "·" no protótipo v6.
-    await expect(page.getByText(/0 pessoas · 0 contribuições/)).toBeVisible();
+    await expect(painel.getByText(/0 pessoas · 0 contribuições/)).toBeVisible();
   });
 
   test("RN07: o segundo tópico do dia na mesma comunidade é barrado", async ({ page }) => {
@@ -92,7 +104,7 @@ test.describe("criar tópico", () => {
     const comunidade = await minhaComunidade(page, "Um Por Dia");
 
     await criarTopico(page, comunidade, "o do dia");
-    await page.waitForURL(/\/o-do-dia$/);
+    await esperarTopicoNoPainel(page, "o-do-dia");
 
     // O aviso aparece **antes** de escrever, não como recusa depois.
     await page.goto(`${comunidade}/novo`);
@@ -192,26 +204,51 @@ test.describe("o painel do tópico", () => {
     await expect(page.getByRole("complementary", { name: "Resumo da comunidade" })).toBeHidden();
   });
 
-  test("o endereço do tópico continua abrindo a página inteira — e o que não existe dá 404", async ({
+  test("o endereço canônico redireciona para o painel — e o que não existe dá 404", async ({
     page,
+    browser,
   }) => {
+    test.slow();
     await entrarNoApp(page, "colado");
     const comunidade = await minhaComunidade(page, "Com Colado");
     await criarTopico(page, comunidade, "Primeira festa");
     await esperarTopicoAberto(page);
-    const endereco = new URL(page.url()).pathname;
 
     /*
-      Recarregar o endereço do painel cai na página inteira. É o que a rota
-      interceptada promete, e é o que mantém o link compartilhável: quem
-      recebe o endereço não tem a lista por trás para o painel se apoiar.
-    */
-    await page.goto(endereco);
-    await expect(page.getByRole("complementary", { name: /Tópico/ })).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: /Primeira festa/ })).toBeVisible();
+     * **A tela cheia do tópico deixou de existir** em 6 de novembro de
+     * 2026, por decisão do PO: em todo o Hub o tópico abre no painel.
+     *
+     * O endereço com o tópico no caminho **não some** — é o que já foi
+     * compartilhado, e é o que carrega a prévia do link. Ele passou a
+     * redirecionar.
+     */
+    const canonico = `${comunidade}/primeira-festa`;
+    await page.goto(canonico);
+    await esperarTopicoNoPainel(page, "primeira-festa");
+    await expect(page.getByRole("complementary", { name: /Tópico/ })).toBeVisible();
 
-    // E a página inteira continua dando 404 no que não existe — o encaixe
-    // paralelo não transformou isso em 200.
+    // A ordem viaja junto: link compartilhado com `?ordem=` abre assim.
+    await page.goto(`${canonico}?ordem=antigas`);
+    await expect.poll(() => new URL(page.url()).searchParams.get("ordem")).toBe("antigas");
+
+    /*
+     * **Sem conta, o mesmo endereço mostra a tela de convite.** É a outra
+     * metade da decisão, e é por isso que a rota continua inteira: quem
+     * recebe o link pelo WhatsApp precisa ver onde está antes de ver um
+     * painel dentro de uma tela que não conhece.
+     */
+    const anonima = await browser.newContext();
+    try {
+      const semConta = await anonima.newPage();
+      await semConta.goto(canonico);
+      await expect(semConta.getByRole("link", { name: /Criar conta/ })).toBeVisible();
+      // E não foi redirecionada: o endereço continua o mesmo.
+      expect(new URL(semConta.url()).pathname).toBe(canonico);
+    } finally {
+      await anonima.close();
+    }
+
+    // E o endereço que não existe continua dando 404, não 200.
     const resposta = await page.goto(`${comunidade}/nao-existe-mesmo`);
     expect(resposta?.status()).toBe(404);
   });
@@ -319,7 +356,7 @@ test.describe("a página do tópico", () => {
     await entrarNoApp(page, "seguir");
     const comunidade = await minhaComunidade(page, "Para Seguir");
     await criarTopico(page, comunidade, "assunto seguido");
-    await page.waitForURL(/\/assunto-seguido$/);
+    await esperarTopicoNoPainel(page, "assunto-seguido");
 
     // Criar o próprio tópico não segue: seguir é sempre manual.
     const olho = page.getByRole("button", { name: /^Seguir o tópico/ });
@@ -346,7 +383,7 @@ test.describe("a página do tópico", () => {
     await entrarNoApp(page, "redireciona");
     const comunidade = await minhaComunidade(page, "Com Convite");
     await criarTopico(page, comunidade, "achado pelo id");
-    await page.waitForURL(/\/achado-pelo-id$/);
+    await esperarTopicoNoPainel(page, "achado-pelo-id");
 
     const [linha] = await consultar<{ id: string }>(
       `SELECT id FROM topics WHERE slug = 'achado-pelo-id' AND deleted_at IS NULL LIMIT 1`,
@@ -355,7 +392,7 @@ test.describe("a página do tópico", () => {
 
     // Os convites da F04 apontam para cá; não podem virar 404.
     await page.goto(`/topico/${linha!.id}`);
-    await page.waitForURL(/\/achado-pelo-id$/);
+    await esperarTopicoNoPainel(page, "achado-pelo-id");
     await expect(page.getByRole("heading", { name: /achado pelo id/ })).toBeVisible();
   });
 
@@ -373,10 +410,13 @@ test.describe("apagar tópico", () => {
     await entrarNoApp(page, "apagar");
     const comunidade = await minhaComunidade(page, "Vou Apagar");
     await criarTopico(page, comunidade, "some depois");
-    await page.waitForURL(/\/some-depois$/);
+    await esperarTopicoNoPainel(page, "some-depois");
 
-    await page.getByRole("button", { name: "Mais opções" }).click();
-    await page.getByRole("button", { name: "Apagar tópico", exact: true }).click();
+    // "Mais opções" existe no painel **e** no cabeçalho da comunidade
+    // atrás dele: escopar é o que distingue os dois menus.
+    const painel = page.getByRole("complementary", { name: /Tópico/ });
+    await painel.getByRole("button", { name: "Mais opções" }).click();
+    await painel.getByRole("button", { name: "Apagar tópico", exact: true }).click();
 
     await expect(page.getByText(/Não dá para desfazer/)).toBeVisible();
     await page.getByRole("button", { name: "Apagar tópico", exact: true }).click();
@@ -391,7 +431,7 @@ test.describe("apagar tópico", () => {
     await entrarNoApp(page, "limiteapagar");
     const comunidade = await minhaComunidade(page, "No Limite");
     await criarTopico(page, comunidade, "cheio de respostas");
-    await page.waitForURL(/\/cheio-de-respostas$/);
+    await esperarTopicoNoPainel(page, "cheio-de-respostas");
 
     /*
      * Cinco respostas de outras pessoas. Criá-las pela tela exigiria cinco
@@ -413,10 +453,14 @@ test.describe("apagar tópico", () => {
     `);
 
     await page.reload();
-    await page.getByRole("button", { name: "Mais opções" }).click();
 
-    await expect(page.getByRole("button", { name: /Indispon/ })).toBeDisabled();
-    await expect(page.getByText(/para preservar a participação de quem contribuiu/)).toBeVisible();
+    const painel = page.getByRole("complementary", { name: /Tópico/ });
+    await painel.getByRole("button", { name: "Mais opções" }).click();
+
+    await expect(painel.getByRole("button", { name: /Indispon/ })).toBeDisabled();
+    await expect(
+      painel.getByText(/para preservar a participação de quem contribuiu/),
+    ).toBeVisible();
   });
 });
 
@@ -433,7 +477,7 @@ test.describe("a tela do tópico, protótipo v6", () => {
     await entrarNoApp(page, "cartao");
     const comunidade = await minhaComunidade(page, "Com Cartao");
     await criarTopico(page, comunidade, "Qual paisagem marcou", "Conte onde foi.");
-    await page.waitForURL(/\/qual-paisagem-marcou$/);
+    await esperarTopicoNoPainel(page, "qual-paisagem-marcou");
 
     /*
      * O cartão é o `<article>` que contém o título. Procurar por ele, e
@@ -465,7 +509,7 @@ test.describe("a tela do tópico, protótipo v6", () => {
     await entrarNoApp(page, "caixa");
     const comunidade = await minhaComunidade(page, "Com Caixa");
     await criarTopico(page, comunidade, "Caixa de envio");
-    await page.waitForURL(/\/caixa-de-envio$/);
+    await esperarTopicoNoPainel(page, "caixa-de-envio");
 
     const enviar = page.getByRole("button", { name: "Contribuir", exact: true });
     await expect(enviar).toBeDisabled();
@@ -491,7 +535,7 @@ test.describe("a tela do tópico, protótipo v6", () => {
     await entrarNoApp(page, "contador");
     const comunidade = await minhaComunidade(page, "Com Contador");
     await criarTopico(page, comunidade, "Contador");
-    await page.waitForURL(/\/contador$/);
+    await esperarTopicoNoPainel(page, "contador");
 
     const campo = campoDeContribuicao(page);
     const cor = () => page.getByText(/ de 240$/).evaluate((el) => getComputedStyle(el).color);
@@ -514,7 +558,7 @@ test.describe("a tela do tópico, protótipo v6", () => {
     await entrarNoApp(page, "alca");
     const comunidade = await minhaComunidade(page, "Com Alca");
     await criarTopico(page, comunidade, "Topico largo");
-    await page.waitForURL(/\/topico-largo$/);
+    await esperarTopicoNoPainel(page, "topico-largo");
 
     const endereco = `${comunidade}?t=topico-largo`;
     await page.goto(endereco);
@@ -558,7 +602,7 @@ test.describe("a tela do tópico, protótipo v6", () => {
     await entrarNoApp(page, "borda");
     const comunidade = await minhaComunidade(page, "Com Borda");
     await criarTopico(page, comunidade, "Topico na borda");
-    await page.waitForURL(/\/topico-na-borda$/);
+    await esperarTopicoNoPainel(page, "topico-na-borda");
 
     const endereco = `${comunidade}?t=topico-na-borda`;
     await page.goto(endereco);

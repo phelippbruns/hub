@@ -23,6 +23,7 @@ import { minhasComunidades } from "@/lib/data/comunidades";
 import { comunidadesNovas, paraVoce } from "@/lib/data/descoberta";
 import { LinhaComunidade } from "@/features/descoberta/linhas";
 import { haQuantoTempo } from "@/lib/tempo";
+import { enderecoDoTopico } from "@/lib/rotas";
 
 export const metadata: Metadata = { title: "Hoje · Hub" };
 
@@ -120,14 +121,14 @@ export default async function InicioPage() {
             opening={primeiro.abertura}
             people={primeiro.pessoas}
             answers={primeiro.respostas}
-            href={`/c/${primeiro.comunidade.slug}/${primeiro.topicoSlug}`}
+            href={enderecoDoTopico(primeiro.comunidade.slug, primeiro.topicoSlug)}
           />
 
           {outros.map((destaque) => (
             <HomeRow
               key={destaque.topicId}
               nome={destaque.nome}
-              href={`/c/${destaque.comunidade.slug}/${destaque.topicoSlug}`}
+              href={enderecoDoTopico(destaque.comunidade.slug, destaque.topicoSlug)}
               detalhe={`Destaque em ${destaque.comunidade.nome}. ${contagem(destaque.pessoas, destaque.respostas)}`}
             />
           ))}
@@ -153,7 +154,7 @@ export default async function InicioPage() {
             <HomeRow
               key={topico.topicId}
               nome={topico.nome}
-              href={`/c/${topico.comunidade.slug}/${topico.topicoSlug}`}
+              href={enderecoDoTopico(topico.comunidade.slug, topico.topicoSlug)}
               detalhe={`${topico.comunidade.nome}. ${contagem(topico.pessoas, topico.respostas)}`}
               destaque={
                 topico.novas > 0
@@ -182,7 +183,7 @@ export default async function InicioPage() {
               handle={interacao.quem.handle}
               oQueFez={interacao.oQueFez}
               topico={interacao.topico.nome}
-              href={`/c/${interacao.comunidade.slug}/${interacao.topico.slug}`}
+              href={enderecoDoTopico(interacao.comunidade.slug, interacao.topico.slug)}
               comunidade={interacao.comunidade.nome}
               quando={haQuantoTempo(interacao.quando)}
             />
@@ -197,7 +198,7 @@ export default async function InicioPage() {
             <HomeRow
               key={topico.topicId}
               nome={topico.nome}
-              href={`/c/${topico.comunidade.slug}/${topico.topicoSlug}`}
+              href={enderecoDoTopico(topico.comunidade.slug, topico.topicoSlug)}
               detalhe={`${topico.comunidade.nome}. ${contagem(topico.pessoas, topico.respostas)}${
                 topico.depoisDaMinha > 0 ? `. ${topico.depoisDaMinha} depois da sua` : ""
               }`}

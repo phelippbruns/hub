@@ -9,6 +9,7 @@ import {
   preencherNovaComunidade,
   criarTopico,
   botaoDeContribuir,
+  esperarTopicoNoPainel,
 } from "./apoio-tela";
 
 /**
@@ -54,8 +55,12 @@ async function topicoComResposta(page: Page, texto: string) {
     "assunto compartilhado",
     "Uma pergunta que vale compartilhar.",
   );
-  await page.waitForURL(/\/assunto-compartilhado$/);
-  const topico = new URL(page.url()).pathname;
+  await esperarTopicoNoPainel(page, "assunto-compartilhado");
+  /*
+   * O **canônico**, não o do painel: é este o link que se manda para fora,
+   * e é ele que mostra a tela de convite para quem não tem conta.
+   */
+  const topico = `${comunidade}/assunto-compartilhado`;
 
   await campoDeContribuicao(page).fill(texto);
   await botaoDeContribuir(page).click();
@@ -238,8 +243,18 @@ test.describe("RN31: do link ao tópico, passando pelo cadastro", () => {
       await nova.getByRole("button", { name: "Agora não" }).click();
 
       // E o fim do caminho é o tópico que trouxe a pessoa.
-      await nova.waitForURL(/\/assunto-compartilhado$/);
-      await expect(nova.getByText("a resposta que ele vai ver depois")).toBeVisible();
+      await esperarTopicoNoPainel(nova, "assunto-compartilhado");
+      /*
+       * Escopado ao painel: a lista da comunidade atrás dele mostra a
+       * **última contribuição** no cartão do tópico, com o mesmo texto.
+       * Sem escopo, `getByText` acha dois e o teste reprova por
+       * ambiguidade, não por defeito.
+       */
+      await expect(
+        nova
+          .getByRole("complementary", { name: /Tópico/ })
+          .getByText("a resposta que ele vai ver depois"),
+      ).toBeVisible();
     } finally {
       await deFora.close();
     }

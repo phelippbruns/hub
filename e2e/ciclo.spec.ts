@@ -8,6 +8,8 @@ import {
   respostaPublicada,
   criarTopico,
   botaoDeContribuir,
+  esperarTopicoNoPainel,
+  enderecoAtual,
 } from "./apoio-tela";
 
 /**
@@ -47,9 +49,9 @@ async function minhaComunidadeComTopico(page: Page, prefixo: string) {
   const comunidade = new URL(page.url()).pathname;
 
   await criarTopico(page, comunidade, "assunto da virada", "A pergunta que vai virar destaque.");
-  await page.waitForURL(/\/assunto-da-virada$/);
+  await esperarTopicoNoPainel(page, "assunto-da-virada");
 
-  return { comunidade, topico: new URL(page.url()).pathname };
+  return { comunidade, topico: enderecoAtual(page) };
 }
 
 /**
@@ -119,7 +121,7 @@ test.describe("depois da virada", () => {
 
     // E o cartão leva ao tópico. O botão diz "Contribuir", não "Responder".
     await cartao.getByRole("link", { name: "Contribuir" }).click();
-    await page.waitForURL(/\/assunto-da-virada$/);
+    await esperarTopicoNoPainel(page, "assunto-da-virada");
   });
 
   test("o cartão mostra a última contribuição, que é o que faz entrar", async ({ page }) => {

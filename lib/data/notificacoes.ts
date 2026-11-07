@@ -17,6 +17,7 @@ import { viewerProfileId, requireProfileId, type Viewer } from "./viewer";
 import { comAvatares } from "@/lib/midia/deposito";
 import { handlesMencionados } from "@/lib/texto/marcacoes";
 import { domingoMaisRecente } from "@/lib/tempo";
+import { enderecoDoTopico } from "@/lib/rotas";
 
 export type TipoDeNotificacao =
   | "topic_became_hot"
@@ -253,7 +254,7 @@ function destinoDe(
     return dados.inviteId ? `/cabines/convite?id=${dados.inviteId}` : "/cabines";
   if (tipo === "cabin_message") return dados.cabinId ? `/cabines/${dados.cabinId}` : "/cabines";
   if (tipo === "followed_topics_digest") return "/inicio";
-  if (topico) return `/c/${topico.community.slug}/${topico.slug}`;
+  if (topico) return enderecoDoTopico(topico.community.slug, topico.slug);
   if (comunidade) return `/c/${comunidade.slug}`;
   return null;
 }
