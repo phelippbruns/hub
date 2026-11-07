@@ -142,15 +142,24 @@ export function Compartilhar({
         </p>
       ) : null}
 
-      <Button
-        type="submit"
-        disabled={enviando || escolhidas.length === 0}
-        disabledHint={escolhidas.length === 0 ? "Escolha quem vai receber." : undefined}
-      >
-        {enviando
-          ? "Enviando…"
-          : `Enviar para ${escolhidas.length} ${escolhidas.length === 1 ? "pessoa" : "pessoas"}`}
-      </Button>
+      {/*
+        **O botão só existe depois de escolher alguém** (pedido do PO, 7
+        de novembro).
+        
+        Antes ele ficava à vista, desativado, escrito "Enviar para 0
+        pessoas", com "Escolha quem vai receber" embaixo. Duas linhas
+        para dizer que nada tinha sido feito ainda — e a folha já mostra
+        isso: nenhum nome está marcado.
+
+        A ação não some: ela aparece no instante em que passa a existir.
+      */}
+      {escolhidas.length > 0 ? (
+        <Button type="submit" disabled={enviando}>
+          {enviando
+            ? "Enviando…"
+            : `Enviar para ${escolhidas.length} ${escolhidas.length === 1 ? "pessoa" : "pessoas"}`}
+        </Button>
+      ) : null}
 
       <Button
         variant="secondary"

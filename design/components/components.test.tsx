@@ -173,6 +173,17 @@ const cases: Array<[string, React.ReactElement]> = [
       {"·"}
     </RoundIconButton>,
   ],
+  /*
+    Sem círculo: os três pontos da contribuição, desde 7/11. O círculo
+    pedia atenção que o controle não merece — ele é o terceiro item de um
+    cartão cujo assunto é o texto de outra pessoa.
+  */
+  [
+    "botão redondo sem círculo",
+    <RoundIconButton label="Opções" tamanho="sm" nu>
+      {"·"}
+    </RoundIconButton>,
+  ],
   ["título de seção", <SectionTitle>Universos</SectionTitle>],
   // O # numa lista diz qual comunidade, não só "a comunidade".
   ["porta da comunidade, com nome", <CommunityDoor member={false} oQue="Vinil" />],
@@ -185,18 +196,6 @@ const cases: Array<[string, React.ReactElement]> = [
   ],
   ["fixar, desligado", <PinButton fixada={false} oQue="Vinil" />],
   ["fixar, ligado", <PinButton fixada oQue="Vinil" />],
-  [
-    "confirmação de ação destrutiva",
-    <ConfirmSheet
-      open
-      titulo="Sair de Música Eletrônica?"
-      descricao="Seus tópicos e respostas continuam na comunidade."
-      confirmar="Sair"
-      cancelar="Continuar membro"
-      onConfirm={() => undefined}
-      onCancel={() => undefined}
-    />,
-  ],
   ["botão destrutivo", <Button variant="danger">Sair da comunidade</Button>],
   // F08: tópicos.
   ["nome de tópico", <TopicName>primeira festa</TopicName>],
@@ -416,5 +415,65 @@ describe("texto de gente nunca fura o cartão", () => {
     expect(pilha.join(" "), `as tags que envolvem o texto são: ${pilha.join(" ")}`).toMatch(
       /wrap-anywhere|truncate/,
     );
+  });
+});
+
+/**
+ * A `Janela` — e tudo que a usa, como o `ConfirmSheet` — é desenhada por
+ * **portal** no `body` desde 7 de novembro de 2026, para não ficar presa
+ * abaixo da barra lateral.
+ *
+ * Portal precisa de `document`, e estes testes rodam em Node com
+ * `renderToStaticMarkup`. O snapshot dela virava `"<div></div>"` — uma
+ * linha que passa para sempre e não guarda nada. Saiu, e no lugar fica
+ * esta afirmação, que é a verdade verificável aqui: **no servidor, o
+ * diálogo não existe**.
+ *
+ * O conteúdo dele é coberto por jornada, onde há navegador de verdade:
+ * "o autor apaga, com confirmação que diz quantas respostas somem"
+ * (`e2e/topicos.spec.ts`) lê o texto da confirmação.
+ */
+describe("a janela é portal, e portal não existe no servidor", () => {
+  it("não desenha o diálogo nem o seu texto", () => {
+    const html = renderToStaticMarkup(
+      <ConfirmSheet
+        open
+        titulo="Sair de Música Eletrônica?"
+        descricao="Seus tópicos e respostas continuam na comunidade."
+        confirmar="Sair"
+        cancelar="Continuar membro"
+        onConfirm={() => undefined}
+        onCancel={() => undefined}
+      />,
+    );
+
+    expect(html).not.toContain("Sair de Música Eletrônica?");
+    expect(html).not.toContain('role="dialog"');
+  });
+});
+
+describe("o botão redondo sem círculo", () => {
+  it("não tem fundo nenhum, e o redondo continua só no hover", () => {
+    /*
+      Os três pontos da contribuição (pedido do PO, 7/11). Snapshot
+      sozinho não é barreira aqui: qualquer um dos dois lados muda o
+      snapshot, e atualizar snapshot é reflexo. Esta medida diz **qual**
+      classe não pode voltar.
+    */
+    const nu = renderToStaticMarkup(
+      <RoundIconButton label="Opções" tamanho="sm" nu>
+        {"·"}
+      </RoundIconButton>,
+    );
+    expect(nu).not.toContain("bg-paper");
+
+    // E o irmão com círculo continua tendo o fundo: senão este teste
+    // passaria verde com a variante inteira apagada.
+    const comCirculo = renderToStaticMarkup(
+      <RoundIconButton label="Opções" tamanho="sm">
+        {"·"}
+      </RoundIconButton>,
+    );
+    expect(comCirculo).toContain("bg-paper");
   });
 });

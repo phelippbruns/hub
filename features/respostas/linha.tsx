@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useId, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import {
   AnswerCard,
   Avatar,
@@ -59,6 +59,13 @@ export function LinhaDeResposta({
   endereco: string;
 }) {
   const [aberto, setAberto] = useState<"nenhum" | "menu" | "apagar">("nenhum");
+  /*
+   * O grupo que envolve o botão e o balão. Ele serve a duas coisas: a
+   * saída de mouse escuta nele, e o menu o usa como âncora — `mousedown`
+   * aqui dentro não conta como clique fora, senão o clique no botão
+   * fechava e o próprio clique reabria na mesma batida.
+   */
+  const grupo = useRef<HTMLSpanElement>(null);
   const [pendente, iniciar] = useTransition();
   const [estrelada, setEstrelada] = useState(resposta.estrelada);
   const [estrelas, setEstrelas] = useState(resposta.estrelas);
@@ -134,13 +141,30 @@ export function LinhaDeResposta({
    * o pai, porque é ele que sabe onde o botão está.
    */
   const menu = (
-    <span className="relative">
+    /*
+      A escuta de "saiu com o mouse" fica **neste** grupo, que envolve o
+      botão e o balão — e não em cada um.
+      
+      O balão abre 4 px abaixo do botão; sair do botão para entrar nele
+      atravessa esse vão, e uma escuta por elemento fecharia o menu no
+      caminho. `onMouseLeave` no grupo só dispara quando o ponteiro sai
+      dos dois.
+
+      Teclado e toque não disparam saída de mouse: para eles continuam
+      valendo `Esc`, o clique fora e o clique no próprio botão.
+    */
+    <span
+      ref={grupo}
+      className="relative"
+      onMouseLeave={() => setAberto((a) => (a === "menu" ? "nenhum" : a))}
+    >
       <RoundIconButton
         label={
           resposta.souAutor ? "Opções da sua contribuição" : `Opções da contribuição de ${nome}`
         }
         ativo={aberto === "menu"}
         controla={idDoMenu}
+        nu
         onClick={() => setAberto((a) => (a === "menu" ? "nenhum" : "menu"))}
       >
         <MoreOptionsIcon decorative className="size-icon" />
@@ -151,6 +175,7 @@ export function LinhaDeResposta({
           titulo={resposta.souAutor ? "Sua contribuição" : nome}
           aberto={aberto === "menu"}
           onFechar={() => setAberto("nenhum")}
+          ancora={grupo}
         >
           {resposta.souAutor ? (
             <>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { Button, ConfirmSheet, MenuSuspenso, RoundIconButton } from "@/design/components";
 import { MoreOptionsIcon } from "@/design/icons";
 import { apagarMinhaConversa, bloquearDaCabine, sairDaCabine } from "./actions";
@@ -32,6 +32,8 @@ export function MenuDaCabine({
   /* Grupo é de 3 a 5: ali sair ainda faz sentido, porque alguém fica. */
   const ehGrupo = participantes.length > 2;
   const [paraBloquear, setParaBloquear] = useState<ParticipanteNoMenu | null>(null);
+  /* Âncora do menu: `mousedown` aqui dentro não é clique fora. */
+  const grupo = useRef<HTMLDivElement>(null);
 
   return (
     /*
@@ -39,7 +41,7 @@ export function MenuDaCabine({
      * uma folha desenhada no fluxo da página, e abrir o "..." empurrava a
      * conversa inteira para baixo.
      */
-    <div className="relative">
+    <div className="relative" ref={grupo}>
       <RoundIconButton
         label="Opções da Cabine"
         ativo={aberto === "menu"}
@@ -54,6 +56,7 @@ export function MenuDaCabine({
           titulo="Cabine"
           aberto={aberto === "menu"}
           onFechar={() => setAberto("nenhum")}
+          ancora={grupo}
         >
           <div className="flex flex-col gap-1">
             <Link href={`/cabines/nova?cabine=${cabinId}`}>

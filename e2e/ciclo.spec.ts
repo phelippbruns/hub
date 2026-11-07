@@ -119,9 +119,72 @@ test.describe("depois da virada", () => {
     await expect(cartao.getByText("assunto da virada")).toBeVisible();
     await expect(cartao.getByText("A pergunta que vai virar destaque.")).toBeVisible();
 
+    /*
+      **E ele é a primeira linha da lista**, não uma seção acima dela
+      (pedido do PO, 7/11). Medir a ordem no DOM, e não só "está
+      visível": seção própria acima também fica visível, e era
+      exatamente o estado anterior.
+    */
+    /*
+      Com um tópico só, "é o primeiro" é verdade sem ninguém fixar nada —
+      e a barreira passava verde com a fixação arrancada; medi. Então
+      entra um tópico **mais novo**, e a conferência vai em
+      `?filtro=recentes`, onde a ordem é a data de criação: sem a
+      fixação, quem abre a lista é o novo.
+    */
+    const slugDaComunidade = comunidade.replace("/c/", "");
+    /*
+      Direto no banco, e sem autor: pela tela não dá, porque a RN07 só
+      deixa **um tópico por pessoa por dia** em cada comunidade — o campo
+      chega desativado. `cycle_date` é do gatilho, e `author_id` nulo
+      também foge do índice único da regra.
+    */
+    await consultar(`
+      INSERT INTO topics (id, community_id, author_id, name, description, created_at)
+      SELECT gen_random_uuid(), c.id, NULL, 'assunto recem-nascido',
+             'Aberto depois do destaque.', now()
+        FROM communities c WHERE c.slug = '${slugDaComunidade}'`);
+
+    await page.goto(`${comunidade}?filtro=recentes`);
+    await expect(page.locator("article", { hasText: "DESTAQUE DO DIA" })).toBeVisible();
+
+    const posicao = await page.evaluate(() => {
+      const destaque = Array.from(document.querySelectorAll("main article")).find((a) =>
+        a.textContent?.includes("DESTAQUE DO DIA"),
+      );
+      if (!destaque) return "sem destaque";
+      const lista = destaque.parentElement;
+      if (!lista) return "sem lista";
+      // Irmão de cartão de tópico: é isto que diz "mesma lista".
+      const irmaos = lista.children.length;
+      return lista.firstElementChild === destaque ? `primeiro de ${irmaos}` : "não é o primeiro";
+    });
+    expect(posicao).toBe("primeiro de 2");
+
     // E o cartão leva ao tópico. O botão diz "Contribuir", não "Responder".
     await cartao.getByRole("link", { name: "Contribuir" }).click();
     await esperarTopicoNoPainel(page, "assunto-da-virada");
+  });
+
+  test('o filtro "Seguindo" não injeta o destaque que ele excluiu', async ({ page }) => {
+    await entrarNoApp(page, "seguindohot");
+    const { comunidade } = await minhaComunidadeComTopico(page, "Com Filtro");
+
+    await houveMovimentoOntemEOCicloVirou("assunto-da-virada", 3);
+
+    // Sem filtro ele está lá: sem esta linha, o teste abaixo passaria
+    // verde com o Hot Topic quebrado em toda a tela.
+    await page.goto(comunidade);
+    await expect(page.locator("article", { hasText: "DESTAQUE DO DIA" })).toBeVisible();
+
+    /*
+      Eu criei o tópico mas não o sigo — criar não segue. Fixar o
+      destaque no topo de um filtro que o excluiu seria o filtro
+      mentindo, e é o motivo de ele ser **fixado**, nunca injetado.
+    */
+    await page.goto(`${comunidade}?filtro=seguindo`);
+    await expect(page.getByText("Você não segue nenhum tópico aqui")).toBeVisible();
+    await expect(page.locator("article", { hasText: "DESTAQUE DO DIA" })).toHaveCount(0);
   });
 
   test("o cartão mostra a última contribuição, que é o que faz entrar", async ({ page }) => {
@@ -160,14 +223,29 @@ test.describe("depois da virada", () => {
     await expect(page.getByRole("heading", { name: "Tópicos" })).toBeVisible();
   });
 
-  test("buscar tópicos esconde o destaque, para não confundir o resultado", async ({ page }) => {
+  test("buscando, o destaque só aparece quando está no resultado", async ({ page }) => {
     await entrarNoApp(page, "buscavirada");
     const { comunidade } = await minhaComunidadeComTopico(page, "Busca Virada");
 
     await houveMovimentoOntemEOCicloVirou("assunto-da-virada", 2);
 
+    /*
+      **Esta regra mudou em 7/11, junto com o destaque virar linha da
+      lista.** Enquanto ele era uma seção acima da lista, buscar o
+      escondia — seção que ignora a busca confunde o resultado.
+
+      Agora ele é a primeira linha da própria lista, então a regra é a da
+      lista: aparece quando a busca o acha, e só então.
+    */
     await page.goto(`${comunidade}?q=assunto`);
-    await expect(page.locator("article", { hasText: "DESTAQUE DO DIA" })).toHaveCount(0);
+    const destaque = page.locator("article", { hasText: "DESTAQUE DO DIA" });
+    await expect(destaque).toBeVisible();
+
+    // E some quando o resultado não o inclui. O positivo vem antes: o
+    // nada satisfaz `toHaveCount(0)` sozinho.
+    await page.goto(`${comunidade}?q=cerveja`);
+    await expect(page.getByText(/Nada encontrado para/)).toBeVisible();
+    await expect(destaque).toHaveCount(0);
   });
 });
 

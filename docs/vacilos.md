@@ -788,3 +788,59 @@ curtiu" do escopo foram reescritos. `lib/data/estrelas.db.test.ts` cobre
 os quatro limites, e a consulta da lista traz **só a minha** estrela, não
 as dos outros — a lista de quem deu não é escondida na tela, ela não sai
 do banco.
+
+## 19. Uma decisão de layout virou uma regra de busca
+
+### O Hot Topic deixou de ser seção, e a regra da busca mudou junto
+
+**Quando:** 7 de novembro de 2026. O PO pediu, por escrito: *"Ele deve
+ficar na mesma lista, ao topo, com a cor de cartão escuro."*
+
+Era uma frase sobre **onde o cartão fica**. Mas o destaque tinha uma
+regra própria por ser seção: enquanto ele vivia **acima** da lista,
+buscar um tópico o **escondia** — seção que ignora a busca confunde o
+resultado, e a jornada `buscar tópicos esconde o destaque` existia desde
+a F10 para garantir isso.
+
+Virando linha da lista, essa regra deixou de fazer sentido: ele agora é
+um item do resultado, e a regra do resultado é a da lista — aparece
+quando a busca o acha. A jornada antiga ficou **vermelha**, e foi assim
+que eu descobri que havia uma decisão escondida dentro do pedido.
+
+*O que eu fiz:* troquei a regra e a escrevi aqui, em vez de só consertar
+o teste. A nova é mais simples de explicar e tem o comportamento que o PO
+veria como certo: buscando "assunto", o destaque aparece; buscando
+"cerveja", não aparece nenhum tópico, destaque incluído.
+
+*E o limite que ficou de pé:* ele é **fixado** no topo do que já veio,
+nunca injetado. Filtrar por "Seguindo" sem seguir o Hot Topic não o traz
+de volta — filtro que mostra o que excluiu é o filtro mentindo. Essa
+parte não mudou, e tem jornada própria.
+
+**Regra:** pedido de layout pode carregar regra de comportamento. Quando
+um elemento muda de lugar na hierarquia — de seção para item, de página
+para painel —, ele **herda as regras do novo lugar** e perde as do
+antigo. Vale perguntar quais eram, antes que um teste vermelho pergunte.
+
+📌 **Fixado** — a jornada virou "buscando, o destaque só aparece quando
+está no resultado", e confere os dois lados. A fixação-nunca-injeção tem
+a sua: o filtro "Seguindo" não o traz.
+
+### E "Primeiros passos" saiu sem substituto
+
+Pedido do mesmo dia, item 1: o bloco de sugestões da comunidade nova sai.
+
+Ele existia para resolver a tela vazia — comunidade recém-criada não tem
+tópico nenhum, e o bloco dava três títulos prontos para clicar. Saindo
+ele, **o que sobra é o estado vazio da lista**, que diz "Nenhum tópico
+ainda / Seja a primeira pessoa a abrir um assunto aqui" e tem o botão de
+criar logo acima.
+
+*O que eu avisei:* que o caminho encurtou mas não desapareceu, e que o
+`?nome=` — o parâmetro que só o bloco usava — **continua aceito**, porque
+endereço que já existiu nunca vira 404 e alguém pode ter guardado um.
+
+**Regra:** tirar um atalho não é tirar o problema que ele resolvia. Antes
+de apagar, olhe o que fica no lugar — e se o que fica for suficiente,
+diga em uma linha por quê, para a próxima pessoa não o reintroduzir
+achando que foi esquecimento.

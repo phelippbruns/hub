@@ -2209,12 +2209,120 @@ afirma o aviso de falha, que é o que ele produz de verdade.
 **A lição:** elemento presente não é conteúdo exibido. Teste de imagem
 que não mede nada da imagem está testando o HTML, não a tela.
 
+### "É o primeiro da lista" com um item só na lista
+
+**Quando:** 7 de novembro de 2026, fixando o Hot Topic no topo da lista
+de tópicos da comunidade.
+
+**O que aconteceu:** escrevi a barreira que mede a ordem no DOM — o
+cartão escuro tem de ser o primeiro filho da lista. Ela ficou verde.
+Depois arranquei a fixação e ela **continuou verde**: a comunidade do
+teste tinha **um** tópico, e com um item só o primeiro é o único.
+
+**Por que passou:** a asserção era verdadeira, só não era sobre o que eu
+queria. Ordem de um elemento é propriedade de lista com dois.
+
+👁 **Atenção** — a barreira agora insere um segundo tópico **mais novo**
+(direto no banco: a RN07 só deixa um por pessoa por dia) e confere em
+`?filtro=recentes`, onde a ordem é a data de criação. Sem a fixação,
+quem abre a lista é o novo, e a medida diz "não é o primeiro".
+
+**A lição:** asserção sobre ordem, posição ou escolha precisa de **pelo
+menos dois candidatos**. Com um, ela mede a existência e se chama de
+ordem.
+
+### Clicar no "..." de novo nunca fechava, e ninguém tinha notado
+
+**Quando:** 7 de novembro de 2026, escrevendo a jornada do balão da
+contribuição.
+
+**O que aconteceu:** o plano dizia "clicar abre; clicar de novo fecha —
+já funciona". A jornada mostrou que não: `MenuSuspenso` escuta
+`mousedown` no documento e fecha quando o alvo está fora da **caixa do
+menu**; o botão está fora dela, então o `mousedown` fechava e o `click`
+do próprio botão, que chega depois, reabria na mesma batida. Da cadeira,
+o segundo clique não fazia nada.
+
+Valia para os três menus do Hub — a contribuição, a Cabine e o cabeçalho
+da comunidade — desde a F13.
+
+**Por que passou:** nenhuma jornada afirmava o fechamento **pelo botão**.
+As três afirmavam `Esc` e clique fora, que funcionavam. E "escrevi que
+já funciona" é a quinta linha da seção 8: explicação em vez de medida.
+
+✅ **Barreira:** `MenuSuspenso` ganhou `ancora`, o grupo que envolve
+botão e balão — `mousedown` lá dentro não conta como fora, e quem fecha
+é o alternador do botão, um caminho só. A jornada "o balão continua
+fechando por clique fora e por clique no botão"
+([e2e/correcoes-v6.spec.ts](../e2e/correcoes-v6.spec.ts)) foi vista
+reprovar sem a âncora.
+
+**A lição:** menu tem quatro caminhos para fechar — `Esc`, clique fora,
+clique no botão e sair com o mouse. Testar dois é testar metade, e a
+metade que falta é a que a pessoa usa.
+
+### Medi a barra fechada e chamei de barra aberta
+
+**Quando:** 7 de novembro de 2026, corrigindo o print do PO em que o nome
+da comunidade atravessava a barra lateral.
+
+**O que aconteceu:** a barreira pega a caixa da barra e pergunta quem
+está naquele ponto. Verde. Arranquei o `isolate` do `<main>`, que é a
+correção inteira, e **continuou verde**.
+
+A barra abre por **hover**, em CSS puro: medida sem abrir, ela devolve a
+largura do trilho fechado — e ali o conteúdo nem chega, porque a coluna
+começa depois. O ponto medido não tinha competição nenhuma.
+
+**Por que passou:** `boundingBox()` responde o estado atual, e o estado
+atual era "fechada". Nada no teste dizia que ele dependia de um estado.
+
+✅ **Barreira:** a jornada agora passa o mouse na barra, **espera a
+largura crescer** e só então mede — na borda direita, na altura do nome
+da comunidade. Sem o `isolate` ela reprova com `H1: Com Barra …`, que é
+o print do PO escrito como texto de erro.
+
+**A lição:** quando a correção vale num estado (aberto, focado, rolado),
+a barreira tem de **entrar nesse estado e provar que entrou**. Hover em
+CSS não aparece em nenhum atributo — a prova é a medida mudar.
+
+### Rodei teste de banco com a suíte de jornadas de pé
+
+**Quando:** 7 de novembro de 2026, verificando o PR G.
+
+**O que aconteceu:** a suíte inteira de jornadas rodava em segundo plano
+(24 minutos) e, enquanto esperava, eu rodei testes de banco para provar
+uma barreira. Os testes de banco **truncam as tabelas**. Levaram com
+eles as comunidades de partida, o onboarding passou a ser impossível de
+concluir (a RN31 exige escolher 3) e **toda jornada a partir dali
+travou no mesmo lugar** — uma por minuto, cada uma esperando os 60
+segundos inteiros.
+
+Vinte e três falhas, nenhuma de código. Descobri lendo as pastas de
+`test-results/` em ordem de horário: todas depois das 17h43, todas com o
+mesmo retrato de tela parado no carrossel do onboarding.
+
+**Por que passou:** nada reclama. O Playwright não sabe que o banco
+mudou debaixo dele, e o Vitest não sabe que alguém está usando o banco.
+Os dois terminam com o código de saída que lhes cabe.
+
+👁 **Atenção** — o Supabase local é **recurso exclusivo**. Enquanto uma
+suíte de jornadas roda, não se roda `test:db`, `db:seed`,
+`conteudo:inicial` nem `db:deploy`. Se precisar provar uma barreira de
+banco no meio, pare a suíte: 24 minutos perdidos custam mais que a
+espera.
+
+**A lição:** paralelizar trabalho só vale quando as duas metades não
+dividem estado. Este projeto já fixou `workers: 1` por essa razão
+exata — e eu reintroduzi o mesmo problema por fora da ferramenta que o
+resolvia.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
 barreira: migrations no deploy, jornadas em série, plural do português,
 a ordem de formatar e medir (`npm run verificar`), o endereço de tópico
-num lugar só,
+num lugar só, os quatro caminhos de fechar um menu suspenso,
 segredo no repositório, corrida entre testes, um ícone aceso por tela, os
 utilitários de zero, e os dois limites de camada que o build recusa.
 

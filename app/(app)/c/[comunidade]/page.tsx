@@ -22,7 +22,6 @@ import {
 import { haQuantoTempo } from "@/lib/tempo";
 import { SobreAComunidade } from "@/features/comunidades/sobre";
 import { MembrosDaComunidade } from "@/features/comunidades/membros";
-import { PrimeirosPassos, TOPICOS_PARA_SUMIR } from "@/features/comunidades/primeiros-passos";
 import { ResumoDaComunidade } from "@/features/comunidades/resumo";
 import type { ParaEntrar } from "@/features/comunidades/janela-de-entrada";
 import { LinkDoTopico } from "@/features/comunidades/link-do-topico";
@@ -290,14 +289,6 @@ export default async function ComunidadePage({
                 />
 
                 {/*
-              Primeiros passos some sozinho ao terceiro tópico, e só aparece
-              para quem é membro: a RN07 exige participação para criar.
-            */}
-                {dados.souMembro && dados.topicosCount < TOPICOS_PARA_SUMIR ? (
-                  <PrimeirosPassos slug={dados.slug} />
-                ) : null}
-
-                {/*
               RN09: o Hot Topic do dia, eleito às 00h pelo ciclo anterior.
               Comunidade sem respostas ontem não ganha destaque.
 
@@ -308,14 +299,6 @@ export default async function ComunidadePage({
               chama `notFound()`, como esta, isso transforma 404 em 200.
               Aconteceu em 15 de outubro e está no Faustão.
             */}
-                <Suspense
-                  fallback={
-                    <PaginaCarregando titulo={false} linhas={1} label="Carregando o Hot Topic" />
-                  }
-                >
-                  <DestaqueDaComunidade comunidadeId={dados.id} slug={dados.slug} termo={termo} />
-                </Suspense>
-
                 <SectionTitle
                   contagem={dados.topicosCount}
                   acao={
@@ -344,7 +327,6 @@ export default async function ComunidadePage({
                     termo={termo}
                     filtro={filtroAtual}
                     souMembro={dados.souMembro}
-                    totalDeTopicos={dados.topicosCount}
                   />
                 </Suspense>
               </div>
@@ -467,49 +449,6 @@ async function PainelAoLado({
 }
 
 /**
- * RN09: o Hot Topic do dia, eleito às 00h pelo ciclo anterior.
- *
- * Some durante a busca: procurar um tópico e ver outro em destaque acima
- * confunde o que é resultado.
- */
-async function DestaqueDaComunidade({
-  comunidadeId,
-  slug,
-  termo,
-}: {
-  comunidadeId: string;
-  slug: string;
-  termo: string;
-}) {
-  if (termo) return null;
-
-  const hotTopic = await hotTopicDeHoje(comunidadeId);
-  if (!hotTopic) return null;
-
-  /*
-    Sem `<SectionTitle>Hot Topic</SectionTitle>` acima: o rótulo "DESTAQUE DO
-    DIA" mora **dentro** do cartão agora, como o protótipo v6 mostra. Um
-    título de seção promete uma lista, e aqui é um cartão só.
-  */
-  return (
-    <HotTopicCard
-      topic={hotTopic.name}
-      opening={hotTopic.description}
-      people={hotTopic.pessoas}
-      answers={hotTopic.respostas}
-      autor={hotTopic.autor?.name}
-      ultima={
-        hotTopic.ultima
-          ? { ...hotTopic.ultima, quando: haQuantoTempo(hotTopic.ultima.quando) }
-          : null
-      }
-      rostos={hotTopic.primeirosRostos}
-      href={enderecoDoTopico(slug, hotTopic.slug)}
-    />
-  );
-}
-
-/**
  * O resumo da direita, com o próximo evento e a enquete aberta.
  *
  * As duas consultas são as **mesmas** das abas, e isso é a regra, não
@@ -546,7 +485,6 @@ async function ListaDeTopicos({
   termo,
   filtro,
   souMembro,
-  totalDeTopicos,
 }: {
   comunidadeId: string;
   slug: string;
@@ -554,7 +492,6 @@ async function ListaDeTopicos({
   termo: string;
   filtro: FiltroDeTopicos;
   souMembro: boolean;
-  totalDeTopicos: number;
 }) {
   // `comunidadeDaRota` é lida uma vez por requisição, então pedir o viewer
   // de novo aqui não custa outra ida ao banco.
@@ -565,12 +502,30 @@ async function ListaDeTopicos({
    * novidades (n)" saber o número antes de ser clicado. É a mesma consulta
    * — o filtro é aplicado aqui, na memória, sobre o que já veio.
    */
-  const todos = await topicosDaComunidade(viewer, comunidadeId, {
-    filtro: filtro === "novas" ? "alta" : filtro,
-    termo,
-  });
+  const [todos, hotTopic] = await Promise.all([
+    topicosDaComunidade(viewer, comunidadeId, {
+      filtro: filtro === "novas" ? "alta" : filtro,
+      termo,
+    }),
+    hotTopicDeHoje(comunidadeId),
+  ]);
   const comNovidades = todos.filter((topico) => topico.novas > 0).length;
-  const topicos = filtro === "novas" ? todos.filter((topico) => topico.novas > 0) : todos;
+  const semDestaque = filtro === "novas" ? todos.filter((topico) => topico.novas > 0) : todos;
+
+  /*
+   * **O Hot Topic é a primeira linha da lista** (pedido do PO, 7 de
+   * novembro), e não uma seção própria acima dela. Mantém o cartão
+   * escuro, com a última contribuição e os rostos — é isso que convida
+   * a entrar, e era o que se perderia transformando-o numa linha comum.
+   *
+   * Ele é **fixado no topo do que já veio**, nunca injetado: se o filtro
+   * "Seguindo" o excluiu, ou a busca não o achou, ele não aparece. Um
+   * destaque que ignora o filtro é o filtro mentindo.
+   */
+  const destacado = hotTopic ? semDestaque.find((t) => t.id === hotTopic.id) : undefined;
+  const topicos = destacado
+    ? [destacado, ...semDestaque.filter((t) => t.id !== destacado.id)]
+    : semDestaque;
 
   return (
     <>
@@ -581,26 +536,44 @@ async function ListaDeTopicos({
         filtro={filtro}
         comNovidades={comNovidades}
         souMembro={souMembro}
-        totalDeTopicos={totalDeTopicos}
       />
 
       {topicos.length === 0 ? (
         <EmptyState title={vazio(filtro, termo).titulo} description={vazio(filtro, termo).texto} />
       ) : (
         <div className="flex flex-col gap-2">
-          {topicos.map((topico) => (
-            <LinkDoTopico key={topico.id} slugDaComunidade={slug} slug={topico.slug}>
-              <TopicCard
-                name={topico.name}
-                people={topico.pessoas}
-                answers={topico.respostas}
-                when={topico.ultima ? haQuantoTempo(topico.ultima.quando) : undefined}
-                following={topico.seguindo}
-                novas={topico.novas}
-                ultima={topico.ultima}
+          {topicos.map((topico) =>
+            hotTopic && topico.id === hotTopic.id ? (
+              <HotTopicCard
+                key={topico.id}
+                topic={hotTopic.name}
+                opening={hotTopic.description}
+                people={hotTopic.pessoas}
+                answers={hotTopic.respostas}
+                autor={hotTopic.autor?.name}
+                ultima={
+                  hotTopic.ultima
+                    ? { ...hotTopic.ultima, quando: haQuantoTempo(hotTopic.ultima.quando) }
+                    : null
+                }
+                rostos={hotTopic.primeirosRostos}
+                href={enderecoDoTopico(slug, hotTopic.slug)}
               />
-            </LinkDoTopico>
-          ))}
+            ) : (
+              <LinkDoTopico key={topico.id} slugDaComunidade={slug} slug={topico.slug}>
+                <TopicCard
+                  name={topico.name}
+                  people={topico.pessoas}
+                  answers={topico.respostas}
+                  when={topico.ultima ? haQuantoTempo(topico.ultima.quando) : undefined}
+                  following={topico.seguindo}
+                  novas={topico.novas}
+                  ultima={topico.ultima}
+                  trecho={topico.trecho}
+                />
+              </LinkDoTopico>
+            ),
+          )}
         </div>
       )}
     </>

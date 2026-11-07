@@ -24,6 +24,7 @@ export function TopicCard({
   following = false,
   novas = 0,
   ultima,
+  trecho,
   action,
 }: {
   name: string;
@@ -40,6 +41,14 @@ export function TopicCard({
     autorHandle: string;
     avatarUrl: string | null;
   } | null;
+  /**
+   * O trecho da contribuição que casou com a busca.
+   *
+   * Quando existe, ele **substitui** a última contribuição no cartão:
+   * mostrar as duas faria o cartão dizer duas coisas, e a que importa é
+   * a que explica por que aquele tópico apareceu no resultado.
+   */
+  trecho?: string | null;
   action?: ReactNode;
 }) {
   return (
@@ -68,7 +77,11 @@ export function TopicCard({
         {action}
       </div>
 
-      {ultima ? (
+      {trecho ? (
+        <p className="text-caption text-inkMuted line-clamp-2">
+          <span className="text-ink font-semibold">Achado numa contribuição:</span> {trecho}
+        </p>
+      ) : ultima ? (
         <div className="flex items-start gap-2">
           <Avatar nome={ultima.autorNome} url={ultima.avatarUrl} tamanho="sm" />
           <p className="text-caption text-inkMuted line-clamp-2 min-w-0 flex-1">

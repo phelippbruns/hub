@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "../cn";
 import { CloseIcon } from "../icons";
 
@@ -58,6 +59,17 @@ export function Janela({
   className?: string;
 }) {
   const tituloId = useId();
+  /*
+   * "Já hidratou?" sem `useState` num efeito, que o lint recusa por
+   * disparar renderização em cascata. `useSyncExternalStore` com um
+   * `subscribe` que nada faz devolve `false` no servidor e `true` no
+   * navegador, que é exatamente a pergunta.
+   */
+  const montado = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const caixa = useRef<HTMLDivElement>(null);
   const abriuDaqui = useRef<HTMLElement | null>(null);
 
@@ -111,9 +123,26 @@ export function Janela({
     };
   }, [aberta, onFechar]);
 
-  if (!aberta) return null;
+  /*
+   * **A janela é desenhada no `body`, por portal.**
+   *
+   * Ela nasceu onde era usada, e isso funcionou enquanto nada entre ela
+   * e a raiz criava contexto de empilhamento. Em 7 de novembro de 2026 o
+   * `<main>` ganhou `isolate` — para o conteúdo parar de passar por cima
+   * da barra lateral — e com isso a janela ficaria presa lá dentro,
+   * **embaixo** da barra. Diálogo tem de estar acima de tudo.
+   *
+   * O portal também a solta de qualquer `overflow: hidden` ou
+   * `transform` de quem a renderizou, que é a mesma armadilha com outro
+   * nome.
+   *
+   * `montado` existe porque o servidor não tem `document`. A janela só
+   * aparece depois da hidratação — e como ela abre por clique, nunca há
+   * uma aberta no primeiro desenho.
+   */
+  if (!aberta || !montado) return null;
 
-  return (
+  const conteudo = (
     <div
       /*
        * O véu é o alvo do clique de fechar. A comparação é com o próprio
@@ -174,4 +203,6 @@ export function Janela({
       </div>
     </div>
   );
+
+  return createPortal(conteudo, document.body);
 }
