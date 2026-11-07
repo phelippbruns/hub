@@ -100,7 +100,7 @@ jobs:
       # serve: o `package-lock.json` muda por qualquer dependência.
       - name: Cache do navegador do Playwright
         id: cache-playwright
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
