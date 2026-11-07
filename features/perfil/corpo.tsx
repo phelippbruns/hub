@@ -2,6 +2,7 @@ import Link from "next/link";
 import { EndOfList, SectionTitle, TopicName } from "@/design/components";
 import { haQuantoTempo } from "@/lib/tempo";
 import type { ComunidadeNoPerfil, RespostaNoPerfil } from "@/lib/data/perfil";
+import { enderecoDoTopico } from "@/lib/rotas";
 
 function numero(valor: number) {
   return valor.toLocaleString("pt-BR");
@@ -36,7 +37,7 @@ export function AbaContribuicoes({
       {itens.map((item) => (
         <Link
           key={`${item.criouOTopico ? "t" : "r"}-${item.id}`}
-          href={`/c/${item.comunidade.slug}/${item.topico.slug}`}
+          href={enderecoDoTopico(item.comunidade.slug, item.topico.slug)}
           className={`${cartao} flex flex-col gap-1 rounded-sm p-3`}
         >
           <span className="text-caption text-inkMuted">

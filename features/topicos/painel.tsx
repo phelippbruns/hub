@@ -35,7 +35,7 @@ import { Compartilhar, type PessoaParaCompartilhar } from "@/features/convite/co
 export function PainelDoTopico({
   nome,
   topicId,
-  endereco,
+  enderecoCanonico,
   comunidadeSlug,
   nomeDaComunidade,
   larguraInicial,
@@ -47,7 +47,14 @@ export function PainelDoTopico({
 }: {
   nome: string;
   topicId: string;
-  endereco: string;
+  /**
+   * O endereço canônico do tópico, só para compartilhar.
+   *
+   * Continua com o tópico no caminho mesmo depois de a tela cheia sair:
+   * é ele que tem a prévia do link e a tela de convite para quem abre
+   * sem conta. Quem tem sessão e abre este endereço é trazido para cá.
+   */
+  enderecoCanonico: string;
   comunidadeSlug: string;
   nomeDaComunidade: string;
   /** A largura guardada no cookie, já dentro dos limites. */
@@ -123,7 +130,18 @@ export function PainelDoTopico({
         vale na primeira pintura, antes de o JavaScript existir.
       */
       style={{ width: `${largura}px`, maxWidth: "50vw" }}
-      className="bg-paper border-line sticky top-0 flex max-h-screen shrink-0 flex-col gap-3 overflow-y-auto border-l p-3"
+      /*
+        `z-20` não é enfeite: a barra de abas da comunidade é `sticky` em
+        `z-10`, e sem camada própria o painel pintava **abaixo** dela. O
+        menu de três pontos do tópico ficava coberto pelas abas e não
+        aceitava clique.
+
+        O defeito é antigo — o painel sempre foi assim —, mas só apareceu
+        quando a tela cheia do tópico saiu e o painel virou o único
+        caminho até esse menu. Antes havia uma segunda porta, e era ela
+        que os testes usavam.
+      */
+      className="bg-paper border-line sticky top-0 z-20 flex max-h-screen shrink-0 flex-col gap-3 overflow-y-auto border-l p-3"
     >
       <AlcaDoPainel largura={largura} onLargura={setLargura} />
 
@@ -152,7 +170,7 @@ export function PainelDoTopico({
                 <Compartilhar
                   tipo="topico"
                   id={topicId}
-                  endereco={endereco}
+                  endereco={enderecoCanonico}
                   pessoas={paraCompartilhar}
                   aoFechar={() => setAberto("nenhum")}
                 />

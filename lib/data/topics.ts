@@ -18,6 +18,7 @@ import { comAvatar, comAvatares, enderecosDeMidia } from "@/lib/midia/deposito";
 import { avisar, avisarMarcados } from "./notificacoes";
 import { marcacoesDoTexto, marcacoesQueExistem } from "./marcacoes";
 import { EXPLORE_MIN_MEMBERS } from "./communities";
+import { enderecoDoTopico as paraOTopico } from "@/lib/rotas";
 
 /**
  * RN08: a partir de quantas respostas de outras pessoas o autor não apaga.
@@ -103,7 +104,7 @@ export async function enderecoDoTopico(topicId: string): Promise<string | null> 
     where: { id: topicId, deletedAt: null, community: { deletedAt: null } },
     select: { slug: true, community: { select: { slug: true } } },
   });
-  return topico ? `/c/${topico.community.slug}/${topico.slug}` : null;
+  return topico ? paraOTopico(topico.community.slug, topico.slug) : null;
 }
 
 /**

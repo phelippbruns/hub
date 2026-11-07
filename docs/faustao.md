@@ -2104,6 +2104,46 @@ qualquer `push`; o `CLAUDE.md` o traz na seção de comandos.
 parte da regra, e regra que mora na cabeça é regra que falha na terceira
 vez. Vira script.
 
+### A segunda tela era um esconderijo
+
+**Quando:** 6 de novembro de 2026, tirando a tela cheia do tópico.
+
+**O que aconteceu:** o PO mandou apagar a tela cheia — em todo o Hub o
+tópico passa a abrir no painel, ao lado da lista. A mudança era de
+navegação, e eu a tratei como tal. Ela desenterrou **três defeitos que já
+existiam**, todos no painel, todos invisíveis:
+
+1. **O menu de três pontos do tópico estava coberto** pela barra de abas
+   da comunidade. A barra é `sticky z-10`; o painel não tinha camada
+   nenhuma, então pintava por baixo. Abrir o menu funcionava; clicar em
+   "Apagar tópico" não fazia nada.
+2. **Ordenar as contribuições fechava o tópico.** O controle de ordem
+   montava a URL do zero (`${endereco}?ordem=...`) e apagava o `?t=`
+   junto.
+3. **Denunciar fazia perder o tópico.** O link de voltar guardava
+   `usePathname()`, que não traz a busca.
+
+**Por que passou:** os três só acontecem no painel, e **o painel tinha um
+gêmeo**. Toda jornada que precisava do menu, da ordem ou da denúncia usava
+a tela cheia, porque era mais simples de escrever: endereço direto, sem
+lista atrás. A tela cheia não era só trabalho em dobro — ela era o
+caminho que os testes preferiam, e por isso o painel ficou sem cobertura
+nos lugares em que os dois diferiam.
+
+Os 2 e 3 têm a mesma raiz técnica: **montar endereço do zero quando a
+tela guarda estado na busca.** `/c/<com>?t=<topico>` é um endereço com
+estado, e qualquer `${caminho}?novo=valor` o apaga. O padrão certo já
+existia em `features/comunidades/controles-de-topicos.tsx`: copiar os
+parâmetros, mexer só no seu.
+
+👁 **Atenção** — quando duas telas mostram a mesma coisa, pergunte **qual
+delas os testes usam**. A que eles não usam é onde o defeito mora. E
+`usePathname()` nunca basta numa tela cujo estado vive na busca.
+
+**A lição:** interface duplicada não é só custo de manutenção — é um
+esconderijo. Apagar a segunda tela foi o que fez três defeitos
+aparecerem no mesmo dia.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

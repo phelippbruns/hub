@@ -22,6 +22,7 @@ import {
 } from "./access";
 import { avisar } from "./notificacoes";
 import { comAvatar, comAvatares, enderecosDeMidia } from "@/lib/midia/deposito";
+import { enderecoDoTopico } from "@/lib/rotas";
 
 /** RN20: de 2 a 5 pessoas. Quem convida conta. */
 export const MAXIMO_DE_PESSOAS = 5;
@@ -649,7 +650,7 @@ function cartaoCompartilhado(mensagem: {
     return {
       tipo: "topico",
       nome: t.name,
-      href: `/c/${t.community.slug}/${t.slug}`,
+      href: enderecoDoTopico(t.community.slug, t.slug),
       apoio: `Tópico em ${t.community.name}`,
     };
   }

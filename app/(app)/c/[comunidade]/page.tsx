@@ -50,6 +50,11 @@ import { jaCrieiTopicoHoje } from "@/lib/data/topics";
 import { CriarTopico } from "@/features/topicos/criar";
 import { meusSeguidoresParaCompartilhar } from "@/lib/data/follows";
 import { NotFoundError } from "@/lib/data/errors";
+import {
+  enderecoDaComunidade,
+  enderecoDoTopico,
+  enderecoParaCompartilharTopico,
+} from "@/lib/rotas";
 
 export async function generateMetadata({
   params,
@@ -382,7 +387,20 @@ async function PainelAoLado({
     throw erro;
   }
 
-  const endereco = `/c/${comunidade}/${topico}`;
+  /*
+   * **Dois endereços, e a diferença importa.**
+   *
+   * `endereco` é o que as actions revalidam, e desde que a tela cheia do
+   * tópico saiu (6 de novembro) a tela que precisa ser refeita é a da
+   * **comunidade** — revalidar `/c/<com>/<topico>` agora seria revalidar
+   * um redirecionamento, e a contribuição nova não apareceria.
+   *
+   * `enderecoCanonico` é o que o botão de compartilhar copia: aquele sim
+   * continua com o tópico no caminho, porque é ele que carrega a prévia
+   * do link e a tela de convite para quem não tem conta.
+   */
+  const endereco = enderecoDaComunidade(comunidade);
+  const enderecoCanonico = enderecoParaCompartilharTopico(comunidade, topico);
   const ordemDasRespostas = ordemDasContribuicoes(ordem);
 
   // Lido **antes** de marcar a visita de agora: depois, a marca já seria
@@ -394,7 +412,7 @@ async function PainelAoLado({
     <PainelDoTopico
       nome={dados.name}
       topicId={dados.id}
-      endereco={endereco}
+      enderecoCanonico={enderecoCanonico}
       comunidadeSlug={comunidade}
       nomeDaComunidade={dados.community.name}
       larguraInicial={larguraDoPainel((await cookies()).get(COOKIE_DA_LARGURA)?.value)}
@@ -468,7 +486,7 @@ async function DestaqueDaComunidade({
           : null
       }
       rostos={hotTopic.primeirosRostos}
-      href={`/c/${slug}/${hotTopic.slug}`}
+      href={enderecoDoTopico(slug, hotTopic.slug)}
     />
   );
 }

@@ -342,7 +342,9 @@ describe("a central", () => {
     expect(aviso?.tipo).toBe("mention");
     expect(aviso?.texto).toContain("Lia Souza");
     expect(aviso?.texto).toContain("primeira festa");
-    expect(aviso?.href).toContain("/primeira-festa");
+    // O aviso leva ao **painel**: a tela cheia do tópico saiu em 6 de
+    // novembro, e o destino passou a ser a comunidade com `?t=`.
+    expect(aviso?.href).toContain("?t=primeira-festa");
     // Marcação é pessoal: vai para o topo, destacada (tela 8).
     expect(aviso?.pessoal).toBe(true);
   });

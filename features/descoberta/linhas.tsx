@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { CommunityDoor, FollowButton, LevelMark, TopicName } from "@/design/components";
 import { alternarComunidade, alternarSeguirPessoa } from "./actions";
 import type { ComunidadeNaLista, PessoaNaBusca, TopicoNaBusca } from "@/lib/data/descoberta";
+import { enderecoDoTopico } from "@/lib/rotas";
 
 /** Milhares com ponto, como o protótipo mostra: "3.412 membros". */
 function numero(valor: number) {
@@ -83,7 +84,7 @@ export function LinhaComunidade({
 export function LinhaTopico({ topico }: { topico: TopicoNaBusca }) {
   return (
     <a
-      href={`/c/${topico.comunidade.slug}/${topico.slug}`}
+      href={enderecoDoTopico(topico.comunidade.slug, topico.slug)}
       className="bg-paper flex items-center gap-3 rounded-sm p-3"
     >
       <LevelMark level="topic" />

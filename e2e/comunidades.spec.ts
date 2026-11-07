@@ -9,6 +9,7 @@ import {
   respostaPublicada,
   criarTopico,
   botaoDeContribuir,
+  esperarTopicoNoPainel,
 } from "./apoio-tela";
 
 /**
@@ -546,7 +547,7 @@ test.describe("a lista de tópicos", () => {
     const endereco = new URL(page.url()).pathname;
 
     await criarTopico(page, endereco, "Primeira festa", "Conta aí como foi.");
-    await page.waitForURL(/\/c\/[^/]+\/[^/]+$/);
+    await esperarTopicoNoPainel(page, "primeira-festa");
 
     await campoDeContribuicao(page).fill("A minha foi num porão em 2009.");
     await botaoDeContribuir(page).click();

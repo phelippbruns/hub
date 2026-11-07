@@ -425,6 +425,28 @@ passos apontam todos para lá. O botão e a janela moram no mesmo componente
 porque o estado de aberto é um só; separados, abrir custaria uma volta ao
 servidor ou um contexto.
 
+**O tópico só abre no painel, e `lib/rotas.ts` é quem monta o endereço.**
+A tela cheia saiu em 6 de novembro de 2026, por decisão do PO. Duas
+funções, e a diferença importa: `enderecoDoTopico()` devolve
+`/c/<com>?t=<topico>`, que é **navegar**; `enderecoParaCompartilharTopico()`
+devolve `/c/<com>/<topico>`, que é o **canônico** — e esse não muda,
+porque é ele que carrega a prévia do link e a tela de convite para quem
+abre sem conta. A rota canônica continua existindo: com sessão
+redireciona, sem conta mostra o convite.
+
+Eram catorze lugares montando o endereço à mão, e o perigo não é trocar
+catorze strings — é a décima quinta, que nasce na feature seguinte. Um
+link para o endereço errado **não quebra nada**: ele redireciona e leva a
+pessoa pelo caminho longo. `lib/rotas.test.ts` varre `app/`, `features/`,
+`lib/` e `design/` e reprova apontando arquivo e linha.
+
+**Tela cujo estado vive na busca nunca monta endereço do zero.** O tópico
+é `?t=<topico>`, então `${caminho}?ordem=novas` **apaga o tópico**. Copie
+os parâmetros e mexa só no seu, como em
+`features/comunidades/controles-de-topicos.tsx`. E `usePathname()` não
+traz a busca: num link de "voltar" ele perde o tópico. Isso derrubou a
+ordenação e a denúncia no mesmo dia; está no `faustao.md`.
+
 **A tela do tópico é branca, e o resto do app é lavanda.** Não é estética:
 os dois fundos de cartão de contribuição — `surfacePage` na sua,
 `surfaceNeutral` nas outras — só se distinguem sobre `paper`. Contra

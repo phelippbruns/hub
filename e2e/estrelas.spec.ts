@@ -6,6 +6,8 @@ import {
   concluirOnboarding,
   criarTopico,
   preencherNovaComunidade,
+  esperarTopicoNoPainel,
+  enderecoAtual,
 } from "./apoio-tela";
 
 /**
@@ -53,8 +55,8 @@ async function topicoComTres(page: Page, prefixo: string) {
   const comunidade = new URL(page.url()).pathname;
 
   await criarTopico(page, comunidade, "Primeiro disco");
-  await page.waitForURL(/\/primeiro-disco$/);
-  const endereco = new URL(page.url()).pathname;
+  await esperarTopicoNoPainel(page, "primeiro-disco");
+  const endereco = enderecoAtual(page);
 
   for (const texto of textos) {
     /*
@@ -296,7 +298,7 @@ test.describe("RN15: a ordem da lista", () => {
 
   test("o relógio alterna entre novas e antigas, e a escolha fica na URL", async ({ page }) => {
     await entrarNoApp(page, "relogio");
-    const { endereco, primeira, terceira } = await topicoComTres(page, "Relogio");
+    const { primeira, terceira } = await topicoComTres(page, "Relogio");
 
     const relogio = page.getByRole("button", { name: /data|novas|antigas/i });
     await expect(relogio).toHaveAttribute("aria-label", /Ordenar por data, mais novas primeiro/);
@@ -314,7 +316,13 @@ test.describe("RN15: a ordem da lista", () => {
 
     // A estrela volta ao padrão, e o endereço fica limpo.
     await page.getByRole("button", { name: "Ordenar por mais estrelas" }).click();
-    await page.waitForURL((u) => u.pathname === endereco && !u.search.includes("ordem"));
+    /*
+     * O endereço do painel já tem `?t=`, então "limpo" quer dizer **sem
+     * `ordem`**, não sem busca nenhuma. Comparar com o `pathname` seria
+     * comparar `/c/<com>` com `/c/<com>?t=<topico>` e esperar para
+     * sempre.
+     */
+    await page.waitForURL((u) => u.searchParams.get("t") !== null && !u.searchParams.has("ordem"));
   });
 
   test("endereço antigo e endereço inventado não quebram", async ({ page }) => {
@@ -322,12 +330,13 @@ test.describe("RN15: a ordem da lista", () => {
     const { endereco, terceira } = await topicoComTres(page, "Urls");
 
     // `recentes` é o nome antigo de `novas`: link já compartilhado não quebra.
-    await page.goto(`${endereco}?ordem=recentes`);
+    // `&`, e não `?`: o endereço do painel já carrega o `?t=`.
+    await page.goto(`${endereco}&ordem=recentes`);
     expect((await ordemNaTela(page))[0]).toBe(terceira);
     await expect(page.getByRole("button", { name: /Mais novas primeiro/ })).toBeVisible();
 
     // Qualquer outra coisa cai no padrão, sem erro.
-    await page.goto(`${endereco}?ordem=banana`);
+    await page.goto(`${endereco}&ordem=banana`);
     await expect(page.getByRole("button", { name: "Ordenar por mais estrelas" })).toHaveAttribute(
       "aria-pressed",
       "true",

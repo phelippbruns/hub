@@ -6,6 +6,8 @@ import {
   criarTopico,
   preencherNovaComunidade,
   seguirNoPerfil,
+  esperarTopicoNoPainel,
+  enderecoAtual,
 } from "./apoio-tela";
 import { esperarNoBanco } from "./apoio-banco";
 
@@ -53,7 +55,7 @@ async function topicoComUmaContribuicao(page: Page, prefixo: string) {
   const comunidade = new URL(page.url()).pathname;
 
   await criarTopico(page, comunidade, "Primeiro disco");
-  await page.waitForURL(/\/primeiro-disco$/);
+  await esperarTopicoNoPainel(page, "primeiro-disco");
 
   const texto = `uma contribuição ${unico("t")}`;
   await campoDeContribuicao(page).fill(texto);
@@ -61,7 +63,9 @@ async function topicoComUmaContribuicao(page: Page, prefixo: string) {
   await esperarNoBanco(`SELECT 1 FROM answers WHERE text = '${texto}' AND deleted_at IS NULL`);
   await page.reload();
 
-  return { comunidade, endereco: new URL(page.url()).pathname, texto };
+  // Com o `?t=`: só o caminho devolve a comunidade, e voltar para lá
+  // abriria a lista **sem** o tópico.
+  return { comunidade, endereco: enderecoAtual(page), texto };
 }
 
 test.describe("o menu da contribuição abre em balão", () => {
@@ -109,6 +113,12 @@ test.describe("a caixa de contribuição", () => {
     await topicoComUmaContribuicao(page, "Duas");
 
     const campo = campoDeContribuicao(page);
+    /*
+     * Esperar a caixa existir antes de medir: ela chega dentro do painel,
+     * e `boundingBox()` não espera por nada — devolve `null` e o teste
+     * reprova com "Cannot read properties of null".
+     */
+    await expect(campo).toBeVisible();
     const altura = async () => (await campo.boundingBox())!.height;
 
     const vazia = await altura();
@@ -127,6 +137,7 @@ test.describe("a caixa de contribuição", () => {
     await topicoComUmaContribuicao(page, "Falta");
 
     const frase = "Escreva algo, ou escolha uma imagem ou um GIF.";
+    await expect(campoDeContribuicao(page)).toBeVisible();
 
     /*
      * Fora da vista — **medido**, não `toBeHidden`.
@@ -186,7 +197,9 @@ test.describe("compartilhar", () => {
          WHERE p.handle = '${eu.handle}' AND f.target = 'profile'`);
 
       await page.goto(endereco);
-      await page.getByRole("button", { name: /^Compartilhar/ }).click();
+      // O botão vive **no painel** do tópico, não na página.
+      const noTopico = page.getByRole("complementary", { name: /Tópico/ });
+      await noTopico.getByRole("button", { name: /^Compartilhar/ }).click();
 
       const lista = page.getByRole("group", { name: "Pessoas" });
       await expect(lista.getByRole("button", { name: "Ana Seguidora" })).toBeVisible();
@@ -298,7 +311,7 @@ test.describe("criar tópico pelo atalho da barra", () => {
 
     // RN07: um tópico por dia por comunidade. Gasta o da primeira.
     await criarTopico(page, daGasta, "O do dia");
-    await page.waitForURL(/\/o-do-dia$/);
+    await esperarTopicoNoPainel(page, "o-do-dia");
 
     await page.goto("/criar-topico");
     const janela = page.getByRole("dialog", { name: "Novo tópico" });

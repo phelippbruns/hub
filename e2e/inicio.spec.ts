@@ -7,6 +7,7 @@ import {
   preencherNovaComunidade,
   criarTopico,
   botaoDeContribuir,
+  esperarTopicoNoPainel,
 } from "./apoio-tela";
 
 /**
@@ -108,7 +109,7 @@ test.describe("com conteúdo", () => {
     const comunidade = new URL(page.url()).pathname;
 
     await criarTopico(page, comunidade, "assunto do inicio", "A pergunta que vai virar destaque.");
-    await page.waitForURL(/\/assunto-do-inicio$/);
+    await esperarTopicoNoPainel(page, "assunto-do-inicio");
 
     await consultar(`
       WITH alvo AS (
@@ -132,7 +133,7 @@ test.describe("com conteúdo", () => {
     await expect(page.getByText("A pergunta que vai virar destaque.")).toBeVisible();
 
     await page.getByRole("link", { name: "Contribuir" }).click();
-    await page.waitForURL(/\/assunto-do-inicio$/);
+    await esperarTopicoNoPainel(page, "assunto-do-inicio");
   });
 
   test("abrir o tópico zera as novas", async ({ page }) => {
@@ -185,7 +186,13 @@ test.describe("com conteúdo", () => {
     await page.goto(`${comunidade}/assunto-do-inicio`);
     await campoDeContribuicao(page).fill("minha resposta");
     await botaoDeContribuir(page).click();
-    await expect(page.locator("article").filter({ hasText: "minha resposta" })).toBeVisible();
+    // No painel: o cartão de destaque da comunidade repete o texto.
+    await expect(
+      page
+        .getByRole("complementary", { name: /Tópico/ })
+        .locator("article")
+        .filter({ hasText: "minha resposta" }),
+    ).toBeVisible();
 
     await consultar(`
       WITH alvo AS (

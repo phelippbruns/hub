@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { pedacosMarcados } from "@/lib/texto/marcacoes";
+import { enderecoDaComunidade, enderecoDoTopico } from "@/lib/rotas";
 
 export type MarcacoesDoTexto = {
   pessoas: string[];
@@ -43,13 +44,22 @@ export function TextoMarcado({
         pedaco.tipo === "texto" ? (
           <span key={i}>{pedaco.valor}</span>
         ) : (
-          <Link
-            key={i}
-            href={enderecoDe(pedaco.marcacao, pedaco.alvo, comunidade)}
-            className="text-ink font-semibold"
-          >
-            {pedaco.trecho}
-          </Link>
+          (() => {
+            const destino = enderecoDe(pedaco.marcacao, pedaco.alvo, comunidade);
+            /*
+             * Sem destino, continua texto. É a promessa do analisador de
+             * marcações: **o que não existe não vira link quebrado** — e
+             * um `href=""` apontaria para a própria página, que é a pior
+             * das duas saídas.
+             */
+            return destino === null ? (
+              <span key={i}>{pedaco.trecho}</span>
+            ) : (
+              <Link key={i} href={destino} className="text-ink font-semibold">
+                {pedaco.trecho}
+              </Link>
+            );
+          })()
         ),
       )}
     </>
@@ -57,12 +67,17 @@ export function TextoMarcado({
 }
 
 /** Cada sinal abre o endereço do que ele marca. */
-function enderecoDe(tipo: string, alvo: string, comunidade?: string): string {
+function enderecoDe(tipo: string, alvo: string, comunidade?: string): string | null {
   switch (tipo) {
     case "comunidade":
-      return `/c/${alvo}`;
+      return enderecoDaComunidade(alvo);
     case "topico":
-      return `/c/${comunidade}/${alvo}`;
+      /*
+       * Sem comunidade não há endereço de tópico: o `*` resolve **dentro**
+       * da comunidade onde o texto está, e o slug é único só ali. O texto
+       * fica texto, que é a promessa do analisador de marcações.
+       */
+      return comunidade ? enderecoDoTopico(comunidade, alvo) : null;
     default:
       return `/${alvo}`;
   }
