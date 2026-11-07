@@ -243,19 +243,41 @@ export async function getTopicForViewer(
   };
 }
 
+/** Quantas contribuições chegam por vez (item 10.1 do protótipo v6). */
+export const CONTRIBUICOES_POR_VEZ = 20;
+
 /**
  * As respostas de um tópico, para a tela pedir separado do cabeçalho.
  *
  * RN16: sem conta, não vem lista nenhuma.
+ *
+ * **Vem de 20 em 20** (item 10.1), e devolve `temMais` junto: sem ele a
+ * tela não saberia se mostra o botão de carregar mais ou a marca de fim,
+ * e "vieram 20" não responde — 20 exatas podem ser o total.
+ *
+ * Por deslocamento e não por cursor: a ordem fica **congelada** enquanto
+ * a página está aberta (item 5.5, a lista não pula ao dar estrela), então
+ * o deslocamento é estável. Um cursor composto de `(star_count,
+ * created_at)` seria complexidade sem ganho.
  */
 export async function respostasDoTopico(
   viewer: Viewer,
   topicId: string,
   ordem: OrdemDasRespostas = "estrelas",
+  quantas = CONTRIBUICOES_POR_VEZ,
 ) {
   const me = viewerProfileId(viewer);
   if (me === null) return null;
-  return listAnswers(me, topicId, ordem);
+
+  /*
+   * Pede **uma a mais** do que vai mostrar. É o jeito de saber se há
+   * próxima página sem uma segunda consulta de contagem — e a contagem
+   * seria pior: ela conta o tópico inteiro a cada rolagem.
+   */
+  const achadas = await listAnswers(me, topicId, ordem, quantas + 1);
+  const temMais = achadas.length > quantas;
+
+  return { respostas: temMais ? achadas.slice(0, quantas) : achadas, temMais };
 }
 
 /**
@@ -264,7 +286,12 @@ export async function respostasDoTopico(
  * As imagens são assinadas aqui, no momento de montar a lista: o depósito é
  * privado, então o endereço é temporário e não pode ser guardado no banco.
  */
-async function listAnswers(me: string, topicId: string, ordem: OrdemDasRespostas = "estrelas") {
+async function listAnswers(
+  me: string,
+  topicId: string,
+  ordem: OrdemDasRespostas = "estrelas",
+  quantas?: number,
+) {
   const blocked = await prisma.block.findMany({
     where: { OR: [{ blockerId: me }, { blockedId: me }] },
     select: { blockerId: true, blockedId: true },
@@ -292,6 +319,7 @@ async function listAnswers(me: string, topicId: string, ordem: OrdemDasRespostas
       ordem === "estrelas"
         ? [{ starCount: "desc" as const }, { createdAt: "desc" as const }]
         : [{ createdAt: ordem === "antigas" ? ("asc" as const) : ("desc" as const) }],
+    ...(quantas === undefined ? {} : { take: quantas }),
     include: {
       author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
       /*
@@ -475,6 +503,11 @@ export async function createAnswer(viewer: Viewer, input: unknown) {
         text: data.text,
         mediaUrl: data.media?.caminho ?? null,
         mediaKind: data.media?.kind ?? null,
+        // Item 9.2: o espaço da mídia é reservado antes de ela chegar.
+        mediaWidth: data.media?.largura ?? null,
+        mediaHeight: data.media?.altura ?? null,
+        // Item 9.4: só o GIF tem quadro parado.
+        mediaStillUrl: data.media?.parado ?? null,
       },
     });
 

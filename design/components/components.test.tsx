@@ -20,6 +20,7 @@ import {
   HomeRow,
   HotTopicCard,
   LevelMark,
+  MidiaDaContribuicao,
   PinButton,
   ProfileHeader,
   SectionTitle,
@@ -284,6 +285,16 @@ const cases: Array<[string, React.ReactElement]> = [
   [
     "comunidade sugerida",
     <SuggestionRow nome="Vinil" universo="Música" membros={2100} href="/c/vinil" />,
+  ],
+  [
+    "mídia da contribuição",
+    <MidiaDaContribuicao
+      url="https://media.giphy.com/abc.gif"
+      parado="https://media.giphy.com/abc-parado.gif"
+      tipo="gif"
+      autor="Lia"
+      medidas={{ largura: 200, altura: 150 }}
+    />,
   ],
   [
     "select de comunidade",

@@ -1,8 +1,9 @@
 import { Suspense } from "react";
-import { EmptyState, PaginaCarregando, TopicOpening } from "@/design/components";
+import { EmptyState, EndOfList, PaginaCarregando, TopicOpening } from "@/design/components";
 import { CampoDeResposta } from "@/features/respostas/campo";
 import { LinhaDeResposta } from "@/features/respostas/linha";
 import { OrdemDasRespostas as ControleDaOrdem } from "@/features/respostas/ordem";
+import { CarregarMais } from "@/features/respostas/carregar-mais";
 import { getViewer } from "@/lib/auth/session";
 import { quemEstaEscrevendo } from "@/lib/data/profiles";
 import { respostasDoTopico, type OrdemDasRespostas } from "@/lib/data/topics";
@@ -28,6 +29,7 @@ export async function CorpoDoTopico({
   respostas,
   podeVerRespostas,
   ordem,
+  ate,
   vistoEm,
 }: {
   topicId: string;
@@ -42,6 +44,8 @@ export async function CorpoDoTopico({
   respostas: number;
   podeVerRespostas: boolean;
   ordem: OrdemDasRespostas;
+  /** Quantas contribuições mostrar: vem do `?ate=` da URL. */
+  ate: number;
   /**
    * Quando a pessoa viu o tópico pela última vez, lido **antes** de marcar
    * a visita de agora. É o que desenha a linha de contribuições novas.
@@ -86,17 +90,33 @@ export async function CorpoDoTopico({
         eu={await quemEstaEscrevendo(await getViewer())}
       />
 
-      <div className="flex justify-end">
-        <ControleDaOrdem endereco={endereco} atual={ordem} />
-      </div>
+      {/*
+        Item 10.3: **os filtros somem com a lista vazia.** Ordenar nada é
+        um controle que só confunde — e num tópico recém-aberto ele é a
+        primeira coisa que a pessoa vê depois da pergunta.
+
+        O número vem do cabeçalho, que o servidor já tinha: esperar a
+        lista chegar para decidir faria a pílula piscar.
+      */}
+      {respostas > 0 ? (
+        <div className="flex justify-end">
+          <ControleDaOrdem endereco={endereco} atual={ordem} />
+        </div>
+      ) : null}
 
       <Suspense
-        key={ordem}
+        key={`${ordem}-${ate}`}
         fallback={
           <PaginaCarregando titulo={false} linhas={2} label="Carregando as contribuições" />
         }
       >
-        <Contribuicoes topicId={topicId} endereco={endereco} ordem={ordem} vistoEm={vistoEm} />
+        <Contribuicoes
+          topicId={topicId}
+          endereco={endereco}
+          ordem={ordem}
+          ate={ate}
+          vistoEm={vistoEm}
+        />
       </Suspense>
     </>
   );
@@ -107,15 +127,19 @@ async function Contribuicoes({
   topicId,
   endereco,
   ordem,
+  ate,
   vistoEm,
 }: {
   topicId: string;
   endereco: string;
   ordem: OrdemDasRespostas;
+  /** Quantas mostrar: cresce de 20 em 20 pelo `?ate=` da URL. */
+  ate: number;
   vistoEm: Date | null;
 }) {
   const viewer = await getViewer();
-  const respostas = await respostasDoTopico(viewer, topicId, ordem);
+  const pagina = await respostasDoTopico(viewer, topicId, ordem, ate);
+  const respostas = pagina?.respostas ?? null;
 
   if (!respostas || respostas.length === 0) {
     return (
@@ -157,6 +181,18 @@ async function Contribuicoes({
               estrelada: resposta.estrelada,
               imagem: resposta.mediaHref,
               tipoDaMidia: resposta.mediaKind,
+              // Item 9.4: o quadro parado é do GIPHY, público — não
+              // precisa de assinatura como a imagem enviada.
+              midiaParada: resposta.mediaStillUrl,
+              /*
+                Item 9.2: as medidas do envio. Nulas nas contribuições
+                anteriores a 7 de novembro de 2026 — elas continuam
+                aparecendo, só sem o espaço reservado.
+              */
+              medidasDaMidia:
+                resposta.mediaWidth !== null && resposta.mediaHeight !== null
+                  ? { largura: resposta.mediaWidth, altura: resposta.mediaHeight }
+                  : null,
               /*
                 Nova desde a última visita, para o anel amarelo. Mesmo
                 critério do separador — e a própria não conta, porque
@@ -174,6 +210,17 @@ async function Contribuicoes({
           />
         </div>
       ))}
+
+      {/*
+        Item 10.4: a lista **termina**. É o que mantém o Princípio 3 do
+        escopo de pé — "não há feed infinito" — mesmo com as
+        contribuições chegando de 20 em 20.
+      */}
+      {pagina?.temMais ? (
+        <CarregarMais quantas={respostas.length} />
+      ) : (
+        <EndOfList>Você chegou ao fim das contribuições</EndOfList>
+      )}
     </div>
   );
 }

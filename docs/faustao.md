@@ -2144,11 +2144,77 @@ delas os testes usam**. A que eles não usam é onde o defeito mora. E
 esconderijo. Apagar a segunda tela foi o que fez três defeitos
 aparecerem no mesmo dia.
 
+### `toHaveCount(0)` passa de graça enquanto a tela não chegou
+
+**Quando:** 7 de novembro de 2026, no PR da mídia. **Terceira vez na
+mesma sessão** que uma barreira minha não guardava nada.
+
+**O que aconteceu:** escrevi a jornada "sem contribuição, os filtros
+somem" assim:
+
+```ts
+await esperarTopicoNoPainel(page, "ainda-vazio");
+await expect(page.getByRole("group", { name: "Ordem…" })).toHaveCount(0);
+```
+
+Reintroduzi o defeito — troquei a condição por `{true ?`, forçando a
+pílula a aparecer sempre — e **o teste passou**. A lista chega num
+`<Suspense>`: no instante da asserção não havia pílula nenhuma na tela,
+porque não havia tela ainda. Contar zero num DOM vazio sempre dá zero.
+
+**Por que passou:** `toHaveCount(0)` é a única asserção do Playwright que
+é satisfeita pelo **nada**. Todas as outras esperam alguma coisa
+aparecer; esta se contenta com a ausência, e ausência é o estado inicial
+de qualquer página.
+
+As outras duas da mesma sessão foram parentes: o duplo clique no menu de
+três pontos e na própria estrela, que passavam com e sem a guarda porque
+o alvo que eu escolhi nunca exercitava o caminho.
+
+🛡 **Barreira** — a regra é de escrita, e a prova é o ritual: **antes de
+`toHaveCount(0)`, espere algo positivo aparecer.** Aqui é o estado vazio
+("Nenhuma contribuição ainda") que diz que a lista terminou de carregar.
+E toda barreira nova tem de ser **vista reprovar** — foi só isso que
+pegou as três.
+
+**A lição:** asserção que pode ser satisfeita pela página em branco não é
+asserção. Antes de afirmar que algo **não** está lá, prove que a tela
+chegou.
+
+### O teste passava sobre uma imagem quebrada
+
+**Quando:** 7 de novembro de 2026, trocando a mídia da contribuição.
+
+**O que aconteceu:** `e2e/respostas.spec.ts` monta um JPEG **falso** —
+bytes suficientes para o servidor reconhecer o tipo e tirar a
+localização, mas que nenhum navegador decodifica. A asserção era
+`getByRole("img", { name: /Imagem enviada por/ })`, e passava: elemento
+de imagem quebrada continua na árvore de acessibilidade, com o `alt`
+intacto. **A imagem nunca apareceu na tela em nenhuma rodada.**
+
+Só descobri porque o componente novo troca a imagem que falha por um
+aviso — e aí o teste, que procurava a `<img>`, parou de achar.
+
+**Por que passou:** `getByRole("img")` responde pelo **elemento**, não
+pelo pixel. Um `<img>` com `src` quebrado é tão "visível" quanto um que
+carregou, e `toBeVisible()` concorda.
+
+👁 **Atenção** — quando o teste precisa que a imagem **apareça**, use um
+arquivo de verdade (`public/icons/icon-512.png` serve) e meça algo que
+só existe depois de carregar: `naturalWidth`, a altura desenhada, o
+sumiço do espaço reservado. O fixture falso continua certo para o que
+ele foi feito — provar que a localização é removida —, e agora a jornada
+afirma o aviso de falha, que é o que ele produz de verdade.
+
+**A lição:** elemento presente não é conteúdo exibido. Teste de imagem
+que não mede nada da imagem está testando o HTML, não a tela.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
 barreira: migrations no deploy, jornadas em série, plural do português,
-a ordem de formatar e medir (`npm run verificar`),
+a ordem de formatar e medir (`npm run verificar`), o endereço de tópico
+num lugar só,
 segredo no repositório, corrida entre testes, um ícone aceso por tela, os
 utilitários de zero, e os dois limites de camada que o build recusa.
 

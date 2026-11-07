@@ -570,6 +570,21 @@ model Answer {
   mediaUrl  String?    @map("media_url")
   mediaKind MediaKind? @map("media_kind")
 
+  /// Medidas da mídia, gravadas no envio.
+  ///
+  /// Sem elas a tela não sabe quanto espaço reservar, e a lista **pula**
+  /// enquanto a imagem carrega. A imagem enviada é medida pelos bytes
+  /// (`dimensoesDaImagem`); o GIF vem medido do GIPHY.
+  mediaWidth  Int? @map("media_width")
+  mediaHeight Int? @map("media_height")
+
+  /// O primeiro quadro do GIF, servido pelo GIPHY.
+  ///
+  /// Na lista o GIF fica **parado** e só toca no hover (item 9.4): uma
+  /// `<img>` com GIF não tem pausa, então a lista mostra esta versão e
+  /// troca para a animada quando o ponteiro chega. Nulo em imagem.
+  mediaStillUrl String? @map("media_still_url")
+
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   /// RN14: a resposta não pode ser editada, só apagada pelo autor.
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)

@@ -237,7 +237,7 @@ describe("RN15: apagar e ordenar", () => {
     await alternarEstrela(viewerFor(lia.id), antiga.id);
     await alternarEstrela(viewerFor(lia.id), recente.id);
 
-    const lista = (await respostasDoTopico(viewerFor(lia.id), topico.id)) ?? [];
+    const lista = (await respostasDoTopico(viewerFor(lia.id), topico.id))?.respostas ?? [];
     const textos = lista.map((r) => r.text);
 
     expect(textos[0]).toBe("a campeã");
@@ -257,13 +257,15 @@ describe("RN15: apagar e ordenar", () => {
     void segunda;
 
     // A primeira do cenário ganha estrela, e mesmo assim desce no relógio.
-    const emOrdem = (await respostasDoTopico(viewerFor(lia.id), topico.id, "antigas")) ?? [];
+    const emOrdem =
+      (await respostasDoTopico(viewerFor(lia.id), topico.id, "antigas"))?.respostas ?? [];
     await alternarEstrela(viewerFor(lia.id), emOrdem[0]!.id);
 
-    const novas = (await respostasDoTopico(viewerFor(lia.id), topico.id, "novas")) ?? [];
+    const novas = (await respostasDoTopico(viewerFor(lia.id), topico.id, "novas"))?.respostas ?? [];
     expect(novas[0]!.text).toBe("a segunda, sem estrela");
 
-    const antigas = (await respostasDoTopico(viewerFor(lia.id), topico.id, "antigas")) ?? [];
+    const antigas =
+      (await respostasDoTopico(viewerFor(lia.id), topico.id, "antigas"))?.respostas ?? [];
     expect(antigas[0]!.text).toBe("Foi num galpão em Curitiba.");
   });
 });

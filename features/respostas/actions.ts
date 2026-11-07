@@ -20,7 +20,12 @@ import { getViewer } from "@/lib/auth/session";
 import { UnauthenticatedError } from "@/lib/data/errors";
 import { acharLink } from "@/lib/texto/links";
 import type { TipoDeMarcacao } from "@/lib/texto/marcacoes";
-import { ImagemRecusada, TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB } from "@/lib/midia/imagem";
+import {
+  dimensoesDaImagem,
+  ImagemRecusada,
+  TAMANHO_MAXIMO,
+  TAMANHO_MAXIMO_EM_MB,
+} from "@/lib/midia/imagem";
 import { guardarImagem } from "@/lib/midia/deposito";
 
 async function quemPede() {
@@ -90,10 +95,27 @@ export async function responder(
       return { erro: "Esse GIF não veio do GIPHY." };
     }
 
+    /*
+     * O quadro parado também é do GIPHY, e é conferido igual: ele vai
+     * para um `<img src>` na tela de todo mundo, e um endereço de fora
+     * vindo do formulário seria conteúdo de terceiro servido como se
+     * fosse do Hub.
+     */
+    const parado = String(formulario.get("gifParado") ?? "").trim();
+    const paradoValido = /^https:\/\/[a-z0-9.-]*giphy\.com\//i.test(parado) ? parado : null;
+
     await createAnswer(viewer, {
       topicId,
       text: texto,
-      media: { caminho: gif, kind: "gif" as const },
+      media: {
+        caminho: gif,
+        kind: "gif" as const,
+        // Medidas do GIPHY. Um número estranho no formulário cai em
+        // `null` pelo Zod, e a tela desenha sem reservar espaço.
+        largura: medidaDoFormulario(formulario, "gifLargura"),
+        altura: medidaDoFormulario(formulario, "gifAltura"),
+        parado: paradoValido,
+      },
     });
 
     revalidatePath(endereco);
@@ -101,13 +123,23 @@ export async function responder(
   }
 
   let caminho: string | null = null;
+  let medidas: { largura: number; altura: number } | null = null;
 
   if (temArquivo) {
     if (arquivo.size > TAMANHO_MAXIMO)
       return { erro: `A imagem passa de ${TAMANHO_MAXIMO_EM_MB} MB.` };
 
     try {
-      caminho = await guardarImagem(new Uint8Array(await arquivo.arrayBuffer()), "respostas");
+      const bytes = new Uint8Array(await arquivo.arrayBuffer());
+      /*
+       * Medida pelos **bytes**, e não pelo que o navegador disse.
+       *
+       * `dimensoesDaImagem` já existia e era jogada fora. Ler aqui é o
+       * único jeito honesto: o cliente poderia mandar qualquer número,
+       * e o espaço reservado na tela de todo mundo sairia errado.
+       */
+      medidas = dimensoesDaImagem(bytes);
+      caminho = await guardarImagem(bytes, "respostas");
     } catch (erro) {
       if (erro instanceof ImagemRecusada) return { erro: erro.motivo };
       throw erro;
@@ -117,7 +149,14 @@ export async function responder(
   await createAnswer(viewer, {
     topicId,
     text: texto,
-    media: caminho ? { caminho, kind: "image" as const } : null,
+    media: caminho
+      ? {
+          caminho,
+          kind: "image" as const,
+          largura: medidas?.largura ?? null,
+          altura: medidas?.altura ?? null,
+        }
+      : null,
   });
 
   revalidatePath(endereco);
@@ -188,4 +227,17 @@ export async function alternarEstrelaDaContribuicao(
   answerId: string,
 ): Promise<{ estrelada: boolean; total: number }> {
   return alternarEstrela(await quemPede(), answerId);
+}
+
+/**
+ * Um número do formulário, ou nada.
+ *
+ * O GIPHY manda largura e altura como texto, e elas atravessam o
+ * navegador antes de chegar aqui. Qualquer coisa que não seja inteiro
+ * positivo vira `null`, e a tela desenha sem reservar espaço — que é o
+ * comportamento de antes, não um erro.
+ */
+function medidaDoFormulario(formulario: FormData, campo: string): number | null {
+  const numero = Number(formulario.get(campo) ?? "");
+  return Number.isInteger(numero) && numero > 0 ? numero : null;
 }

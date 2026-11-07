@@ -10,6 +10,7 @@ export { CodeInput } from "./code-input";
 export { Steps } from "./steps";
 export { CommunityChip } from "./community-chip";
 export { LevelMark, type Level, type LevelMarkSize } from "./level-mark";
+export { MidiaDaContribuicao } from "./midia-da-contribuicao";
 export { Paginador } from "./paginador";
 export { CommunityDoor } from "./community-door";
 export { HotTopicCard } from "./hot-topic-card";

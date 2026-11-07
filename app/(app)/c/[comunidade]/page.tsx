@@ -27,7 +27,7 @@ import { ResumoDaComunidade } from "@/features/comunidades/resumo";
 import type { ParaEntrar } from "@/features/comunidades/janela-de-entrada";
 import { LinkDoTopico } from "@/features/comunidades/link-do-topico";
 import { PainelDoTopico } from "@/features/topicos/painel";
-import { ordemDasContribuicoes } from "@/features/respostas/shared";
+import { ateQuantasContribuicoes, ordemDasContribuicoes } from "@/features/respostas/shared";
 import { OlhoDoTopico } from "@/features/topicos/olho";
 import { cookies } from "next/headers";
 import { COOKIE_DA_LARGURA, larguraDoPainel } from "@/features/topicos/shared";
@@ -91,6 +91,8 @@ export default async function ComunidadePage({
     papel?: string;
     /** O endereço do tópico aberto no painel ao lado. */
     t?: string;
+    /** Item 10.1: quantas contribuições já foram carregadas, de 20 em 20. */
+    ate?: string;
     pessoa?: string;
     /*
      * `?novo=1` abre a janela de criar tópico, e vem de `/novo`.
@@ -105,7 +107,18 @@ export default async function ComunidadePage({
   }>;
 }) {
   const { comunidade: slug } = await params;
-  const { q, ordem, convite, aba, filtro, pessoa, papel, t, nome } = await searchParams;
+  const {
+    q,
+    ordem,
+    convite,
+    aba,
+    filtro,
+    pessoa,
+    papel,
+    t,
+    nome,
+    ate: ateQuantas,
+  } = await searchParams;
   const pessoaFiltro = papel;
   const termo = q?.trim() ?? "";
   const abaAtual = abaDaComunidade(aba);
@@ -351,7 +364,7 @@ export default async function ComunidadePage({
 
       {t ? (
         <Suspense fallback={null}>
-          <PainelAoLado comunidade={slug} topico={t} ordem={ordem} />
+          <PainelAoLado comunidade={slug} topico={t} ordem={ordem} ate={ateQuantas} />
         </Suspense>
       ) : null}
     </div>
@@ -371,10 +384,12 @@ async function PainelAoLado({
   comunidade,
   topico,
   ordem,
+  ate: ateQuantas,
 }: {
   comunidade: string;
   topico: string;
   ordem: string | undefined;
+  ate: string | undefined;
 }) {
   const viewer = await getViewer();
   if (viewer.kind !== "member") return null;
@@ -402,6 +417,8 @@ async function PainelAoLado({
   const endereco = enderecoDaComunidade(comunidade);
   const enderecoCanonico = enderecoParaCompartilharTopico(comunidade, topico);
   const ordemDasRespostas = ordemDasContribuicoes(ordem);
+  // Item 10.1: 20 por vez, e o `?ate=` diz quantas já chegaram.
+  const ate = ateQuantasContribuicoes(ateQuantas);
 
   // Lido **antes** de marcar a visita de agora: depois, a marca já seria
   // "agora" e a linha de contribuições novas nunca apareceria.
@@ -442,6 +459,7 @@ async function PainelAoLado({
         respostas={dados.answerCount}
         podeVerRespostas={dados.podeVerRespostas}
         ordem={ordemDasRespostas}
+        ate={ate}
         vistoEm={vistoEm}
       />
     </PainelDoTopico>

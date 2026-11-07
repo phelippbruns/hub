@@ -37,6 +37,7 @@ const UM_GIF = {
       alt_text: "pessoa dançando",
       images: {
         downsized: { url: "https://media.giphy.com/abc.gif", width: "200", height: "150" },
+        downsized_still: { url: "https://media.giphy.com/abc-parado.gif" },
         fixed_width_small: { url: "https://media.giphy.com/abc-small.gif" },
       },
     },
@@ -138,10 +139,36 @@ describe("o que volta para a tela", () => {
       id: "abc",
       url: "https://media.giphy.com/abc.gif",
       previa: "https://media.giphy.com/abc-small.gif",
+      parado: "https://media.giphy.com/abc-parado.gif",
       descricao: "pessoa dançando",
       largura: 200,
       altura: 150,
     });
+  });
+
+  it("sem o quadro parado, cai no animado em vez de ficar sem endereço", async () => {
+    /*
+     * Item 9.4: o GIF fica parado na lista e só toca no hover. Se o
+     * GIPHY não mandar o quadro parado, um GIF que toca sozinho ainda é
+     * melhor que um espaço vazio no lugar da mídia.
+     */
+    fingirGiphy({
+      data: [
+        {
+          id: "semparado",
+          alt_text: "sem parado",
+          images: {
+            downsized: { url: "https://media.giphy.com/sp.gif", width: "10", height: "10" },
+            fixed_width_small: { url: "https://media.giphy.com/sp-small.gif" },
+          },
+        },
+      ],
+    });
+    const { procurarGifs } = await carregar();
+
+    const [gif] = await procurarGifs("festa", "chave-de-teste");
+
+    expect(gif?.parado).toBe("https://media.giphy.com/sp.gif");
   });
 
   it("sem descrição no GIPHY, o alt não fica vazio", async () => {

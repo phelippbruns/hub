@@ -26,3 +26,32 @@ export function ordemDasContribuicoes(valor: string | undefined): OrdemDasContri
   if (valor === "novas" || valor === "recentes") return "novas";
   return "estrelas";
 }
+
+/**
+ * Quantas contribuições chegam por vez (item 10.1 do protótipo v6).
+ *
+ * Escrito aqui **e** em `lib/data/topics.ts`, e não importado de lá:
+ * componente de cliente não importa `lib/data/`, nem por uma constante —
+ * um reexport inocente arrasta o Prisma para o pacote do navegador e o
+ * build quebra com "Can't resolve 'dns'".
+ *
+ * Divergir não passa despercebido: a página entrega este número ao
+ * botão de carregar mais, e a camada de dados usa o seu para cortar a
+ * consulta. Se os dois discordarem, a jornada de 25 contribuições
+ * reprova.
+ */
+export const CONTRIBUICOES_POR_VEZ = 20;
+
+/**
+ * Quantas contribuições a URL está pedindo (`?ate=`).
+ *
+ * Cresce de 20 em 20 e tem **teto**: o parâmetro é compartilhável, e
+ * endereço compartilhado é endereço editado — `?ate=999999` seria um
+ * pedido de carregar o tópico inteiro numa consulta só. Qualquer coisa
+ * estranha cai na primeira página, sem erro.
+ */
+export function ateQuantasContribuicoes(valor: string | undefined): number {
+  const numero = Number(valor);
+  if (!Number.isInteger(numero) || numero < CONTRIBUICOES_POR_VEZ) return CONTRIBUICOES_POR_VEZ;
+  return Math.min(numero, CONTRIBUICOES_POR_VEZ * 25);
+}

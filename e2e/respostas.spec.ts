@@ -187,7 +187,19 @@ test.describe("imagem na resposta", () => {
     expect(linha?.media_kind, "a imagem não chegou ao depósito").toBe("image");
     expect(linha?.media_url).toMatch(/^respostas\/[0-9a-f-]+\.jpg$/);
 
-    await expect(page.getByRole("img", { name: /Imagem enviada por/ })).toBeVisible();
+    /*
+     * **E a tela mostra "Imagem indisponível"** — de propósito.
+     *
+     * `jpegComLocalizacao()` monta um JPEG **falso**: bytes suficientes
+     * para o servidor reconhecer o tipo e tirar a localização, mas que
+     * nenhum navegador decodifica. Até 7 de novembro de 2026 o teste
+     * procurava a `<img>` e passava, porque elemento de imagem quebrada
+     * continua na árvore; o componente novo troca por um aviso, e o
+     * teste passou a dizer a verdade.
+     *
+     * Dois pássaros: isto também é o item 9.6, o estado de falha.
+     */
+    await expect(page.getByText("Imagem indisponível")).toBeVisible();
   });
 
   test("RN13: só a imagem já é resposta, e ela aparece dentro do cartão", async ({ page }) => {
@@ -199,11 +211,12 @@ test.describe("imagem na resposta", () => {
     await entrarNoApp(page, "somidia");
     await meuTopico(page, "So Midia");
 
-    await campoDeImagemDaContribuicao(page).setInputFiles({
-      name: "foto.jpg",
-      mimeType: "image/jpeg",
-      buffer: jpegComLocalizacao(),
-    });
+    /*
+     * Uma imagem **de verdade**, e não o JPEG falso do teste acima: o
+     * que este prova é que a mídia aparece dentro do cartão, e para
+     * isso o navegador precisa conseguir desenhá-la.
+     */
+    await campoDeImagemDaContribuicao(page).setInputFiles("public/icons/icon-512.png");
 
     const enviar = botaoDeContribuir(page);
     await expect(enviar, "sem texto, a imagem sozinha deveria liberar o envio").toBeEnabled();
@@ -218,7 +231,13 @@ test.describe("imagem na resposta", () => {
       `SELECT 1 FROM answers WHERE text = '' AND media_kind = 'image' AND deleted_at IS NULL`,
     );
 
-    const imagem = page.getByRole("img", { name: /Imagem enviada por/ });
+    /*
+     * **A mídia virou um controle**, e é assim que ela aparece na
+     * árvore de acessibilidade: clicar amplia. O navegador funde o
+     * conteúdo de um botão num nó só, então procurar pelo `alt` da
+     * imagem não acha nada — o que existe é o botão.
+     */
+    const imagem = page.getByRole("button", { name: /^Abrir a imagem de/ });
     await expect(imagem).toBeVisible();
     // Dentro do `<article>`, que é o cartão da resposta.
     await expect(page.locator("article").filter({ has: imagem })).toBeVisible();
@@ -326,7 +345,9 @@ test.describe("GIF na resposta", () => {
     // GIF guarda a URL do GIPHY: ela é pública, não há o que depositar.
     expect(linha?.media_url).toMatch(/^https:\/\/[a-z0-9.-]*giphy\.com\//);
 
-    const gif = page.getByRole("img", { name: /GIF enviado por/ });
+    // A medida é do `<img>` dentro do botão, então vai por CSS: o `alt`
+    // está vazio de propósito, porque quem nomeia é o controle.
+    const gif = page.getByRole("button", { name: /^Abrir o GIF de/ }).locator("img");
     await expect(gif).toBeVisible();
 
     /*
@@ -352,21 +373,18 @@ test.describe("GIF na resposta", () => {
     expect(medidas.natural, "o GIF não carregou, então a medida não diz nada").toBeGreaterThan(0);
 
     /*
-     * **A promessa de "tamanho original" morreu com a tela cheia.**
+     * **O GIF vive numa caixa de 213 × 213** desde o protótipo v6 (item
+     * 9.1), com corte centralizado.
      *
-     * Ela era do PO e valia quando o tópico tinha a largura da página.
-     * No painel, que tem 520 px, um GIF de 480 px mais o acolchoamento
-     * do cartão não cabe: o `max-w-full` encolhe para 463, e é o certo —
-     * a alternativa é ele furar o cartão.
+     * A promessa de "tamanho original" era do PO e valia quando o tópico
+     * tinha a largura da página. Ela morreu em duas etapas: primeiro o
+     * painel de 520 px, que já encolhia o que fosse mais largo; depois a
+     * miniatura quadrada, que é a decisão de desenho.
      *
-     * O que continua valendo, e é o que este teste guarda: a mídia
-     * **nunca é esticada** e nunca é achatada. O PR C troca isto por
-     * 213 × 213 com corte centralizado, e aí a medida vira outra.
+     * O que o teste guarda agora é a caixa: se ela voltar a depender do
+     * arquivo, a lista volta a pular quando a imagem chega.
      */
-    expect(medidas.desenhada, "o GIF foi esticado além do tamanho natural").toBeLessThanOrEqual(
-      medidas.natural,
-    );
-    expect(medidas.desenhada, "o GIF sumiu ou foi achatado").toBeGreaterThan(medidas.natural * 0.8);
+    expect(medidas.desenhada, "o GIF deveria caber na caixa de 213 px").toBe(213);
   });
 
   test("RN13: imagem e GIF são excludentes", async ({ page }) => {

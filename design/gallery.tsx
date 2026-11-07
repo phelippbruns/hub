@@ -32,6 +32,7 @@ import {
   EndOfList,
   ErrorState,
   CommunityChip,
+  MidiaDaContribuicao,
   Select,
   StarButton,
   FollowButton,
@@ -564,6 +565,23 @@ export function DesignGallery() {
           <p className="text-body text-ink">
             Respondi em <TopicName>primeira festa</TopicName> hoje de manhã.
           </p>
+        </Card>
+
+        <Card title="Mídia da contribuição" wide>
+          <div className="flex w-full flex-col gap-2">
+            <MidiaDaContribuicao
+              url="/icons/icon-512.png"
+              tipo="image"
+              autor="Lia Souza"
+              medidas={{ largura: 512, altura: 512 }}
+            />
+            <p className="text-caption text-inkMuted">
+              213 × 213 com corte centralizado, e o espaço já reservado antes de a imagem chegar — é
+              o que impede a lista de pular. Clicar amplia; Esc, X e clique fora fecham, e o foco
+              volta para a miniatura. GIF fica parado e só toca no hover, nunca com movimento
+              reduzido no sistema.
+            </p>
+          </div>
         </Card>
 
         <Card title="Estrela da contribuição" wide>
