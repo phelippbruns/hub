@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { Button, Input, TextField } from "@/design/components";
+import { useActionState, useState } from "react";
+import { Button, Input, Select, TextField } from "@/design/components";
 import { GifIcon, ImageIcon } from "@/design/icons";
 import { criarTopico, type EstadoDaCriacao } from "./actions";
 
@@ -17,16 +17,29 @@ import { criarTopico, type EstadoDaCriacao } from "./actions";
  * protótipo v6: o segundo campo não descreve o tópico, ele começa a
  * conversa — é o texto do cartão escuro no topo da tela do tópico. A RN08
  * continua exigindo os dois, com os mesmos 80 e 240 caracteres.
+ *
+ * **O campo de comunidade só existe quando há escolha a fazer.** Aberta
+ * de dentro de uma comunidade, a janela já sabe onde o tópico nasce e
+ * perguntar seria ruído. Aberta pelo atalho da barra, ela precisa
+ * perguntar — e o aviso do limite do dia (RN07) troca junto com o campo,
+ * senão ele responde pela comunidade errada.
  */
 export function FormularioNovoTopico({
   comunidadeSlug,
   nomeDaComunidade,
   jaUsouODia,
+  escolherEntre,
   nomeSugerido = "",
 }: {
   comunidadeSlug: string;
   nomeDaComunidade: string;
   jaUsouODia: boolean;
+  /**
+   * As comunidades entre as quais escolher, com o limite do dia de cada
+   * uma. Ausente (ou com uma só) quer dizer "a janela já sabe onde" — e
+   * aí não há campo nenhum.
+   */
+  escolherEntre?: { slug: string; nome: string; jaUsouODia: boolean }[];
   /**
    * Vem de Primeiros passos, na tela da comunidade. É `defaultValue`, não
    * valor controlado: a sugestão abre o campo preenchido e quem escreve
@@ -36,14 +49,32 @@ export function FormularioNovoTopico({
 }) {
   const [estado, acao, pendente] = useActionState<EstadoDaCriacao, FormData>(criarTopico, {});
 
+  // Só há o que escolher com duas ou mais. Com uma, a janela já sabe.
+  const escolha = escolherEntre && escolherEntre.length > 1 ? escolherEntre : null;
+  const [slugEscolhido, setSlugEscolhido] = useState(escolha?.[0]?.slug ?? comunidadeSlug);
+
+  const alvo = escolha?.find((c) => c.slug === slugEscolhido);
+  const slug = alvo?.slug ?? comunidadeSlug;
+  const nome = alvo?.nome ?? nomeDaComunidade;
+  const semVaga = alvo ? alvo.jaUsouODia : jaUsouODia;
+
   return (
     <form action={acao} className="flex flex-col gap-3">
-      <input type="hidden" name="comunidade" value={comunidadeSlug} />
+      <input type="hidden" name="comunidade" value={slug} />
 
-      {jaUsouODia ? (
+      {escolha ? (
+        <Select
+          label="Comunidade"
+          value={slugEscolhido}
+          onChange={(evento) => setSlugEscolhido(evento.target.value)}
+          opcoes={escolha.map((c) => ({ valor: c.slug, rotulo: c.nome }))}
+        />
+      ) : null}
+
+      {semVaga ? (
         <p role="alert" className="text-body text-error">
-          Você já criou um tópico em {nomeDaComunidade} hoje. O próximo pode ser criado depois da
-          virada das 00h.
+          Você já criou um tópico em {nome} hoje. O próximo pode ser criado depois da virada das
+          00h.
         </p>
       ) : null}
 
@@ -56,7 +87,7 @@ export function FormularioNovoTopico({
         autoComplete="off"
         placeholder="Sobre o que você quer conversar?"
         defaultValue={nomeSugerido}
-        disabled={jaUsouODia}
+        disabled={semVaga}
         error={estado.erros?.name}
       />
 
@@ -67,7 +98,7 @@ export function FormularioNovoTopico({
         tall
         required
         placeholder="Comece a conversa: o que te fez abrir este tópico?"
-        disabled={jaUsouODia}
+        disabled={semVaga}
         error={estado.erros?.description}
         className="w-full"
       />
@@ -104,7 +135,7 @@ export function FormularioNovoTopico({
         entre eles. Print do PO de 31 de outubro.
       */}
       <div className="flex justify-end">
-        <Button type="submit" disabled={pendente || jaUsouODia}>
+        <Button type="submit" disabled={pendente || semVaga}>
           Criar tópico
         </Button>
       </div>

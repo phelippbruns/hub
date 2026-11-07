@@ -28,12 +28,24 @@ export function CriarTopico({
   slug,
   nomeDaComunidade,
   jaUsouODia,
+  escolherEntre,
+  abrirDeInicio = false,
   /** `?nome=`, a sugestão de Primeiros passos. */
   nomeSugerido = "",
 }: {
   slug: string;
   nomeDaComunidade: string;
   jaUsouODia: boolean;
+  /** As comunidades a escolher, quando a janela não sabe onde. */
+  escolherEntre?: { slug: string; nome: string; jaUsouODia: boolean }[];
+  /**
+   * Abre já aberta e **sem o botão**, porque é a tela inteira.
+   *
+   * É o atalho da barra lateral: `/criar-topico` existe só para mostrar
+   * esta janela, então não há estado a sincronizar com o endereço nem
+   * botão a mostrar atrás dela.
+   */
+  abrirDeInicio?: boolean;
   nomeSugerido?: string;
 }) {
   const router = useRouter();
@@ -54,7 +66,7 @@ export function CriarTopico({
    * comparar com o visto da última vez, na renderização. Num efeito seria
    * um quadro com a janela errada na tela, e o lint recusa.
    */
-  const naUrl = parametros.get("novo") === "1";
+  const naUrl = abrirDeInicio || parametros.get("novo") === "1";
   const [visto, setVisto] = useState(naUrl);
   const [aberta, setAberta] = useState(naUrl);
   if (visto !== naUrl) {
@@ -64,6 +76,16 @@ export function CriarTopico({
 
   function fechar() {
     setAberta(false);
+
+    /*
+     * Vindo do atalho da barra, fechar a janela deixaria uma página
+     * vazia: `/criar-topico` não tem conteúdo próprio. Volta para as
+     * minhas comunidades, que é de onde a pessoa teria partido.
+     */
+    if (abrirDeInicio) {
+      router.push("/comunidades/minhas");
+      return;
+    }
 
     /*
      * Limpa `?novo=` e `?nome=` da barra de endereço, e **só quando eles
@@ -82,10 +104,12 @@ export function CriarTopico({
 
   return (
     <>
-      <Button size="sm" onClick={() => setAberta(true)}>
-        <TopicStar className="size-icon" />
-        Criar tópico
-      </Button>
+      {abrirDeInicio ? null : (
+        <Button size="sm" onClick={() => setAberta(true)}>
+          <TopicStar className="size-icon" />
+          Criar tópico
+        </Button>
+      )}
 
       <Janela titulo="Novo tópico" aberta={aberta} onFechar={fechar}>
         {/* Montado só quando abre: assim cada abertura começa limpa, em vez
@@ -95,6 +119,7 @@ export function CriarTopico({
             comunidadeSlug={slug}
             nomeDaComunidade={nomeDaComunidade}
             jaUsouODia={jaUsouODia}
+            escolherEntre={escolherEntre}
             nomeSugerido={nomeSugerido}
           />
         ) : null}

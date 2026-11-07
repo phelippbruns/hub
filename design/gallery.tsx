@@ -32,6 +32,7 @@ import {
   EndOfList,
   ErrorState,
   CommunityChip,
+  Select,
   StarButton,
   FollowButton,
   HomeRow,
@@ -580,6 +581,23 @@ export function DesignGallery() {
             <p className="text-caption text-inkMuted">
               RN15: uma por pessoa, e dar de novo retira. Zero não aparece como número — só o
               contorno. A área de clique tem 48 px e cobre a estrela e o número.
+            </p>
+          </div>
+        </Card>
+
+        <Card title="Select">
+          <div className="flex w-full flex-col gap-2">
+            <Select
+              label="Comunidade"
+              opcoes={[
+                { valor: "vinil", rotulo: "Vinil" },
+                { valor: "fotografia", rotulo: "Fotografia de Paisagem" },
+                { valor: "eletronica", rotulo: "Música Eletrônica" },
+              ]}
+            />
+            <p className="text-caption text-inkMuted">
+              `&lt;select&gt;` nativo, com a seta desenhada nos tokens. Para lista fechada que pode
+              ser longa — o RadioGroup mostra tudo sempre, e serve a três ou quatro opções.
             </p>
           </div>
         </Card>

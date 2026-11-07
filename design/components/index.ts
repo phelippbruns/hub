@@ -42,6 +42,7 @@ export { SectionTitle } from "./section-title";
 export { CommunityCover, RoundIconButton } from "./community-cover";
 export { PinButton } from "./pin-button";
 export { ConfirmSheet } from "./confirm-sheet";
+export { Select, type OpcaoDoSelect } from "./select";
 export { StarButton } from "./star-button";
 export { TopicName } from "./topic-name";
 export { TopicOpening } from "./topic-opening";
