@@ -3,7 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { CampoDeBusca, BottomSheet, Button, LoadingBlock, Skeleton } from "@/design/components";
 
-export type GifEscolhido = { url: string; descricao: string };
+export type GifEscolhido = {
+  url: string;
+  descricao: string;
+  /** Medidas do GIPHY: a tela reserva o espaço antes de o GIF chegar. */
+  largura: number;
+  altura: number;
+  /** O primeiro quadro: na lista o GIF fica parado e só toca no hover. */
+  parado: string;
+};
 
 type GifDaBusca = GifEscolhido & { id: string; previa: string };
 
@@ -81,7 +89,15 @@ export function EscolherGif({
             <li key={gif.id}>
               <button
                 type="button"
-                onClick={() => onEscolher({ url: gif.url, descricao: gif.descricao })}
+                onClick={() =>
+                  onEscolher({
+                    url: gif.url,
+                    descricao: gif.descricao,
+                    largura: gif.largura,
+                    altura: gif.altura,
+                    parado: gif.parado,
+                  })
+                }
                 className="block w-full cursor-pointer overflow-hidden rounded-sm"
               >
                 {/*

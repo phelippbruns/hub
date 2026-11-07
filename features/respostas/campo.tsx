@@ -350,7 +350,21 @@ export function CampoDeResposta({
         </p>
       ) : null}
 
-      {gif ? <input type="hidden" name="gif" value={gif.url} /> : null}
+      {/*
+        O GIF viaja inteiro: endereço, medidas e o quadro parado. As
+        medidas fazem a tela reservar o espaço (item 9.2) e o quadro
+        parado é o que deixa o GIF quieto na lista (item 9.4). O servidor
+        confere os dois endereços contra o domínio do GIPHY — formulário
+        é entrada, não fonte de verdade.
+      */}
+      {gif ? (
+        <>
+          <input type="hidden" name="gif" value={gif.url} />
+          <input type="hidden" name="gifParado" value={gif.parado} />
+          <input type="hidden" name="gifLargura" value={gif.largura} />
+          <input type="hidden" name="gifAltura" value={gif.altura} />
+        </>
+      ) : null}
 
       <EscolherGif
         aberto={escolhendoGif}

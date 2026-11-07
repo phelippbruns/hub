@@ -119,6 +119,22 @@ export const mediaSchema = z
   .object({
     caminho: z.string().min(1).max(500),
     kind: z.enum(["image", "gif"]),
+    /*
+     * As medidas, para a tela reservar o espaço e a lista não pular.
+     *
+     * Opcionais: o GIPHY pode não mandá-las, e imagem que o leitor de
+     * bytes não reconhece também não tem medida. Sem elas a mídia
+     * aparece do mesmo jeito — só sem o espaço reservado, que é como
+     * era antes de 7 de novembro de 2026.
+     *
+     * O teto de 20000 não é zelo: o número vem do GIPHY por um campo de
+     * texto, e um valor absurdo viraria um bloco de milhões de pixels
+     * reservado na tela.
+     */
+    largura: z.number().int().positive().max(20_000).nullish(),
+    altura: z.number().int().positive().max(20_000).nullish(),
+    /** Só GIF: o primeiro quadro, para ele ficar parado na lista. */
+    parado: z.string().max(500).nullish(),
   })
   .nullable()
   .default(null);

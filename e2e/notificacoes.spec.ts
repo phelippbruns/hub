@@ -102,8 +102,17 @@ test.describe("marcar com @", () => {
       const aviso = outra.page.getByRole("link", { name: /marcou você/ });
       await expect(aviso).toBeVisible();
       await aviso.click();
-      await outra.page.waitForURL(`**${topico}`);
-      await expect(outra.page.getByText("você viu isso?")).toBeVisible();
+
+      /*
+       * O aviso leva ao **painel**, que é a única forma de abrir um
+       * tópico desde 6 de novembro. E a asserção é escopada nele: o
+       * cartão do tópico na lista da comunidade, atrás do painel,
+       * mostra a última contribuição — que é este mesmo texto.
+       */
+      await esperarTopicoNoPainel(outra.page, "assunto-com-marcacao");
+      await expect(
+        outra.page.getByRole("complementary", { name: /Tópico/ }).getByText("você viu isso?"),
+      ).toBeVisible();
     } finally {
       await outra.contexto.close();
     }

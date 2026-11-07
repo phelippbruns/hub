@@ -8,8 +8,10 @@ import {
   seguirNoPerfil,
   esperarTopicoNoPainel,
   enderecoAtual,
+  campoDeImagemDaContribuicao,
+  botaoDeContribuir,
 } from "./apoio-tela";
-import { esperarNoBanco } from "./apoio-banco";
+import { consultar, esperarNoBanco } from "./apoio-banco";
 
 /**
  * As correções do PO de 5 de novembro, sobre o protótipo v6.
@@ -331,5 +333,158 @@ test.describe("criar tópico pelo atalho da barra", () => {
     await campo.selectOption({ label: livre });
     await expect(janela.getByText(/Você já criou um tópico em/)).toHaveCount(0);
     await expect(janela.getByRole("button", { name: "Criar tópico" })).toBeEnabled();
+  });
+});
+
+/**
+ * Mídia e lista (protótipo v6, itens 9 e 10).
+ *
+ * A mesma jornada: abrir o tópico, ver a imagem, ampliar, e rolar até o
+ * fim.
+ */
+test.describe("a mídia da contribuição", () => {
+  test("213 × 213, e a lista não pula enquanto a imagem carrega", async ({ page }) => {
+    test.slow();
+    await entrarNoApp(page, "midia");
+    const { endereco } = await topicoComUmaContribuicao(page, "Midia");
+
+    const comFoto = unico("com foto ");
+    await campoDeContribuicao(page).fill(comFoto);
+    await campoDeImagemDaContribuicao(page).setInputFiles("public/icons/icon-512.png");
+    await botaoDeContribuir(page).click();
+    await esperarNoBanco(
+      `SELECT 1 FROM answers WHERE text = '${comFoto}' AND media_url IS NOT NULL`,
+    );
+
+    /*
+     * **As medidas vão para o banco** (item 9.2). São elas que fazem a
+     * tela reservar o espaço — e elas vêm dos bytes, no servidor, não do
+     * que o navegador disse.
+     */
+    const [medida] = await consultar<{ w: string; h: string }>(
+      `SELECT media_width::text AS w, media_height::text AS h
+         FROM answers WHERE text = '${comFoto}'`,
+    );
+    expect(medida).toEqual({ w: "512", h: "512" });
+
+    await page.goto(endereco);
+
+    const mini = page.getByRole("button", { name: /^Abrir a imagem/ });
+    await expect(mini).toBeVisible();
+    const caixa = (await mini.boundingBox())!;
+    expect(Math.round(caixa.width), "a miniatura tem 213 px").toBe(213);
+    expect(Math.round(caixa.height), "e é quadrada").toBe(213);
+
+    /*
+     * **A lista não pula.** A caixa de 213 px existe antes de a imagem
+     * chegar: medir o cartão de baixo antes e depois de a imagem
+     * carregar é o que distingue "reservou o espaço" de "esticou quando
+     * chegou". Era assim que a lista saltava.
+     */
+    const deBaixo = page.locator("article").filter({ hasText: "uma contribuição" }).first();
+    const antes = (await deBaixo.boundingBox())!.y;
+    await mini
+      .locator("img")
+      .evaluate(
+        (el: HTMLImageElement) =>
+          el.complete ||
+          new Promise((pronto) => el.addEventListener("load", pronto, { once: true })),
+      );
+    const depois = (await deBaixo.boundingBox())!.y;
+    expect(depois, "a lista pulou quando a imagem carregou").toBeCloseTo(antes, 0);
+  });
+
+  test("clicar amplia, e Esc devolve o foco à miniatura", async ({ page }) => {
+    test.slow();
+    await entrarNoApp(page, "ampliar");
+    const { endereco } = await topicoComUmaContribuicao(page, "Ampliar");
+
+    await campoDeContribuicao(page).fill("para ampliar");
+    await campoDeImagemDaContribuicao(page).setInputFiles("public/icons/icon-512.png");
+    await botaoDeContribuir(page).click();
+    await esperarNoBanco(
+      `SELECT 1 FROM answers WHERE text = 'para ampliar' AND media_url IS NOT NULL`,
+    );
+    await page.goto(endereco);
+
+    const mini = page.getByRole("button", { name: /^Abrir a imagem/ });
+    await mini.click();
+
+    const ampliacao = page.getByRole("dialog", { name: /^Abrir a imagem de/ });
+    await expect(ampliacao).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(ampliacao).toHaveCount(0);
+    // Item 9.5: o foco volta para a miniatura, e não para o começo da página.
+    await expect(mini).toBeFocused();
+  });
+});
+
+test.describe("a lista de contribuições", () => {
+  test("sem nenhuma, os filtros somem", async ({ page }) => {
+    await entrarNoApp(page, "semfiltro");
+    await preencherNovaComunidade(page, unico("Com Vazia "));
+    await page.waitForURL(/\/c\/[^/]+$/);
+    const comunidade = new URL(page.url()).pathname;
+
+    await criarTopico(page, comunidade, "Ainda vazio");
+    await esperarTopicoNoPainel(page, "ainda-vazio");
+
+    /*
+     * **Esperar a lista chegar antes de contar zero.**
+     *
+     * A lista vem num `<Suspense>`, e `toHaveCount(0)` passa na hora
+     * enquanto nada chegou — a asserção ficava verde com a pílula
+     * presente, porque ela ainda não tinha sido desenhada. Eu provei
+     * isso reintroduzindo o defeito e vendo o teste passar.
+     *
+     * O estado vazio é o sinal de que a lista terminou de carregar.
+     */
+    await expect(page.getByText("Nenhuma contribuição ainda")).toBeVisible();
+
+    // Item 10.3: ordenar nada é um controle que só confunde.
+    await expect(page.getByRole("group", { name: "Ordem das contribuições" })).toHaveCount(0);
+  });
+
+  test("20 por vez, e a lista termina", async ({ page }) => {
+    test.slow();
+    await entrarNoApp(page, "vinte");
+    const { endereco, texto } = await topicoComUmaContribuicao(page, "Vinte");
+
+    /*
+     * 24 contribuições pelo banco, e não pela tela: 24 envios seriam
+     * quatro minutos de jornada para provar uma regra de paginação. O
+     * que o teste mede é a **tela** reagindo ao que existe.
+     */
+    await consultar(`
+      WITH alvo AS (
+        SELECT t.id AS topic_id, t.author_id
+          FROM topics t WHERE t.slug = 'primeiro-disco' AND t.deleted_at IS NULL
+         ORDER BY t.created_at DESC LIMIT 1
+      )
+      INSERT INTO answers (id, topic_id, author_id, text, created_at)
+      SELECT gen_random_uuid(), alvo.topic_id, alvo.author_id, 'enchendo ' || i, now()
+        FROM alvo, generate_series(1, 24) AS i
+    `);
+
+    await page.goto(endereco);
+
+    const cartoes = page
+      .locator("article")
+      .filter({ has: page.getByRole("button", { name: /estrela/ }) });
+    await cartoes.first().waitFor();
+
+    // Item 10.1: 20 por vez. A 25ª (a original) não veio ainda.
+    expect(await cartoes.count(), "vieram mais de 20 de uma vez").toBe(20);
+    await expect(page.getByText("Você chegou ao fim das contribuições")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Carregar mais contribuições" }).click();
+    await expect.poll(() => cartoes.count()).toBe(25);
+
+    // Item 10.4: a lista **termina**. É o que mantém o Princípio 3 de pé.
+    await expect(page.getByText("Você chegou ao fim das contribuições")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Carregar mais contribuições" })).toHaveCount(0);
+    // E a primeira, que é a mais antiga, chegou na segunda página.
+    await expect(page.getByText(texto)).toBeVisible();
   });
 });

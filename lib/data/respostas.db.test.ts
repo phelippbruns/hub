@@ -288,7 +288,8 @@ describe("a ordem das respostas", () => {
     await createAnswer(viewerFor(lia.id), { topicId: topico.id, text: "primeira", media: null });
     await createAnswer(viewerFor(jo.id), { topicId: topico.id, text: "segunda", media: null });
 
-    const respostas = await respostasDoTopico(viewerFor(lia.id), topico.id, "antigas");
+    const respostas =
+      (await respostasDoTopico(viewerFor(lia.id), topico.id, "antigas"))?.respostas ?? [];
     expect(respostas?.map((r) => r.text)).toEqual(["primeira", "segunda"]);
   });
 });
@@ -311,7 +312,7 @@ describe("marcar com #, * e @", () => {
       media: null,
     });
 
-    const [resposta] = (await respostasDoTopico(viewerFor(lia.id), topico.id)) ?? [];
+    const [resposta] = (await respostasDoTopico(viewerFor(lia.id), topico.id))?.respostas ?? [];
 
     expect(resposta?.marcacoes.pessoas).toEqual(["jo"]);
     expect(resposta?.marcacoes.comunidades).toEqual([comunidade.slug]);
@@ -349,7 +350,7 @@ describe("marcar com #, * e @", () => {
       media: null,
     });
 
-    const [resposta] = (await respostasDoTopico(viewerFor(lia.id), topico.id)) ?? [];
+    const [resposta] = (await respostasDoTopico(viewerFor(lia.id), topico.id))?.respostas ?? [];
     expect(resposta?.marcacoes.topicos).toEqual([]);
   });
 

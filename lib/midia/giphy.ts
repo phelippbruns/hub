@@ -23,6 +23,15 @@ export type GifEncontrado = {
   url: string;
   /** Uma versão leve, só para a grade de escolha. */
   previa: string;
+  /**
+   * O primeiro quadro, parado.
+   *
+   * Na lista de contribuições o GIF fica parado e só toca no hover
+   * (item 9.4): `<img>` com GIF não tem pausa, então a tela troca de
+   * endereço. Sem isto, três GIFs numa tela são três animações
+   * competindo com o texto.
+   */
+  parado: string;
   /** O GIPHY exige descrição acessível; sem ela o alt fica vazio. */
   descricao: string;
   largura: number;
@@ -36,6 +45,7 @@ type RespostaDoGiphy = {
     alt_text?: string;
     images?: {
       downsized?: { url?: string; width?: string; height?: string };
+      downsized_still?: { url?: string };
       fixed_width_small?: { url?: string };
     };
   }[];
@@ -96,6 +106,12 @@ export async function procurarGifs(
           id: item.id,
           url: cheio.url,
           previa,
+          /*
+           * Sem o quadro parado, a tela cai no animado: um GIF que toca
+           * sozinho é pior que nenhum controle de hover, mas é melhor
+           * que um espaço vazio.
+           */
+          parado: item.images?.downsized_still?.url ?? cheio.url,
           descricao: item.alt_text?.trim() || item.title?.trim() || "GIF",
           largura: Number(cheio.width ?? 0),
           altura: Number(cheio.height ?? 0),

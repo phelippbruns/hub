@@ -9,6 +9,7 @@ import {
   Button,
   ConfirmSheet,
   MenuSuspenso,
+  MidiaDaContribuicao,
   RoundIconButton,
   StarButton,
 } from "@/design/components";
@@ -32,8 +33,12 @@ export type RespostaNaTela = {
   /** RN15: se **eu** dei estrela nela. */
   estrelada: boolean;
   imagem: string | null;
-  /** Imagem enviada ou GIF: muda só o texto alternativo. */
+  /** Imagem enviada ou GIF: muda o alternativo e o comportamento. */
   tipoDaMidia: "image" | "gif" | null;
+  /** Só GIF: o quadro parado, para ele não tocar sozinho na lista. */
+  midiaParada: string | null;
+  /** Medidas gravadas no envio, para a lista não pular. */
+  medidasDaMidia: { largura: number | null; altura: number | null } | null;
   autor: { nome: string; handle: string; avatarUrl: string | null } | null;
 };
 
@@ -220,38 +225,12 @@ export function LinhaDeResposta({
           avatar={autor ? <Link href={`/${handle}`}>{avatar}</Link> : avatar}
           media={
             resposta.imagem ? (
-              /*
-               * `<img>` e não `next/image`, e é a primeira vez no projeto que
-               * desligo uma regra de lint.
-               *
-               * O otimizador do Next guarda a imagem pela URL. Aqui a URL é
-               * assinada e **expira em dez minutos**: cada visita gera uma nova,
-               * então o cache nunca acerta, e sobra o otimizador baixando de novo
-               * a cada vez — custo sem ganho. Pior: uma URL que vencesse dentro
-               * do cache serviria um erro no lugar da imagem.
-               *
-               * Se um dia as imagens virarem públicas, isto volta a ser
-               * `next/image` e o comentário sai junto.
-               */
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={resposta.imagem}
-                alt={
-                  resposta.tipoDaMidia === "gif"
-                    ? `GIF enviado por ${nome}`
-                    : `Imagem enviada por ${nome}`
-                }
-                /*
-                 * Tamanho original, por decisão do PO: nada de teto de altura
-                 * nem de largura esticando ou encolhendo a mídia. O único
-                 * limite é `max-w-full`, contra uma foto mais larga que o
-                 * cartão furar a página — e aí ela encolhe proporcional, com
-                 * `h-auto`, em vez de achatar.
-                 *
-                 * `block` tira o espaço que o navegador reserva embaixo de
-                 * elemento inline, que aparecia como uma faixa no cartão.
-                 */
-                className="block h-auto w-auto max-w-full rounded-sm"
+              <MidiaDaContribuicao
+                url={resposta.imagem}
+                parado={resposta.midiaParada}
+                tipo={resposta.tipoDaMidia ?? "image"}
+                medidas={resposta.medidasDaMidia ?? undefined}
+                autor={nome}
               />
             ) : null
           }

@@ -425,6 +425,27 @@ passos apontam todos para lá. O botão e a janela moram no mesmo componente
 porque o estado de aberto é um só; separados, abrir custaria uma volta ao
 servidor ou um contexto.
 
+**A mídia da contribuição é 213 × 213, e o espaço existe antes dela.**
+`answers` guarda `media_width`, `media_height` e, só para GIF,
+`media_still_url`. Sem as medidas a lista **pula** quando a imagem
+chega: o cartão nasce sem altura e ganha duzentos pixels de uma vez. A
+imagem é medida **pelos bytes**, no servidor (`dimensoesDaImagem`) —
+confiar no número que o navegador manda deixaria qualquer pessoa errar
+o espaço reservado na tela de todo mundo. O GIF vem medido do GIPHY, e
+o quadro parado passa pela mesma conferência de domínio que o animado.
+
+**A mídia é um controle, não uma ilustração.** Clicar amplia, então ela
+é um `<button>` — e o navegador **funde o conteúdo de um botão num nó
+só** da árvore de acessibilidade. Por isso quem nomeia é o botão
+("Abrir a imagem de Lia") e o `alt` da imagem fica vazio: preenchê-lo
+não seria anunciado, e nos lugares em que fosse, duplicaria.
+
+**Antes de `toHaveCount(0)` numa jornada, espere algo positivo
+aparecer.** É a única asserção do Playwright satisfeita pelo **nada**, e
+nada é o estado inicial de qualquer página — a lista do tópico chega num
+`<Suspense>`. Uma barreira escrita assim passa verde com o defeito em
+pé; aconteceu três vezes numa sessão só, e está no `faustao.md`.
+
 **O tópico só abre no painel, e `lib/rotas.ts` é quem monta o endereço.**
 A tela cheia saiu em 6 de novembro de 2026, por decisão do PO. Duas
 funções, e a diferença importa: `enderecoDoTopico()` devolve
