@@ -26,7 +26,21 @@ export function AppShell({ nav, children }: { nav: ReactNode; children: ReactNod
         é comprida, que é o que a jornada da F05 guarda.
       */}
       <div className="w-navRail sticky top-0 z-20 h-screen self-start">{nav}</div>
-      <main className="min-w-0">{children}</main>
+      {/*
+        `isolate` é o que impede o conteúdo de passar por cima da barra.
+
+        A barra está em `z-20`, mas `main` sem camada própria deixa os
+        filhos competirem direto com ela: os controles da capa estão em
+        `z-30` e o nome da comunidade atravessava a barra aberta. Subir a
+        barra para `z-40` resolveria o print e deixaria a armadilha de
+        pé — a próxima feature com `z-50` faria tudo de novo.
+
+        Com `isolate`, `main` vira um contexto de empilhamento: nenhuma
+        camada lá dentro escapa, hoje nem depois. Em troca, a `Janela`
+        precisou virar portal no `body` — presa aqui dentro, ela ficaria
+        **embaixo** da barra, e diálogo tem de estar acima de tudo.
+      */}
+      <main className="isolate min-w-0">{children}</main>
     </div>
   );
 }

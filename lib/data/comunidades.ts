@@ -44,6 +44,17 @@ export type TopicoNaComunidade = {
    * a lista inteira piscar de novidade a cada visita.
    */
   novas: number;
+  /**
+   * O trecho da contribuição que casou com a busca.
+   *
+   * A busca da comunidade olha o nome do tópico **e** o texto das
+   * contribuições. Quando o que casou foi uma contribuição, o cartão
+   * mostra o trecho — senão a pessoa vê um tópico cujo nome não tem
+   * nada a ver com o que ela procurou, e parece defeito.
+   *
+   * Nulo sem busca, e nulo quando casou pelo nome.
+   */
+  trecho: string | null;
 };
 
 export type OrdemDosTopicos = "respostas" | "recentes";
@@ -81,6 +92,7 @@ type LinhaDeTopico = {
   ultima_quando: Date | null;
   seguindo: boolean;
   novas: string;
+  trecho: string | null;
 };
 
 function montarTopico(linha: LinhaDeTopico, avatarAssinado: string | null): TopicoNaComunidade {
@@ -107,6 +119,13 @@ function montarTopico(linha: LinhaDeTopico, avatarAssinado: string | null): Topi
         : null,
     seguindo: linha.seguindo,
     novas: Number(linha.novas),
+    /*
+     * Por que o tópico apareceu na busca.
+     *
+     * Nulo quando não há busca, ou quando ela casou pelo nome do tópico
+     * — aí o próprio nome já responde, e repetir o trecho seria ruído.
+     */
+    trecho: linha.trecho,
   };
 }
 
@@ -160,7 +179,21 @@ export async function topicosDaComunidade(
                 AND f.last_seen_at IS NOT NULL
                 AND a.created_at > f.last_seen_at
                 AND a.author_id IS DISTINCT FROM ${me}::uuid
-           ), 0) AS novas
+           ), 0) AS novas,
+           -- O trecho da contribuição que casou com a busca, para o
+           -- cartão poder dizer **por que** aquele tópico apareceu.
+           -- Nulo quando a busca está vazia ou quando casou pelo nome.
+           (SELECT a.text FROM answers a
+             WHERE a.topic_id = t.id
+               AND a.deleted_at IS NULL
+               AND ${termo} <> ''
+               -- Casou pelo nome: o nome já explica, e o trecho seria
+               -- ruído. Esta linha é o que faz o codigo dizer o mesmo
+               -- que o comentario acima.
+               AND hub_busca(t.name) NOT LIKE '%' || hub_busca(${termo}) || '%'
+               AND hub_busca(a.text) LIKE '%' || hub_busca(${termo}) || '%'
+             ORDER BY a.created_at DESC
+             LIMIT 1) AS trecho
       FROM topics t
       LEFT JOIN profiles p ON p.id = t.author_id
       LEFT JOIN follows f
@@ -180,7 +213,29 @@ export async function topicosDaComunidade(
       ) u ON true
      WHERE t.community_id = ${communityId}::uuid
        AND t.deleted_at IS NULL
-       AND (${termo} = '' OR hub_busca(t.name) LIKE '%' || hub_busca(${termo}) || '%')
+       /*
+         A busca olha o nome do tópico **e** o texto das contribuições
+         (pedido do PO, 7 de novembro): quem lembra do assunto e não do
+         título não achava nada.
+
+         EXISTS e não JOIN: com JOIN, um tópico com dez contribuições
+         casando apareceria dez vezes na lista. O índice
+         answers_busca_idx é o que mantém isso barato.
+
+         (Sem crase nos nomes: isto está dentro de um template literal,
+         e uma crase o fecha no meio. Já aconteceu duas vezes, e está
+         no faustao.md.)
+       */
+       AND (
+         ${termo} = ''
+         OR hub_busca(t.name) LIKE '%' || hub_busca(${termo}) || '%'
+         OR EXISTS (
+           SELECT 1 FROM answers a
+            WHERE a.topic_id = t.id
+              AND a.deleted_at IS NULL
+              AND hub_busca(a.text) LIKE '%' || hub_busca(${termo}) || '%'
+         )
+       )
        -- RN26: o bloqueio vale nos dois sentidos, e some com o tópico.
        AND (
          ${me}::uuid IS NULL

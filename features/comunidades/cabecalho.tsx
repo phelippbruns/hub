@@ -96,6 +96,12 @@ export function CabecalhoDaComunidade({
   const [pendente, iniciar] = useTransition();
   const [estadoDaCapa, trocarCapa] = useActionState(trocarCapaDaComunidade, {});
   const formularioDaCapa = useRef<HTMLFormElement>(null);
+  /*
+   * Âncora do menu: `mousedown` aqui dentro não conta como clique fora.
+   * Sem isto, clicar no "..." de novo fechava e reabria na mesma batida,
+   * e o menu parecia não responder ao segundo clique.
+   */
+  const grupoDoMenu = useRef<HTMLSpanElement>(null);
 
   const idDoMenu = useId();
   const [linkCopiado, setLinkCopiado] = useState(false);
@@ -225,7 +231,7 @@ export function CabecalhoDaComunidade({
               O `relative` é do botão, e não do bloco: é dele que o drop se
               pendura.
             */
-            <span className="relative">
+            <span className="relative" ref={grupoDoMenu}>
               <RoundIconButton
                 label="Mais opções"
                 ativo={aberto === "menu"}
@@ -240,6 +246,7 @@ export function CabecalhoDaComunidade({
                   titulo={comunidade.name}
                   aberto={aberto === "menu"}
                   onFechar={() => setAberto("nenhum")}
+                  ancora={grupoDoMenu}
                 >
                   <p className="text-body text-inkMuted">{quemModera}</p>
 

@@ -348,6 +348,105 @@ describe("os tópicos da comunidade", () => {
     expect(lista.map((t) => t.name)).toEqual(["música de pista"]);
   });
 
+  it("a busca acha o tópico pelo texto de uma contribuição", async () => {
+    const { comunidade, dona, antigo } = await cenario();
+
+    await createAnswer(viewerFor(dona.id), {
+      topicId: antigo.id,
+      text: "foi numa feira de vinil em Curitiba",
+      media: null,
+    });
+
+    /*
+     * "Curitiba" não está no nome de tópico nenhum. Antes de 7 de
+     * novembro de 2026 a busca olhava só `topics.name`, e quem lembrava
+     * do assunto sem lembrar do título não achava nada.
+     */
+    const lista = await topicosDaComunidade(viewerFor(dona.id), comunidade.id, {
+      termo: "Curitiba",
+    });
+
+    expect(lista.map((t) => t.name)).toEqual([antigo.name]);
+    expect(lista[0]?.trecho, "o cartão precisa dizer por que o tópico apareceu").toContain(
+      "Curitiba",
+    );
+  });
+
+  it("a busca por contribuição também ignora acento", async () => {
+    const { comunidade, dona, antigo } = await cenario();
+
+    await createAnswer(viewerFor(dona.id), {
+      topicId: antigo.id,
+      text: "tocava música eletrônica a noite toda",
+      media: null,
+    });
+
+    const lista = await topicosDaComunidade(viewerFor(dona.id), comunidade.id, {
+      termo: "eletronica",
+    });
+
+    expect(lista.map((t) => t.name)).toContain(antigo.name);
+  });
+
+  it("o tópico aparece uma vez só, mesmo com dez contribuições casando", async () => {
+    const { comunidade, dona, antigo } = await cenario();
+
+    /*
+     * Esta é a razão de a consulta usar EXISTS e não JOIN: com JOIN, o
+     * tópico sairia dez vezes na lista, uma por contribuição que casou.
+     */
+    for (let i = 0; i < 10; i++) {
+      await createAnswer(viewerFor(dona.id), {
+        topicId: antigo.id,
+        text: `menção número ${i} a Curitiba`,
+        media: null,
+      });
+    }
+
+    const lista = await topicosDaComunidade(viewerFor(dona.id), comunidade.id, {
+      termo: "Curitiba",
+    });
+
+    expect(lista.filter((t) => t.id === antigo.id)).toHaveLength(1);
+  });
+
+  it("sem busca, não há trecho: o cartão mostra a última contribuição", async () => {
+    const { comunidade, dona, antigo } = await cenario();
+    await createAnswer(viewerFor(dona.id), {
+      topicId: antigo.id,
+      text: "qualquer coisa",
+      media: null,
+    });
+
+    const lista = await topicosDaComunidade(viewerFor(dona.id), comunidade.id);
+
+    expect(lista.find((t) => t.id === antigo.id)?.trecho).toBeNull();
+  });
+
+  it("casando pelo nome, o trecho fica nulo mesmo com contribuição casando", async () => {
+    const { comunidade, novo, dona } = await cenario();
+
+    /*
+     * A contribuição **também** tem a palavra. Sem ela, o trecho seria
+     * nulo por não haver nada que casasse — e a barreira passaria verde
+     * com a regra arrancada. Medi, e era esse o caso antes.
+     */
+    await createAnswer(viewerFor(dona.id), {
+      topicId: novo.id,
+      text: "a música que me marcou foi num porão",
+      media: null,
+    });
+
+    const lista = await topicosDaComunidade(viewerFor(dona.id), comunidade.id, {
+      termo: "musica",
+    });
+
+    // O nome do tópico é "música de pista": ele já explica por que
+    // apareceu, e repetir o trecho seria ruído.
+    expect(lista[0]?.name).toBe("música de pista");
+    expect(lista[0]?.trecho).toBeNull();
+  });
+
   it('RN18: o filtro "Seguindo" lista só os tópicos que a pessoa segue aqui', async () => {
     const { comunidade, antigo, dona } = await cenario();
     await followTopic(viewerFor(dona.id), antigo.id);

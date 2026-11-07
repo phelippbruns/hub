@@ -107,6 +107,67 @@ test.describe("o menu da contribuição abre em balão", () => {
     await expect(page.getByRole("button", { name: "Apagar contribuição" })).toHaveCount(0);
     await expect(botao).toBeFocused();
   });
+
+  test("tirar o mouse fecha o balão; ir do botão até ele, não", async ({ page }) => {
+    await entrarNoApp(page, "mouse");
+    const { texto } = await topicoComUmaContribuicao(page, "Mouse");
+
+    const cartao = page.locator("article").filter({ hasText: texto }).first();
+    const botao = cartao.getByRole("button", { name: /^Opções/ });
+    const apagar = page.getByRole("button", { name: "Apagar contribuição" });
+
+    await botao.click();
+    await expect(apagar).toBeVisible();
+
+    /*
+     * **O caminho do botão até o balão não fecha.** Entre os dois há um
+     * vão de 4 px: com a escuta em cada um deles, atravessar o vão
+     * disparava o fechamento e o menu sumia debaixo do cursor. Ela mora
+     * no grupo que envolve os dois — e esta passagem é o que prova.
+     */
+    await botao.hover();
+    const caixa = (await apagar.boundingBox())!;
+    const alvoDoBotao = (await botao.boundingBox())!;
+    // Pelo meio do vão, e não num salto: o mouse de verdade passa por lá.
+    await page.mouse.move(
+      alvoDoBotao.x + alvoDoBotao.width / 2,
+      alvoDoBotao.y + alvoDoBotao.height + 2,
+    );
+    await page.mouse.move(caixa.x + caixa.width / 2, caixa.y + caixa.height / 2);
+    await expect(apagar).toBeVisible();
+
+    // E sair de vez fecha. O canto de cima da página é inerte.
+    await page.mouse.move(5, 5);
+    await expect(apagar).toHaveCount(0);
+  });
+
+  test("o balão continua fechando por clique fora e por clique no botão", async ({ page }) => {
+    await entrarNoApp(page, "forafecha");
+    const { texto } = await topicoComUmaContribuicao(page, "Fora");
+
+    const cartao = page.locator("article").filter({ hasText: texto }).first();
+    const botao = cartao.getByRole("button", { name: /^Opções/ });
+    const apagar = page.getByRole("button", { name: "Apagar contribuição" });
+
+    /*
+     * Teclado e toque não disparam saída de mouse: para eles, estes são
+     * os caminhos que existem. Acrescentar a escuta do mouse não podia
+     * custar nenhum deles. (O `Esc` tem jornada própria, logo acima.)
+     */
+    await botao.click();
+    await expect(apagar).toBeVisible();
+
+    // Alvo inerte, e não uma coordenada: a coordenada já caiu sobre um
+    // link que navegava e arrancava o menu antes da asserção.
+    await page.getByRole("heading", { name: "Primeiro disco" }).click();
+    await expect(apagar).toHaveCount(0);
+
+    // E clicar de novo no botão fecha, que é o par do clique que abre.
+    await botao.click();
+    await expect(apagar).toBeVisible();
+    await botao.click();
+    await expect(apagar).toHaveCount(0);
+  });
 });
 
 test.describe("a caixa de contribuição", () => {
@@ -205,6 +266,27 @@ test.describe("compartilhar", () => {
 
       const lista = page.getByRole("group", { name: "Pessoas" });
       await expect(lista.getByRole("button", { name: "Ana Seguidora" })).toBeVisible();
+
+      /*
+       * **Sem ninguém escolhido, não há botão de enviar** (item 5 do PO,
+       * 7/11). Antes ficava ali desativado, escrito "Enviar para 0
+       * pessoas", com "Escolha quem vai receber" embaixo — duas linhas
+       * dizendo que a folha não servia para nada ainda.
+       *
+       * A lista aparece antes das contagens: `toHaveCount(0)` é satisfeito
+       * pelo nada, e nada é o estado inicial de qualquer tela.
+       */
+      await expect(page.getByRole("button", { name: /^Enviar para/ })).toHaveCount(0);
+      await expect(page.getByText("Escolha quem vai receber")).toHaveCount(0);
+
+      // E ao escolher a primeira pessoa ele nasce, já dizendo quantas.
+      await lista.getByRole("button", { name: "Ana Seguidora" }).click();
+      await expect(page.getByRole("button", { name: "Enviar para 1 pessoa" })).toBeVisible();
+
+      // Desmarcar devolve a folha ao estado sem botão: só aparecer não
+      // basta, senão o botão viraria permanente depois do primeiro clique.
+      await lista.getByRole("button", { name: "Ana Seguidora" }).click();
+      await expect(page.getByRole("button", { name: /^Enviar para/ })).toHaveCount(0);
 
       /*
        * **Esta é a linha que importa.** Caio divide comunidade comigo e

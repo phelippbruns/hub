@@ -131,8 +131,8 @@ test.describe("a página da comunidade", () => {
     await opcoes.click();
     /*
       "Fora" precisa ser um alvo inerte, não uma coordenada: o clique era em
-      (400, 600) e passou a cair sobre um link de Primeiros passos, que
-      navegava e arrancava o menu da tela antes da próxima asserção. A linha
+      (400, 600) e passou a cair sobre um link da lista, que navegava e
+      arrancava o menu da tela antes da próxima asserção. A linha
       de informações é texto puro e não vai a lugar nenhum.
     */
     await page.getByText(/criada em/).click();
@@ -559,24 +559,43 @@ test.describe("a lista de tópicos", () => {
     await expect(page.getByRole("main").getByText("1 pessoa · 1 contribuição")).toBeVisible();
   });
 
-  test("a busca só aparece a partir de 10 tópicos", async ({ page }) => {
+  test("a busca aparece com 1 tópico, e acha pelo texto de uma contribuição", async ({ page }) => {
     await entrarNoApp(page, "buscacurta");
     await preencherNova(page, novoNome("Poucos Tópicos"));
-    await page.waitForURL(/\/c\/[^/]+$/);
+    await page.waitForURL(/\/c\/([^/]+)$/);
+    const endereco = new URL(page.url()).pathname;
 
-    // Comunidade nova: a lista inteira cabe na tela, e o campo só ocuparia espaço.
-    await expect(page.getByRole("searchbox", { name: /Buscar tópicos/ })).toHaveCount(0);
+    /*
+      O corte de 10 tópicos saiu em 7/11: era ele que escondia o campo na
+      comunidade de teste do PO, com 1 tópico — e o print dele era "a
+      busca não parece uma busca", porque não havia busca nenhuma.
+    */
+    const busca = page.getByRole("searchbox", { name: /Buscar tópicos/ });
+    await expect(busca).toBeVisible();
 
-    // A do seed tem bastante tópico, e lá o campo existe.
-    const [cheia] = await consultar<{ slug: string }>(`
-      SELECT c.slug FROM communities c
-       JOIN topics t ON t.community_id = c.id AND t.deleted_at IS NULL
-       WHERE c.deleted_at IS NULL
-       GROUP BY c.slug HAVING count(*) >= 10 LIMIT 1`);
-    if (cheia) {
-      await page.goto(`/c/${cheia.slug}`);
-      await expect(page.getByRole("searchbox", { name: /Buscar tópicos/ })).toBeVisible();
-    }
+    await criarTopico(page, endereco, "Primeira festa", "Conta aí como foi.");
+    await esperarTopicoNoPainel(page, "primeira-festa");
+
+    await campoDeContribuicao(page).fill("foi num galpão em Curitiba, em 2009");
+    await botaoDeContribuir(page).click();
+    await respostaPublicada(page, "foi num galpão em Curitiba, em 2009");
+
+    await page.goto(endereco);
+    /*
+      "Curitiba" não está no nome do tópico nem na abertura: só dentro de
+      uma contribuição. Antes de 7/11 a busca olhava `topics.name` e nada
+      mais, e isto devolvia lista vazia.
+    */
+    await page.getByRole("searchbox", { name: /Buscar tópicos/ }).fill("Curitiba");
+    await page.waitForURL(/q=Curitiba/);
+
+    const lista = page.getByRole("main");
+    await expect(lista.getByRole("link", { name: /Primeira festa/ })).toBeVisible();
+
+    // E o cartão diz **onde** achou: sem o trecho, a pessoa vê um tópico
+    // cujo nome não tem a palavra que ela buscou e acha que é defeito.
+    await expect(lista.getByText("Achado numa contribuição:")).toBeVisible();
+    await expect(lista.getByText(/Curitiba/)).toBeVisible();
   });
 
   test("a coluna da direita resume a comunidade, sem rota paralela nenhuma", async ({ page }) => {
@@ -605,11 +624,14 @@ test.describe("o cartão Sobre e as regras", () => {
     /*
       Sem sobre escrito e sem regras, o cartão inteiro não existe: cartão
       com título e nada dentro é pior do que cartão nenhum. O que a pessoa
-      precisa ver numa comunidade recém-nascida é Primeiros passos.
+      precisa ver numa comunidade recém-nascida é a lista de tópicos.
+
+      A busca aparece antes das duas contagens: `toHaveCount(0)` é
+      satisfeito pelo nada, e o nada é o estado inicial da página.
     */
+    await expect(page.getByRole("searchbox", { name: /Buscar tópicos/ })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Sobre" })).toHaveCount(0);
     await expect(page.getByText(/Regras da comunidade/)).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "Primeiros passos" })).toBeVisible();
 
     const { contexto, visita: outra } = await outraPessoa(context, "semregra2");
     await outra.goto(endereco);
@@ -667,22 +689,122 @@ test.describe("o cartão Sobre e as regras", () => {
     await contexto.close();
   });
 
-  test("Primeiros passos aparece na comunidade nova e abre o formulário preenchido", async ({
+  test("Primeiros passos não existe mais, e o `?nome=` antigo continua abrindo a janela", async ({
     page,
   }) => {
     await entrarNoApp(page, "passos");
     await preencherNova(page, novoNome("Com Passos"));
-    await page.waitForURL(/\/c\//);
+    await page.waitForURL(/\/c\/([^/]+)$/);
+    const endereco = new URL(page.url()).pathname;
 
-    const bloco = page.getByRole("heading", { name: "Primeiros passos" });
-    await expect(bloco).toBeVisible();
+    /*
+      O bloco saiu em 7/11, por decisão do PO. A jornada antiga afirmava
+      que ele **aparecia**; invertida, ela é o que impede o bloco de
+      voltar de carona numa feature futura sem ninguém notar.
 
-    await page.getByRole("link", { name: "Apresente-se aqui" }).click();
-    // A sugestão abre a janela com o título já preenchido, sem sair da
-    // comunidade: antes era uma página, e virou janela em 31 de outubro.
-    await page.waitForURL(/novo=1/);
+      A busca aparece antes: `toHaveCount(0)` é satisfeito pelo nada, e o
+      nada é o estado inicial de qualquer página.
+    */
+    await expect(page.getByRole("searchbox", { name: /Buscar tópicos/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Primeiros passos" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Apresente-se aqui" })).toHaveCount(0);
+
+    /*
+      O `?nome=` era só dele, e **continua aceito**: endereço que já
+      existiu nunca vira 404, e alguém pode ter guardado um.
+    */
+    await page.goto(`${endereco}?novo=1&nome=${encodeURIComponent("Apresente-se aqui")}`);
     const janela = page.getByRole("dialog", { name: "Novo tópico" });
     await expect(janela.getByLabel("Título")).toHaveValue("Apresente-se aqui");
+  });
+});
+
+/**
+ * A barra lateral passa por cima de tudo (item 6 do PO, 7/11).
+ *
+ * O print era o nome da comunidade atravessando a barra aberta: a capa
+ * tem controles em `z-30` e a barra está em `z-20`. A correção foi
+ * `isolate` no `<main>`, não um número maior — assim **nenhuma** camada
+ * do conteúdo escapa, hoje ou na próxima feature.
+ */
+test.describe("a barra lateral e o que pode cobri-la", () => {
+  /**
+   * Abre a barra e devolve a caixa dela já crescida.
+   *
+   * Ela abre por **hover**, em CSS puro: medir sem abrir dá a largura do
+   * trilho fechado, onde o conteúdo nem chega — e o teste passa verde com
+   * o defeito do print de pé. Aconteceu nesta mesma rodada.
+   */
+  async function abrirABarra(page: Page) {
+    const barra = page.locator("nav.hub-nav");
+    const fechada = (await barra.boundingBox())!;
+    await barra.hover({ position: { x: 10, y: 10 } });
+    await expect
+      .poll(async () => Math.round((await barra.boundingBox())!.width))
+      .toBeGreaterThan(Math.round(fechada.width) + 20);
+    return (await barra.boundingBox())!;
+  }
+
+  test("com a barra aberta, nada do conteúdo passa por cima dela", async ({ page }) => {
+    await entrarNoApp(page, "barra");
+    await preencherNova(page, novoNome("Com Barra"));
+    await page.waitForURL(/\/c\/([^/]+)$/);
+
+    const aberta = await abrirABarra(page);
+
+    /*
+      Medir **quem está no ponto**, e não só "a barra está visível": o
+      defeito do print era exatamente uma barra visível com o nome da
+      comunidade desenhado em cima dela.
+
+      O ponto é a borda direita da barra aberta, na altura do **nome da
+      comunidade** — que é o pedaço que a barra conquista ao abrir, e
+      exatamente o que atravessava no print.
+    */
+    const nome = (await page.getByRole("main").getByRole("heading").first().boundingBox())!;
+    const quem = await page.evaluate(
+      ([x, y]) => {
+        const el = document.elementFromPoint(x!, y!);
+        if (!el) return "nada";
+        return el.closest("nav") ? "barra" : `${el.tagName}: ${el.textContent?.slice(0, 30)}`;
+      },
+      [aberta.x + aberta.width - 8, nome.y + nome.height / 2],
+    );
+    expect(quem).toBe("barra");
+  });
+
+  test("mas a janela continua acima da barra", async ({ page }) => {
+    await entrarNoApp(page, "janelabarra");
+    await preencherNova(page, novoNome("Com Janela"));
+    await page.waitForURL(/\/c\/([^/]+)$/);
+
+    /*
+      Com o `isolate` no `<main>`, a janela ficaria presa embaixo da barra
+      se continuasse sendo desenhada pelo conteúdo. Ela virou portal no
+      `body`, que é onde modal pertence — e é isto que esta jornada mede.
+    */
+    await page.getByRole("button", { name: "Criar tópico" }).first().click();
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await expect(janela).toBeVisible();
+
+    const barra = page.locator("nav.hub-nav");
+    const caixa = (await barra.boundingBox())!;
+    const quem = await page.evaluate(
+      ([x, y]) => {
+        const el = document.elementFromPoint(x!, y!);
+        if (!el) return "nada";
+        /*
+          Sobre a barra o ponto cai no véu da janela, não no diálogo — e o
+          véu ser filho direto do `body` é justamente o que prova o
+          portal: desenhada pelo conteúdo, ela estaria dentro do `<main>`
+          isolado, e portanto debaixo da barra.
+        */
+        if (el.parentElement === document.body || el.closest('[role="dialog"]')) return "janela";
+        return el.closest("nav") ? "barra" : el.tagName;
+      },
+      [caixa.x + caixa.width / 2, caixa.y + 60],
+    );
+    expect(quem).toBe("janela");
   });
 });
 

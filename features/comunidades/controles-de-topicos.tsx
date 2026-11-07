@@ -15,9 +15,9 @@ import type { FiltroDeTopicos } from "./shared";
  *
  * Tudo vive na URL: o resultado é compartilhável e o botão voltar funciona.
  *
- * A busca só aparece **a partir de 10 tópicos**. Antes disso a lista inteira
- * cabe na tela, e um campo de busca sobre cinco linhas é um controle que só
- * ocupa espaço.
+ * A busca aparece **sempre**, e procura no nome do tópico e no texto das
+ * contribuições. O porquê de cada uma das duas coisas está no comentário
+ * ao lado do campo, lá embaixo.
  */
 export function ControlesDeTopicos({
   slug,
@@ -26,7 +26,6 @@ export function ControlesDeTopicos({
   filtro,
   comNovidades,
   souMembro,
-  totalDeTopicos,
 }: {
   slug: string;
   nomeDaComunidade: string;
@@ -35,7 +34,6 @@ export function ControlesDeTopicos({
   /** Quantos tópicos têm contribuição nova. Zero esconde o chip. */
   comNovidades: number;
   souMembro: boolean;
-  totalDeTopicos: number;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -90,16 +88,26 @@ export function ControlesDeTopicos({
         ))}
       </div>
 
-      {totalDeTopicos >= 10 ? (
-        <CampoDeBusca
-          rotulo={`Buscar tópicos em ${nomeDaComunidade}`}
-          atalho
-          placeholder="Buscar tópicos"
-          className="min-w-0 flex-1"
-          value={termo}
-          onChange={(evento) => setTermo(evento.target.value)}
-        />
-      ) : null}
+      {/*
+        **A busca aparece sempre**, desde 7 de novembro de 2026.
+
+        Ela só existia a partir de 10 tópicos, e a ideia era não poluir
+        comunidade nova. O efeito foi outro: o PO abriu uma comunidade
+        com um tópico, não achou onde buscar, e mandou o print. Um campo
+        de busca é o lugar onde se procura — escondê-lo até a lista doer
+        faz procurar o campo em vez do conteúdo.
+
+        E ela não procura só no nome do tópico: acha também pelo texto
+        das contribuições.
+      */}
+      <CampoDeBusca
+        rotulo={`Buscar tópicos em ${nomeDaComunidade}`}
+        atalho
+        placeholder="Buscar tópicos e contribuições"
+        className="min-w-0 flex-1"
+        value={termo}
+        onChange={(evento) => setTermo(evento.target.value)}
+      />
     </div>
   );
 }

@@ -621,9 +621,9 @@ consultas que alimentam as cinco listas.
 O PO desenhou a tela da comunidade num protótipo navegável
 (`comunidade-v6.html`, 30 de outubro) e aprovou a entrega em sete PRs, cada
 um indo para produção sozinho. **O primeiro já está feito** — abas Início e
-Membros, cartão Sobre, regras da comunidade (RN36), Primeiros passos, a
-capa virando o próprio botão e o endereço de tópico reservado contra rota
-irmã.
+Membros, cartão Sobre, regras da comunidade (RN36), Primeiros passos (que
+saiu de novo em 7 de novembro, a pedido do PO), a capa virando o próprio
+botão e o endereço de tópico reservado contra rota irmã.
 
 Faltam seis, nesta ordem:
 

@@ -146,6 +146,7 @@ export function RoundIconButton({
   type = "button",
   descrito,
   tamanho = "md",
+  nu = false,
   children,
 }: {
   label: string;
@@ -184,6 +185,15 @@ export function RoundIconButton({
    * anotado no `pendencias.md`.
    */
   tamanho?: "md" | "sm";
+  /**
+   * `nu` tira o círculo de fundo, deixando só o glifo.
+   *
+   * É o padrão do sistema para o "..." dentro de um cartão (pedido do
+   * PO, 7 de novembro): ali o botão não compete com foto nenhuma, e o
+   * círculo branco repetido em cada contribuição pesava mais que o
+   * conteúdo. Sobre a capa, onde há foto atrás, o fundo continua.
+   */
+  nu?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -200,8 +210,16 @@ export function RoundIconButton({
         "rounded-pill grid place-items-center",
         tamanho === "sm" ? "size-controlSm" : "size-btnRound",
         disabled
-          ? "bg-line text-inkMuted cursor-not-allowed"
-          : cn("cursor-pointer", ativo ? "bg-sun text-ink" : "bg-paper text-ink"),
+          ? cn("text-inkMuted cursor-not-allowed", !nu && "bg-line")
+          : cn(
+              "text-ink cursor-pointer",
+              nu
+                ? // Sem círculo: o sinal de "dá para clicar" vem do hover.
+                  cn("hover:bg-lavenderSoft", ativo && "bg-lavenderSoft")
+                : ativo
+                  ? "bg-sun"
+                  : "bg-paper",
+            ),
       )}
     >
       {children}
