@@ -41,6 +41,51 @@ export function BackIcon(props: IconProps) {
   );
 }
 
+/*
+ * As quatro setas do ajuste de imagem (PR H, 7 de novembro de 2026).
+ *
+ * Quatro componentes, e não um rodado por CSS: `transform` em SVG já
+ * quebrou a marca do Hub nesta base — o sistema de coordenadas do SVG não
+ * é o da caixa, e o `rotate` girava em torno do canto da tela. Está no
+ * `faustao.md`. Quatro traços de dez caracteres são mais baratos que essa
+ * conversa de novo.
+ *
+ * Elas existem porque **até aqui não havia como enquadrar sem rato**: o
+ * ajuste era arrasto puro, e quem usa teclado não conseguia posicionar a
+ * própria capa.
+ */
+export function SetaCimaIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </IconBase>
+  );
+}
+
+export function SetaBaixoIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 5v14M5 12l7 7 7-7" />
+    </IconBase>
+  );
+}
+
+export function SetaEsquerdaIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M19 12H5M12 5l-7 7 7 7" />
+    </IconBase>
+  );
+}
+
+export function SetaDireitaIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M5 12h14M12 5l7 7-7 7" />
+    </IconBase>
+  );
+}
+
 /** Fechar: o X do painel do tópico e das folhas. */
 export function CloseIcon(props: IconProps) {
   return (

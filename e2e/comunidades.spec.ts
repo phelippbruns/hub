@@ -1070,6 +1070,53 @@ test.describe("a capa na criação", () => {
        WHERE name = '${nome}' AND cover_url LIKE 'capas/%'`);
   });
 
+  test("o enquadramento escolhido na criação é o que a comunidade nasce com", async ({ page }) => {
+    await entrarNoApp(page, "capacriarenq");
+    await page.goto("/comunidades/nova");
+
+    const nome = `Enquadrada ${Date.now() % 100000}`;
+    await page.getByLabel("Nome").fill(nome);
+    await page.getByLabel("Intro").fill("Comunidade criada com a capa enquadrada.");
+
+    /*
+      **A jornada da criação só testava que a capa foi salva**, nunca o
+      enquadramento — e a criação usa o mesmo componente da comunidade,
+      então ela herdava o defeito do quadro de 7 por 1 sem ninguém olhar.
+      É a terceira parte do PR H, e é a que faltava.
+
+      Pelo teclado, que é o caminho que acabou de nascer: a imagem
+      quadrada numa faixa deitada sobra na vertical.
+    */
+    await page.locator('input[name="imagem"]').setInputFiles({
+      name: "capa.png",
+      mimeType: "image/png",
+      buffer: PNG_600,
+    });
+
+    const quadro = page.getByRole("group", { name: /Posicionar a imagem/ });
+    await expect(quadro).toBeVisible();
+    await quadro.focus();
+    for (let i = 0; i < 6; i += 1) await page.keyboard.press("ArrowDown");
+    await page.getByRole("button", { name: "Aumentar aproximação" }).click();
+
+    await page.getByRole("button", { name: "Criar comunidade" }).click();
+    await page.waitForURL(/\/c\/[^/]+$/, { timeout: 20_000 });
+
+    /*
+      As medidas vêm **dos bytes**, e o zoom e a âncora do que a tela
+      enviou. A âncora fora do centro é o que prova que o enquadramento
+      atravessou a criação — ela nasceria em 0,5 se os campos escondidos
+      não tivessem subido, que é um defeito que já aconteceu aqui.
+    */
+    await esperarNoBanco(`
+      SELECT 1 FROM communities
+       WHERE name = '${nome}'
+         AND cover_url LIKE 'capas/%'
+         AND cover_width = 600 AND cover_height = 600
+         AND cover_zoom > 1
+         AND cover_anchor_y <> 0.5`);
+  });
+
   test("sem capa, a comunidade nasce com a padrão", async ({ page }) => {
     await entrarNoApp(page, "semcapa");
     await page.goto("/comunidades/nova");
@@ -1150,6 +1197,14 @@ const PNG_MINIMO = Buffer.from(
  * Antes era uma rota só dela, em `/c/<slug>/capa`: você saía da comunidade,
  * escolhia um arquivo, via uma prévia sem poder mexer, salvava e voltava.
  */
+/** Onde o topo da imagem está, em px, dentro do quadro do ajuste. */
+async function alturaDesenhada(page: Page) {
+  return page
+    .locator("main img")
+    .first()
+    .evaluate((el) => Math.round((el as HTMLImageElement).getBoundingClientRect().top));
+}
+
 test.describe("trocar a capa sem sair da tela", () => {
   test("escolher, arrastar, aproximar e dar OK, tudo em /c/<slug>", async ({ page }) => {
     await entrarNoApp(page, "capaajuste");
@@ -1165,7 +1220,12 @@ test.describe("trocar a capa sem sair da tela", () => {
     });
 
     // O ajuste abre sozinho, na capa, sem trocar de endereço.
-    const regua = page.getByLabel("Aproximação");
+    /*
+      `exact` desde o PR H: o deslizante ganhou os botões "Diminuir
+      aproximação" e "Aumentar aproximação", e `getByLabel` casa por
+      pedaço — sem isto, três elementos respondem e o Playwright recusa.
+    */
+    const regua = page.getByLabel("Aproximação", { exact: true });
     await expect(regua).toBeVisible();
     expect(page.url()).toBe(endereco);
 
@@ -1191,6 +1251,137 @@ test.describe("trocar a capa sem sair da tela", () => {
 
     // E continuamos na comunidade, que era o ponto.
     expect(page.url()).toBe(endereco);
+  });
+
+  test("o ajuste desenha a imagem na forma da capa, não numa constante", async ({ page }) => {
+    await entrarNoApp(page, "capaforma");
+    await preencherNova(page, novoNome("Capa Medida"));
+    await page.waitForURL(/\/c\/([^/]+)$/);
+
+    /*
+      **A barreira do PR H.** Até 7 de novembro de 2026 o ajuste calculava
+      o recorte numa constante de 7 por 1 — a proporção de uma capa de 180
+      px numa janela de 1280. O protótipo v6 levou a capa para 230 px, e a
+      capa real passou a dar 4,92 por 1: o ajuste desenhava a imagem 1,42
+      vez mais alta do que a capa publica, e quem centrava um rosto no
+      ajuste via a capa publicar outro recorte.
+
+      Comparar com a capa publicada **não serve de medida**: ela usa
+      `object-cover`, então o `<img>` reporta sempre o tamanho da caixa e
+      a escala fica dentro do CSS. O que se mede é a imagem do ajuste
+      contra a definição de "cobrir" aplicada à **caixa medida** — que é
+      exatamente o que a correção promete, e o que a constante errava.
+    */
+    await page.locator('input[name="imagem"]').setInputFiles({
+      name: "capa.png",
+      mimeType: "image/png",
+      buffer: PNG_600,
+    });
+    await expect(page.getByLabel("Aproximação", { exact: true })).toBeVisible();
+
+    const medida = await page
+      .locator("main img")
+      .first()
+      .evaluate((el) => {
+        const imagem = el as HTMLImageElement;
+        const caixa = imagem.parentElement!;
+        return {
+          desenhada: imagem.getBoundingClientRect().height,
+          largura: caixa.clientWidth,
+          altura: caixa.clientHeight,
+          foto: { largura: imagem.naturalWidth, altura: imagem.naturalHeight },
+        };
+      });
+
+    // "Cobrir" é o maior entre os dois fatores: é o que preenche a caixa
+    // sem deixar buraco, e é o piso do zoom.
+    const fator = Math.max(
+      medida.largura / medida.foto.largura,
+      medida.altura / medida.foto.altura,
+    );
+    const esperada = medida.foto.altura * fator;
+
+    // Com a constante de 7 por 1 esta razão dava 1,42; medida na caixa, dá 1.
+    const razao = medida.desenhada / esperada;
+    expect(medida.foto.largura).toBe(600);
+    expect(razao).toBeGreaterThan(0.98);
+    expect(razao).toBeLessThan(1.02);
+  });
+
+  test("dá para enquadrar a capa só pelo teclado, e o resultado é salvo", async ({ page }) => {
+    await entrarNoApp(page, "capateclado");
+    const nome = novoNome("Capa No Teclado");
+    await preencherNova(page, nome);
+    await page.waitForURL(/\/c\/([^/]+)$/);
+
+    /*
+      **Até o PR H não havia como enquadrar sem rato.** O ajuste era
+      arrasto puro, e nenhum teste reclamava porque nenhum teste tentava —
+      quem usa teclado não conseguia posicionar a própria capa.
+
+      A jornada usa `press`, nunca `mouse`: é isso que a torna prova de
+      acessibilidade e não de conveniência.
+    */
+    await page.locator('input[name="imagem"]').setInputFiles({
+      name: "capa.png",
+      mimeType: "image/png",
+      buffer: PNG_600,
+    });
+
+    const quadro = page.getByRole("group", { name: /Posicionar a imagem/ });
+    await expect(quadro).toBeVisible();
+
+    // A imagem quadrada numa faixa deitada sobra **na vertical**: é o
+    // eixo em que as setas têm para onde ir.
+    await quadro.focus();
+    await expect(quadro).toBeFocused();
+    for (let i = 0; i < 6; i += 1) await page.keyboard.press("ArrowUp");
+
+    await page.getByRole("button", { name: "OK" }).click();
+
+    /*
+      O que prova é o banco, não a tela: a âncora vertical saiu do centro.
+      Sem o teclado funcionando, ela ficaria em 0,5 e esta linha esperaria
+      para sempre.
+    */
+    await esperarNoBanco(`
+      SELECT 1 FROM communities
+       WHERE name = '${nome}'
+         AND cover_url LIKE 'capas/%'
+         AND cover_anchor_y <> 0.5`);
+  });
+
+  test("as setas movem a capa, e param na borda em vez de fingir", async ({ page }) => {
+    await entrarNoApp(page, "capasetas");
+    await preencherNova(page, novoNome("Capa Com Setas"));
+    await page.waitForURL(/\/c\/([^/]+)$/);
+
+    await page.locator('input[name="imagem"]').setInputFiles({
+      name: "capa.png",
+      mimeType: "image/png",
+      buffer: PNG_600,
+    });
+
+    const paraCima = page.getByRole("button", { name: "Mover para cima" });
+    await expect(paraCima).toBeVisible();
+
+    /*
+      **No zoom 1 de uma faixa deitada não existe sobra horizontal**, e as
+      setas de lado nascem desativadas. Isso é a verdade do enquadramento,
+      não um defeito: seta que parece clicável e não move faz a pessoa
+      clicar três vezes achando que errou a mira.
+    */
+    await expect(page.getByRole("button", { name: "Mover para a esquerda" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Mover para a direita" })).toBeDisabled();
+
+    // E a vertical anda: a imagem quadrada sobra nesse eixo.
+    const antes = await alturaDesenhada(page);
+    await paraCima.click();
+    await expect.poll(() => alturaDesenhada(page)).not.toBe(antes);
+
+    // Aproximar abre sobra na horizontal, e aí as setas de lado acendem.
+    await page.getByRole("button", { name: "Aumentar aproximação" }).click();
+    await expect(page.getByRole("button", { name: "Mover para a esquerda" })).toBeEnabled();
   });
 
   test("a capa é o botão: nem rótulo permanente, nem aviso de formatos na tela", async ({

@@ -29,12 +29,7 @@ import {
   TAMANHO_MAXIMO_EM_MB,
   dimensoesDaImagem,
 } from "@/lib/midia/imagem";
-import {
-  QUADRO_DA_CAPA,
-  ancoraDoEnquadramento,
-  dentroDoLimite,
-  type Medidas,
-} from "@/lib/midia/enquadramento";
+import { ZOOM_MAXIMO, ZOOM_MINIMO, ancoraValida, type Medidas } from "@/lib/midia/enquadramento";
 import { apagarImagem, guardarImagem } from "@/lib/midia/deposito";
 import { getViewer } from "@/lib/auth/session";
 import {
@@ -178,32 +173,36 @@ export async function alternarComunidadeFixada(communityId: string, fixar: boole
 }
 
 /**
- * O enquadramento que vem do formulário, reconferido com as medidas que o
- * servidor leu **dos bytes**.
+ * O enquadramento que vem do formulário.
  *
- * A tela manda deslocamento (`ox`, `oy`), que é o que ela sabe arrastar, e
- * o que se guarda é âncora, que é o que sobrevive à largura da janela
- * mudar. A conversão é aqui, num lugar só, porque as duas telas que enviam
- * capa precisam exatamente dela.
+ * A tela manda **âncora e zoom**, não deslocamento. Até 7 de novembro de
+ * 2026 ela mandava `ox`/`oy` e este lugar os convertia em âncora usando
+ * `QUADRO_DA_CAPA`, 7 por 1 — uma forma que nenhuma capa tem: a capa tem
+ * altura fixa e largura de janela, e dá 4,92 por 1 em 1280. A prévia
+ * desenhava a imagem 1,42 vez mais alta do que a capa publicava, e quem
+ * centrava um rosto no ajuste via a capa publicar outro recorte.
  *
- * Nada do formulário é confiável: `dentroDoLimite` corta o que passaria da
- * borda, e o que não for número vira o neutro do campo.
+ * Deslocamento é fração de um quadro, e **só a tela sabe a forma dele**.
+ * Âncora não fala de quadro: ela diz que ponto da foto fica em que ponto
+ * da capa. Por isso ela atravessa a rede, e por isso a conferência aqui é
+ * um limite a 0..1 — com `object-fit: cover` e a mesma origem no zoom,
+ * nenhum valor nessa faixa deixa buraco.
+ *
+ * As medidas continuam vindo **dos bytes**, nunca do formulário.
  */
 function enquadramentoDaCapa(formulario: FormData, medidas: Medidas | null): EnquadramentoDaCapa {
   if (!medidas) return CAPA_SEM_ENQUADRAMENTO;
 
-  const numero = (campo: string) => Number(formulario.get(campo));
-  const pedido = dentroDoLimite(
-    medidas,
-    { zoom: numero("capaZoom"), ox: numero("capaOx"), oy: numero("capaOy") },
-    QUADRO_DA_CAPA,
+  const zoom = Math.min(
+    ZOOM_MAXIMO,
+    Math.max(ZOOM_MINIMO, Number(formulario.get("capaZoom")) || ZOOM_MINIMO),
   );
-  const ancora = ancoraDoEnquadramento(medidas, pedido, QUADRO_DA_CAPA);
+  const ancora = ancoraValida(formulario.get("capaAncoraX"), formulario.get("capaAncoraY"));
 
   return {
     coverWidth: medidas.largura,
     coverHeight: medidas.altura,
-    coverZoom: pedido.zoom,
+    coverZoom: zoom,
     coverAnchorX: ancora.x,
     coverAnchorY: ancora.y,
   };

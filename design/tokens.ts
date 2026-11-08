@@ -251,6 +251,10 @@ export const size = {
   controlLg: "48px",
   /** Miniatura quadrada de imagem e GIF na lista de contribuições. */
   mediaThumb: "213px",
+  /** Altura da trilha do controle deslizante. 6 px: fina o bastante para o botão dominar, grossa o bastante para o clique na trilha acertar. */
+  sliderTrack: "6px",
+  /** Diâmetro do botão do controle deslizante. 20 px é o mínimo em que o contorno de foco cabe sem encostar na trilha. */
+  sliderKnob: "20px",
 } as const;
 
 export const fontFamily =

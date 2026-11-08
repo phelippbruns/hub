@@ -22,6 +22,7 @@ export { Tabs, type Tab } from "./tabs";
 export { BottomSheet } from "./bottom-sheet";
 export { Janela } from "./janela";
 export { MenuSuspenso } from "./menu-suspenso";
+export { ControleDeslizante } from "./controle-deslizante";
 export { Checkbox } from "./checkbox";
 export { Switch } from "./switch";
 export { SwitchRow } from "./switch-row";

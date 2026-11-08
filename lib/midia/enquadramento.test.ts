@@ -8,6 +8,8 @@ import {
   enquadramentoDaAncora,
   limiteDoDeslocamento,
   porcentagens,
+  ancoraValida,
+  QUADRO_DA_CAPA,
 } from "./enquadramento";
 
 /** Uma paisagem e um retrato, que é onde os dois eixos trocam de papel. */
@@ -184,6 +186,92 @@ describe("a âncora", () => {
       const aplicado = enquadramentoDaAncora(quadrada, 1, ancora, outro);
       expect(deixaBuraco(quadrada, aplicado, outro)).toBe(false);
     }
+  });
+});
+
+/**
+ * A correção do PR H: o quadro do ajuste é a caixa medida, não a constante.
+ *
+ * Estes testes guardam **a razão** de a âncora atravessar a rede. Se
+ * alguém voltar a mandar deslocamento, ou fizer a âncora depender do
+ * quadro, eles reprovam.
+ */
+describe("a âncora não depende da forma do quadro, e é por isso que ela viaja", () => {
+  /** A capa de verdade: 1132 x 230 numa janela de 1280. */
+  const capaReal = { largura: 1132, altura: 230 };
+
+  it("a mesma âncora sai de qualquer forma em que ela seja aplicada", () => {
+    const foto = { largura: 1920, altura: 1080 };
+    const ancora = { x: 0.3, y: 0.8 };
+
+    /*
+     * Aplicar a âncora numa forma e extraí-la de volta devolve a mesma
+     * âncora — em qualquer forma. É o que permite ao servidor guardar o
+     * número sem saber a largura da janela de quem enviou.
+     */
+    for (const forma of [capaReal, QUADRO_DA_CAPA, { largura: 1812, altura: 230 }]) {
+      const enquadrado = enquadramentoDaAncora(foto, 1.4, ancora, forma);
+      const devolta = ancoraDoEnquadramento(foto, enquadrado, forma);
+      expect(devolta.x).toBeCloseTo(ancora.x, 6);
+      expect(devolta.y).toBeCloseTo(ancora.y, 6);
+    }
+  });
+
+  it("o deslocamento, ao contrário, muda com a forma — e é o que não podia viajar", () => {
+    const foto = { largura: 1920, altura: 1080 };
+    const ancora = { x: 0.5, y: 0.9 };
+
+    const naCapa = enquadramentoDaAncora(foto, 1, ancora, capaReal);
+    const naConstante = enquadramentoDaAncora(foto, 1, ancora, QUADRO_DA_CAPA);
+
+    /*
+     * O mesmo ponto da foto, dois deslocamentos diferentes. Mandar este
+     * número pela rede e convertê-lo com uma constante do outro lado é
+     * exatamente o defeito que o PO viu como "a capa não ajusta".
+     */
+    expect(naCapa.oy).not.toBeCloseTo(naConstante.oy, 3);
+  });
+
+  it("a constante de 7 por 1 desenha a imagem 1,42 vez mais alta que a capa", () => {
+    /*
+     * A medida que fundamenta o PR H, fixada como teste. 7 ÷ 4,92 = 1,42,
+     * e o fator é o mesmo em qualquer foto porque numa faixa deitada o
+     * "cobrir" é sempre determinado pela largura.
+     */
+    for (const foto of [
+      { largura: 1000, altura: 500 },
+      { largura: 3000, altura: 2000 },
+      { largura: 800, altura: 1200 },
+    ]) {
+      const naConstante = caixaDaImagem(foto, ENQUADRAMENTO_PADRAO, QUADRO_DA_CAPA);
+      const naCapa = caixaDaImagem(foto, ENQUADRAMENTO_PADRAO, capaReal);
+
+      const pctConstante = naConstante.altura / QUADRO_DA_CAPA.altura;
+      const pctCapa = naCapa.altura / capaReal.altura;
+
+      expect(pctConstante / pctCapa).toBeCloseTo(1.42, 2);
+    }
+  });
+});
+
+describe("ancoraValida: a única conferência que a âncora precisa", () => {
+  it("limita a 0 e 1, que é a faixa em que não existe buraco", () => {
+    expect(ancoraValida(-3, 9)).toEqual({ x: 0, y: 1 });
+    expect(ancoraValida(0.25, 0.75)).toEqual({ x: 0.25, y: 0.75 });
+  });
+
+  it("o que não é número vira o centro, nunca o canto", () => {
+    /*
+     * 0,5 e não 0: campo vazio jogava a capa para o canto superior
+     * esquerdo, que parece defeito mesmo sendo um valor válido.
+     */
+    expect(ancoraValida(null, undefined)).toEqual({ x: 0.5, y: 0.5 });
+    expect(ancoraValida("abacaxi", NaN)).toEqual({ x: 0.5, y: 0.5 });
+    // Campo vazio é o que o `FormData` entrega como `""`, e `Number("")`
+    // é 0 — um valor válido que mandaria a capa para o canto.
+    expect(ancoraValida("", "")).toEqual({ x: 0.5, y: 0.5 });
+    // E o zero de verdade continua passando: ele é a borda, de propósito.
+    expect(ancoraValida("0", "0")).toEqual({ x: 0, y: 0 });
   });
 });
 

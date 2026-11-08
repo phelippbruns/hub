@@ -218,6 +218,35 @@ export function enquadramentoDaAncora(
   );
 }
 
+/**
+ * A âncora que veio do formulário, limitada ao que é desenhável.
+ *
+ * É a única conferência que a âncora precisa, e é por construção: com
+ * `object-fit: cover`, `object-position` entre 0 e 100% e zoom a partir
+ * de 1 na mesma origem, **não existe buraco**. Por isso ela substituiu a
+ * reconferência antiga, que refazia a conta do deslocamento com uma
+ * constante de 7 por 1 — uma forma de capa que nenhuma janela tem.
+ *
+ * O que não é número vira 0,5, o centro, e não 0: campo vazio jogava a
+ * capa para o canto superior esquerdo.
+ */
+export function ancoraValida(x: unknown, y: unknown): Ancora {
+  return { x: fracaoValida(x), y: fracaoValida(y) };
+}
+
+function fracaoValida(valor: unknown): number {
+  /*
+   * Ausente vem como `null` do `FormData`, e campo vazio como `""`. Os
+   * dois viram **0 no `Number`**, que é um valor válido — a capa ia para
+   * a borda esquerda em vez do centro. Por isso eles são peneirados
+   * antes da conversão, e não pelo `Number.isFinite` depois dela.
+   */
+  if (valor === null || valor === undefined || valor === "") return 0.5;
+  const numero = Number(valor);
+  if (!Number.isFinite(numero)) return 0.5;
+  return Math.min(1, Math.max(0, numero));
+}
+
 /** Onde o número cai dentro da sobra, de 0 a 1. Sem sobra, o centro. */
 function fracao(posicao: number, sobra: number): number {
   if (Math.abs(sobra) < 1e-9) return 0.5;
