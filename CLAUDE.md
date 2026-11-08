@@ -398,6 +398,17 @@ denunciou nada. O alvo `message` do enum existe e fica sem uso de propósito.
 
 [vercel.json](vercel.json) fixa `framework: nextjs` no repositório, para a configuração não depender do painel. E `npm run verificar:deploy` busca as rotas de verdade. **Rode-o, e abra a página, antes de dizer que uma feature está pronta.**
 
+**E fixa `regions: ["gru1"]`, que é São Paulo.** O banco está em `sa-east-1`;
+sem essa linha a Vercel monta a página em `iad1`, Washington, e **toda**
+consulta atravessa o continente duas vezes. Medido em 8 de novembro de 2026:
+a página pública da comunidade, que faz uma consulta só, levava 1,03 s para
+responder contra 0,29 s de uma tela que não toca no banco — quase 600 ms de
+ida e volta por consulta, em toda tela do Hub.
+
+Não é escolha de painel: o padrão da Vercel é `iad1`, e quem apagasse o
+arquivo voltaria para lá sem aviso nenhum. O cabeçalho `x-vercel-id` da
+resposta diz onde a função rodou (`gru1::...`), e é assim que se confere.
+
 ### Ambiente
 
 Copie `.env.example` para `.env.local` e preencha com os valores do projeto Supabase. `DATABASE_URL` é o pooler (porta 6543); `DIRECT_URL` é a conexão direta (porta 5432), exigida pelas migrations. Nenhum valor real entra no repositório.
