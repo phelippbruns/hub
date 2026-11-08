@@ -20,12 +20,7 @@ import { getViewer } from "@/lib/auth/session";
 import { UnauthenticatedError } from "@/lib/data/errors";
 import { acharLink } from "@/lib/texto/links";
 import type { TipoDeMarcacao } from "@/lib/texto/marcacoes";
-import {
-  dimensoesDaImagem,
-  ImagemRecusada,
-  TAMANHO_MAXIMO,
-  TAMANHO_MAXIMO_EM_MB,
-} from "@/lib/midia/imagem";
+import { ImagemRecusada, TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB } from "@/lib/midia/imagem";
 import { guardarImagem } from "@/lib/midia/deposito";
 
 async function quemPede() {
@@ -132,14 +127,19 @@ export async function responder(
     try {
       const bytes = new Uint8Array(await arquivo.arrayBuffer());
       /*
-       * Medida pelos **bytes**, e não pelo que o navegador disse.
+       * As medidas vêm de **quem guardou**, e não do que o navegador disse
+       * nem dos bytes que chegaram.
        *
-       * `dimensoesDaImagem` já existia e era jogada fora. Ler aqui é o
-       * único jeito honesto: o cliente poderia mandar qualquer número,
-       * e o espaço reservado na tela de todo mundo sairia errado.
+       * Do navegador seria confiar em quem a conferência deveria limitar:
+       * um número mentiroso erraria o espaço reservado na tela de todo
+       * mundo. Dos bytes que chegaram era honesto e passou a ser errado em
+       * 8 de novembro de 2026, quando o depósito começou a reduzir a
+       * imagem — a foto de 4032 px vira 1600, e gravar 4032 reservaria
+       * espaço para um arquivo que não existe mais.
        */
-      medidas = dimensoesDaImagem(bytes);
-      caminho = await guardarImagem(bytes, "respostas");
+      const guardada = await guardarImagem(bytes, "respostas");
+      caminho = guardada.caminho;
+      medidas = guardada.medidas;
     } catch (erro) {
       if (erro instanceof ImagemRecusada) return { erro: erro.motivo };
       throw erro;

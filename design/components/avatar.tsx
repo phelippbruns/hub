@@ -102,8 +102,22 @@ function FotoEnquadrada({
   medidas?: { largura: number; altura: number } | null;
 }) {
   if (!medidas) {
-    // eslint-disable-next-line @next/next/no-img-element -- endereço assinado de validade curta: o otimizador do Next não o alcança.
-    return <img src={url} alt="" className="absolute inset-0 size-full object-cover" />;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- endereço assinado de validade curta: o otimizador do Next não o alcança.
+      <img
+        src={url}
+        alt=""
+        /*
+          `lazy`: avatar quase nunca está na primeira dobra, e uma lista de
+          membros baixava as 50 fotos de uma vez, inclusive as três
+          rolagens abaixo. `async` tira a decodificação do caminho da
+          pintura.
+        */
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 size-full object-cover"
+      />
+    );
   }
 
   const caixa = caixaDaImagem(medidas, enquadramento);
@@ -114,6 +128,8 @@ function FotoEnquadrada({
     <img
       src={url}
       alt=""
+      loading="lazy"
+      decoding="async"
       className="absolute max-w-none"
       style={{
         width: pct(caixa.largura),

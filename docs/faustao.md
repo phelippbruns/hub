@@ -202,6 +202,60 @@ temporários lá. A contagem oscilava entre execuções.
 
 ---
 
+### A barreira que o `sharp` satisfazia sozinha
+
+*8 de novembro de 2026, Bloco B da rodada de velocidade.*
+
+Escrevi um teste para guardar a regra "limpar os metadados **antes** de
+reduzir a imagem": enviava uma foto com localização e conferia que ela
+saía sem. Passou. Desliguei a limpeza para ver a barreira reprovar — e ela
+**continuou verde**.
+
+*Por que passou:* o `sharp` reprocessa a imagem inteira, e nisso também
+apaga os metadados. O teste media um resultado que duas peças diferentes
+produzem, então não dizia nada sobre qual delas estava de pé. Verde com o
+defeito instalado, que é o pior estado possível de um teste.
+
+*Como resolvi:* fui atrás do que a ordem protege **de verdade**, e não é o
+metadado — é a **lista de tipos aceitos**. O `sharp` abre SVG e TIFF sem
+reclamar (conferido, converte os dois), e o Hub aceita só JPEG, PNG e
+WebP. Invertida a ordem, o conferidor passaria a olhar o WebP recém-gerado,
+que sempre passa, e a lista deixaria de existir em silêncio. A barreira
+nova recusa SVG e TIFF, e uma segunda lê o código do depósito e exige que
+`prepararImagem` apareça antes de `reduzirImagem`. As duas foram vistas
+reprovando.
+
+🔒 **Barrado** — `lib/midia/reduzir.test.ts`.
+
+*A lição, que é a mesma de três entradas acima:* **só desligar o defeito
+prova a barreira.** E há um caso novo dentro dela — quando duas peças
+produzem o mesmo resultado, um teste de resultado não consegue dizer qual
+está funcionando. Nesses casos a barreira tem de olhar o que **só** a peça
+certa faz.
+
+---
+
+### O teste que contava o certo e media o errado
+
+*8 de novembro de 2026, Bloco C.*
+
+Trocar N pedidos de assinatura por um só não muda **nada** no que aparece
+na tela: as mesmas imagens, nos mesmos lugares. Um teste de resultado
+passaria com as duas implementações.
+
+*Como resolvi:* o teste **conta chamadas** ao depósito, com um cliente
+falso. Dez pessoas, um pedido. E conta o tamanho do lote, para o caminho
+repetido não ser assinado oito vezes.
+
+🔒 **Barrado** — `lib/midia/assinatura.test.ts`, visto reprovando com o
+`Promise.all` antigo de volta.
+
+*A lição:* **otimização não tem teste de resultado.** Se o certo e o
+errado produzem a mesma tela, o teste tem de medir o custo — chamadas,
+bytes, pixels — ou não existe.
+
+---
+
 ## 3. Português e produto
 
 ### "Faltam 1 comunidade"

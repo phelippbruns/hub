@@ -104,6 +104,14 @@ export function MidiaDaContribuicao({
           src={temParado && !tocando ? parado! : url}
           alt=""
           /*
+            `lazy`: a miniatura de uma contribuição mais abaixo na lista não
+            precisa existir antes de alguém rolar até ela. A ampliada, logo
+            abaixo, continua ansiosa — quando ela aparece, é porque alguém
+            clicou e está esperando.
+          */
+          loading="lazy"
+          decoding="async"
+          /*
             `ref` além de `onLoad`: imagem que já está no cache do
             navegador termina de carregar **antes** de o React ligar o
             evento, e o `onLoad` nunca dispara. O fundo de carregando

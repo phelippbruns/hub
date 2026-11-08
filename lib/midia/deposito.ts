@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { serverEnv, clientEnv } from "@/lib/env";
-import { prepararImagem, type ImagemLimpa } from "./imagem";
+import { prepararImagem, type Dimensoes, type ImagemLimpa } from "./imagem";
+import { reduzirImagem } from "./reduzir";
+import type { PastaDeImagem } from "./limites";
 
 /**
  * Guardar e servir as imagens do Hub (regra de segurança 7).
@@ -18,6 +20,9 @@ import { prepararImagem, type ImagemLimpa } from "./imagem";
 
 const DEPOSITO = "imagens";
 
+/** O que ficou guardado: onde, e de que tamanho depois da redução. */
+export type ImagemGuardada = { caminho: string; medidas: Dimensoes };
+
 /** Dez minutos. Tempo de ver a página, não de guardar o endereço. */
 const VALIDADE_DA_ASSINATURA = 600;
 
@@ -31,22 +36,31 @@ function cliente() {
 }
 
 /**
- * Confere, limpa e guarda. Devolve o **caminho**, não um endereço.
+ * Confere, limpa, reduz e guarda. Devolve o **caminho** e as **medidas**.
  *
  * Guardar o caminho, e não uma URL, é o que permite o depósito ser privado:
  * o endereço é gerado a cada exibição e expira.
+ *
+ * **Devolve as medidas porque a imagem guardada não é a que chegou.** Ela é
+ * reduzida ao maior tamanho em que o Hub a desenha, então quem chama não
+ * pode mais medir os bytes que enviou e gravar aquilo no banco: gravaria o
+ * tamanho de um arquivo que não existe. As proporções não mudam — a
+ * redução não recorta —, mas os números, sim.
  */
 export async function guardarImagem(
   bytes: Uint8Array,
-  pasta: "respostas" | "capas" | "perfis",
-): Promise<string> {
+  pasta: PastaDeImagem,
+): Promise<ImagemGuardada> {
+  // A ordem é lei: conferir o tipo pelos bytes e tirar os metadados vem
+  // **antes** de reprocessar. Ver `reduzir.ts`.
   const limpa: ImagemLimpa = prepararImagem(bytes);
+  const reduzida = await reduzirImagem(limpa.bytes, pasta);
 
-  const caminho = `${pasta}/${crypto.randomUUID()}.${limpa.extensao}`;
+  const caminho = `${pasta}/${crypto.randomUUID()}.${reduzida.extensao}`;
 
   const { error } = await cliente()
     .storage.from(DEPOSITO)
-    .upload(caminho, limpa.bytes, { contentType: limpa.tipo, upsert: false });
+    .upload(caminho, reduzida.bytes, { contentType: reduzida.tipo, upsert: false });
 
   if (error) {
     // Sem o nome do arquivo nem o id de quem enviou (regra de segurança 10).
@@ -54,7 +68,7 @@ export async function guardarImagem(
     throw new Error("Não foi possível guardar a imagem. Tente de novo.");
   }
 
-  return caminho;
+  return { caminho, medidas: reduzida.medidas };
 }
 
 /**
@@ -87,13 +101,58 @@ export async function enderecoAssinado(caminho: string | null): Promise<string |
  */
 export async function enderecoDeMidia(valor: string | null): Promise<string | null> {
   if (!valor) return null;
-  if (/^https?:\/\//i.test(valor)) return valor;
+  if (ehUrl(valor)) return valor;
   return enderecoAssinado(valor);
 }
 
-/** Vários de uma vez, para uma lista de respostas não fazer N chamadas em fila. */
+/** Endereço pronto (GIPHY, capa padrão) em vez de caminho no depósito. */
+function ehUrl(valor: string): boolean {
+  return /^https?:\/\//i.test(valor);
+}
+
+/**
+ * Vários de uma vez, **num pedido só**.
+ *
+ * Assinar é uma ida à rede, não uma conta local: cada endereço era um
+ * pedido ao Supabase. Uma lista de 20 membros fazia 20 — em paralelo, mas
+ * 20. O depósito tem `createSignedUrls`, que assina a lista inteira numa
+ * chamada, e é o que se usa aqui.
+ *
+ * Três cuidados que o jeito ingênuo erraria:
+ *
+ * 1. **URL externa não é assinada.** GIF do GIPHY e capa padrão de Universo
+ *    moram na mesma coluna que os caminhos; mandá-los para o depósito daria
+ *    erro e a mídia sumiria da tela.
+ * 2. **O resultado volta casado pelo caminho**, não pela posição. A ordem
+ *    da resposta não é promessa de ninguém, e confiar nela trocaria a foto
+ *    de uma pessoa pela de outra — um defeito de privacidade, não de
+ *    desenho.
+ * 3. **Caminho repetido assina uma vez.** A mesma pessoa aparece várias
+ *    vezes numa lista de contribuições.
+ */
 export async function enderecosDeMidia(valores: (string | null)[]): Promise<(string | null)[]> {
-  return Promise.all(valores.map((valor) => enderecoDeMidia(valor)));
+  const caminhos = [...new Set(valores.filter((v): v is string => !!v && !ehUrl(v)))];
+  if (caminhos.length === 0) return valores.map((v) => (v && ehUrl(v) ? v : null));
+
+  const assinados = new Map<string, string>();
+  const { data, error } = await cliente()
+    .storage.from(DEPOSITO)
+    .createSignedUrls(caminhos, VALIDADE_DA_ASSINATURA);
+
+  if (error) {
+    // Sem os caminhos na mensagem (regra de segurança 10).
+    console.error("[imagem] não consegui assinar o lote", { message: error.message });
+  }
+
+  for (const item of data ?? []) {
+    if (item.path && item.signedUrl && !item.error) assinados.set(item.path, item.signedUrl);
+  }
+
+  return valores.map((valor) => {
+    if (!valor) return null;
+    if (ehUrl(valor)) return valor;
+    return assinados.get(valor) ?? null;
+  });
 }
 
 /** Qualquer coisa que carregue a foto de uma pessoa. */
@@ -118,9 +177,18 @@ export async function comAvatar<T extends ComAvatar | null>(pessoa: T): Promise<
   return { ...pessoa, avatarUrl: await enderecoDeMidia(pessoa.avatarUrl) };
 }
 
-/** Vários de uma vez, pelo mesmo motivo de `enderecosDeMidia`. */
+/**
+ * Vários de uma vez, **num pedido só** — é `enderecosDeMidia` por dentro.
+ *
+ * Era um `Promise.all` de chamadas individuais: paralelo, mas uma ida à
+ * rede por pessoa. Uma lista de 20 membros virou 1 pedido em vez de 20.
+ */
 export async function comAvatares<T extends ComAvatar | null>(pessoas: T[]): Promise<T[]> {
-  return Promise.all(pessoas.map((pessoa) => comAvatar(pessoa)));
+  const enderecos = await enderecosDeMidia(pessoas.map((p) => p?.avatarUrl ?? null));
+  // `.at(i)` e não `enderecos[i]`: o lint do Hub barra indexar por variável.
+  return pessoas.map((pessoa, i) =>
+    pessoa ? { ...pessoa, avatarUrl: enderecos.at(i) ?? null } : pessoa,
+  );
 }
 
 /**

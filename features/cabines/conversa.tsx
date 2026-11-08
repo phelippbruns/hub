@@ -222,6 +222,9 @@ function LinhaDeMensagem({ mensagem }: { mensagem: MensagemNaTela }) {
           <img
             src={mensagem.imagem}
             alt={mensagem.tipoDaMidia === "gif" ? `GIF de ${nome}` : `Imagem de ${nome}`}
+            // Conversa longa é muita imagem acima do que se está lendo.
+            loading="lazy"
+            decoding="async"
             className={cn(
               "block h-auto w-auto max-w-full rounded-sm",
               minha ? "self-end" : "self-start",

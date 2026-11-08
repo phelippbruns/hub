@@ -246,8 +246,11 @@ export async function enviarMensagem(
       return { erro: `A imagem passa de ${TAMANHO_MAXIMO_EM_MB} MB.` };
     }
     try {
-      const caminho = await guardarImagem(new Uint8Array(await arquivo.arrayBuffer()), "respostas");
-      media = { caminho, kind: "image" };
+      const guardada = await guardarImagem(
+        new Uint8Array(await arquivo.arrayBuffer()),
+        "respostas",
+      );
+      media = { caminho: guardada.caminho, kind: "image" };
     } catch (erro) {
       if (erro instanceof ImagemRecusada) return { erro: erro.motivo };
       throw erro;

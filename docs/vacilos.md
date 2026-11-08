@@ -844,3 +844,36 @@ endereço que já existiu nunca vira 404 e alguém pode ter guardado um.
 de apagar, olhe o que fica no lugar — e se o que fica for suficiente,
 diga em uma linha por quê, para a próxima pessoa não o reintroduzir
 achando que foi esquecimento.
+
+## 20. Velocidade mudou uma regra que ninguém tinha escrito
+
+### Arquivo que não abre deixou de ser publicado
+
+*8 de novembro de 2026, Bloco B da rodada de velocidade.*
+
+O Hub passou a **reduzir** a imagem antes de guardá-la, e reduzir exige
+decodificar. Com isso, um arquivo que tem a assinatura de JPEG nos
+primeiros bytes mas não é imagem nenhuma deixou de ser aceito: ele morre
+no envio, com "Não foi possível ler esta imagem. Tente outra."
+
+**Antes ele era publicado.** A contribuição nascia mostrando "Imagem
+indisponível", para sempre — contribuição não se edita (RN14), então o
+engano era definitivo, e o arquivo ficava ocupando o depósito.
+
+*Como eu descobri:* não decidi isto. Uma jornada reprovou, e a jornada
+estava certa sobre o comportamento **antigo** — ela enviava justamente um
+JPEG falso, de propósito, para exercitar o estado "Imagem indisponível".
+A mudança de desempenho mudou uma regra de produto de carona.
+
+*O que eu fiz:* mantive a mudança, porque recusar no envio é melhor que
+publicar quebrado — erro apanhado na hora é uma frase, apanhado depois é
+permanente. E o estado "Imagem indisponível" **continua existindo** e
+continua necessário: a imagem pode sumir do depósito depois de publicada.
+Ele só deixou de ser alcançável enviando lixo.
+
+**Regra:** mudança técnica que passa a **recusar** o que antes era aceito
+é mudança de produto, mesmo quando o objetivo era desempenho. Quando uma
+jornada reprova numa rodada de otimização, a primeira pergunta não é
+"como faço o teste passar" — é **"que regra eu mudei sem perceber, e ela
+é melhor?"**. Se for melhor, ela entra aqui. Se não for, quem muda é o
+código.

@@ -13,10 +13,14 @@ export { TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB, TIPOS_ACEITOS, type TipoDeImagem 
  *    quando, e com qual aparelho. Publicar isso sem querer, numa rede sobre
  *    interesses às vezes íntimos, entrega a casa de alguém.
  *
- * Por que escrito à mão em vez de uma biblioteca: a alternativa é o `sharp`,
- * uma dependência nativa pesada que reprocessa a imagem inteira. Percorrer os
- * blocos do arquivo é pouco código, não tem dependência, e dá para testar com
- * bytes de verdade.
+ * Por que escrito à mão em vez de uma biblioteca: percorrer os blocos do
+ * arquivo é pouco código e dá para testar com bytes de verdade.
+ *
+ * **O `sharp` entrou no Hub em 8 de novembro de 2026, e não mudou isto.** Ele
+ * faz outro trabalho — reduzir a imagem ao tamanho em que ela é desenhada
+ * ([reduzir.ts](./reduzir.ts)) — e roda **depois** daqui. A ordem é regra: é
+ * esta conferência que mantém a lista de tipos aceitos, e o `sharp` abriria
+ * SVG e TIFF sem reclamar.
  *
  * **Arquivo que não for entendido é recusado.** Na dúvida, não guarda — o
  * contrário deixaria passar justamente o arquivo estranho.

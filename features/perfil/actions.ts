@@ -17,12 +17,7 @@ import { conversaComPessoa } from "@/lib/data/cabins";
 import { guardarMedidasDaFoto, medidasDaFotoAtual, updateProfile } from "@/lib/data/profiles";
 import { MAXIMO_DE_LINKS } from "@/lib/data/validation";
 import { acharLink } from "@/lib/texto/links";
-import {
-  ImagemRecusada,
-  TAMANHO_MAXIMO,
-  TAMANHO_MAXIMO_EM_MB,
-  dimensoesDaImagem,
-} from "@/lib/midia/imagem";
+import { ImagemRecusada, TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB } from "@/lib/midia/imagem";
 import { ENQUADRAMENTO_PADRAO, dentroDoLimite } from "@/lib/midia/enquadramento";
 import { guardarImagem } from "@/lib/midia/deposito";
 import { FUNDO_PADRAO } from "./fundos";
@@ -124,8 +119,9 @@ export async function salvarPerfil(
        * o que limita o enquadramento, e aceitá-las de quem envia seria
        * deixar a conferência nas mãos de quem ela deveria limitar.
        */
-      medidas = dimensoesDaImagem(bytes);
-      avatarCaminho = await guardarImagem(bytes, "perfis");
+      const guardada = await guardarImagem(bytes, "perfis");
+      avatarCaminho = guardada.caminho;
+      medidas = guardada.medidas;
     } catch (erro) {
       if (erro instanceof ImagemRecusada) return { erro: erro.motivo };
       throw erro;
