@@ -19,6 +19,7 @@ import {
   AnswerCard,
   BottomSheet,
   MenuSuspenso,
+  ControleDeslizante,
   Button,
   Checkbox,
   Chip,
@@ -196,6 +197,27 @@ function NavProof({ tone }: { tone: "light" | "dark" }) {
           <span className="text-caption">{label}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * O deslizante precisa de estado para a demonstração ser honesta: um
+ * controle que não se move não mostra nem o botão em posição nem os
+ * limites em que o `−` e o `+` desativam.
+ */
+function DemoDeslizante() {
+  const [valor, setValor] = useState(1.6);
+  return (
+    <div className="flex w-full flex-col gap-2">
+      <ControleDeslizante
+        rotulo="Aproximação"
+        valor={valor}
+        minimo={1}
+        maximo={3}
+        onMudar={setValor}
+      />
+      <p className="text-caption text-inkMuted">Valor: {valor.toFixed(2)}</p>
     </div>
   );
 }
@@ -557,6 +579,17 @@ export function DesignGallery() {
               className="min-h-cover w-full"
             />
           </div>
+        </Card>
+
+        {/*
+          O primeiro controle deslizante do design system (PR H, 7 de
+          novembro de 2026). Até então a aproximação do ajuste era um
+          `<input type="range">` sem desenho nenhum — o controle do
+          sistema operacional, azul no Windows, cinza no macOS, fora de
+          todos os tokens do Hub.
+        */}
+        <Card title="Controle deslizante" wide>
+          <DemoDeslizante />
         </Card>
 
         <Card title="Nome de tópico" wide>

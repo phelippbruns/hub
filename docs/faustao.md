@@ -2317,6 +2317,91 @@ dividem estado. Este projeto já fixou `workers: 1` por essa razão
 exata — e eu reintroduzi o mesmo problema por fora da ferramenta que o
 resolvia.
 
+### A constante envelheceu junto com um token, e ninguém ligou os dois
+
+**Quando:** 7 de novembro de 2026, no ajuste da capa da comunidade.
+
+**O que aconteceu:** `QUADRO_DA_CAPA` era `{ largura: 7, altura: 1 }`, e o
+comentário ao lado dizia de onde o 7 vinha: *"uma capa de 180 px de altura
+numa janela de 1280"*. Só que o protótipo v6 levou a capa para **230 px**,
+e o próprio token diz por quê — *"com 180 o nome e os botões disputavam a
+mesma faixa"*.
+
+A constante ficou atrás. A capa real passou a dar 4,92 por 1, e o ajuste
+desenhava a imagem **1,42 vez mais alta** do que a capa publica: quem
+centrava um rosto no ajuste via a capa publicar outro recorte. O PO
+mandou "o ajuste não está funcionando corretamente", sem saber o número.
+
+**Por que passou:** mudar o token `cover` de 180 para 230 é uma linha num
+JSON, e nada no projeto sabia que uma constante de TypeScript derivava
+dele. Nenhum teste comparava os dois: os 21 testes do enquadramento
+provavam que a conta é consistente **consigo mesma**, em qualquer quadro.
+
+E havia um agravante que só a medida mostrou: nenhuma constante serviria.
+A capa tem altura fixa e largura de janela, então a forma muda com a
+janela — 6,3 por 1 em 1600, 3,8 em 1024.
+
+✅ **Barreira:** o ajuste **mede a própria caixa** (`ResizeObserver`), e a
+jornada "o ajuste desenha a imagem na forma da capa, não numa constante"
+([e2e/comunidades.spec.ts](../e2e/comunidades.spec.ts)) compara a imagem
+desenhada com a definição de "cobrir" aplicada à caixa medida. Vista
+reprovar com **1,4222**, que é 7 ÷ 4,92.
+
+E a âncora passou a atravessar a rede no lugar do deslocamento:
+deslocamento é fração de um quadro, e **só a tela sabe a forma dele**.
+
+**A lição:** constante derivada de um token é um token duplicado, e o
+duplicado não é regenerado. Quando um número existe por causa de outro,
+ou ele é calculado, ou os dois têm um teste que os compara.
+
+### Comparei a prévia com `object-cover` e medi a caixa, não a imagem
+
+**Quando:** no mesmo dia, escrevendo a barreira acima.
+
+**O que aconteceu:** a primeira versão da jornada comparava a altura
+desenhada da imagem no ajuste com a altura desenhada da imagem na capa
+publicada. Deu razão **4,92** — um número que não queria dizer nada.
+
+A capa publicada usa `object-fit: cover`: o `<img>` ocupa exatamente a
+caixa, e a escala fica **dentro** do CSS. `getBoundingClientRect()`
+devolve a caixa, não o conteúdo. Eu estava comparando a imagem escalada
+do ajuste com a moldura da capa.
+
+👁 **Atenção** — `object-fit` torna o tamanho desenhado invisível ao DOM.
+Para medir o recorte de uma imagem com `object-cover`, meça **onde um
+ponto conhecido dela cai**, ou compare contra a fórmula de "cobrir"
+calculada a partir da caixa medida e de `naturalWidth`/`naturalHeight`,
+que é o que a jornada faz hoje.
+
+**A lição:** antes de comparar duas medidas, confira que as duas medem a
+mesma coisa. Uma razão que não dá nem 1 nem o fator esperado é sinal de
+que as unidades não batem — e não de que o defeito é grande.
+
+### O `ref` que media virava novo a cada render, e a tela não abria
+
+**Quando:** no mesmo dia, pondo o `ResizeObserver` no ajuste.
+
+**O que aconteceu:** pus a medição num `ref callback` que dependia de
+`aplicar`, que depende de `onMudar`. Quem usa o componente passa
+`onMudar={(novo, forma) => …}` — função nova a cada render. Então o `ref`
+era novo, o React o chamava de novo, ele media, mudava estado,
+renderizava, e de novo: **laço infinito**. A tela do ajuste simplesmente
+não aparecia, e a jornada falhou em "Aproximação" não estar visível — uma
+mensagem que não aponta para o laço.
+
+**Por que passou pelas conferências:** `typecheck` e `lint` ficaram
+verdes. É o mesmo padrão do `"use client"` que derrubou a página da
+comunidade: um erro de ligação entre peças, que só a tela mostra.
+
+✅ **Barreira:** o `ref callback` tem dependência vazia e lê o que precisa
+de um `ref` atualizado **num efeito** — no corpo do render o lint proíbe,
+e com razão: no modo concorrente o render pode ser descartado e o `ref`
+não volta atrás. A jornada que não abria é a que guarda isso.
+
+**A lição:** `ref callback` com dependência é um laço esperando um
+`onMudar` em linha. Ou ele tem dependência vazia, ou ele não deveria ser
+um `ref callback`.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

@@ -17,6 +17,7 @@ import {
   ErrorState,
   FollowButton,
   RoundIconButton,
+  ControleDeslizante,
   HomeRow,
   HotTopicCard,
   LevelMark,
@@ -183,6 +184,21 @@ const cases: Array<[string, React.ReactElement]> = [
     <RoundIconButton label="Opções" tamanho="sm" nu>
       {"·"}
     </RoundIconButton>,
+  ],
+  /*
+    O primeiro deslizante do design system (PR H). O snapshot guarda o
+    desenho; o teste de acessibilidade abaixo guarda o que importa mais —
+    que o `−` e o `+` digam de que controle são.
+  */
+  [
+    "controle deslizante",
+    <ControleDeslizante
+      rotulo="Aproximação"
+      valor={1.6}
+      minimo={1}
+      maximo={3}
+      onMudar={() => {}}
+    />,
   ],
   ["título de seção", <SectionTitle>Universos</SectionTitle>],
   // O # numa lista diz qual comunidade, não só "a comunidade".
@@ -475,5 +491,45 @@ describe("o botão redondo sem círculo", () => {
       </RoundIconButton>,
     );
     expect(comCirculo).toContain("bg-paper");
+  });
+});
+
+describe("o controle deslizante", () => {
+  it("o − e o + dizem de que controle são, e param nos limites", () => {
+    /*
+      "Diminuir" sozinho não diz nada quando há dois deslizantes na tela,
+      e quem usa leitor de tela ouve a lista de controles fora de ordem.
+      O rótulo entra no nome dos dois botões.
+    */
+    const html = renderToStaticMarkup(
+      <ControleDeslizante
+        rotulo="Aproximação"
+        valor={1}
+        minimo={1}
+        maximo={3}
+        onMudar={() => {}}
+      />,
+    );
+
+    expect(html).toContain('aria-label="Diminuir aproximação"');
+    expect(html).toContain('aria-label="Aumentar aproximação"');
+
+    // No mínimo, o − está desativado — e **com o porquê**, que é a
+    // convenção do projeto para controle desativado.
+    expect(html).toContain("Já está no mínimo");
+    expect(html).toMatch(/aria-label="Diminuir aproximação"[^>]*disabled|disabled[^>]*Diminuir/);
+  });
+
+  it("no máximo, é o + que desativa", () => {
+    const html = renderToStaticMarkup(
+      <ControleDeslizante
+        rotulo="Aproximação"
+        valor={3}
+        minimo={1}
+        maximo={3}
+        onMudar={() => {}}
+      />,
+    );
+    expect(html).toContain("Já está no máximo");
   });
 });

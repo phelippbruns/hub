@@ -71,6 +71,13 @@ export function CapaEditavel({
   const [nova, setNova] = useState<{ url: string; medidas: Medidas } | null>(null);
   const [ajustando, setAjustando] = useState(false);
   const [enquadramento, setEnquadramento] = useState<Enquadramento>(ENQUADRAMENTO_PADRAO);
+  /*
+   * **A forma em que o ajuste mediu a caixa**, que ele informa a cada
+   * mudança. É com ela que o deslocamento vira âncora — e a âncora é o
+   * que sobe para o servidor, porque ele não tem como medir a tela de
+   * ninguém. Até a primeira medida, vale a referência.
+   */
+  const [formaDoAjuste, setFormaDoAjuste] = useState<Medidas>(QUADRO_DA_CAPA);
   const [problema, setProblema] = useState<string | null>(null);
 
   // O endereço temporário da prévia é do navegador, e precisa ser devolvido.
@@ -106,12 +113,28 @@ export function CapaEditavel({
    */
   function reabrir() {
     if (!medidasAtuais) return;
+    /*
+     * O palpite inicial, só para o primeiro quadro desenhado: o
+     * `AjusteDeImagem` recebe a âncora e recalcula a posição **na forma
+     * que ele mediu**, que é a correção do PR H. Converter aqui com a
+     * constante de 7 por 1 era o que fazia a imagem pular ao reabrir.
+     */
     setEnquadramento(enquadramentoDaAncora(medidasAtuais, zoomAtual, ancoraAtual, QUADRO_DA_CAPA));
     setAjustando(true);
   }
 
   const emAjuste =
     nova ?? (medidasAtuais && capaAtual ? { url: capaAtual, medidas: medidasAtuais } : null);
+
+  /*
+   * A âncora do que está sendo ajustado agora, **na forma medida**. Ela
+   * serve a dois lugares que tinham de concordar: os campos escondidos e
+   * a prévia ao lado. Calculada uma vez, aqui, porque duas chamadas com
+   * quadros diferentes é exatamente o defeito que este PR corrige.
+   */
+  const ancoraDoAjuste = emAjuste
+    ? ancoraDoEnquadramento(emAjuste.medidas, enquadramento, formaDoAjuste)
+    : ancoraAtual;
 
   /*
    * O campo de arquivo fica **fora dos dois caminhos de desenho**, e só
@@ -156,7 +179,13 @@ export function CapaEditavel({
         url={emAjuste?.url ?? ""}
         medidas={emAjuste?.medidas ?? { largura: 1, altura: 1 }}
         inicial={enquadramento}
-        onMudar={setEnquadramento}
+        // A âncora é o valor guardado, e é ela que o ajuste recalcula na
+        // forma medida. Só na capa que já existe: a nova começa do centro.
+        ancoraInicial={nova ? undefined : ancoraAtual}
+        onMudar={(novo, forma) => {
+          setEnquadramento(novo);
+          setFormaDoAjuste(forma);
+        }}
         quadro={QUADRO_DA_CAPA}
         forma="retangulo"
         prefixo="capa"
@@ -189,9 +218,7 @@ export function CapaEditavel({
           coverUrl={nova?.url ?? capaAtual}
           medidas={nova?.medidas ?? medidasAtuais}
           zoom={nova ? enquadramento.zoom : zoomAtual}
-          ancora={
-            nova ? ancoraDoEnquadramento(nova.medidas, enquadramento, QUADRO_DA_CAPA) : ancoraAtual
-          }
+          ancora={nova ? ancoraDoAjuste : ancoraAtual}
           esquerda={esquerda}
           direita={direita}
           inferiorDireita={inferiorDireita}
@@ -287,9 +314,19 @@ export function CapaEditavel({
       */}
       {emAjuste ? (
         <>
+          {/*
+            **Sobe a âncora, não o deslocamento.** O deslocamento é fração
+            de um quadro, e só a tela sabe a forma dele — a capa tem altura
+            fixa e largura de janela. O servidor convertia com uma
+            constante de 7 por 1 que não era a forma de capa nenhuma.
+
+            A âncora não fala de quadro: ela diz que ponto da foto fica em
+            que ponto da capa, que é o que o `object-position` faz. Vale em
+            qualquer janela, e o servidor só precisa limitá-la a 0..1.
+          */}
           <input type="hidden" name="capaZoom" value={enquadramento.zoom} />
-          <input type="hidden" name="capaOx" value={enquadramento.ox} />
-          <input type="hidden" name="capaOy" value={enquadramento.oy} />
+          <input type="hidden" name="capaAncoraX" value={ancoraDoAjuste.x} />
+          <input type="hidden" name="capaAncoraY" value={ancoraDoAjuste.y} />
         </>
       ) : null}
 

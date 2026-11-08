@@ -1048,3 +1048,91 @@
 body[data-painel="aberto"] [data-resumo] {
   display: none;
 }
+
+/*
+ * O controle deslizante do Hub (`design/components/controle-deslizante.tsx`).
+ *
+ * Mora aqui, fora do Tailwind, porque o botão e a trilha de um
+ * `<input type="range">` só existem em pseudo-elementos com prefixo de
+ * fabricante — `::-webkit-slider-thumb`, `::-moz-range-thumb` — e nenhum
+ * utilitário os alcança. É a mesma exceção que a forma do perfil abre.
+ *
+ * O elemento continua sendo um `range` nativo de propósito: ele traz as
+ * setas, `Home`, `End`, o anúncio do valor ao leitor de tela e o arrasto
+ * que segue o ponteiro fora do elemento. Uma barra feita de `<div>` custa
+ * tudo isso e costuma sair errada.
+ *
+ * Toda medida e toda cor vêm dos tokens: `--spacing-sliderTrack`,
+ * `--spacing-sliderKnob`, `--color-ink`, `--color-line`, `--color-paper`.
+ */
+.hub-deslizante {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  height: var(--spacing-sliderKnob);
+  cursor: pointer;
+}
+
+.hub-deslizante::-webkit-slider-runnable-track {
+  height: var(--spacing-sliderTrack);
+  border-radius: var(--radius-pill);
+  background: var(--color-line);
+}
+
+.hub-deslizante::-moz-range-track {
+  height: var(--spacing-sliderTrack);
+  border-radius: var(--radius-pill);
+  background: var(--color-line);
+}
+
+.hub-deslizante::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: var(--spacing-sliderKnob);
+  height: var(--spacing-sliderKnob);
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
+  border: 2px solid var(--color-paper);
+  /* Centra o botão na trilha: metade da diferença entre os dois. */
+  margin-top: calc((var(--spacing-sliderTrack) - var(--spacing-sliderKnob)) / 2);
+}
+
+.hub-deslizante::-moz-range-thumb {
+  width: var(--spacing-sliderKnob);
+  height: var(--spacing-sliderKnob);
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
+  border: 2px solid var(--color-paper);
+}
+
+.hub-deslizante:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+/*
+ * Sobre a imagem, no ajuste: a trilha e o botão trocam de lado, senão o
+ * `ink` do botão desaparece numa foto escura e o `line` da trilha numa
+ * clara.
+ */
+.hub-deslizante-escuro::-webkit-slider-runnable-track {
+  background: var(--color-paper);
+}
+
+.hub-deslizante-escuro::-moz-range-track {
+  background: var(--color-paper);
+}
+
+.hub-deslizante-escuro::-webkit-slider-thumb {
+  background: var(--color-paper);
+  border-color: var(--color-ink);
+}
+
+.hub-deslizante-escuro::-moz-range-thumb {
+  background: var(--color-paper);
+  border-color: var(--color-ink);
+}
+
+.hub-deslizante-escuro:focus-visible {
+  outline-color: var(--color-paper);
+}
