@@ -23,12 +23,7 @@ import {
   trocarCapa,
   type EnquadramentoDaCapa,
 } from "@/lib/data/comunidades";
-import {
-  ImagemRecusada,
-  TAMANHO_MAXIMO,
-  TAMANHO_MAXIMO_EM_MB,
-  dimensoesDaImagem,
-} from "@/lib/midia/imagem";
+import { ImagemRecusada, TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB } from "@/lib/midia/imagem";
 import { ZOOM_MAXIMO, ZOOM_MINIMO, ancoraValida, type Medidas } from "@/lib/midia/enquadramento";
 import { apagarImagem, guardarImagem } from "@/lib/midia/deposito";
 import { getViewer } from "@/lib/auth/session";
@@ -111,12 +106,15 @@ export async function criarComunidade(
   if (temCapa) {
     const bytes = new Uint8Array(await arquivo.arrayBuffer());
     try {
-      capa = await guardarImagem(bytes, "capas");
+      const guardada = await guardarImagem(bytes, "capas");
+      capa = guardada.caminho;
+      // Medidas de quem guardou: o depósito reduz a imagem, então as da
+      // foto que chegou já não descrevem o arquivo que existe.
+      enquadramento = enquadramentoDaCapa(formulario, guardada.medidas);
     } catch (erro) {
       if (erro instanceof ImagemRecusada) return { erro: erro.motivo };
       throw erro;
     }
-    enquadramento = enquadramentoDaCapa(formulario, dimensoesDaImagem(bytes));
   }
 
   let slug: string;
@@ -236,9 +234,9 @@ export async function trocarCapaDaComunidade(
 
   const bytes = new Uint8Array(await arquivo.arrayBuffer());
 
-  let caminho: string;
+  let guardada;
   try {
-    caminho = await guardarImagem(bytes, "capas");
+    guardada = await guardarImagem(bytes, "capas");
   } catch (erro) {
     if (erro instanceof ImagemRecusada) return { erro: erro.motivo };
     throw erro;
@@ -247,10 +245,11 @@ export async function trocarCapaDaComunidade(
   const { anteriorParaApagar } = await trocarCapa(
     viewer,
     comunidade.id,
-    caminho,
-    // Medidas dos bytes, nunca do formulário: é o que impede alguém de
-    // mandar um tamanho mentiroso e deslocar a capa para fora do quadro.
-    enquadramentoDaCapa(formulario, dimensoesDaImagem(bytes)),
+    guardada.caminho,
+    // Medidas de quem guardou, nunca do formulário: é o que impede alguém
+    // de mandar um tamanho mentiroso e deslocar a capa para fora do
+    // quadro. E tem de ser as do arquivo reduzido, que é o que existe.
+    enquadramentoDaCapa(formulario, guardada.medidas),
   );
   await apagarImagem(anteriorParaApagar);
 

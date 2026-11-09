@@ -237,6 +237,28 @@ Quatro coisas precisam estar de pé ao mesmo tempo, e a falta de qualquer uma d�
 
 E a assinatura não reenvia o que passou: ao chegar em `SUBSCRIBED`, a tela busca de novo o que o servidor tem, senão a mensagem enviada entre abrir e assinar some até alguém recarregar.
 
+**A imagem é reduzida ao tamanho em que o Hub a desenha, e só isso é
+guardado.** Até 8 de novembro de 2026 a foto ia para o depósito como veio,
+até 4 MB, e o arquivo inteiro era baixado para pintar um avatar de 30 px —
+uma lista de 50 membros podia custar 200 MB. `reduzirImagem`
+([lib/midia/reduzir.ts](lib/midia/reduzir.ts)) corta pelo maior lado, por
+pasta: capa 2000 px, contribuição 1600, perfil 512. Tudo sai **WebP**.
+
+A ordem é lei: **conferir o tipo pelos bytes e tirar os metadados vem
+antes de reduzir.** Invertida, o conferidor olharia o WebP que o `sharp`
+acabou de gerar — que sempre passa — e a lista de tipos aceitos sumiria em
+silêncio, com o `sharp` abrindo SVG e TIFF numa boa.
+
+E **`guardarImagem` devolve as medidas**, não só o caminho: a imagem
+guardada não é a que chegou, então medir os bytes enviados e gravar aquilo
+no banco reservaria espaço para um arquivo que não existe mais.
+
+**Assinar endereço é ida à rede, e vai em lote.** Uma lista de 20 membros
+fazia 20 pedidos ao depósito. `enderecosDeMidia` usa `createSignedUrls` e
+faz um só — casando **pelo caminho**, nunca pela posição, porque a ordem da
+resposta não é promessa de ninguém e trocaria a foto de uma pessoa pela de
+outra.
+
 **O depósito de imagens é privado, e só o servidor fala com ele.** Nada nele é alcançável por endereço direto: a tela recebe uma URL assinada de validade curta, gerada na hora de desenhar. Não existe política de acesso para `authenticated` no Storage, e isso é **proposital** — é o que garante que nenhuma imagem entra sem passar pela conferência de tipo pelos bytes e pela remoção dos metadados de localização ([lib/midia/imagem.ts](lib/midia/imagem.ts)). Acrescentar uma política ali abriria um caminho que contorna a limpeza.
 
 **Componente de cliente não importa `lib/data/`.** Mesmo indiretamente: um reexport inocente arrasta o Prisma e o `pg` para o pacote do navegador, e o build quebra com _"Can't resolve 'dns'"_, que não diz nada sobre a causa. Constantes que a tela e a camada de dados compartilham moram em `features/<nome>/shared.ts`.

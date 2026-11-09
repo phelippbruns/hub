@@ -41,3 +41,48 @@ export function problemaNaImagem(arquivo: File): string | null {
 
   return null;
 }
+
+/**
+ * As três pastas do depósito. Cada uma tem um tamanho de tela, e por isso um
+ * tamanho máximo de arquivo diferente.
+ */
+export type PastaDeImagem = "respostas" | "capas" | "perfis";
+
+/**
+ * O maior lado que o Hub guarda, por pasta. Em pixels.
+ *
+ * **Cada número é o maior tamanho em que a imagem aparece, com folga para
+ * tela de alta densidade e para aproximação.** Guardar além disso é baixar
+ * bytes que ninguém vai ver.
+ *
+ * | Pasta | Onde aparece | Por que este número |
+ * | --- | --- | --- |
+ * | `capas` | 1132 × 230 na capa da comunidade | 2000 cobre tela retina e sobra para a aproximação do enquadramento |
+ * | `respostas` | 213 × 213 na lista, **tela cheia** ao clicar | 1600 é o que a tela cheia pede num monitor comum |
+ * | `perfis` | 125 px no perfil, 30 px nas listas | 512 cobre retina e a aproximação de RN30 |
+ *
+ * Medido em 8 de novembro de 2026 com uma foto de 4032 × 3024 e 4,54 MB:
+ * vira 315 KB como capa, 148 KB como contribuição e 12 KB como foto de
+ * perfil.
+ */
+export function ladoMaximo(pasta: PastaDeImagem): number {
+  // `switch` e não um objeto indexado: o lint do Hub barra indexar por
+  // variável (`security/detect-object-injection`), e com razão em geral.
+  switch (pasta) {
+    case "capas":
+      return 2000;
+    case "respostas":
+      return 1600;
+    case "perfis":
+      return 512;
+  }
+}
+
+/**
+ * 80 numa escala até 100.
+ *
+ * É o ponto em que o WebP deixa de ser distinguível de perto numa foto e
+ * ainda cai bastante de tamanho. Acima de 85 o arquivo cresce depressa sem
+ * que se veja diferença.
+ */
+export const QUALIDADE = 80;

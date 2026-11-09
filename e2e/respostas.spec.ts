@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
 import {
@@ -139,20 +140,42 @@ test.describe("responder", () => {
 });
 
 /**
- * Um JPEG de verdade, com coordenadas dentro.
+ * Um JPEG **de verdade**, com coordenadas dentro.
  *
- * Pequeno e montado à mão: o que importa é que o arquivo seja um JPEG
- * válido o bastante para passar pela conferência de bytes, e que carregue
- * um bloco EXIF para a limpeza ter o que tirar.
+ * Era montado à mão até 8 de novembro de 2026: bytes suficientes para
+ * passar pela conferência de assinatura, mas que decodificador nenhum
+ * abria. Deixou de servir quando o depósito passou a **reduzir** a imagem
+ * — reduzir exige decodificar, e um arquivo que não abre passou a ser
+ * recusado no envio, que é o comportamento certo (ver o teste logo
+ * abaixo).
+ *
+ * Agora é um JPEG completo com um bloco GPS, para a limpeza ter o que
+ * tirar e para o navegador conseguir desenhar o que sobrou.
  */
-function jpegComLocalizacao(): Buffer {
-  const exif = Buffer.from("Exif\0\0GPSLatitude -23.5505 GPSLongitude -46.6333", "latin1");
-  const tamanho = exif.length + 2;
+async function jpegComLocalizacao(): Promise<Buffer> {
+  return sharp({ create: { width: 300, height: 200, channels: 3, background: "#775533" } })
+    .withExif({
+      IFD0: { Make: "Hub" },
+      IFD3: {
+        GPSLatitudeRef: "S",
+        GPSLatitude: "23/1 33/1 0/1",
+        GPSLongitudeRef: "W",
+        GPSLongitude: "46/1 38/1 0/1",
+      },
+    })
+    .jpeg()
+    .toBuffer();
+}
 
+/**
+ * Um arquivo que **parece** JPEG nos primeiros bytes e não é imagem nenhuma.
+ *
+ * É o antigo fixture, promovido a caso de teste próprio: ele passa pela
+ * conferência de assinatura e morre no decodificador.
+ */
+function jpegQueNaoAbre(): Buffer {
   return Buffer.concat([
     Buffer.from([0xff, 0xd8]),
-    Buffer.from([0xff, 0xe1, (tamanho >> 8) & 0xff, tamanho & 0xff]),
-    exif,
     Buffer.from([0xff, 0xdb, 0x00, 0x04, 0x11, 0x22]),
     Buffer.from([0xff, 0xda, 0x00, 0x03, 0x01, 0xaa, 0xbb, 0xcc]),
   ]);
@@ -167,7 +190,7 @@ test.describe("imagem na resposta", () => {
     await campoDeImagemDaContribuicao(page).setInputFiles({
       name: "foto.jpg",
       mimeType: "image/jpeg",
-      buffer: jpegComLocalizacao(),
+      buffer: await jpegComLocalizacao(),
     });
     await botaoDeContribuir(page).click();
 
@@ -185,21 +208,55 @@ test.describe("imagem na resposta", () => {
       `SELECT media_url, media_kind FROM answers WHERE text = 'olha a foto' AND deleted_at IS NULL`,
     );
     expect(linha?.media_kind, "a imagem não chegou ao depósito").toBe("image");
-    expect(linha?.media_url).toMatch(/^respostas\/[0-9a-f-]+\.jpg$/);
+    // `.webp`: o depósito reduz e converte tudo para um formato só.
+    expect(linha?.media_url).toMatch(/^respostas\/[0-9a-f-]+\.webp$/);
 
     /*
-     * **E a tela mostra "Imagem indisponível"** — de propósito.
-     *
-     * `jpegComLocalizacao()` monta um JPEG **falso**: bytes suficientes
-     * para o servidor reconhecer o tipo e tirar a localização, mas que
-     * nenhum navegador decodifica. Até 7 de novembro de 2026 o teste
-     * procurava a `<img>` e passava, porque elemento de imagem quebrada
-     * continua na árvore; o componente novo troca por um aviso, e o
-     * teste passou a dizer a verdade.
-     *
-     * Dois pássaros: isto também é o item 9.6, o estado de falha.
+     * **E a imagem aparece.** Até 8 de novembro de 2026 este teste esperava
+     * "Imagem indisponível", porque o arquivo enviado era um JPEG falso que
+     * o navegador não desenhava. Agora o arquivo é de verdade, então a
+     * barreira certa é a imagem **existindo** — senão o teste voltaria a
+     * passar com a mídia quebrada.
      */
-    await expect(page.getByText("Imagem indisponível")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^Abrir a imagem/ }),
+      "a imagem guardada deveria abrir no navegador",
+    ).toBeVisible();
+  });
+
+  test("arquivo que parece imagem e não abre é recusado no envio, não publicado quebrado", async ({
+    page,
+  }) => {
+    /*
+     * **Por que isto é melhor do que publicar.** Antes, um arquivo com a
+     * assinatura certa e conteúdo ilegível era guardado, e a contribuição
+     * nascia mostrando "Imagem indisponível" para sempre — contribuição não
+     * se edita (RN14), então o engano era definitivo. Agora ele morre no
+     * envio, com uma frase que diz o que fazer.
+     */
+    await entrarNoApp(page, "ilegivel");
+    await meuTopico(page, "Arquivo Ruim");
+
+    await campoDeContribuicao(page).fill("tentativa com arquivo ruim");
+    await campoDeImagemDaContribuicao(page).setInputFiles({
+      name: "disfarce.jpg",
+      mimeType: "image/jpeg",
+      buffer: jpegQueNaoAbre(),
+    });
+    await botaoDeContribuir(page).click();
+
+    await expect(alerta(page)).toContainText(/não foi possível ler esta imagem/i);
+
+    /*
+     * E nada foi publicado. A asserção positiva vem **antes** desta: o
+     * alerta acima é o que garante que a página já respondeu, senão
+     * "nenhuma contribuição" seria satisfeita pela tela ainda vazia.
+     */
+    const [linha] = await consultar<{ total: string }>(
+      `SELECT count(*)::text AS total FROM answers
+        WHERE text = 'tentativa com arquivo ruim' AND deleted_at IS NULL`,
+    );
+    expect(linha?.total).toBe("0");
   });
 
   test("RN13: só a imagem já é resposta, e ela aparece dentro do cartão", async ({ page }) => {
@@ -395,7 +452,7 @@ test.describe("GIF na resposta", () => {
     await campoDeImagemDaContribuicao(page).setInputFiles({
       name: "foto.jpg",
       mimeType: "image/jpeg",
-      buffer: jpegComLocalizacao(),
+      buffer: await jpegComLocalizacao(),
     });
 
     // Com imagem escolhida, o GIF fica desativado — desativar explica
