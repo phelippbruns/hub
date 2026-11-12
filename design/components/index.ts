@@ -38,7 +38,7 @@ export {
   EmptyState,
   EndOfList,
 } from "./states";
-export { NavRail } from "./nav-rail";
+export { Eixo, NavRail, Rotulo } from "./nav-rail";
 export { AppShell, ContentColumn, PageTitle } from "./app-shell";
 export { Segmented, type OpcaoSegmentada } from "./segmented";
 export { RadioGroup, type OpcaoDeEscolha } from "./radio-group";
