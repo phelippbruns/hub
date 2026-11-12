@@ -6,11 +6,12 @@ import { fundoDaPagina } from "./fundos";
 import { AcoesDoPerfil } from "./acoes-do-perfil";
 import { PilulaDeStatus } from "./status";
 import { Colecao, type AgrupamentoDaColecao } from "./colecao";
+import { AbaBlog } from "./blog/lista";
 import { comunidadesDoPerfil, perfilNaTela, respostasDoPerfil } from "@/lib/data/perfil";
 import { getCollection } from "@/lib/data/follows";
 import { getViewer } from "@/lib/auth/session";
 
-type Aba = "contribuicoes" | "comunidades" | "colecao";
+type Aba = "blog" | "contribuicoes" | "comunidades" | "colecao";
 
 /**
  * A tela de perfil, própria ou de outra pessoa (telas 21 e 24).
@@ -35,12 +36,26 @@ export async function TelaDePerfil({
   const perfil = await perfilNaTela(viewer, handle);
 
   const base = perfil.souEu ? "/perfil" : `/${perfil.handle}`;
+  /*
+   * **Blog é o padrão**, inclusive em perfil sem post nenhum (decisão do PO
+   * em 9 de novembro de 2026).
+   *
+   * A Coleção não é mais aba — ela vive no menu de três pontos do dono —,
+   * mas `?aba=colecao` **continua aceito**: endereço que já existiu nunca
+   * vira 404, e é por ele que o item do menu abre. Para visitante ela cai
+   * no padrão, como qualquer valor desconhecido.
+   */
   const abaAtual: Aba =
-    aba === "comunidades"
-      ? "comunidades"
-      : aba === "colecao" && perfil.souEu
-        ? "colecao"
-        : "contribuicoes";
+    aba === "contribuicoes"
+      ? "contribuicoes"
+      : aba === "comunidades"
+        ? "comunidades"
+        : aba === "colecao" && perfil.souEu
+          ? "colecao"
+          : "blog";
+
+  /* A Coleção não tem aba, então a fila fica no Blog enquanto ela está aberta. */
+  const abaDaFila = abaAtual === "colecao" ? "blog" : abaAtual;
 
   // "universo" sumiu na F12.1; endereço antigo com ?ordem=universo cai no
   // padrão em vez de quebrar.
@@ -95,7 +110,9 @@ export async function TelaDePerfil({
           }
         />
 
-        <AbasDoPerfil base={base} atual={abaAtual} comColecao={perfil.souEu} />
+        <AbasDoPerfil base={base} atual={abaDaFila} />
+
+        {abaAtual === "blog" ? <AbaBlog souEu={perfil.souEu} /> : null}
 
         {abaAtual === "contribuicoes" ? (
           <AbaContribuicoes

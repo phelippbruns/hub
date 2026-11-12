@@ -9,23 +9,23 @@ import { Tabs } from "@/design/components";
  * Na URL e não em estado local, como a ordem na comunidade e no Universo: o
  * endereço fica compartilhável e o botão voltar funciona.
  */
-export function AbasDoPerfil({
-  base,
-  atual,
-  comColecao,
-}: {
-  base: string;
-  atual: string;
-  comColecao: boolean;
-}) {
+export function AbasDoPerfil({ base, atual }: { base: string; atual: string }) {
   const router = useRouter();
   const params = useSearchParams();
 
+  /*
+   * Blog primeiro, decisão do PO em 9 de novembro de 2026 — e é a aba que
+   * abre, inclusive em perfil sem post nenhum.
+   *
+   * A Coleção **saiu daqui** e foi para o menu de três pontos do dono. Ela
+   * era a quarta aba e só existia para uma pessoa; a fila de abas é o que
+   * descreve o perfil para quem chega, e um item que só o dono vê não
+   * descreve nada para ninguém.
+   */
   const abas = [
+    { id: "blog", label: "Blog" },
     { id: "contribuicoes", label: "Contribuições" },
     { id: "comunidades", label: "Comunidades" },
-    // RN27: a Coleção é privada. Para visitante a aba nem existe.
-    ...(comColecao ? [{ id: "colecao", label: "Coleção" }] : []),
   ];
 
   return (

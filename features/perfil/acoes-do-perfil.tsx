@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { Button, ConfirmSheet, FollowButton, MenuSuspenso } from "@/design/components";
 import {
   CabinNavIcon,
@@ -20,10 +20,17 @@ import { abrirConversa, alternarBloqueio, alternarSeguir, alternarSilencio } fro
  * `aria-label`**: sem texto ao lado, o rótulo é a única coisa que diz o que
  * o botão faz.
  *
- * Para o dono é um só, a engrenagem, que abre Editar perfil. Ela toma o
- * lugar dos dois links largos que havia aqui ("Editar perfil" e
- * "Configurações"); `/configuracoes` continua a um clique, na engrenagem do
- * pé da barra lateral, onde moram conta, privacidade e notificações.
+ * Para o dono são dois: o "..." e a engrenagem, que abre Editar perfil. A
+ * engrenagem tomou o lugar dos dois links largos que havia aqui ("Editar
+ * perfil" e "Configurações"); `/configuracoes` continua a um clique, na
+ * engrenagem do pé da barra lateral, onde moram conta, privacidade e
+ * notificações.
+ *
+ * **O "..." do dono nasceu em 12 de novembro de 2026**, para a Coleção. Ela
+ * era uma aba, e a aba Blog tomou o lugar dela na fila — três abas são o
+ * que cabe. A Coleção não virou item da engrenagem porque lá moram
+ * configurações, e a Coleção é conteúdo: são os tópicos que a pessoa
+ * guardou.
  */
 export function AcoesDoPerfil({
   souEu,
@@ -49,12 +56,56 @@ export function AcoesDoPerfil({
   const [erroDaCabine, setErroDaCabine] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
   const idDoMenu = useId();
+  const grupoDoMenu = useRef<HTMLDivElement>(null);
 
   if (souEu) {
     return (
-      <BotaoDoCanto como="link" href="/perfil/editar" rotulo="Editar perfil" tom="claro">
-        <SettingsIcon decorative className="size-icon" />
-      </BotaoDoCanto>
+      <div className="flex items-start gap-2">
+        {/* O `relative` é a âncora do menu, e precisa envolver o botão —
+            numa caixa vazia ao lado, o menu sobe em vez de descer. */}
+        <div className="relative" ref={grupoDoMenu}>
+          <BotaoDoCanto
+            como="botao"
+            rotulo="Mais opções do seu perfil"
+            tom="claro"
+            expandido={aberto === "menu"}
+            controla={idDoMenu}
+            onClick={() => setAberto((a) => (a === "menu" ? "nenhum" : "menu"))}
+          >
+            <MoreOptionsIcon decorative className="size-icon" />
+          </BotaoDoCanto>
+
+          <div id={idDoMenu}>
+            <MenuSuspenso
+              titulo="Mais opções do seu perfil"
+              aberto={aberto === "menu"}
+              onFechar={() => setAberto("nenhum")}
+              /* Sem a âncora, clicar no "..." de novo nunca fecha: o
+                 `mousedown` cai fora da caixa, o menu fecha, e o `click` do
+                 próprio botão chega depois e o reabre na mesma batida. */
+              ancora={grupoDoMenu}
+            >
+              {/*
+                RN27: a Coleção é privada, e por isso ela só existe aqui.
+                Continua em `?aba=colecao` — endereço que já existiu nunca
+                vira 404, e quem guardou o link continua chegando.
+              */}
+              <Link href="/perfil?aba=colecao" onClick={() => setAberto("nenhum")}>
+                <Button variant="secondary" size="sm" className="w-full">
+                  Coleção
+                </Button>
+              </Link>
+              <p className="text-caption text-inkMuted">
+                Os tópicos que você segue. Só você vê esta lista.
+              </p>
+            </MenuSuspenso>
+          </div>
+        </div>
+
+        <BotaoDoCanto como="link" href="/perfil/editar" rotulo="Editar perfil" tom="claro">
+          <SettingsIcon decorative className="size-icon" />
+        </BotaoDoCanto>
+      </div>
     );
   }
 
