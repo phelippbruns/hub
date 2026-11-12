@@ -151,15 +151,14 @@ export default async function InicioPage() {
       */}
       {seguidos.length > 0 ? (
         <>
-          <SectionTitle
-            acao={
-              <Link href="/perfil" className="text-caption text-inkMuted underline">
-                Ver coleção
-              </Link>
-            }
-          >
-            Tópicos que você segue
-          </SectionTitle>
+          {/*
+            **Sem "Ver coleção"** (pedido do PO, 12 de novembro de 2026).
+            Ele apontava para `/perfil` puro — nem para a Coleção —, e
+            desde 12 de novembro a Coleção nem é mais aba: ela mora no menu
+            de três pontos do perfil. O link prometia um destino que não
+            existia mais.
+          */}
+          <SectionTitle>Tópicos que você segue</SectionTitle>
           {seguidos.map((topico) => (
             <HomeRow
               key={topico.topicId}
