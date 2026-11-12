@@ -5,6 +5,7 @@
  * é conveniência; isto é a regra.
  */
 import { z } from "zod";
+import { TIPOS_DE_STATUS, limiteDoStatus } from "@/lib/status";
 import { ZOOM_MAXIMO, ZOOM_MINIMO } from "@/lib/midia/enquadramento";
 import { acharLink, contemLink } from "@/lib/texto/links";
 
@@ -454,3 +455,35 @@ export const inviteToCabinSchema = z.object({
  * no lugar do id chegaria ao Prisma e a mensagem de erro seria dele.
  */
 export const idDeContribuicaoSchema = z.string().uuid();
+
+/**
+ * RN40: o status do perfil, validado no servidor.
+ *
+ * Os tipos e os limites moram em `lib/status.ts`, que a tela também lê — um
+ * componente de cliente não pode importar daqui, porque isto arrasta o
+ * Prisma para o pacote do navegador. Duas listas diriam números diferentes
+ * no dia em que uma mudasse.
+ *
+ * Validar o limite **depois** de saber o tipo é o que exige o
+ * `superRefine`: um `max(60)` solto deixaria "Ouvindo " mais 60 caracteres
+ * passar, e a pílula estouraria a linha no perfil de todo mundo.
+ */
+export const definirStatusSchema = z
+  .object({
+    tipo: z.enum(TIPOS_DE_STATUS),
+    texto: z.string().trim().min(1, "Escreva o status"),
+  })
+  .superRefine((valor, ctx) => {
+    const limite = limiteDoStatus(valor.tipo);
+    if (valor.texto.length > limite) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["texto"],
+        message: `O status passa de ${limite} caracteres`,
+      });
+    }
+    // RN16 vale aqui como em todo texto de gente.
+    if (contemLink(valor.texto)) {
+      ctx.addIssue({ code: "custom", path: ["texto"], message: "RN16: links não são aceitos" });
+    }
+  });

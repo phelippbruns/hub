@@ -33,6 +33,7 @@ export function ProfileHeader({
   seguidores,
   seguidoresHref,
   seguindo,
+  status,
   links = [],
   contribuicoes,
   comunidades,
@@ -56,6 +57,15 @@ export function ProfileHeader({
    */
   seguidoresHref?: string;
   seguindo?: ReactNode;
+  /**
+   * RN40: a pílula de status, logo abaixo dos seguidores.
+   *
+   * Dentro desta coluna, e não solta abaixo do bloco inteiro: assim ela
+   * alinha com o @ e com os seguidores, e não com a borda esquerda da
+   * foto. Quem não tem status manda `null` e nada ocupa o lugar — perfil
+   * sem status tem de parecer um perfil, não um perfil com campo vazio.
+   */
+  status?: ReactNode;
   links?: LinkDoPerfil[];
   contribuicoes: number;
   comunidades: number;
@@ -105,6 +115,8 @@ export function ProfileHeader({
               {seguindo}
             </span>
           )}
+
+          {status}
         </div>
       </div>
 

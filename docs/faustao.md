@@ -235,6 +235,41 @@ certa faz.
 
 ---
 
+### "O visitante não vê" passou olhando a tela de entrar
+
+*12 de novembro de 2026, Bloco 2 do Blog e Status.*
+
+Escrevi uma jornada para garantir que o convite "Definir status" só
+aparece para o dono do perfil. Ela fazia `clearCookies()`, abria
+`/<handle>` e conferia que o botão não estava lá. Passou.
+
+*Por que passou:* **o perfil não é rota pública.** Sem sessão, o proxy
+manda para `/entrar` — e na tela de entrar não existe botão de status
+nenhum. O teste media a ausência de um botão numa página que não era a
+página. Verde, e guardando nada.
+
+O irmão dele, escrito na mesma leva, reprovou por isso mesmo e foi quem
+me avisou: ele procurava um texto **positivo** ("Torto Arado") e não o
+achou. A assimetria é a lição inteira — a asserção positiva falha quando
+a página está errada, a negativa não.
+
+*Como resolvi:* visitante no Hub é **outra pessoa com conta**, não
+anônimo. A jornada ganhou `trocarDePessoa()`, e toda conferência de
+ausência passou a vir depois de uma positiva que prova que a tela certa
+carregou: `expect(heading com o @ da pessoa).toBeVisible()`.
+
+🔒 **Barrado** — `e2e/status.spec.ts`, visto reprovar com a regra
+`if (!souEu) return null` removida.
+
+*A lição:* a regra do `toHaveCount(0)` já estava escrita no CLAUDE.md, e
+eu a cumpri **no lugar errado** — pus a asserção positiva na metade do
+teste que olhava o dono, não na que olhava o visitante. **A âncora
+positiva pertence a cada troca de contexto**, não a cada teste: toda vez
+que a jornada muda de pessoa ou de página, ela precisa provar de novo
+onde está.
+
+---
+
 ### O teste que contava o certo e media o errado
 
 *8 de novembro de 2026, Bloco C.*

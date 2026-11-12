@@ -333,3 +333,56 @@ export function PlaceIcon(props: IconProps) {
     </IconBase>
   );
 }
+
+/**
+ * Os cinco tipos de status (RN40).
+ *
+ * Cada tipo tem o seu, e não um só genérico: a pílula é pequena e o ícone é
+ * a primeira coisa que se lê nela. Um ícone igual para "Ouvindo" e
+ * "Trabalhando em" obrigaria a ler o texto para saber o que é.
+ */
+export function HeadphonesIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 15v-3a8 8 0 0 1 16 0v3" />
+      <rect x="3" y="14" width="4" height="7" rx="1.5" />
+      <rect x="17" y="14" width="4" height="7" rx="1.5" />
+    </IconBase>
+  );
+}
+
+export function BookIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" />
+      <path d="M4 21V5" />
+    </IconBase>
+  );
+}
+
+export function ScreenIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="3" y="6" width="18" height="12" rx="2" />
+      <path d="M9 3l3 3 3-3" />
+    </IconBase>
+  );
+}
+
+export function WorkIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M9 7V4h6v3M3 12h18" />
+    </IconBase>
+  );
+}
+
+export function SparkIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 3v4M12 17v4M3 12h4M17 12h4" />
+      <path d="M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6" />
+    </IconBase>
+  );
+}

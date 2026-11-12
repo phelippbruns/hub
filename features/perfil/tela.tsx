@@ -4,6 +4,7 @@ import { AbasDoPerfil } from "./abas";
 import { AbaComunidades, AbaContribuicoes } from "./corpo";
 import { fundoDaPagina } from "./fundos";
 import { AcoesDoPerfil } from "./acoes-do-perfil";
+import { PilulaDeStatus } from "./status";
 import { Colecao, type AgrupamentoDaColecao } from "./colecao";
 import { comunidadesDoPerfil, perfilNaTela, respostasDoPerfil } from "@/lib/data/perfil";
 import { getCollection } from "@/lib/data/follows";
@@ -67,6 +68,7 @@ export async function TelaDePerfil({
           comunidades={perfil.comunidades}
           seguidores={perfil.seguidores}
           seguidoresHref={perfil.souEu ? "/perfil/seguindo?aba=seguidores" : undefined}
+          status={<PilulaDeStatus status={perfil.status} souEu={perfil.souEu} />}
           seguindo={
             /*
               RN27: só o dono vê, e só para ele a lista abre. Continua sendo
