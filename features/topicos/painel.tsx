@@ -11,7 +11,8 @@ import {
   RoundIconButton,
 } from "@/design/components";
 import { CloseIcon, MoreOptionsIcon, ShareIcon } from "@/design/icons";
-import { AlcaDoPainel } from "./alca";
+import { AlcaDoPainel } from "@/design/components";
+import { COOKIE_DA_LARGURA, LARGURA_MINIMA } from "./shared";
 import { apagarTopico } from "./actions";
 import { Compartilhar, type PessoaParaCompartilhar } from "@/features/convite/compartilhar";
 
@@ -143,7 +144,13 @@ export function PainelDoTopico({
       */
       className="bg-paper border-line sticky top-0 z-20 flex max-h-screen shrink-0 flex-col gap-3 overflow-y-auto border-l p-3"
     >
-      <AlcaDoPainel largura={largura} onLargura={setLargura} />
+      <AlcaDoPainel
+        largura={largura}
+        onLargura={setLargura}
+        minimo={LARGURA_MINIMA}
+        cookie={COOKIE_DA_LARGURA}
+        rotulo="Largura do tópico"
+      />
 
       <div className="flex items-center gap-2">
         <span className="min-w-0 flex-1">
