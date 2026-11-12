@@ -22,6 +22,8 @@ export const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: u
 const TABLES = [
   "auth_attempts",
   "analytics_events",
+  "posts",
+  "profile_statuses",
   "notifications",
   "moderation_actions",
   "moderator_invites",

@@ -93,6 +93,36 @@ enum MediaKind {
   @@map("media_kind")
 }
 
+/// Quem vê um post do blog.
+///
+/// `circle` é "quem eu sigo e também me segue". Ele existe na coluna desde
+/// o primeiro dia e **não é oferecido na tela**: o Círculo não é conceito do
+/// Hub ainda, e o PO tirou de escopo em 9 de novembro de 2026. O servidor
+/// recusa qualquer valor diferente de `everyone`. Está aqui para o dia em
+/// que entrar não custar migração de dados.
+enum PostAudience {
+  everyone
+  circle
+
+  @@map("post_audience")
+}
+
+/// RN40: os cinco tipos de status do perfil.
+///
+/// Os quatro primeiros aparecem com prefixo na tela ("Ouvindo Cascade"), e
+/// por isso cabem em 40 caracteres. `custom` não tem prefixo e vai até 60 —
+/// o limite é do schema Zod, não do banco, que guarda os dois na mesma
+/// coluna de 60.
+enum StatusKind {
+  listening
+  reading
+  watching
+  working
+  custom
+
+  @@map("status_kind")
+}
+
 /// RN22: o convite fica aberto até ser aceito ou recusado. A recusa é
 /// silenciosa; quem convidou pode cancelar.
 enum InviteStatus {
@@ -275,6 +305,8 @@ model Profile {
   attendances        EventAttendance[]
   notifications      Notification[]
   analyticsEvents    AnalyticsEvent[]
+  posts              Post[]
+  statuses           ProfileStatus[]
 
   @@map("profiles")
 }
@@ -938,4 +970,75 @@ model AnalyticsEvent {
 
   @@index([name, createdAt])
   @@map("analytics_events")
+}
+
+/// O post do blog do perfil.
+///
+/// É o primeiro conteúdo do Hub que aceita **texto formatado**. O corpo é o
+/// documento JSON do Tiptap, validado no servidor contra uma lista fechada
+/// de nós, e desenhado como elementos React — **nunca como HTML** (regra de
+/// segurança 8). Guardar HTML e limpá-lo depois seria apostar numa
+/// biblioteca; não gerar HTML é não precisar apostar.
+///
+/// `excerpt` e `readMinutes` são derivados do corpo **no servidor**. Deixar
+/// a tela calcular daria dois resumos diferentes para o mesmo post, e o da
+/// lista é lido por quem ainda não abriu nada.
+///
+/// RN41: o corpo aceita endereços, ao contrário do resto do Hub (RN16).
+/// Post é texto de autor, não resposta de conversa — a RN16 existe para
+/// barrar spam em contribuição.
+model Post {
+  id          String       @id @default(uuid()) @db.Uuid
+  /// Nulo quando a conta é apagada: o post some junto, mas por `deletedAt`.
+  authorId    String?      @map("author_id") @db.Uuid
+  title       String       @db.VarChar(100)
+  /// Preenchido pelo gatilho `posts_set_slug`, único por autor.
+  slug        String       @default("") @db.VarChar(120)
+  /// Documento do Tiptap. Validado por `documentoDoPostSchema`.
+  body        Json
+  /// Texto puro das primeiras linhas, gerado no servidor.
+  excerpt     String       @default("") @db.VarChar(200)
+  readMinutes Int          @default(1) @map("read_minutes")
+  coverUrl    String?      @map("cover_url")
+  /// As medidas da capa **já reduzida** — sem elas a lista pula quando a
+  /// imagem chega, como acontecia na contribuição.
+  coverWidth  Int?         @map("cover_width")
+  coverHeight Int?         @map("cover_height")
+  audience    PostAudience @default(everyone)
+  /// RN39: nulo é "não fixado". A ordem dos fixados é a ordem desta data.
+  pinnedAt    DateTime?    @map("pinned_at") @db.Timestamptz(6)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime?    @map("deleted_at") @db.Timestamptz(6)
+
+  author Profile? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@unique([authorId, slug])
+  @@index([authorId, createdAt(sort: Desc)])
+  /// A lista desenha os fixados primeiro: esta é a consulta deles.
+  @@index([authorId, pinnedAt])
+  @@map("posts")
+}
+
+/// RN40: o status do perfil, e o histórico dele.
+///
+/// Uma linha por status. O **de agora** é a única com `endedAt` nulo, e um
+/// índice único parcial garante que não existam dois — mesmo truque do
+/// `cabins.pair_key`. Trocar o status encerra o anterior e abre outro, que
+/// é o que faz o histórico existir sem tabela separada.
+///
+/// O gatilho `profile_statuses_podar` mantém só os 8 últimos encerrados.
+model ProfileStatus {
+  id        String     @id @default(uuid()) @db.Uuid
+  profileId String     @map("profile_id") @db.Uuid
+  kind      StatusKind
+  text      String     @db.VarChar(60)
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// Nulo = é o status de agora. O índice parcial garante um só por pessoa.
+  endedAt   DateTime?  @map("ended_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, createdAt(sort: Desc)])
+  @@map("profile_statuses")
 }
