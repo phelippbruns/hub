@@ -184,3 +184,92 @@ async function contagemDe(page: Page, nome: string): Promise<number> {
   const achado = texto.match(/([\d.]+)\s+membros?/);
   return Number((achado?.[1] ?? "0").replace(/\./g, ""));
 }
+
+/**
+ * A linha de comunidade abre a comunidade.
+ *
+ * Até 12 de novembro de 2026 ela era uma `<div>` em que **só o `#` era
+ * clicável** — clicar no nome não fazia nada. O PO relatou duas vezes, em
+ * telas diferentes, e eram a mesma linha: um componente, quatro seções.
+ */
+test.describe("clicar na comunidade abre a comunidade", () => {
+  test("no Explorar, clicar no nome leva a /c/<slug>", async ({ page }) => {
+    await entrarNoApp(page, "clicaexplorar");
+    await page.goto("/comunidades");
+
+    // Positivo primeiro: a seção chegou, com conteúdo.
+    await expect(page.getByRole("heading", { name: "Para você" })).toBeVisible();
+
+    /*
+     * `:not([href*='?'])` separa comunidade de tópico: o endereço da
+     * comunidade é `/c/<slug>` e o do tópico é `/c/<slug>?t=<topico>`.
+     * Sem isso o primeiro link `/c/` da página é um tópico em alta, e o
+     * teste mede a seção errada — foi o que aconteceu na primeira rodada.
+     */
+    const linha = page.locator("a[href^='/c/']:not([href*='?'])").first();
+    await expect(linha).toBeVisible();
+
+    /*
+     * Confere pelo **endereço do link**, e não pelo texto dele: o texto é
+     * nome e contagem grudados ("Vinil312 membros"), porque `textContent`
+     * junta os `<span>` sem separador. O endereço prova que a linha levou
+     * à comunidade dela, que é a garantia que importa.
+     */
+    const destino = await linha.getAttribute("href");
+    await linha.click();
+
+    // `endsWith` e não `RegExp`: o lint barra expressão montada de
+    // variável, e aqui a comparação é literal mesmo.
+    await expect.poll(() => new URL(page.url()).pathname).toBe(destino);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  });
+
+  test("no Início, a comunidade de Novas no Hub abre", async ({ page }) => {
+    await entrarNoApp(page, "clicainicio");
+    await page.goto("/inicio");
+    await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+
+    const secao = page.getByRole("heading", { name: "Novas no Hub" });
+    if ((await secao.count()) === 0) {
+      // Sem comunidade nova no Hub, não há o que clicar — e a seção some.
+      test.skip();
+      return;
+    }
+
+    const linha = page.locator("a[href^='/c/']:not([href*='?'])").first();
+    await expect(linha).toBeVisible();
+    await linha.click();
+    await expect(page).toHaveURL(/\/c\/[^/?]+$/);
+  });
+
+  test("na Busca, o resultado de comunidade abre", async ({ page }) => {
+    await entrarNoApp(page, "clicabusca");
+    await page.goto("/busca?q=musica");
+
+    const linha = page.locator("a[href^='/c/']:not([href*='?'])").first();
+    await expect(linha).toBeVisible();
+    await linha.click();
+    await expect(page).toHaveURL(/\/c\/[^/?]+$/);
+  });
+
+  /**
+   * O `#` fica **fora** do link, e esta é a barreira disso: botão dentro de
+   * âncora é HTML inválido, e o navegador desfaz do jeito dele — entrar na
+   * comunidade passaria a navegar junto.
+   */
+  test("clicar no # entra na comunidade e NÃO navega", async ({ page }) => {
+    await entrarNoApp(page, "clicaporta");
+    await page.goto("/comunidades");
+    await expect(page.getByRole("heading", { name: "Para você" })).toBeVisible();
+
+    const porta = page.getByRole("button", { name: /^Entrar em / }).first();
+    await expect(porta).toBeVisible();
+    await porta.click();
+
+    // Continua no Explorar, e a porta virou "Sair de".
+    await expect(page).toHaveURL(/\/comunidades$/);
+    await expect(
+      page.getByRole("button", { name: /^Membro de .*Toque para sair/ }).first(),
+    ).toBeVisible();
+  });
+});
