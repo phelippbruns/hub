@@ -38,6 +38,7 @@ export {
   EmptyState,
   EndOfList,
 } from "./states";
+export { EscolherGif, type GifEscolhido } from "./escolher-gif";
 export { Eixo, NavRail, Rotulo } from "./nav-rail";
 export { AppShell, ContentColumn, PageTitle } from "./app-shell";
 export { Segmented, type OpcaoSegmentada } from "./segmented";

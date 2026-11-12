@@ -1,8 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CampoDeBusca, BottomSheet, Button, LoadingBlock, Skeleton } from "@/design/components";
+import { CampoDeBusca } from "./campo-de-busca";
+import { BottomSheet } from "./bottom-sheet";
+import { Button } from "./button";
+import { LoadingBlock, Skeleton } from "./states";
 
+/**
+ * **Mora no design system desde 12 de novembro de 2026.**
+ *
+ * Estava em `features/respostas/`, e a Cabine e o editor do blog o
+ * importavam de lá — uma feature importando de outra, que é justamente o
+ * que a regra do projeto proíbe. Com o tópico virando o quarto usuário, a
+ * subida deixou de ser opcional.
+ *
+ * Ele não depende de feature nenhuma: é busca, grade e folha, e os GIFs
+ * vêm de `/api/gifs`, que guarda a chave do GIPHY no servidor.
+ */
 export type GifEscolhido = {
   url: string;
   descricao: string;

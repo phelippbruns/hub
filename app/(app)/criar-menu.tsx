@@ -31,7 +31,7 @@ import { comunidadesParaCriarTopico, type ComunidadeParaCriar } from "./criar-ac
 
 type Passo = "fechado" | "escolher" | "topico" | "comunidade";
 
-export function MenuDeCriar() {
+export function MenuDeCriar({ gifLigado = false }: { gifLigado?: boolean }) {
   const [passo, setPasso] = useState<Passo>("fechado");
   const [comunidades, setComunidades] = useState<ComunidadeParaCriar[] | null>(null);
   const [carregando, carregar] = useTransition();
@@ -109,6 +109,7 @@ export function MenuDeCriar() {
                 e a comunidade é essa. Com duas ou mais, o campo aparece.
               */
               escolherEntre={comunidades}
+              gifLigado={gifLigado}
             />
           )
         ) : null}

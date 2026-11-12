@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Input, Janela, RoundIconButton, TextField } from "@/design/components";
 import { GifIcon, ImageIcon, SetaBaixoIcon, SetaCimaIcon, CloseIcon } from "@/design/icons";
-import { EscolherGif, type GifEscolhido } from "@/features/respostas/escolher-gif";
+import { EscolherGif, type GifEscolhido } from "@/design/components";
 import { problemaNaImagem } from "@/lib/midia/limites";
 import { enderecoDoPost } from "@/lib/rotas";
 import { LIMITE_DO_CORPO, LIMITE_DO_SUBTITULO, LIMITE_DO_TITULO, MAXIMO_DE_BLOCOS } from "./shared";

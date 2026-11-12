@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ContentColumn, EmptyState, PageTitle } from "@/design/components";
 import { CriarTopico } from "@/features/topicos/criar";
 import { getViewer } from "@/lib/auth/session";
+import { gifEstaLigado } from "@/lib/midia/giphy";
 import { minhasComunidades } from "@/lib/data/comunidades";
 import { ondeAindaPossoCriarHoje } from "@/lib/data/topics";
 
@@ -63,6 +64,7 @@ export default async function CriarTopicoPage() {
         nomeDaComunidade={escolherEntre[0]!.nome}
         jaUsouODia={escolherEntre[0]!.jaUsouODia}
         escolherEntre={escolherEntre}
+        gifLigado={gifEstaLigado()}
       />
     </ContentColumn>
   );

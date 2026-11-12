@@ -139,6 +139,37 @@ export type OrdemDasRespostas = "estrelas" | "novas" | "antigas";
  */
 export const ESTRELAS_POR_MINUTO = 60;
 
+/**
+ * A mídia da abertura, pronta para desenhar.
+ *
+ * `media_url` era **gravado e nunca lido**: o `createTopic` já escrevia
+ * desde a F08, e nenhuma consulta devolvia. O PO reclamou dos botões
+ * desativados em 12 de novembro de 2026, e a correção não era ligá-los —
+ * faltava a volta inteira.
+ *
+ * Os dois endereços saem numa chamada só, como a lista de respostas já
+ * faz: assinar é ida à rede, e duas chamadas seriam duas.
+ */
+async function midiaDaAbertura(topic: {
+  mediaUrl: string | null;
+  mediaKind: "image" | "gif" | null;
+  mediaWidth: number | null;
+  mediaHeight: number | null;
+  mediaStillUrl: string | null;
+}) {
+  const [url, parado] = await enderecosDeMidia([topic.mediaUrl, topic.mediaStillUrl]);
+
+  return {
+    midiaDaAbertura: url ?? null,
+    midiaParadaDaAbertura: parado ?? null,
+    tipoDaMidiaDaAbertura: topic.mediaKind,
+    medidasDaMidiaDaAbertura:
+      topic.mediaWidth && topic.mediaHeight
+        ? { largura: topic.mediaWidth, altura: topic.mediaHeight }
+        : null,
+  };
+}
+
 export async function topicoPorEndereco(
   viewer: Viewer,
   comunidade: string,
@@ -228,6 +259,19 @@ export async function getTopicForViewer(
     ...topic,
     // A foto vem como caminho no depósito; a tela precisa de endereço.
     author: await comAvatar(topic.author),
+    /**
+     * A mídia da abertura, pronta para desenhar.
+     *
+     * `mediaUrl` era **gravado e nunca lido**: o `createTopic` já escrevia
+     * desde a F08, e nenhuma consulta devolvia. O PO reclamou dos botões
+     * desativados em 12 de novembro de 2026, e a correção não era só
+     * ligá-los — faltava a volta inteira.
+     *
+     * Assinado aqui, como o das respostas: o depósito é privado e o
+     * endereço é temporário, então não dá para guardá-lo no banco. GIF do
+     * GIPHY passa intacto.
+     */
+    ...(await midiaDaAbertura(topic)),
     peopleCount: people.length,
     answerCount,
     following,
@@ -394,6 +438,11 @@ export async function createTopic(viewer: Viewer, input: unknown) {
         description: data.description,
         mediaUrl: data.media?.caminho ?? null,
         mediaKind: data.media?.kind ?? null,
+        // As medidas vêm de quem guardou, nunca do navegador: sem elas o
+        // cartão da abertura pula quando a imagem chega.
+        mediaWidth: data.media?.largura ?? null,
+        mediaHeight: data.media?.altura ?? null,
+        mediaStillUrl: data.media?.parado ?? null,
         // Preenchido pelo gatilho; o Prisma exige um valor no create.
         cycleDate: new Date(),
       },

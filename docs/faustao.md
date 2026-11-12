@@ -235,6 +235,36 @@ certa faz.
 
 ---
 
+### Liguei a mídia no ramo que quase ninguém vê
+
+*12 de novembro de 2026, Bloco 7 das correções.*
+
+A imagem do tópico era guardada certo — o teste de banco provava — e **não
+aparecia na tela**. Gastei quatro medições subindo a cadeia: o depósito
+assinava, a camada de dados devolvia o endereço, a página passava a prop.
+
+O erro estava em `features/topicos/corpo.tsx`: ele tem **dois**
+`TopicOpening`, um para quem tem conta e outro para quem não tem (RN16), e
+a minha substituição casou o primeiro — o de quem **não** tem conta, que é
+o ramo que quase nunca roda.
+
+*Como resolvi:* montar a mídia **uma vez**, numa constante antes dos dois
+ramos, e passar a mesma para os dois. Assim não existe "o outro lugar".
+
+🔒 **Barrado** — `e2e/topicos.spec.ts`, vista reprovar com a prop removida
+de um dos ramos.
+
+*A lição, que o Faustão já tem em "apaguei a promessa num lugar e deixei
+no outro":* **substituição por texto casa a primeira ocorrência, e a
+primeira raramente é a que importa.** Antes de editar, `grep -c` no padrão
+— se vier mais de um, o conserto é extrair, não repetir.
+
+*E uma lição sobre o diagnóstico:* medir de baixo para cima funcionou, mas
+custou caro. Ter rodado `grep -n "<TopicOpening" corpo.tsx` no começo
+teria mostrado "dois" na primeira linha.
+
+---
+
 ### Esperei o endereço e cliquei no botão de outra tela
 
 *12 de novembro de 2026, Bloco 4 das correções.*

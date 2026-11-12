@@ -737,3 +737,112 @@ test.describe("o menu de três pontos do tópico", () => {
     await expect(painel.getByRole("button", { name: /Apagar tópico/ })).toHaveCount(0);
   });
 });
+
+/**
+ * Imagem e GIF no tópico (pedido do PO, 12 de novembro de 2026).
+ *
+ * Os botões existiam desativados, com "chegam em breve", desde a F08. O
+ * levantamento mostrou que faltavam **três** peças, não uma: o formulário,
+ * a Server Action — que mandava `media: null` literal — e a **exibição**,
+ * que nunca existiu. A mídia era gravada e nunca lida de volta.
+ */
+test.describe("mídia no novo tópico", () => {
+  /** Um PNG de verdade: o depósito recusa o que não abre. */
+  const PNG = "public/icons/icon-512.png";
+
+  test("tópico criado com imagem aparece com a imagem", async ({ page }) => {
+    await entrarNoApp(page, "midiatopico");
+    const comunidade = await minhaComunidade(page, "Com Imagem");
+
+    await page.goto(`${comunidade}/novo`);
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await janela.getByLabel("Título").fill("tópico com foto");
+    await janela.getByLabel("Abertura").fill("Olha essa imagem.");
+    await janela.locator("input[name='imagem']").setInputFiles(PNG);
+    await janela.getByRole("button", { name: "Criar tópico" }).click();
+
+    await esperarTopicoNoPainel(page, "topico-com-foto");
+
+    const painel = page.getByRole("complementary", { name: /^Tópico / });
+    await expect(painel).toBeVisible();
+    // A mídia é um controle: clicar amplia, então quem nomeia é o botão.
+    await expect(painel.getByRole("button", { name: /^Abrir a imagem/ })).toBeVisible();
+  });
+
+  test("as medidas são guardadas, para a tela não pular", async ({ page }) => {
+    await entrarNoApp(page, "medidastopico");
+    const comunidade = await minhaComunidade(page, "Com Medidas");
+
+    await page.goto(`${comunidade}/novo`);
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await janela.getByLabel("Título").fill("tópico medido");
+    await janela.getByLabel("Abertura").fill("Com medidas.");
+    await janela.locator("input[name='imagem']").setInputFiles(PNG);
+    await janela.getByRole("button", { name: "Criar tópico" }).click();
+    await esperarTopicoNoPainel(page, "topico-medido");
+
+    const [linha] = await consultar<{
+      media_kind: string;
+      media_width: number;
+      media_height: number;
+      media_url: string;
+    }>(`SELECT media_kind, media_width, media_height, media_url
+          FROM topics WHERE slug = 'topico-medido'`);
+
+    expect(linha?.media_kind).toBe("image");
+    // O que fica guardado é o caminho no depósito, não um endereço.
+    expect(linha?.media_url).toMatch(/^topicos\/[0-9a-f-]+\.webp$/);
+    expect(linha?.media_width).toBeGreaterThan(0);
+    expect(linha?.media_height).toBeGreaterThan(0);
+  });
+
+  test("imagem e GIF juntos são recusados", async ({ page }) => {
+    await entrarNoApp(page, "doisjuntos");
+    const comunidade = await minhaComunidade(page, "Dois Juntos");
+
+    await page.goto(`${comunidade}/novo`);
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await janela.getByLabel("Título").fill("um de cada vez");
+    await janela.getByLabel("Abertura").fill("Só um.");
+    await janela.locator("input[name='imagem']").setInputFiles(PNG);
+
+    /*
+      Com imagem escolhida, o botão de GIF fica desativado com a razão à
+      vista — a exclusividade é da tela **e** do servidor.
+    */
+    const botaoDeGif = janela.getByRole("button", { name: "Adicionar GIF" });
+    if ((await botaoDeGif.count()) > 0) {
+      await expect(botaoDeGif).toBeDisabled();
+    }
+  });
+
+  test("arquivo que não é imagem é recusado com motivo", async ({ page }) => {
+    await entrarNoApp(page, "naoimagem");
+    const comunidade = await minhaComunidade(page, "Nao Imagem");
+
+    await page.goto(`${comunidade}/novo`);
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await janela.getByLabel("Título").fill("arquivo ruim");
+    await janela.getByLabel("Abertura").fill("Vai ser recusado.");
+    await janela.locator("input[name='imagem']").setInputFiles({
+      name: "disfarce.jpg",
+      mimeType: "image/jpeg",
+      buffer: Buffer.from([0xff, 0xd8, 0xff, 0x00, 0x01, 0x02]),
+    });
+    await janela.getByRole("button", { name: "Criar tópico" }).click();
+
+    /*
+      O motivo vem da camada que pegar primeiro: o percorredor de bytes diz
+      "JPEG cortado", o decodificador diria outra coisa. O que a barreira
+      guarda é que **há** motivo e que nada foi publicado — amarrar a frase
+      de uma camada faria o teste reprovar no dia em que a outra pegasse.
+    */
+    await expect(alerta(page)).toBeVisible();
+    await expect(alerta(page)).not.toBeEmpty();
+
+    const [linha] = await consultar<{ total: string }>(
+      `SELECT count(*)::text AS total FROM topics WHERE name = 'arquivo ruim'`,
+    );
+    expect(linha?.total, "o tópico não pode nascer com a imagem recusada").toBe("0");
+  });
+});

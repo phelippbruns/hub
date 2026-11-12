@@ -32,6 +32,7 @@ import { cookies } from "next/headers";
 import { COOKIE_DA_LARGURA, larguraDoPainel } from "@/features/topicos/shared";
 import { CorpoDoTopico } from "@/features/topicos/corpo";
 import { getViewer } from "@/lib/auth/session";
+import { gifEstaLigado } from "@/lib/midia/giphy";
 import { LIMITE_RESPOSTAS_PARA_APAGAR, topicoPorEndereco } from "@/lib/data/topics";
 import { marcarTopicoComoVisto, quandoVisitouOTopico } from "@/lib/data/inicio";
 import { comunidadeDaRota } from "@/features/comunidades/dados";
@@ -304,6 +305,7 @@ export default async function ComunidadePage({
                         nomeDaComunidade={dados.name}
                         jaUsouODia={jaUsouODia}
                         nomeSugerido={nome?.slice(0, 80) ?? ""}
+                        gifLigado={gifEstaLigado()}
                       />
                     ) : undefined
                   }
@@ -432,6 +434,16 @@ async function PainelAoLado({
             endereco={endereco}
             seguindoInicial={dados.following}
           />
+        }
+        midia={
+          dados.midiaDaAbertura
+            ? {
+                url: dados.midiaDaAbertura,
+                parado: dados.midiaParadaDaAbertura,
+                tipo: dados.tipoDaMidiaDaAbertura,
+                medidas: dados.medidasDaMidiaDaAbertura,
+              }
+            : null
         }
         pessoas={dados.peopleCount}
         respostas={dados.answerCount}

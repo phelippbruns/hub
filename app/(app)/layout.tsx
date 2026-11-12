@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell, NavRail } from "@/design/components";
 import { MenuDeCriar } from "./criar-menu";
+import { gifEstaLigado } from "@/lib/midia/giphy";
 import { getViewer } from "@/lib/auth/session";
 import { CABECALHO_DA_ROTA, ehCompartilhavel } from "@/lib/auth/rotas-publicas";
 import { jaFezOnboarding } from "@/lib/data/onboarding";
@@ -45,7 +46,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <AppShell
-      nav={<NavRail temNovidade={novidade} temCabineNova={cabineNova} criar={<MenuDeCriar />} />}
+      nav={
+        <NavRail
+          temNovidade={novidade}
+          temCabineNova={cabineNova}
+          criar={<MenuDeCriar gifLigado={gifEstaLigado()} />}
+        />
+      }
     >
       {children}
     </AppShell>
