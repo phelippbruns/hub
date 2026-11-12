@@ -9,11 +9,11 @@ export const metadata: Metadata = { title: "Perfil · Hub" };
 export default async function PerfilPage({
   searchParams,
 }: {
-  searchParams: Promise<{ aba?: string; ordem?: string }>;
+  searchParams: Promise<{ aba?: string; ordem?: string; post?: string }>;
 }) {
-  const { aba, ordem } = await searchParams;
+  const { aba, ordem, post } = await searchParams;
   const viewer = await getViewer();
   const handle = await meuHandle(viewer);
 
-  return <TelaDePerfil handle={handle} aba={aba} ordem={ordem} />;
+  return <TelaDePerfil handle={handle} aba={aba} ordem={ordem} post={post} />;
 }

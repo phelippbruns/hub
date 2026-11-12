@@ -47,3 +47,46 @@ export function enderecoDoTopico(comunidade: string, topico: string): string {
 export function enderecoParaCompartilharTopico(comunidade: string, topico: string): string {
   return `/c/${comunidade}/${topico}`;
 }
+
+/**
+ * O perfil de alguém — **e o seu tem endereço próprio**.
+ *
+ * `/perfil` e `/<handle>` mostram a mesma tela, e quem abre o próprio @ é
+ * redirecionado para `/perfil`. Essa é a razão desta função existir: um
+ * link do dono para `/<handle>?post=x` passa pelo redirecionamento, que
+ * **não leva os parâmetros junto** — o painel sumia e ninguém entendia por
+ * quê. Aconteceu, e está no `faustao.md`.
+ */
+export function enderecoDoPerfil(handle: string, souEu: boolean): string {
+  return souEu ? "/perfil" : `/${handle}`;
+}
+
+/**
+ * **Navegar** até um post: o perfil com o painel aberto ao lado.
+ *
+ * O mesmo par de funções do tópico, pelo mesmo motivo — e a diferença
+ * entre elas importa tanto quanto lá. Todo clique dentro do Hub vem parar
+ * aqui.
+ *
+ * `perfil` é o endereço da tela, de `enderecoDoPerfil()`: `/perfil` quando
+ * é o seu, `/<handle>` quando é de outra pessoa. O slug já é limpo, mas o
+ * parâmetro é público — um `&` nele viraria outro parâmetro na URL.
+ */
+export function enderecoDoPost(perfil: string, post: string): string {
+  return `${perfil}?post=${encodeURIComponent(post)}`;
+}
+
+/**
+ * **Compartilhar** um post: o endereço canônico, com o post no caminho.
+ *
+ * É ele que carrega a prévia do link e o que se cola numa conversa. Quem
+ * tem sessão e abre este endereço é levado ao painel; quem não tem vê o
+ * convite, como no tópico.
+ *
+ * O endereço é `/<handle>/<post>` e não `/blog/<id>`: o post é da pessoa,
+ * e o perfil já mora na raiz. Um primeiro nível novo custaria um @
+ * reservado a mais e deixaria quem tivesse `@blog` inalcançável.
+ */
+export function enderecoParaCompartilharPost(handle: string, post: string): string {
+  return `/${handle}/${post}`;
+}

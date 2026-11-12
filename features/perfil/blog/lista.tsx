@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { EmptyState, PostRow, SectionTitle } from "@/design/components";
+import { enderecoDoPost } from "@/lib/rotas";
 import { haQuantoTempo } from "@/lib/tempo";
 import type { PostNaLista } from "@/lib/data/blog";
 
@@ -20,7 +22,19 @@ import type { PostNaLista } from "@/lib/data/blog";
  * A seção "Todos os posts" só aparece quando há fixados: sem eles, o título
  * nomearia a única lista da tela, que é ruído.
  */
-export function AbaBlog({ posts, souEu }: { posts: PostNaLista[]; souEu: boolean }) {
+export function AbaBlog({
+  posts,
+  souEu,
+  base,
+  aberto,
+}: {
+  posts: PostNaLista[];
+  souEu: boolean;
+  /** O endereço desta tela: `/perfil` ou `/<handle>`. */
+  base: string;
+  /** O endereço do post aberto no painel, para destacar a linha. */
+  aberto?: string;
+}) {
   if (posts.length === 0) {
     return (
       <EmptyState
@@ -44,7 +58,7 @@ export function AbaBlog({ posts, souEu }: { posts: PostNaLista[]; souEu: boolean
           <SectionTitle>Fixados</SectionTitle>
           <div className="flex flex-col gap-2">
             {fixados.map((post) => (
-              <Linha key={post.id} post={post} souEu={souEu} />
+              <Linha key={post.id} post={post} souEu={souEu} base={base} aberto={aberto} />
             ))}
           </div>
           {demais.length > 0 ? <SectionTitle>Todos os posts</SectionTitle> : null}
@@ -53,26 +67,49 @@ export function AbaBlog({ posts, souEu }: { posts: PostNaLista[]; souEu: boolean
 
       <div className="flex flex-col gap-2">
         {demais.map((post) => (
-          <Linha key={post.id} post={post} souEu={souEu} />
+          <Linha key={post.id} post={post} souEu={souEu} base={base} aberto={aberto} />
         ))}
       </div>
     </div>
   );
 }
 
-function Linha({ post, souEu }: { post: PostNaLista; souEu: boolean }) {
+function Linha({
+  post,
+  souEu,
+  base,
+  aberto,
+}: {
+  post: PostNaLista;
+  souEu: boolean;
+  base: string;
+  aberto?: string;
+}) {
   return (
-    <PostRow
-      titulo={post.titulo}
-      resumo={post.resumo}
-      minutos={post.minutos}
-      quando={haQuantoTempo(post.quando)}
-      fixado={post.fixado}
-      comGif={post.comGif}
-      // RN39: o selo de Círculo é informação do dono sobre o próprio post.
-      somenteCirculo={souEu && post.somenteCirculo}
-      previa={post.previa}
-      imagens={post.imagens}
-    />
+    /*
+      `data-post` é o que o painel procura para devolver o foco ao fechar.
+      Pelo id não serviria: quem fecha é o painel, e ele sabe o endereço.
+    */
+    <Link
+      href={enderecoDoPost(base, post.slug)}
+      data-post={post.slug}
+      scroll={false}
+      replace={aberto !== undefined}
+      className="block"
+    >
+      <PostRow
+        titulo={post.titulo}
+        resumo={post.resumo}
+        minutos={post.minutos}
+        quando={haQuantoTempo(post.quando)}
+        fixado={post.fixado}
+        comGif={post.comGif}
+        // RN39: o selo de Círculo é informação do dono sobre o próprio post.
+        somenteCirculo={souEu && post.somenteCirculo}
+        previa={post.previa}
+        imagens={post.imagens}
+        aberto={aberto === post.slug}
+      />
+    </Link>
   );
 }

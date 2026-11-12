@@ -97,6 +97,20 @@ export const HANDLES_RESERVADOS = new Set([
  */
 export const SLUGS_DE_TOPICO_RESERVADOS = new Set(["novo", "moderar"]);
 
+/**
+ * Endereços que não podem ser slug de post.
+ *
+ * A mesma armadilha, um nível ao lado: o post mora em `/<handle>/<post>`,
+ * e uma pasta estática irmã — `app/(app)/[handle]/sobre`, digamos — faria
+ * o post chamado "Sobre" ficar inalcançável para sempre, calado.
+ *
+ * **Está vazia de propósito**, porque hoje `[post]` é a única rota ali. O
+ * que guarda o vazio é [rotas-de-post.test.ts](./rotas-de-post.test.ts),
+ * que varre a pasta e reprova no dia em que nascer uma irmã sem a reserva
+ * correspondente.
+ */
+export const SLUGS_DE_POST_RESERVADOS = new Set<string>([]);
+
 /** RN17: o @ é único na plataforma. Formato conservador, conforme CLAUDE.md. */
 export const handleSchema = z
   .string()

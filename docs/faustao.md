@@ -235,6 +235,62 @@ certa faz.
 
 ---
 
+### O redirecionamento do próprio perfil comia o parâmetro
+
+*12 de novembro de 2026, Bloco 6 do Blog.*
+
+O post abre em `?post=<slug>`, e a linha da lista levava para
+`/<handle>?post=x`. Clicando, **a URL mudava e o painel não abria**.
+
+*Por que:* o dono tem **dois endereços de perfil**. `/<meu handle>` existe
+e redireciona para `/perfil` — e o `redirect("/perfil")` estava escrito
+cru, sem a busca. O parâmetro era descartado no caminho, e a tela chegava
+sem saber que havia um post para abrir.
+
+Nada quebrou: a página carregou normalmente, com o painel fechado. O
+endereço na barra até ficava certo por um instante, antes do
+redirecionamento.
+
+*Como resolvi:* duas coisas, porque o defeito tinha duas pontas.
+`enderecoDoPerfil(handle, souEu)` passou a existir em `lib/rotas.ts` e
+devolve `/perfil` para o dono, então o link já nasce no endereço certo. E
+o `redirect` de `app/(app)/[handle]/page.tsx` passou a **copiar a busca**,
+para um link que alguém guardou continuar funcionando.
+
+🔒 **Barrado** — `lib/rotas.test.ts` ("o post do dono abre em /perfil, não
+no @ dele") e a jornada "abrir põe o post na URL e destaca a linha".
+
+*A lição:* **todo `redirect()` para uma tela que lê parâmetros tem de
+levá-los junto.** O Hub já tinha essa regra escrita para a tela do tópico
+("tela cujo estado vive na busca nunca monta endereço do zero"), e ela
+estava escrita do lado de quem *monta* o endereço. Faltava do lado de quem
+*redireciona* — e é o mesmo erro.
+
+---
+
+### E o `role="alert"` do Next entrou na conta de novo
+
+*Mesma rodada, poucos minutos depois.*
+
+Escrevi `page.getByRole("alert")` para conferir a frase do quarto post
+fixado. Reprovou por ambiguidade: o anunciador de rota do Next
+(`#__next-route-announcer__`) também tem `role="alert"`.
+
+*Por que isso dói:* o projeto **já tem** a função `alerta()` em
+`e2e/apoio-tela.ts`, criada depois de cair nisso na F07, na F08 e na F09 —
+e o comentário dela diz, em letras, que virou função porque o comentário
+não bastava. Eu escrevi o seletor cru mesmo assim.
+
+*Como resolvi:* `alerta(page)`, que é o que já existia.
+
+*A lição, e ela é sobre mim:* **ferramenta criada para evitar um erro só
+evita o erro se eu a procurar.** O jeito certo era o mais curto de
+escrever e eu escrevi o outro — porque escrevi o teste sem olhar o arquivo
+de apoio. Antes de escrever jornada nova, ler `apoio-tela.ts` inteiro
+custa um minuto.
+
+---
+
 ### "O visitante não vê" passou olhando a tela de entrar
 
 *12 de novembro de 2026, Bloco 2 do Blog e Status.*

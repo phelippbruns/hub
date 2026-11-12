@@ -204,3 +204,84 @@ export async function apagarPost(viewer: Viewer, postId: string) {
     data: { deletedAt: new Date(), pinnedAt: null },
   });
 }
+
+export type PostAberto = {
+  id: string;
+  slug: string;
+  titulo: string;
+  /** Documento do Tiptap. Quem desenha valida de novo antes de usar. */
+  corpo: unknown;
+  minutos: number;
+  quando: Date;
+  fixado: boolean;
+  somenteCirculo: boolean;
+  /** Endereço assinado da capa, ou nulo. */
+  capa: string | null;
+  autor: { id: string; handle: string; nome: string };
+  souAutor: boolean;
+  /** Os endereços das imagens do corpo, assinados, na ordem em que aparecem. */
+  imagens: string[];
+};
+
+/**
+ * Um post pelo endereço, dentro do perfil de quem escreveu.
+ *
+ * **Procura por `handle` e `slug`, nunca por id solto.** O endereço é
+ * `/<handle>/<post>`, e o slug é único **por autor** — duas pessoas podem
+ * ter "teoria-do-set". Buscar só pelo slug devolveria o post de outra
+ * pessoa quando os dois existissem.
+ *
+ * Lança `NotFoundError` também quando o post existe e quem pede não pode
+ * ver: **"não encontrado" e "não pode" respondem igual**, senão a tela
+ * vira ferramenta de descobrir o que uma pessoa escreveu em particular.
+ */
+export async function postPorEndereco(
+  viewer: Viewer,
+  handle: string,
+  slug: string,
+): Promise<PostAberto> {
+  const me = viewerProfileId(viewer);
+
+  const post = await prisma.post.findFirst({
+    where: {
+      slug,
+      deletedAt: null,
+      author: { handle, deletedAt: null },
+    },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      body: true,
+      readMinutes: true,
+      createdAt: true,
+      pinnedAt: true,
+      audience: true,
+      coverUrl: true,
+      author: { select: { id: true, handle: true, name: true } },
+    },
+  });
+
+  if (!post || !post.author) throw new NotFoundError("Post");
+
+  const souAutor = me === post.author.id;
+  if (!souAutor && post.audience !== "everyone") throw new NotFoundError("Post");
+
+  const doCorpo = imagensDoCorpo(post.body);
+  const [capa, ...imagens] = await enderecosDeMidia([post.coverUrl, ...doCorpo]);
+
+  return {
+    id: post.id,
+    slug: post.slug,
+    titulo: post.title,
+    corpo: post.body,
+    minutos: post.readMinutes,
+    quando: post.createdAt,
+    fixado: post.pinnedAt !== null,
+    somenteCirculo: post.audience === "circle",
+    capa: capa ?? null,
+    autor: { id: post.author.id, handle: post.author.handle, nome: post.author.name },
+    souAutor,
+    imagens: imagens.map((endereco, i) => endereco ?? doCorpo.at(i) ?? ""),
+  };
+}

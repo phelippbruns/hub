@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
-import { cadastroConcluido, concluirOnboarding } from "./apoio-tela";
+import { alerta, cadastroConcluido, concluirOnboarding } from "./apoio-tela";
 
 /**
  * O blog no perfil (RN39).
@@ -213,5 +213,168 @@ test.describe("RN39: a lista do blog", () => {
     const linha = page.getByRole("heading", { name: "Vinil na chuva" }).locator("../../..");
     await expect(linha.locator("img")).toHaveCount(0);
     await expect(linha.getByText("V", { exact: true })).toBeVisible();
+  });
+});
+
+test.describe("o post aberto no painel", () => {
+  test("abrir põe o post na URL e destaca a linha", async ({ page }) => {
+    const handle = await entrarNoApp(page, "abrirpost");
+    await criarPost(handle, "Uma noite no galpão");
+
+    await page.goto("/perfil");
+    await perfilCarregado(page, handle);
+    await page.getByRole("heading", { name: "Uma noite no galpão" }).click();
+
+    await expect(page).toHaveURL(/post=uma-noite-no-galpao/);
+    await expect(page.getByRole("complementary", { name: /^Post / })).toBeVisible();
+  });
+
+  test("abrir outro troca o conteúdo sem fechar o painel", async ({ page }) => {
+    const handle = await entrarNoApp(page, "trocarpost");
+    await criarPost(handle, "Primeiro post", { dias: 2 });
+    await criarPost(handle, "Segundo post", { dias: 1 });
+
+    await page.goto("/perfil?post=primeiro-post");
+    await perfilCarregado(page, handle);
+    await expect(page.getByRole("complementary", { name: "Post Primeiro post" })).toBeVisible();
+
+    await page.getByRole("heading", { name: "Segundo post" }).click();
+
+    await expect(page.getByRole("complementary", { name: "Post Segundo post" })).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Post Primeiro post" })).toHaveCount(0);
+  });
+
+  test("Esc fecha o painel e o foco volta para a linha que estava aberta", async ({ page }) => {
+    const handle = await entrarNoApp(page, "focovolta");
+    await criarPost(handle, "Volta para mim");
+
+    await page.goto("/perfil?post=volta-para-mim");
+    await perfilCarregado(page, handle);
+    await expect(page.getByRole("complementary", { name: /^Post / })).toBeVisible();
+
+    await page.keyboard.press("Escape");
+
+    await expect(page.getByRole("complementary", { name: /^Post / })).toHaveCount(0);
+    /*
+     * O foco volta para a linha, e não para o topo da página. É o defeito
+     * que o painel do tópico tem e este não herdou: sem a volta, quem usa
+     * teclado precisa tabular a lista inteira de novo.
+     */
+    const focado = await page.evaluate(() =>
+      document.activeElement?.closest("[data-post]")?.getAttribute("data-post"),
+    );
+    expect(focado).toBe("volta-para-mim");
+  });
+
+  test("fechar o painel preserva os outros parâmetros da URL", async ({ page }) => {
+    const handle = await entrarNoApp(page, "fecharparam");
+    await criarPost(handle, "Com parâmetro");
+
+    // `aba=comunidades` é um parâmetro que a tela usa e que não tem nada a
+    // ver com o painel: fechar o post não pode levá-lo junto.
+    await page.goto("/perfil?aba=comunidades&post=com-parametro");
+    await perfilCarregado(page, handle);
+    await expect(page.getByRole("complementary", { name: /^Post / })).toBeVisible();
+
+    await page.getByRole("button", { name: "Fechar post" }).click();
+
+    await expect(page).toHaveURL(/aba=comunidades/);
+    await expect(page).not.toHaveURL(/post=/);
+  });
+
+  test("sem post aberto, a coluna do perfil continua centralizada", async ({ page }) => {
+    const handle = await entrarNoApp(page, "colunaigual");
+    await criarPost(handle, "Existe mas está fechado");
+
+    await page.goto("/perfil");
+    await perfilCarregado(page, handle);
+
+    /*
+     * **O critério que o PO fixou**: sem `?post=`, o perfil é o de antes.
+     * O painel é irmão da coluna e só nasce quando há post aberto, então
+     * sem ele não existe `<aside>` nenhum e a coluna fica centrada.
+     */
+    await expect(page.getByRole("complementary", { name: /^Post / })).toHaveCount(0);
+
+    const centrada = await page.evaluate(() => {
+      const titulo = document.querySelector("h1");
+      const coluna = titulo?.closest("div.mx-auto") ?? titulo?.parentElement;
+      if (!coluna) return null;
+      const caixa = coluna.getBoundingClientRect();
+      const esquerda = caixa.left;
+      const direita = window.innerWidth - caixa.right;
+      return Math.abs(esquerda - direita);
+    });
+
+    expect(centrada, "a coluna deveria estar centrada na janela").not.toBeNull();
+    expect(centrada!).toBeLessThan(90);
+  });
+
+  test("o endereço canônico leva ao painel", async ({ page }) => {
+    const handle = await entrarNoApp(page, "canonico");
+    await criarPost(handle, "Link de fora");
+
+    await page.goto(`/${handle}/link-de-fora`);
+
+    // Redireciona para o perfil com o painel aberto — o endereço canônico
+    // é o que se compartilha, não uma tela.
+    await expect(page).toHaveURL(/post=link-de-fora/);
+    await expect(page.getByRole("complementary", { name: "Post Link de fora" })).toBeVisible();
+  });
+
+  test("endereço de post que não existe dá 404 de verdade", async ({ page }) => {
+    const handle = await entrarNoApp(page, "quatrocentos");
+
+    const resposta = await page.goto(`/${handle}/nunca-escrevi-isso`);
+
+    // O código, não a tela: `loading.tsx` nesta rota faria o 404 virar 200
+    // com a tela de não encontrado no meio do fluxo.
+    expect(resposta?.status()).toBe(404);
+  });
+
+  test("RN39: o dono fixa pelo painel, e o selo aparece na lista", async ({ page }) => {
+    const handle = await entrarNoApp(page, "fixarpainel");
+    await criarPost(handle, "Vou ser fixado");
+
+    await page.goto("/perfil?post=vou-ser-fixado");
+    await perfilCarregado(page, handle);
+
+    await page.getByRole("button", { name: "Mais opções do post" }).click();
+    await page.getByRole("button", { name: "Fixar no perfil" }).click();
+
+    await expect(page.getByRole("heading", { name: "Fixados" })).toBeVisible();
+    await expect(page.getByText("Fixado", { exact: true })).toBeVisible();
+  });
+
+  test("RN39: o quarto fixado é recusado com a frase, não em silêncio", async ({ page }) => {
+    const handle = await entrarNoApp(page, "quartofixo");
+    for (const titulo of ["Um", "Dois", "Três"]) {
+      await criarPost(handle, titulo, { fixado: true });
+    }
+    await criarPost(handle, "Quatro");
+
+    await page.goto("/perfil?post=quatro");
+    await perfilCarregado(page, handle);
+
+    await page.getByRole("button", { name: "Mais opções do post" }).click();
+    await page.getByRole("button", { name: "Fixar no perfil" }).click();
+
+    // `alerta()` e não `getByRole("alert")`: o anunciador de rota do Next
+    // também tem esse papel, e casa junto. O projeto já caiu nisso três
+    // vezes — é por isso que a função existe.
+    await expect(alerta(page)).toContainText(/até 3 posts/);
+  });
+
+  test("o visitante vê a Cabine, e não o menu do dono", async ({ page }) => {
+    const dona = await entrarNoApp(page, "donapost");
+    await criarPost(dona, "O que eu penso");
+
+    await trocarDePessoa(page, "visitapost");
+    await page.goto(`/${dona}?post=o-que-eu-penso`);
+    await perfilCarregado(page, dona);
+
+    await expect(page.getByRole("complementary", { name: "Post O que eu penso" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Conversar com/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Mais opções do post" })).toHaveCount(0);
   });
 });
