@@ -635,3 +635,105 @@ test.describe("a tela do tópico, protótipo v6", () => {
     }
   });
 });
+
+/**
+ * O menu de três pontos, igual em toda tela (pedido do PO, 12 de novembro
+ * de 2026).
+ *
+ * Três comportamentos: clicar abre, clicar de novo fecha, tirar o mouse
+ * fecha. O do painel do tópico não tinha **nenhum** dos dois últimos — a
+ * `ancora` que o faz fechar no segundo clique existia desde 7 de novembro
+ * e tinha sido posta só no menu da contribuição.
+ *
+ * A `ancora` tem varredura em `design/components/menu-suspenso.test.ts`; o
+ * `onMouseLeave` mora no elemento em volta e só uma jornada alcança.
+ */
+/**
+ * O menu de três pontos, igual em toda tela (pedido do PO, 12 de novembro
+ * de 2026).
+ *
+ * Três comportamentos: clicar abre, clicar de novo fecha, tirar o mouse
+ * fecha. O do painel do tópico não tinha **nenhum** dos dois últimos — a
+ * `ancora` que o faz fechar no segundo clique existia desde 7 de novembro
+ * e tinha sido posta só no menu da contribuição.
+ *
+ * A `ancora` tem varredura em `design/components/menu-suspenso.test.ts`; o
+ * `onMouseLeave` mora no elemento em volta e só uma jornada alcança.
+ */
+test.describe("o menu de três pontos do tópico", () => {
+  /**
+   * Abre um tópico e **espera o painel existir**, não só o endereço.
+   *
+   * `esperarTopicoNoPainel` só espera a URL, e o painel chega depois, por
+   * `<Suspense>`. Sem esta espera o teste clicava no "Mais opções" **da
+   * capa da comunidade**, que tem exatamente o mesmo rótulo — e o painel,
+   * ao chegar, remontava a tela e fechava o que tinha aberto.
+   */
+  async function topicoNoPainel(page: Page, prefixo: string, assunto: string) {
+    const comunidade = await minhaComunidade(page, prefixo);
+    await criarTopico(page, comunidade, assunto);
+    await esperarTopicoNoPainel(page);
+
+    const painel = page.getByRole("complementary", { name: /^Tópico / });
+    await expect(painel).toBeVisible();
+    return painel;
+  }
+
+  test("clicar abre, clicar de novo fecha", async ({ page }) => {
+    await entrarNoApp(page, "menutopico");
+    const painel = await topicoNoPainel(page, "Menu do Tópico", "assunto do menu");
+
+    const tresPontos = painel.getByRole("button", { name: "Mais opções" });
+    await tresPontos.click();
+    await expect(painel.getByRole("button", { name: /Apagar tópico/ })).toBeVisible();
+
+    await tresPontos.click();
+    await expect(painel.getByRole("button", { name: /Apagar tópico/ })).toHaveCount(0);
+  });
+
+  test("tirar o mouse de cima fecha", async ({ page }) => {
+    await entrarNoApp(page, "mousetopico");
+    const painel = await topicoNoPainel(page, "Mouse do Tópico", "assunto do mouse");
+
+    await painel.getByRole("button", { name: "Mais opções" }).click();
+    await expect(painel.getByRole("button", { name: /Apagar tópico/ })).toBeVisible();
+
+    /*
+      Mover o ponteiro por coordenada, e não para outro elemento: o balão
+      do menu **cobre** o que está logo abaixo do botão, então "passar o
+      mouse no título" acabava pousando no próprio menu. 10 px da borda
+      esquerda é a lista da comunidade, longe de qualquer grupo.
+    */
+    await page.mouse.move(10, 400);
+
+    await expect(painel.getByRole("button", { name: /Apagar tópico/ })).toHaveCount(0);
+  });
+
+  test("ir do botão até o balão NÃO fecha", async ({ page }) => {
+    await entrarNoApp(page, "vaotopico");
+    const painel = await topicoNoPainel(page, "Vao do Tópico", "assunto do vao");
+
+    await painel.getByRole("button", { name: "Mais opções" }).click();
+    const apagar = painel.getByRole("button", { name: /Apagar tópico/ });
+    await expect(apagar).toBeVisible();
+
+    /*
+      Entre o botão e o balão há um vão. Se o `onMouseLeave` estivesse em
+      cada peça, e não no grupo que envolve as duas, o menu fecharia no
+      caminho — e a opção ficaria inalcançável com o mouse.
+    */
+    await apagar.hover();
+    await expect(apagar).toBeVisible();
+  });
+
+  test("Esc continua fechando", async ({ page }) => {
+    await entrarNoApp(page, "esctopico");
+    const painel = await topicoNoPainel(page, "Esc do Tópico", "assunto do esc");
+
+    await painel.getByRole("button", { name: "Mais opções" }).click();
+    await expect(painel.getByRole("button", { name: /Apagar tópico/ })).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(painel.getByRole("button", { name: /Apagar tópico/ })).toHaveCount(0);
+  });
+});

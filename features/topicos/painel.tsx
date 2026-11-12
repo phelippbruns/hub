@@ -72,6 +72,16 @@ export function PainelDoTopico({
   const [largura, setLargura] = useState(larguraInicial);
   const [pendente, iniciar] = useTransition();
   const painel = useRef<HTMLElement>(null);
+  /*
+   * Um grupo por menu, e cada grupo envolve **o botão e o balão**.
+   *
+   * É o que faz os três comportamentos do sistema existirem aqui: a
+   * `ancora` impede o clique no botão reabrir o menu que ele acabou de
+   * fechar, e o `onMouseLeave` no grupo — nunca em cada peça — fecha ao
+   * sair, sem disparar no vão entre os dois.
+   */
+  const grupoDeCompartilhar = useRef<HTMLSpanElement>(null);
+  const grupoDoMenu = useRef<HTMLSpanElement>(null);
 
   const idDoMenu = useId();
   const idDeCompartilhar = useId();
@@ -157,7 +167,11 @@ export function PainelDoTopico({
           <CommunityChip nome={nomeDaComunidade} href={`/c/${comunidadeSlug}`} />
         </span>
 
-        <span className="relative">
+        <span
+          className="relative"
+          ref={grupoDeCompartilhar}
+          onMouseLeave={() => setAberto((a) => (a === "compartilhar" ? "nenhum" : a))}
+        >
           <RoundIconButton
             label={`Compartilhar ${nome}`}
             ativo={aberto === "compartilhar"}
@@ -172,6 +186,7 @@ export function PainelDoTopico({
               titulo={`Compartilhar ${nome}`}
               aberto={aberto === "compartilhar"}
               onFechar={() => setAberto("nenhum")}
+              ancora={grupoDeCompartilhar}
             >
               {aberto === "compartilhar" ? (
                 <Compartilhar
@@ -186,7 +201,16 @@ export function PainelDoTopico({
           </span>
         </span>
 
-        <span className="relative">
+        <span
+          className="relative"
+          /*
+            O estado é compartilhado entre os dois menus e a folha de
+            apagar, então o handler confere o valor antes de fechar: sem
+            isso, tirar o mouse daqui fecharia a confirmação de apagar.
+          */
+          ref={grupoDoMenu}
+          onMouseLeave={() => setAberto((a) => (a === "menu" ? "nenhum" : a))}
+        >
           <RoundIconButton
             label="Mais opções"
             ativo={aberto === "menu"}
@@ -201,6 +225,7 @@ export function PainelDoTopico({
               titulo={nome}
               aberto={aberto === "menu"}
               onFechar={() => setAberto("nenhum")}
+              ancora={grupoDoMenu}
             >
               {podeApagar ? (
                 <Button variant="danger" onClick={() => setAberto("apagar")}>

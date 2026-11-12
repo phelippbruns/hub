@@ -235,6 +235,47 @@ certa faz.
 
 ---
 
+### Esperei o endereço e cliquei no botão de outra tela
+
+*12 de novembro de 2026, Bloco 4 das correções.*
+
+A jornada do menu de três pontos do tópico reprovava com "o item não
+existe". Eu tinha acabado de corrigir o menu, e a correção estava certa.
+
+*O que acontecia:* `esperarTopicoNoPainel()` **só espera a URL**. O painel
+chega depois, por `<Suspense>`. Nesse intervalo, `getByRole("button", {
+name: "Mais opções" })` achava **um** botão — o da capa da comunidade, que
+tem exatamente o mesmo rótulo — clicava nele, e o painel ao chegar
+remontava a tela e fechava o que havia aberto.
+
+O modo estrito do Playwright não ajudou: com o painel ausente havia um
+botão só, então nada era ambíguo. A ambiguidade só existiria **depois**
+de a tela terminar de carregar.
+
+*Como resolvi:* esperar o painel existir
+(`getByRole("complementary", { name: /^Tópico / })`) e escopar tudo a ele.
+
+*E um segundo tropeço no mesmo teste:* "tirar o mouse fecha" apontava
+para o título do tópico — que fica **debaixo do balão do menu**. Passar o
+mouse ali pousava no próprio menu. Virou `page.mouse.move(10, 400)`, uma
+coordenada longe de qualquer grupo.
+
+🔒 **Barrado** — `e2e/topicos.spec.ts`, as quatro vistas reprovarem com a
+`ancora` e o `onMouseLeave` removidos.
+
+*A lição:* **esperar o endereço não é esperar a tela.** Numa página com
+`<Suspense>`, a URL muda primeiro e o conteúdo chega depois — e nesse vão
+um seletor por rótulo pode acertar o elemento de **outro** componente com
+o mesmo nome. Quando o teste fala de uma região, o escopo é a região, não
+a página.
+
+*E uma observação que vale guardar:* dois rótulos iguais em telas que se
+sobrepõem ("Mais opções" na capa e no painel) são uma armadilha mesmo com
+o modo estrito, porque a ambiguidade aparece e desaparece conforme o que
+já carregou.
+
+---
+
 ### `.first()` pegou o cartão de trás, não a contribuição
 
 *12 de novembro de 2026, Bloco 2 das correções.*

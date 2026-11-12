@@ -214,7 +214,24 @@ export function CabecalhoDaComunidade({
           // O OK aplica: aqui já existe comunidade para onde a capa vai.
           aoConfirmar={() => formularioDaCapa.current?.requestSubmit()}
           esquerda={
-            <RoundIconButton label="Voltar" onClick={() => router.back()}>
+            /*
+              **Destino fixo, e não `router.back()`** (pedido do PO, 12 de
+              novembro de 2026).
+
+              O histórico volta para onde a pessoa veio, que pode ser uma
+              notificação, um perfil, a busca — ou **para fora do Hub**,
+              quando ela chegou por um link compartilhado e a comunidade é
+              a primeira tela da sessão. Um botão de voltar que às vezes
+              fecha o Hub não é um botão de voltar.
+
+              Minhas Comunidades é o destino, e não Explorar: é a lista de
+              onde se entra numa comunidade de que já se participa, e é
+              para onde o próprio `sair()` já manda logo abaixo.
+            */
+            <RoundIconButton
+              label="Voltar para Minhas Comunidades"
+              onClick={() => router.push("/comunidades/minhas")}
+            >
               <BackIcon decorative className="size-icon" />
             </RoundIconButton>
           }
@@ -231,7 +248,11 @@ export function CabecalhoDaComunidade({
               O `relative` é do botão, e não do bloco: é dele que o drop se
               pendura.
             */
-            <span className="relative" ref={grupoDoMenu}>
+            <span
+              className="relative"
+              ref={grupoDoMenu}
+              onMouseLeave={() => setAberto((a) => (a === "menu" ? "nenhum" : a))}
+            >
               <RoundIconButton
                 label="Mais opções"
                 ativo={aberto === "menu"}

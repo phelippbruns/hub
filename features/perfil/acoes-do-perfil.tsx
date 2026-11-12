@@ -57,13 +57,18 @@ export function AcoesDoPerfil({
   const [pendente, iniciar] = useTransition();
   const idDoMenu = useId();
   const grupoDoMenu = useRef<HTMLDivElement>(null);
+  const grupoDoVisitante = useRef<HTMLDivElement>(null);
 
   if (souEu) {
     return (
       <div className="flex items-start gap-2">
         {/* O `relative` é a âncora do menu, e precisa envolver o botão —
             numa caixa vazia ao lado, o menu sobe em vez de descer. */}
-        <div className="relative" ref={grupoDoMenu}>
+        <div
+          className="relative"
+          ref={grupoDoMenu}
+          onMouseLeave={() => setAberto((a) => (a === "menu" ? "nenhum" : a))}
+        >
           <BotaoDoCanto
             como="botao"
             rotulo="Mais opções do seu perfil"
@@ -199,7 +204,11 @@ export function AcoesDoPerfil({
         lado, o menu subia e cobria os botões em vez de descer abaixo do
         "..." — a caixa tinha altura zero, e "abaixo dela" é o topo da linha.
       */}
-      <div className="relative">
+      <div
+        className="relative"
+        ref={grupoDoVisitante}
+        onMouseLeave={() => setAberto((a) => (a === "menu" ? "nenhum" : a))}
+      >
         <BotaoDoCanto
           como="botao"
           rotulo={`Mais opções sobre ${nome}`}
@@ -216,6 +225,7 @@ export function AcoesDoPerfil({
             titulo={`Opções sobre ${nome}`}
             aberto={aberto === "menu"}
             onFechar={() => setAberto("nenhum")}
+            ancora={grupoDoVisitante}
           >
             <Link href={`/denuncia?perfil=${handle}`} onClick={() => setAberto("nenhum")}>
               <Button variant="secondary" size="sm" className="w-full">
