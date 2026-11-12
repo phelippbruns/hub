@@ -8,28 +8,21 @@
  * É o mesmo motivo de `features/comunidades/shared.ts`.
  */
 
+import { larguraDoPainel as larguraDoPainelCom } from "@/lib/painel";
+
 /** A largura mínima do painel: o mesmo valor do token `topicPanel`. */
 export const LARGURA_MINIMA = 520;
-
-/**
- * O teto absoluto, só para o servidor não confiar num cookie editado.
- *
- * O teto de verdade é metade da janela, e só o navegador sabe o tamanho
- * dela: quem o aplica é o `max-width: 50vw` do painel, que vale já na
- * primeira pintura. Aqui entra um limite de sanidade.
- */
-export const LARGURA_MAXIMA = 2000;
 
 export const COOKIE_DA_LARGURA = "hub_largura_do_topico";
 
 /**
- * O número guardado no cookie, ou o mínimo.
+ * A largura guardada, já dentro dos limites deste painel.
  *
- * Cookie é coisa que a pessoa edita, então nada que vem dele é confiável:
- * texto, vazio, negativo e gigante caem todos no limite, sem erro.
+ * A conta mora em `lib/painel.ts` desde 12 de novembro de 2026, quando o
+ * blog ganhou painel próprio — mas a assinatura aqui **não mudou**, e por
+ * isso a página da comunidade continua igual. O que cada painel tem de
+ * seu é o mínimo e o nome do cookie.
  */
 export function larguraDoPainel(valor: string | undefined): number {
-  const numero = Number(valor);
-  if (!Number.isFinite(numero)) return LARGURA_MINIMA;
-  return Math.max(LARGURA_MINIMA, Math.min(Math.round(numero), LARGURA_MAXIMA));
+  return larguraDoPainelCom(valor, LARGURA_MINIMA);
 }

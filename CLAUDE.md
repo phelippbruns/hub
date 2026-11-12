@@ -543,6 +543,67 @@ A jornada "nada sai pela borda direita"
 **1280 px e 800 px** e mede `scrollWidth` contra `innerWidth`. Ela é
 vigilância, não regressão: nunca viu o defeito vermelho.
 
+**O blog mora dentro do perfil, e não numa feature própria.** A regra
+"uma feature não importa de outra" decide isso: `features/perfil/tela.tsx`
+desenha a lista, então uma pasta `features/blog/` a obrigaria a importar
+dela. E é honesto sobre o produto — o blog não tem tela própria, é uma aba
+do perfil, e o endereço canônico do post (`/<handle>/<post>`) só
+redireciona para lá.
+
+**O post abre em `?post=`, e o perfil sem ele é o de sempre.** Mesma
+mecânica do tópico: `enderecoDoPost()` navega, `enderecoParaCompartilharPost()`
+é o canônico, e `lib/rotas.test.ts` varre o código. A diferença que custou
+uma hora: **o dono tem dois endereços de perfil**. `/<handle>` redireciona
+para `/perfil`, e o `redirect` cru comia o `?post=` — o painel sumia em
+silêncio. Quem resolve é `enderecoDoPerfil(handle, souEu)`, e o redirect
+agora copia a busca. Está no `faustao.md`.
+
+**O painel do post é irmão do painel do tópico, não o mesmo componente.**
+Decisão do PO em 12 de novembro de 2026: o painel do tópico não muda, é a
+tela mais usada do Hub. O que os dois dividem são as peças —
+[design/components/alca-do-painel.tsx](design/components/alca-do-painel.tsx) e
+[lib/painel.ts](lib/painel.ts), que recebem o mínimo e o nome do cookie por
+parâmetro. **Cada painel tem o cookie dele**: largura escolhida lendo um
+tópico não é escolha sobre ler um post. O do post nasceu sem os dois
+defeitos do outro — fechar preserva os parâmetros da URL, e Esc devolve o
+foco para a linha. Unificá-los é dívida registrada no backlog.
+
+**O endereço canônico do post não vira convite sem conta**, ao contrário do
+tópico. `/c/...` é público porque a comunidade é; o perfil não é. E a
+lista de rotas públicas funciona por prefixo — liberar `/<handle>/<post>`
+liberaria `/<qualquer>/<coisa>`, onde moram `/perfil/editar` e
+`/cabines/<id>`. Está no `vacilos.md`.
+
+**O corpo do post é JSON desenhado como React, nunca HTML.** A regra de
+segurança 8 continua inteira: nenhuma string de HTML existe em momento
+nenhum, e por isso não há sanitizador no projeto. O desenho é
+[features/perfil/blog/documento.tsx](features/perfil/blog/documento.tsx), e
+ele já sabe fazer negrito, itálico, lista, citação e link — **só não tem
+quem produza**, porque o editor do MVP é de blocos. Ligar um editor de
+texto rico depois não migra dado nem mexe no desenho.
+
+**E o `src` de cada imagem é construído pelo servidor.** O navegador manda
+o **índice** do arquivo no formulário, nunca um caminho. Um nó de imagem
+apontando para um servidor qualquer seria buscado pelo navegador de **todo
+mundo que lesse o post** — um rastreador de IP dentro do Hub. O teste em
+`lib/data/documento-do-post.test.ts` **tenta forjar** e exige que o caminho
+do depósito vença; a primeira versão dele passava com o defeito instalado
+porque só conferia o caso bom.
+
+**Post se edita; contribuição não (RN14).** São coisas diferentes:
+contribuição é fala numa conversa, e corrigir o que já foi dito muda o que
+os outros responderam. Post é texto de autor. A data da lista continua
+sendo a de publicação — mudar a ordem a cada correção de vírgula faria a
+pessoa subir no próprio blog sem ter escrito nada.
+
+**Status é uma linha por status, e o de agora é o de `ended_at` nulo.**
+Trocar encerra o anterior e abre outro, que é o que faz o histórico existir
+sem tabela separada. Quem garante "um por pessoa" é um **índice único
+parcial**, não um gatilho — a regra é "no máximo uma linha sem fim por
+pessoa", e é isso que um índice diz. Os tipos e limites moram em
+[lib/status.ts](lib/status.ts), sem `"use client"` e sem import, porque a
+pílula é cliente e componente de cliente não importa `lib/data/`.
+
 **Texto escrito por gente leva `wrap-anywhere`.** `@` de rede social, link
 colado e teclado travado produzem "palavras" de duzentos caracteres, e o
 navegador não quebra linha no meio de uma sem ser mandado — o texto

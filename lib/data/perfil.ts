@@ -10,6 +10,7 @@ import { prisma } from "./prisma";
 import { ForbiddenError, NotFoundError } from "./errors";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { enderecoDeMidia } from "@/lib/midia/deposito";
+import { statusDoPerfil, type StatusNaTela } from "./status";
 import type { Enquadramento } from "@/lib/midia/enquadramento";
 
 export type LinkDoPerfil = { title: string; url: string };
@@ -50,6 +51,8 @@ export type PerfilNaTela = {
   euSilenciei: boolean;
   /** RN21: já existe um convite meu de Cabine esperando resposta dela. */
   convitePendente: boolean;
+  /** RN40: o status de agora, ou `null`. Público, como o resto do topo. */
+  status: StatusNaTela | null;
 };
 
 /**
@@ -110,7 +113,7 @@ export async function perfilNaTela(viewer: Viewer, handle: string): Promise<Perf
    */
   const mostraNumeros = souEu || !perfil.hideFollowers;
 
-  const [seguidores, contribuicoes, comunidades, seguindo, relacao] = await Promise.all([
+  const [seguidores, contribuicoes, comunidades, seguindo, relacao, status] = await Promise.all([
     mostraNumeros
       ? prisma.follow.count({ where: { followedProfileId: perfil.id } })
       : Promise.resolve(null),
@@ -120,6 +123,8 @@ export async function perfilNaTela(viewer: Viewer, handle: string): Promise<Perf
       ? prisma.follow.count({ where: { followerId: perfil.id, target: "profile" } })
       : Promise.resolve(null),
     me && !souEu ? relacaoCom(me, perfil.id) : Promise.resolve(null),
+    // RN40: o status é público, então não depende de quem está olhando.
+    statusDoPerfil(perfil.id),
   ]);
 
   return {
@@ -149,6 +154,7 @@ export async function perfilNaTela(viewer: Viewer, handle: string): Promise<Perf
     euBloqueei: relacao?.bloqueei ?? false,
     euSilenciei: relacao?.silenciei ?? false,
     convitePendente: relacao?.convitePendente ?? false,
+    status,
   };
 }
 

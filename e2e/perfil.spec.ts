@@ -57,13 +57,23 @@ async function outraPessoa(): Promise<{ handle: string; nome: string }> {
 }
 
 test.describe("o perfil próprio", () => {
-  test("mostra seguindo e a aba Coleção", async ({ page }) => {
+  test("mostra seguindo, e a Coleção no menu de três pontos", async ({ page }) => {
     await entrarNoApp(page, "proprio");
     await page.goto("/perfil");
 
     await expect(page.getByText(/seguindo$/)).toBeVisible();
-    await expect(page.getByRole("tab", { name: "Coleção" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Contribuições" })).toBeVisible();
+
+    /*
+     * A Coleção era aba até 12 de novembro de 2026, quando o Blog tomou o
+     * lugar dela na fila. Ela não sumiu: foi para o menu de três pontos do
+     * dono, que nasceu nessa mudança. Este teste segue o caminho novo em
+     * vez de ser apagado — a Coleção continua precisando de uma porta.
+     */
+    await expect(page.getByRole("tab", { name: "Coleção" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Mais opções do seu perfil" }).click();
+    await expect(page.getByRole("button", { name: "Coleção", exact: true })).toBeVisible();
+    await page.keyboard.press("Escape");
 
     // O @ é o h1: o título "Perfil" saiu, e a página não pode ficar sem âncora.
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);

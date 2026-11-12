@@ -1,7 +1,14 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { enderecoDaComunidade, enderecoDoTopico, enderecoParaCompartilharTopico } from "./rotas";
+import {
+  enderecoDaComunidade,
+  enderecoDoPerfil,
+  enderecoDoPost,
+  enderecoDoTopico,
+  enderecoParaCompartilharPost,
+  enderecoParaCompartilharTopico,
+} from "./rotas";
 
 /**
  * **Ninguém monta o endereço de tópico à mão.**
@@ -99,5 +106,46 @@ describe("as duas formas do endereço de tópico", () => {
     // Slug vem do banco e é sempre limpo — mas a função é pública, e um
     // `&` no parâmetro viraria outro parâmetro na URL.
     expect(enderecoDoTopico("vinil", "a&b")).toBe("/c/vinil?t=a%26b");
+  });
+});
+
+describe("as duas formas do endereço de post", () => {
+  it("navegar abre o painel no perfil", () => {
+    expect(enderecoDoPost(enderecoDoPerfil("lia", false), "uma-noite-no-galpao")).toBe(
+      "/lia?post=uma-noite-no-galpao",
+    );
+  });
+
+  /**
+   * **O dono tem dois endereços de perfil, e só um deles funciona com
+   * parâmetro.** `/<meu handle>` redireciona para `/perfil`, e um link do
+   * dono para `/<handle>?post=x` passava por esse redirecionamento e
+   * chegava sem o parâmetro — o painel ficava fechado, sem explicação.
+   */
+  it("o post do dono abre em /perfil, não no @ dele", () => {
+    expect(enderecoDoPerfil("lia", true)).toBe("/perfil");
+    expect(enderecoDoPost(enderecoDoPerfil("lia", true), "meu-post")).toBe("/perfil?post=meu-post");
+  });
+
+  it("compartilhar põe o post no caminho", () => {
+    // É este que se cola numa conversa, e que leva quem não tem conta ao
+    // convite. Virar `?post=` faria o link de fora cair numa tela de
+    // dentro.
+    expect(enderecoParaCompartilharPost("lia", "uma-noite-no-galpao")).toBe(
+      "/lia/uma-noite-no-galpao",
+    );
+  });
+
+  it("escapa o que o endereço não aceita", () => {
+    expect(enderecoDoPost("/lia", "a&b")).toBe("/lia?post=a%26b");
+  });
+
+  /**
+   * As duas formas existem porque **são destinos diferentes**, e colapsá-las
+   * quebraria o compartilhamento — a mesma lição do tópico, que já custou
+   * uma rodada.
+   */
+  it("navegar e compartilhar não são a mesma coisa", () => {
+    expect(enderecoDoPost("/lia", "x")).not.toBe(enderecoParaCompartilharPost("lia", "x"));
   });
 });

@@ -14,7 +14,13 @@ import { ForbiddenError, RuleViolationError, UnauthenticatedError } from "@/lib/
 import { followProfile, unfollowProfile } from "@/lib/data/follows";
 import { bloquear, desbloquear, dessilenciar, silenciar } from "@/lib/data/perfil";
 import { conversaComPessoa } from "@/lib/data/cabins";
-import { guardarMedidasDaFoto, medidasDaFotoAtual, updateProfile } from "@/lib/data/profiles";
+import {
+  guardarMedidasDaFoto,
+  medidasDaFotoAtual,
+  meuHandle,
+  updateProfile,
+} from "@/lib/data/profiles";
+import { definirStatus, limparStatus } from "@/lib/data/status";
 import { MAXIMO_DE_LINKS } from "@/lib/data/validation";
 import { acharLink } from "@/lib/texto/links";
 import { ImagemRecusada, TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB } from "@/lib/midia/imagem";
@@ -229,4 +235,43 @@ export async function abrirConversa(profileId: string): Promise<{ erro?: string 
   }
 
   redirect(`/cabines/${destino}`);
+}
+
+export type EstadoDoStatus = { erro?: string; salvo?: boolean };
+
+/**
+ * RN40: define o status de agora.
+ *
+ * O `profileId` **não** vem do formulário: `quemPede()` o tira da sessão.
+ * Aceitá-lo do corpo deixaria qualquer pessoa escrever o status de outra.
+ */
+export async function salvarMeuStatus(
+  _anterior: EstadoDoStatus,
+  formulario: FormData,
+): Promise<EstadoDoStatus> {
+  const viewer = await quemPede();
+
+  try {
+    await definirStatus(viewer, {
+      tipo: formulario.get("tipo"),
+      texto: formulario.get("texto"),
+    });
+  } catch (erro) {
+    if (erro instanceof ZodError) {
+      return { erro: erro.issues[0]?.message ?? "Confira o status" };
+    }
+    if (erro instanceof RuleViolationError) return { erro: erro.message };
+    throw erro;
+  }
+
+  atualizarTelas(await meuHandle(viewer));
+  return { salvo: true };
+}
+
+/** RN40: tira a pílula do perfil. O status atual vai para o histórico. */
+export async function limparMeuStatus(): Promise<EstadoDoStatus> {
+  const viewer = await quemPede();
+  await limparStatus(viewer);
+  atualizarTelas(await meuHandle(viewer));
+  return { salvo: true };
 }

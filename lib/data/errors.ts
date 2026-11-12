@@ -63,7 +63,22 @@ export function translateDatabaseError(error: unknown): never {
   if (text.includes("answers_texto_ou_midia")) {
     throw new RuleViolationError("RN13", "Envie um texto, uma imagem ou um GIF");
   }
-  for (const rule of ["RN04", "RN07", "RN08", "RN13", "RN17", "RN20", "RN21"] as const) {
+  if (text.includes("profile_statuses_atual")) {
+    // RN40: duas requisições tentaram abrir status ao mesmo tempo. O índice
+    // parcial barrou a segunda, e quem lê não precisa saber disso.
+    throw new RuleViolationError("RN40", "Seu status mudou em outra aba. Recarregue a página");
+  }
+  for (const rule of [
+    "RN04",
+    "RN07",
+    "RN08",
+    "RN13",
+    "RN17",
+    "RN20",
+    "RN21",
+    "RN39",
+    "RN40",
+  ] as const) {
     if (text.includes(`${rule}:`)) {
       throw new RuleViolationError(rule, text.slice(text.indexOf(`${rule}:`)));
     }

@@ -235,6 +235,97 @@ certa faz.
 
 ---
 
+### O redirecionamento do próprio perfil comia o parâmetro
+
+*12 de novembro de 2026, Bloco 6 do Blog.*
+
+O post abre em `?post=<slug>`, e a linha da lista levava para
+`/<handle>?post=x`. Clicando, **a URL mudava e o painel não abria**.
+
+*Por que:* o dono tem **dois endereços de perfil**. `/<meu handle>` existe
+e redireciona para `/perfil` — e o `redirect("/perfil")` estava escrito
+cru, sem a busca. O parâmetro era descartado no caminho, e a tela chegava
+sem saber que havia um post para abrir.
+
+Nada quebrou: a página carregou normalmente, com o painel fechado. O
+endereço na barra até ficava certo por um instante, antes do
+redirecionamento.
+
+*Como resolvi:* duas coisas, porque o defeito tinha duas pontas.
+`enderecoDoPerfil(handle, souEu)` passou a existir em `lib/rotas.ts` e
+devolve `/perfil` para o dono, então o link já nasce no endereço certo. E
+o `redirect` de `app/(app)/[handle]/page.tsx` passou a **copiar a busca**,
+para um link que alguém guardou continuar funcionando.
+
+🔒 **Barrado** — `lib/rotas.test.ts` ("o post do dono abre em /perfil, não
+no @ dele") e a jornada "abrir põe o post na URL e destaca a linha".
+
+*A lição:* **todo `redirect()` para uma tela que lê parâmetros tem de
+levá-los junto.** O Hub já tinha essa regra escrita para a tela do tópico
+("tela cujo estado vive na busca nunca monta endereço do zero"), e ela
+estava escrita do lado de quem *monta* o endereço. Faltava do lado de quem
+*redireciona* — e é o mesmo erro.
+
+---
+
+### E o `role="alert"` do Next entrou na conta de novo
+
+*Mesma rodada, poucos minutos depois.*
+
+Escrevi `page.getByRole("alert")` para conferir a frase do quarto post
+fixado. Reprovou por ambiguidade: o anunciador de rota do Next
+(`#__next-route-announcer__`) também tem `role="alert"`.
+
+*Por que isso dói:* o projeto **já tem** a função `alerta()` em
+`e2e/apoio-tela.ts`, criada depois de cair nisso na F07, na F08 e na F09 —
+e o comentário dela diz, em letras, que virou função porque o comentário
+não bastava. Eu escrevi o seletor cru mesmo assim.
+
+*Como resolvi:* `alerta(page)`, que é o que já existia.
+
+*A lição, e ela é sobre mim:* **ferramenta criada para evitar um erro só
+evita o erro se eu a procurar.** O jeito certo era o mais curto de
+escrever e eu escrevi o outro — porque escrevi o teste sem olhar o arquivo
+de apoio. Antes de escrever jornada nova, ler `apoio-tela.ts` inteiro
+custa um minuto.
+
+---
+
+### "O visitante não vê" passou olhando a tela de entrar
+
+*12 de novembro de 2026, Bloco 2 do Blog e Status.*
+
+Escrevi uma jornada para garantir que o convite "Definir status" só
+aparece para o dono do perfil. Ela fazia `clearCookies()`, abria
+`/<handle>` e conferia que o botão não estava lá. Passou.
+
+*Por que passou:* **o perfil não é rota pública.** Sem sessão, o proxy
+manda para `/entrar` — e na tela de entrar não existe botão de status
+nenhum. O teste media a ausência de um botão numa página que não era a
+página. Verde, e guardando nada.
+
+O irmão dele, escrito na mesma leva, reprovou por isso mesmo e foi quem
+me avisou: ele procurava um texto **positivo** ("Torto Arado") e não o
+achou. A assimetria é a lição inteira — a asserção positiva falha quando
+a página está errada, a negativa não.
+
+*Como resolvi:* visitante no Hub é **outra pessoa com conta**, não
+anônimo. A jornada ganhou `trocarDePessoa()`, e toda conferência de
+ausência passou a vir depois de uma positiva que prova que a tela certa
+carregou: `expect(heading com o @ da pessoa).toBeVisible()`.
+
+🔒 **Barrado** — `e2e/status.spec.ts`, visto reprovar com a regra
+`if (!souEu) return null` removida.
+
+*A lição:* a regra do `toHaveCount(0)` já estava escrita no CLAUDE.md, e
+eu a cumpri **no lugar errado** — pus a asserção positiva na metade do
+teste que olhava o dono, não na que olhava o visitante. **A âncora
+positiva pertence a cada troca de contexto**, não a cada teste: toda vez
+que a jornada muda de pessoa ou de página, ela precisa provar de novo
+onde está.
+
+---
+
 ### O teste que contava o certo e media o errado
 
 *8 de novembro de 2026, Bloco C.*

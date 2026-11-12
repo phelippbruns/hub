@@ -61,6 +61,8 @@ import {
   TopicName,
   TopicOpening,
   Janela,
+  AlcaDoPainel,
+  PostRow,
   TopicCard,
   TopicRow,
 } from "./components";
@@ -226,6 +228,7 @@ export function DesignGallery() {
   const [janela, setJanela] = useState(false);
   const [selectedChip, setSelectedChip] = useState(true);
   const [member, setMember] = useState(false);
+  const [larguraDemo, setLarguraDemo] = useState(640);
   const [tab, setTab] = useState("contribuicoes");
   const [notify, setNotify] = useState(true);
   const [agree, setAgree] = useState(false);
@@ -955,6 +958,53 @@ export function DesignGallery() {
               }}
             />
             <TopicCard name="ninguém respondeu ainda" people={0} answers={0} ultima={null} />
+          </div>
+        </Card>
+
+        <Card title="Alça de painel">
+          {/*
+            Precisa de um pai `relative`: ela se posiciona sobre a borda
+            esquerda dele. É o mesmo arranjo do painel do tópico e do post.
+          */}
+          <div className="bg-paper h-cover relative w-full rounded-sm">
+            <AlcaDoPainel
+              largura={larguraDemo}
+              onLargura={setLarguraDemo}
+              minimo={520}
+              cookie="hub_demo_da_galeria"
+              rotulo="Largura do exemplo"
+            />
+            <p className="text-caption text-inkMuted p-3">
+              Arraste a borda esquerda, ou use as setas com ela em foco. Agora: {larguraDemo} px.
+            </p>
+          </div>
+        </Card>
+
+        <Card title="Linha de post no blog" wide>
+          <div className="flex w-full flex-col gap-2">
+            <PostRow
+              titulo="Uma noite no galpão"
+              resumo="Toquei das 2h às 5h num galpão sem janela nenhuma. Quando acendeu a luz do fim, ela entrou pelas telhas."
+              minutos={3}
+              quando="há 2 dias"
+              fixado
+              imagens={3}
+            />
+            <PostRow
+              titulo="Teoria do set"
+              resumo="Todo set bom tem uma faixa que ninguém reconhece e todo mundo lembra."
+              minutos={1}
+              quando="há 4 dias"
+              comGif
+            />
+            {/* Sem imagem nenhuma: a prévia é a inicial do título. */}
+            <PostRow
+              titulo="Discos por ano"
+              resumo="Passei a tarde reorganizando discos por ano em vez de por gênero."
+              minutos={2}
+              quando="há 1 semana"
+              aberto
+            />
           </div>
         </Card>
 

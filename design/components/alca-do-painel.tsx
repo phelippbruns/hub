@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { COOKIE_DA_LARGURA, LARGURA_MINIMA } from "./shared";
 
 /** Quanto a seta do teclado move por toque. */
 const PASSO_DO_TECLADO = 40;
@@ -21,8 +20,8 @@ function teto() {
   return Math.floor(window.innerWidth / 2);
 }
 
-function dentroDosLimites(valor: number) {
-  return Math.max(LARGURA_MINIMA, Math.min(valor, teto()));
+function dentroDosLimites(valor: number, minimo: number) {
+  return Math.max(minimo, Math.min(valor, teto()));
 }
 
 /**
@@ -39,27 +38,47 @@ function dentroDosLimites(valor: number) {
  * **Por que `role="separator"` e setas.** Uma alça só de arrastar é um
  * controle que não existe para quem usa teclado. `aria-valuenow` diz a
  * largura atual, e as setas movem de 40 em 40 px.
+ *
+ * **O nome do cookie e a largura mínima vêm por prop**, e não de uma
+ * constante aqui dentro: cada painel guarda a largura dele. O do tópico e
+ * o do post são conversas diferentes, e uma escolha num não é escolha no
+ * outro. Foi por isso que a alça subiu para o design system em 12 de
+ * novembro de 2026 — o painel do tópico não mudou nada com a mudança.
  */
 export function AlcaDoPainel({
   largura,
   onLargura,
+  minimo,
+  cookie,
+  rotulo,
 }: {
   largura: number;
   onLargura: (valor: number) => void;
+  /** A largura mínima deste painel, em pixels. */
+  minimo: number;
+  /** O nome do cookie que guarda a escolha. Um por painel. */
+  cookie: string;
+  /** O que o leitor de tela anuncia: "Largura do tópico", "Largura do post". */
+  rotulo: string;
 }) {
   const [arrastando, setArrastando] = useState(false);
   const inicio = useRef({ x: 0, largura: 0 });
 
-  const guardar = useCallback((valor: number) => {
-    document.cookie = `${COOKIE_DA_LARGURA}=${valor}; path=/; max-age=${UM_ANO}; SameSite=Lax`;
-  }, []);
+  const guardar = useCallback(
+    (valor: number) => {
+      document.cookie = `${cookie}=${valor}; path=/; max-age=${UM_ANO}; SameSite=Lax`;
+    },
+    [cookie],
+  );
 
   useEffect(() => {
     if (!arrastando) return;
 
     function aoMover(evento: PointerEvent) {
       // Para a esquerda alarga: o painel está encostado na direita.
-      onLargura(dentroDosLimites(inicio.current.largura + (inicio.current.x - evento.clientX)));
+      onLargura(
+        dentroDosLimites(inicio.current.largura + (inicio.current.x - evento.clientX), minimo),
+      );
     }
     function aoSoltar() {
       setArrastando(false);
@@ -73,7 +92,7 @@ export function AlcaDoPainel({
       window.removeEventListener("pointerup", aoSoltar);
       window.removeEventListener("pointercancel", aoSoltar);
     };
-  }, [arrastando, onLargura]);
+  }, [arrastando, onLargura, minimo]);
 
   /*
    * Gravado ao **soltar**, não a cada pixel: um arrasto de meio segundo
@@ -92,11 +111,11 @@ export function AlcaDoPainel({
    */
   useEffect(() => {
     function aoRedimensionar() {
-      onLargura(dentroDosLimites(largura));
+      onLargura(dentroDosLimites(largura, minimo));
     }
     window.addEventListener("resize", aoRedimensionar);
     return () => window.removeEventListener("resize", aoRedimensionar);
-  }, [largura, onLargura]);
+  }, [largura, onLargura, minimo]);
 
   function aoTeclar(evento: React.KeyboardEvent) {
     const passo =
@@ -107,16 +126,16 @@ export function AlcaDoPainel({
           : 0;
     if (passo === 0) return;
     evento.preventDefault();
-    onLargura(dentroDosLimites(largura + passo));
+    onLargura(dentroDosLimites(largura + passo, minimo));
   }
 
   return (
     <div
       role="separator"
       aria-orientation="vertical"
-      aria-label="Largura do tópico"
+      aria-label={rotulo}
       aria-valuenow={largura}
-      aria-valuemin={LARGURA_MINIMA}
+      aria-valuemin={minimo}
       tabIndex={0}
       onKeyDown={aoTeclar}
       onPointerDown={(evento) => {
