@@ -17,6 +17,7 @@ import { COOKIE_DO_POST, larguraDoPainelDoPost } from "./blog/shared";
 import { comunidadesDoPerfil, perfilNaTela, respostasDoPerfil } from "@/lib/data/perfil";
 import { getCollection } from "@/lib/data/follows";
 import { getViewer } from "@/lib/auth/session";
+import { gifEstaLigado } from "@/lib/midia/giphy";
 
 type Aba = "blog" | "contribuicoes" | "comunidades" | "colecao";
 
@@ -136,6 +137,8 @@ export async function TelaDePerfil({
                 posts={await postsDoPerfil(viewer, perfil.id)}
                 souEu={perfil.souEu}
                 base={base}
+                handle={perfil.handle}
+                gifLigado={gifEstaLigado()}
                 aberto={post}
               />
             ) : null}

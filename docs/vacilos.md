@@ -877,3 +877,40 @@ jornada reprova numa rodada de otimização, a primeira pergunta não é
 "como faço o teste passar" — é **"que regra eu mudei sem perceber, e ela
 é melhor?"**. Se for melhor, ela entra aqui. Se não for, quem muda é o
 código.
+
+### O editor de texto rico virou dívida, e a dívida é barata
+
+*12 de novembro de 2026, Bloco 7 do Blog.*
+
+O plano aprovado trazia o Tiptap: negrito, itálico, lista, citação, link e
+imagem no meio do texto. O PO perguntou se dava para fazer algo mais
+simples no MVP, e a resposta foi sim — por um motivo que só ficou claro
+depois do Bloco 6.
+
+**O caro e o arriscado já estavam feitos.** O formato de guardar (JSON
+estruturado), o desenho de JSON para React sem nunca gerar HTML, a
+assinatura das imagens e a regra da prévia saíram no bloco anterior. O que
+faltava era só a superfície de escrever.
+
+*O que entrou:* um editor de **blocos** — uma caixa por parágrafo, mais
+botões para acrescentar subtítulo, imagem e GIF, com reordenar e tirar.
+
+*O que ficou de fora:* negrito, itálico, lista, citação e link.
+
+*Por que a dívida é barata, e isto é o ponto:* o formato guardado é
+**idêntico** ao que o editor completo produziria, e o renderizador já sabe
+desenhar tudo que falta — ele só não tem quem produza. Ligar o Tiptap
+depois é acrescentar uma superfície de escrita: **sem migração de dado, sem
+mexer no desenho, sem mexer na leitura.**
+
+*E o MVP ganhou uma coisa que o Tiptap não daria:* com blocos, o navegador
+manda o **índice** do arquivo e o servidor constrói o `src`. Com um editor
+de texto rico o documento viria pronto do navegador, e um nó de imagem
+forjado apontando para um servidor qualquer seria buscado pelo navegador de
+todo mundo que lesse o post — um rastreador de IP dentro do Hub. A
+validação existiria para barrar isso; aqui o caminho não existe.
+
+**Regra:** antes de aceitar uma dependência grande, pergunte **o que dela é
+mesmo necessário agora**. Quando o formato de dados é estável e o desenho
+já está pronto, o editor é a parte mais trocável do sistema — e a mais cara
+de construir cedo demais.

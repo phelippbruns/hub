@@ -6,6 +6,7 @@
  */
 import { z } from "zod";
 import { TIPOS_DE_STATUS, limiteDoStatus } from "@/lib/status";
+import { LIMITE_DO_TITULO } from "@/features/perfil/blog/shared";
 import { ZOOM_MAXIMO, ZOOM_MINIMO } from "@/lib/midia/enquadramento";
 import { acharLink, contemLink } from "@/lib/texto/links";
 
@@ -501,3 +502,18 @@ export const definirStatusSchema = z
       ctx.addIssue({ code: "custom", path: ["texto"], message: "RN16: links não são aceitos" });
     }
   });
+
+/**
+ * RN39: o título do post.
+ *
+ * **Sem `userText`, e por isso sem a RN16.** O post aceita endereços no
+ * título e no corpo — eles ficam como texto, porque o editor de blocos não
+ * tem link, e viram link quando o editor completo entrar. A RN16 existe
+ * para barrar spam em contribuição de tópico, que é conversa; o blog é
+ * texto de autor no próprio perfil.
+ */
+export const tituloDoPostSchema = z
+  .string()
+  .trim()
+  .min(1, "Dê um título ao post")
+  .max(LIMITE_DO_TITULO, `O título passa de ${LIMITE_DO_TITULO} caracteres`);

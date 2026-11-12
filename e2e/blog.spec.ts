@@ -378,3 +378,126 @@ test.describe("o post aberto no painel", () => {
     await expect(page.getByRole("button", { name: "Mais opções do post" })).toHaveCount(0);
   });
 });
+
+test.describe("RN39: escrever um post", () => {
+  test("RN39: escrevo, publico, e o post abre no painel", async ({ page }) => {
+    const handle = await entrarNoApp(page, "escrever");
+    await page.goto("/perfil");
+    await perfilCarregado(page, handle);
+
+    await page.getByRole("button", { name: "Novo post" }).click();
+    await expect(page.getByRole("dialog", { name: "Novo post" })).toBeVisible();
+
+    await page.getByLabel("Título").fill("Uma noite no galpão");
+    await page.getByLabel("Parágrafo 1").fill("Toquei das 2h às 5h num galpão sem janela nenhuma.");
+
+    await page.getByRole("button", { name: "+ Subtítulo" }).click();
+    await page.getByLabel("Subtítulo 2").fill("O que funcionou");
+
+    await page.getByRole("button", { name: "+ Parágrafo" }).click();
+    await page.getByLabel("Parágrafo 3").fill("Começar mais lento do que eu queria.");
+
+    await page.getByRole("button", { name: "Publicar" }).click();
+
+    // Vai direto para o post publicado: é a melhor confirmação possível.
+    await expect(page).toHaveURL(/post=uma-noite-no-galpao/);
+    const painel = page.getByRole("complementary", { name: "Post Uma noite no galpão" });
+    await expect(painel).toBeVisible();
+    await expect(painel.getByRole("heading", { level: 2, name: "O que funcionou" })).toBeVisible();
+    await expect(painel.getByText("Começar mais lento do que eu queria.")).toBeVisible();
+  });
+
+  test("o servidor calcula o resumo e o tempo de leitura", async ({ page }) => {
+    const handle = await entrarNoApp(page, "resumo");
+    await page.goto("/perfil");
+    await perfilCarregado(page, handle);
+
+    await page.getByRole("button", { name: "Novo post" }).click();
+    await page.getByLabel("Título").fill("Discos por ano");
+    await page.getByLabel("Parágrafo 1").fill("palavra ".repeat(400).trim());
+    await page.getByRole("button", { name: "Publicar" }).click();
+    await expect(page).toHaveURL(/post=discos-por-ano/);
+
+    const [linha] = await consultar<{ excerpt: string; read_minutes: number }>(
+      `SELECT excerpt, read_minutes FROM posts
+        WHERE author_id = (SELECT id FROM profiles WHERE handle = '${handle}')`,
+    );
+
+    // 400 palavras a 200 por minuto. O resumo para em 200 caracteres.
+    expect(linha?.read_minutes).toBe(2);
+    expect(linha?.excerpt.length).toBeLessThanOrEqual(200);
+    expect(linha?.excerpt).toMatch(/…$/);
+  });
+
+  test("sem título ou sem parágrafo, o botão diz o que falta", async ({ page }) => {
+    const handle = await entrarNoApp(page, "oquefalta");
+    await page.goto("/perfil");
+    await perfilCarregado(page, handle);
+
+    await page.getByRole("button", { name: "Novo post" }).click();
+    const publicar = page.getByRole("button", { name: "Publicar" });
+
+    await expect(publicar).toBeDisabled();
+    await expect(page.getByText("Dê um título ao post.")).toBeVisible();
+
+    await page.getByLabel("Título").fill("Tem título");
+    await expect(page.getByText("Escreva ao menos um parágrafo.")).toBeVisible();
+
+    await page.getByLabel("Parágrafo 1").fill("Agora tem texto.");
+    await expect(publicar).toBeEnabled();
+  });
+
+  test("dá para reordenar e tirar blocos", async ({ page }) => {
+    const handle = await entrarNoApp(page, "reordenar");
+    await page.goto("/perfil");
+    await perfilCarregado(page, handle);
+
+    await page.getByRole("button", { name: "Novo post" }).click();
+    await page.getByLabel("Título").fill("Fora de ordem");
+    await page.getByLabel("Parágrafo 1").fill("Era o primeiro.");
+    await page.getByRole("button", { name: "+ Parágrafo" }).click();
+    await page.getByLabel("Parágrafo 2").fill("Era o segundo.");
+
+    await page.getByRole("button", { name: "Mover o bloco 2 para cima" }).click();
+    await page.getByRole("button", { name: "Publicar" }).click();
+
+    await expect(page).toHaveURL(/post=fora-de-ordem/);
+    const painel = page.getByRole("complementary", { name: "Post Fora de ordem" });
+    const paragrafos = painel.locator("p");
+    await expect(paragrafos.first()).toContainText("Era o segundo.");
+  });
+
+  test("dois posts com o mesmo título ganham endereços diferentes", async ({ page }) => {
+    const handle = await entrarNoApp(page, "mesmotitulo");
+
+    for (let vez = 0; vez < 2; vez++) {
+      await page.goto("/perfil");
+      await perfilCarregado(page, handle);
+      await page.getByRole("button", { name: "Novo post" }).click();
+      await page.getByLabel("Título").fill("Teoria do set");
+      await page.getByLabel("Parágrafo 1").fill("Uma faixa que ninguém reconhece.");
+      await page.getByRole("button", { name: "Publicar" }).click();
+      await expect(page).toHaveURL(/post=teoria-do-set/);
+    }
+
+    const slugs = await consultar<{ slug: string }>(
+      `SELECT slug FROM posts
+        WHERE author_id = (SELECT id FROM profiles WHERE handle = '${handle}')
+        ORDER BY created_at`,
+    );
+
+    // O nome continua valendo; só o endereço ganha um número.
+    expect(slugs.map((l) => l.slug)).toEqual(["teoria-do-set", "teoria-do-set-2"]);
+  });
+
+  test("o visitante não tem como escrever no blog de outra pessoa", async ({ page }) => {
+    const dona = await entrarNoApp(page, "donaescreve");
+
+    await trocarDePessoa(page, "visitaescreve");
+    await page.goto(`/${dona}`);
+    await perfilCarregado(page, dona);
+
+    await expect(page.getByText("Nenhum post ainda")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Novo post" })).toHaveCount(0);
+  });
+});

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EmptyState, PostRow, SectionTitle } from "@/design/components";
 import { enderecoDoPost } from "@/lib/rotas";
+import { CriarPost } from "./criar";
 import { haQuantoTempo } from "@/lib/tempo";
 import type { PostNaLista } from "@/lib/data/blog";
 
@@ -26,25 +27,43 @@ export function AbaBlog({
   posts,
   souEu,
   base,
+  handle,
+  gifLigado,
   aberto,
 }: {
   posts: PostNaLista[];
   souEu: boolean;
   /** O endereço desta tela: `/perfil` ou `/<handle>`. */
   base: string;
+  handle: string;
+  /** Sem a chave do GIPHY, o botão de GIF simplesmente não aparece. */
+  gifLigado: boolean;
   /** O endereço do post aberto no painel, para destacar a linha. */
   aberto?: string;
 }) {
+  /* Só o dono escreve, então só ele vê a barra com o botão. */
+  const barra = souEu ? (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-caption text-inkMuted">
+        {posts.length} {posts.length === 1 ? "post" : "posts"}
+      </span>
+      <CriarPost handle={handle} base={base} gifLigado={gifLigado} />
+    </div>
+  ) : null;
+
   if (posts.length === 0) {
     return (
-      <EmptyState
-        title="Nenhum post ainda"
-        description={
-          souEu
-            ? "Escreva o primeiro: o blog é o que você pensa, não o que você responde."
-            : "Quando esta pessoa escrever, os posts aparecem aqui."
-        }
-      />
+      <div className="flex flex-col gap-3">
+        {barra}
+        <EmptyState
+          title="Nenhum post ainda"
+          description={
+            souEu
+              ? "Escreva o primeiro: o blog é o que você pensa, não o que você responde."
+              : "Quando esta pessoa escrever, os posts aparecem aqui."
+          }
+        />
+      </div>
     );
   }
 
@@ -53,6 +72,8 @@ export function AbaBlog({
 
   return (
     <div className="flex flex-col gap-3">
+      {barra}
+
       {fixados.length > 0 ? (
         <>
           <SectionTitle>Fixados</SectionTitle>

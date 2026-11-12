@@ -1,4 +1,14 @@
+import { Prisma } from "@/prisma/generated/client";
 import { prisma } from "./prisma";
+import {
+  corpoEnviadoSchema,
+  minutosDeLeitura,
+  montarDocumento,
+  resumoDoCorpo,
+  textoPuro,
+  type BlocoEnviado,
+} from "./documento-do-post";
+import { tituloDoPostSchema } from "./validation";
 import { enderecosDeMidia } from "@/lib/midia/deposito";
 import { ForbiddenError, NotFoundError, translateDatabaseError } from "./errors";
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
@@ -284,4 +294,102 @@ export async function postPorEndereco(
     souAutor,
     imagens: imagens.map((endereco, i) => endereco ?? doCorpo.at(i) ?? ""),
   };
+}
+
+/** O que a tela manda ao criar ou editar um post. */
+export type PostParaSalvar = {
+  titulo: string;
+  blocos: BlocoEnviado[];
+  /** As mídias já guardadas, na ordem dos blocos de imagem e GIF. */
+  midias: { src: string; largura?: number; altura?: number }[];
+  /** Caminho da capa no depósito, ou `null` para tirar. `undefined` = não mexer. */
+  capa?: string | null;
+  capaMedidas?: { largura: number; altura: number } | null;
+};
+
+/**
+ * RN39: cria um post.
+ *
+ * O `excerpt` e o `readMinutes` são derivados **aqui**, e não na tela: a
+ * lista é lida por quem ainda não abriu nada, e dois resumos diferentes
+ * para o mesmo post seria o tipo de diferença que ninguém decidiu.
+ *
+ * O `slug` não é escrito: quem o preenche é o gatilho `posts_set_slug`,
+ * que numera na colisão — dois posts com o mesmo título ganham `titulo` e
+ * `titulo-2`, e ninguém perde o nome que quis.
+ */
+export async function criarPost(viewer: Viewer, entrada: PostParaSalvar) {
+  const me = requireProfileId(viewer);
+  const titulo = tituloDoPostSchema.parse(entrada.titulo);
+  const blocos = corpoEnviadoSchema.parse(entrada.blocos);
+
+  const texto = textoPuro(blocos);
+
+  try {
+    return await prisma.post.create({
+      data: {
+        authorId: me,
+        title: titulo,
+        body: montarDocumento(blocos, entrada.midias) as Prisma.InputJsonValue,
+        excerpt: resumoDoCorpo(texto),
+        readMinutes: minutosDeLeitura(texto),
+        coverUrl: entrada.capa ?? null,
+        coverWidth: entrada.capaMedidas?.largura ?? null,
+        coverHeight: entrada.capaMedidas?.altura ?? null,
+      },
+      select: { id: true, slug: true },
+    });
+  } catch (error) {
+    translateDatabaseError(error);
+  }
+}
+
+/**
+ * RN39: edita um post.
+ *
+ * **Post se edita, ao contrário de contribuição (RN14).** São coisas
+ * diferentes: contribuição é fala numa conversa, e corrigir o que já foi
+ * dito muda o que os outros responderam. Post é texto de autor, e texto de
+ * autor se revisa.
+ *
+ * `updated_at` muda; `created_at` não. A data que a lista mostra continua
+ * sendo a de publicação — mudar a ordem da lista a cada correção de vírgula
+ * faria a pessoa subir no próprio blog sem ter escrito nada.
+ */
+export async function editarPost(viewer: Viewer, postId: string, entrada: PostParaSalvar) {
+  const me = requireProfileId(viewer);
+  const titulo = tituloDoPostSchema.parse(entrada.titulo);
+  const blocos = corpoEnviadoSchema.parse(entrada.blocos);
+
+  const post = await prisma.post.findFirst({
+    where: { id: postId, deletedAt: null },
+    select: { authorId: true },
+  });
+  if (!post) throw new NotFoundError("Post");
+  if (post.authorId !== me) throw new ForbiddenError("Este post não é seu");
+
+  const texto = textoPuro(blocos);
+
+  try {
+    return await prisma.post.update({
+      where: { id: postId },
+      data: {
+        title: titulo,
+        body: montarDocumento(blocos, entrada.midias) as Prisma.InputJsonValue,
+        excerpt: resumoDoCorpo(texto),
+        readMinutes: minutosDeLeitura(texto),
+        // `undefined` é "não mexer": salvar o texto não pode apagar a capa.
+        ...(entrada.capa === undefined
+          ? {}
+          : {
+              coverUrl: entrada.capa,
+              coverWidth: entrada.capaMedidas?.largura ?? null,
+              coverHeight: entrada.capaMedidas?.altura ?? null,
+            }),
+      },
+      select: { id: true, slug: true },
+    });
+  } catch (error) {
+    translateDatabaseError(error);
+  }
 }
