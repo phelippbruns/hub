@@ -543,6 +543,40 @@ A jornada "nada sai pela borda direita"
 **1280 px e 800 px** e mede `scrollWidth` contra `innerWidth`. Ela é
 vigilância, não regressão: nunca viu o defeito vermelho.
 
+**Criar é um `+` só, e abre janela sobre a página.** Eram dois links na
+barra — "Criar tópico" e "Criar comunidade" — e os dois levavam embora;
+fechar a janela de tópico chegava a jogar a pessoa numa terceira tela. O
+menu mora em [app/(app)/criar-menu.tsx](<app/(app)/criar-menu.tsx>) e **não**
+numa feature: ele compõe duas, e uma feature não importa de outra. A
+`NavRail` é do design system e pela mesma razão recebe o item por **slot**.
+A lista de comunidades é carregada quando a janela abre, por Server
+Action — a barra está em toda tela, e pagar por ela em cada navegação
+alimentaria uma janela que quase nunca abre. `/criar-topico` e
+`/comunidades/nova` continuam existindo.
+
+**Todo `MenuSuspenso` leva `ancora`, e há varredura.** Sem ela, clicar no
+botão de novo **reabre** o menu que acabou de fechar — para quem usa, o
+clique não faz nada. O defeito viveu três anos, foi corrigido num menu em
+7 de novembro de 2026 e esquecido nos outros três; em 12 de novembro os
+quatro ficaram iguais, e
+[design/components/menu-suspenso.test.ts](design/components/menu-suspenso.test.ts) reprova o
+quinto que nascer sem ela. O fechar ao tirar o mouse mora no grupo que
+envolve **botão e balão** — nos dois, nunca em cada um, porque entre eles
+há um vão que o ponteiro atravessa.
+
+**O `@` de uma pessoa é sempre link** ([design/components/handle-link.tsx](design/components/handle-link.tsx)),
+**menos dentro de algo que já é clicável**: no cartão de tópico e na lista
+de Cabines ele continua texto, porque âncora dentro de âncora é HTML
+inválido e o navegador desfaz do jeito dele. Há teste que conta a
+profundidade de `<a>` em todos os componentes da galeria.
+
+**A mídia do tópico existe de ponta a ponta desde 12 de novembro de 2026.**
+`media_url` era gravado desde a F08 e **nunca lido**: faltavam a ação, que
+mandava `media: null` literal, e a exibição, que não existia. `topics`
+ganhou `media_width`, `media_height` e `media_still_url` pelo mesmo motivo
+de `answers` — sem as medidas o cartão da abertura **pula** quando a
+imagem chega.
+
 **O blog mora dentro do perfil, e não numa feature própria.** A regra
 "uma feature não importa de outra" decide isso: `features/perfil/tela.tsx`
 desenha a lista, então uma pasta `features/blog/` a obrigaria a importar
