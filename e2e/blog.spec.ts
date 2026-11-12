@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { consultar } from "./apoio-banco";
 import { cadastroConcluido, concluirOnboarding } from "./apoio-tela";
 
 /**
@@ -38,6 +39,30 @@ async function entrarNoApp(page: Page, prefixo: string): Promise<string> {
 async function trocarDePessoa(page: Page, prefixo: string): Promise<string> {
   await page.context().clearCookies();
   return entrarNoApp(page, prefixo);
+}
+
+/**
+ * Cria um post direto no banco.
+ *
+ * O editor só chega no Bloco 7, e a lista precisa de posts para ser
+ * testada. É o mesmo caminho que `ciclo.spec.ts` usa para ter dois tópicos
+ * no mesmo dia, que a RN07 não deixaria criar pela tela.
+ */
+async function criarPost(
+  handle: string,
+  titulo: string,
+  extras: { fixado?: boolean; capa?: string; dias?: number } = {},
+) {
+  const quando = `now() - interval '${extras.dias ?? 0} days'`;
+  await consultar(
+    `INSERT INTO posts (author_id, title, body, excerpt, read_minutes, cover_url, pinned_at, created_at, updated_at)
+     SELECT id, '${titulo}', '{"type":"doc","content":[]}'::jsonb,
+            'Resumo de ${titulo}.', 2,
+            ${extras.capa ? `'${extras.capa}'` : "NULL"},
+            ${extras.fixado ? quando : "NULL"},
+            ${quando}, ${quando}
+       FROM profiles WHERE handle = '${handle}'`,
+  );
 }
 
 /** A âncora positiva de cada troca de contexto: a tela certa carregou. */
@@ -127,5 +152,66 @@ test.describe("a Coleção no menu de três pontos", () => {
     await perfilCarregado(page, handle);
 
     await expect(page.getByText("Só você vê a sua Coleção.")).toBeVisible();
+  });
+});
+
+test.describe("RN39: a lista do blog", () => {
+  test("RN39: os fixados vêm numa seção, acima dos demais", async ({ page }) => {
+    const handle = await entrarNoApp(page, "listafix");
+
+    // Publicado há mais tempo, mas fixado: tem de aparecer acima do recente.
+    await criarPost(handle, "Antigo e fixado", { fixado: true, dias: 30 });
+    await criarPost(handle, "Recente sem fixar", { dias: 1 });
+
+    await page.goto("/perfil");
+    await perfilCarregado(page, handle);
+
+    await expect(page.getByRole("heading", { name: "Fixados" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Todos os posts" })).toBeVisible();
+
+    const titulos = page.getByRole("heading", { level: 3 });
+    await expect(titulos).toHaveText(["Antigo e fixado", "Recente sem fixar"]);
+  });
+
+  test("sem fixado nenhum, não há seção — só a lista", async ({ page }) => {
+    const handle = await entrarNoApp(page, "listalimpa");
+    await criarPost(handle, "Um post só");
+
+    await page.goto("/perfil");
+    await perfilCarregado(page, handle);
+
+    // Positivo primeiro: o post chegou. Senão o zero abaixo seria
+    // satisfeito pela aba ainda vazia.
+    await expect(page.getByRole("heading", { name: "Um post só" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Fixados" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Todos os posts" })).toHaveCount(0);
+  });
+
+  test("RN39: a lista aparece no perfil de outra pessoa", async ({ page }) => {
+    const dona = await entrarNoApp(page, "donalista");
+    await criarPost(dona, "O que eu escrevi", { dias: 2 });
+
+    await trocarDePessoa(page, "visitalista");
+    await page.goto(`/${dona}`);
+    await perfilCarregado(page, dona);
+
+    await expect(page.getByRole("heading", { name: "O que eu escrevi" })).toBeVisible();
+    // Tempo de leitura e data juntos, discretos, no fim da linha de selos.
+    await expect(page.getByText("2 min · há 2 dias")).toBeVisible();
+  });
+
+  test("sem imagem nenhuma, a prévia é a inicial do título", async ({ page }) => {
+    const handle = await entrarNoApp(page, "semimagem");
+    await criarPost(handle, "Vinil na chuva");
+
+    await page.goto("/perfil");
+    await perfilCarregado(page, handle);
+    await expect(page.getByRole("heading", { name: "Vinil na chuva" })).toBeVisible();
+
+    // A inicial é decorativa e não entra na árvore de acessibilidade, então
+    // o que se confere é que não há imagem desenhada na linha.
+    const linha = page.getByRole("heading", { name: "Vinil na chuva" }).locator("../../..");
+    await expect(linha.locator("img")).toHaveCount(0);
+    await expect(linha.getByText("V", { exact: true })).toBeVisible();
   });
 });

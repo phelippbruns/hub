@@ -61,6 +61,7 @@ import {
   TopicName,
   TopicOpening,
   Janela,
+  PostRow,
   TopicCard,
   TopicRow,
 } from "./components";
@@ -955,6 +956,34 @@ export function DesignGallery() {
               }}
             />
             <TopicCard name="ninguém respondeu ainda" people={0} answers={0} ultima={null} />
+          </div>
+        </Card>
+
+        <Card title="Linha de post no blog" wide>
+          <div className="flex w-full flex-col gap-2">
+            <PostRow
+              titulo="Uma noite no galpão"
+              resumo="Toquei das 2h às 5h num galpão sem janela nenhuma. Quando acendeu a luz do fim, ela entrou pelas telhas."
+              minutos={3}
+              quando="há 2 dias"
+              fixado
+              imagens={3}
+            />
+            <PostRow
+              titulo="Teoria do set"
+              resumo="Todo set bom tem uma faixa que ninguém reconhece e todo mundo lembra."
+              minutos={1}
+              quando="há 4 dias"
+              comGif
+            />
+            {/* Sem imagem nenhuma: a prévia é a inicial do título. */}
+            <PostRow
+              titulo="Discos por ano"
+              resumo="Passei a tarde reorganizando discos por ano em vez de por gênero."
+              minutos={2}
+              quando="há 1 semana"
+              aberto
+            />
           </div>
         </Card>
 

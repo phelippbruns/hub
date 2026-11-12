@@ -7,6 +7,7 @@ import { AcoesDoPerfil } from "./acoes-do-perfil";
 import { PilulaDeStatus } from "./status";
 import { Colecao, type AgrupamentoDaColecao } from "./colecao";
 import { AbaBlog } from "./blog/lista";
+import { postsDoPerfil } from "@/lib/data/blog";
 import { comunidadesDoPerfil, perfilNaTela, respostasDoPerfil } from "@/lib/data/perfil";
 import { getCollection } from "@/lib/data/follows";
 import { getViewer } from "@/lib/auth/session";
@@ -112,7 +113,9 @@ export async function TelaDePerfil({
 
         <AbasDoPerfil base={base} atual={abaDaFila} />
 
-        {abaAtual === "blog" ? <AbaBlog souEu={perfil.souEu} /> : null}
+        {abaAtual === "blog" ? (
+          <AbaBlog posts={await postsDoPerfil(viewer, perfil.id)} souEu={perfil.souEu} />
+        ) : null}
 
         {abaAtual === "contribuicoes" ? (
           <AbaContribuicoes

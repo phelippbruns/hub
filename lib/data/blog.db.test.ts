@@ -1,5 +1,9 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { asViewer, db, makeProfile, resetDatabase } from "./testing/db";
+import { alternarFixado, apagarPost, postsDoPerfil } from "./blog";
+import type { Viewer } from "./viewer";
+
+const asMember = (profileId: string): Viewer => ({ kind: "member", profileId });
 
 /**
  * As regras do Blog e do Status **no banco** (Bloco 1).
@@ -285,5 +289,197 @@ describe("o RLS é a segunda barreira (regra de segurança 2)", () => {
         ),
       ),
     ).rejects.toThrow(/row-level security/i);
+  });
+});
+
+describe("a lista do blog", () => {
+  it("RN39: fixados primeiro, na ordem em que foram fixados", async () => {
+    const pessoa = await makeProfile();
+    const antigo = await criarPost(pessoa.id, "Antigo");
+    const meio = await criarPost(pessoa.id, "Meio");
+    const novo = await criarPost(pessoa.id, "Novo");
+
+    // Fixa o mais antigo primeiro, depois o mais novo. A ordem dos fixados
+    // é a de fixação, não a de publicação.
+    await db.post.update({ where: { id: antigo.id }, data: { pinnedAt: new Date(2026, 0, 1) } });
+    await db.post.update({ where: { id: novo.id }, data: { pinnedAt: new Date(2026, 0, 2) } });
+
+    const lista = await postsDoPerfil(asMember(pessoa.id), pessoa.id);
+
+    expect(lista.map((p) => p.titulo)).toEqual(["Antigo", "Novo", "Meio"]);
+    expect(lista.slice(0, 2).every((p) => p.fixado)).toBe(true);
+    expect(lista[2]!.id).toBe(meio.id);
+  });
+
+  it("sem fixado nenhum, é do mais recente para o mais antigo", async () => {
+    const pessoa = await makeProfile();
+    await criarPost(pessoa.id, "Primeiro", { createdAt: new Date(2026, 0, 1) });
+    await criarPost(pessoa.id, "Segundo", { createdAt: new Date(2026, 0, 2) });
+
+    const lista = await postsDoPerfil(asMember(pessoa.id), pessoa.id);
+
+    expect(lista.map((p) => p.titulo)).toEqual(["Segundo", "Primeiro"]);
+  });
+
+  it("post apagado não aparece na lista, nem para o dono", async () => {
+    const pessoa = await makeProfile();
+    await criarPost(pessoa.id, "Vivo");
+    await criarPost(pessoa.id, "Apagado", { deletedAt: new Date() });
+
+    const lista = await postsDoPerfil(asMember(pessoa.id), pessoa.id);
+
+    expect(lista.map((p) => p.titulo)).toEqual(["Vivo"]);
+  });
+
+  it("post de Círculo não é entregue a quem não é o dono", async () => {
+    const pessoa = await makeProfile();
+    const outra = await makeProfile();
+    await criarPost(pessoa.id, "Público");
+    await criarPost(pessoa.id, "Reservado", { audience: "circle" });
+
+    const deFora = await postsDoPerfil(asMember(outra.id), pessoa.id);
+    const semConta = await postsDoPerfil({ kind: "anonymous" }, pessoa.id);
+    const doDono = await postsDoPerfil(asMember(pessoa.id), pessoa.id);
+
+    expect(deFora.map((p) => p.titulo)).toEqual(["Público"]);
+    expect(semConta.map((p) => p.titulo)).toEqual(["Público"]);
+    expect(doDono).toHaveLength(2);
+  });
+});
+
+describe("RN39: a prévia e a contagem de imagens", () => {
+  const corpoComImagem = (srcs: string[]) => ({
+    type: "doc",
+    content: srcs.map((src) => ({ type: "image", attrs: { src } })),
+  });
+
+  it("sem imagem nenhuma, a prévia é nula — a tela desenha a inicial", async () => {
+    const pessoa = await makeProfile();
+    await criarPost(pessoa.id, "Só texto");
+
+    const [post] = await postsDoPerfil(asMember(pessoa.id), pessoa.id);
+
+    expect(post?.previa).toBeNull();
+    expect(post?.imagens).toBe(0);
+  });
+
+  it("a capa vence a primeira imagem do texto", async () => {
+    const pessoa = await makeProfile();
+    await criarPost(pessoa.id, "Com capa", {
+      coverUrl: "https://exemplo.test/capa.webp",
+      body: corpoComImagem(["https://exemplo.test/dentro.webp"]),
+    });
+
+    const [post] = await postsDoPerfil(asMember(pessoa.id), pessoa.id);
+
+    expect(post?.previa).toBe("https://exemplo.test/capa.webp");
+    expect(post?.imagens).toBe(2);
+  });
+
+  it("sem capa, a prévia é a primeira imagem do texto", async () => {
+    const pessoa = await makeProfile();
+    await criarPost(pessoa.id, "Sem capa", {
+      body: corpoComImagem(["https://exemplo.test/a.webp", "https://exemplo.test/b.webp"]),
+    });
+
+    const [post] = await postsDoPerfil(asMember(pessoa.id), pessoa.id);
+
+    expect(post?.previa).toBe("https://exemplo.test/a.webp");
+    expect(post?.imagens).toBe(2);
+  });
+
+  it("GIF do GIPHY no corpo acende o selo", async () => {
+    const pessoa = await makeProfile();
+    await criarPost(pessoa.id, "Com GIF", {
+      body: corpoComImagem(["https://media.giphy.com/media/abc/giphy.gif"]),
+    });
+    await criarPost(pessoa.id, "Sem GIF", {
+      body: corpoComImagem(["https://exemplo.test/foto.webp"]),
+    });
+
+    const lista = await postsDoPerfil(asMember(pessoa.id), pessoa.id);
+    const comGif = lista.find((p) => p.titulo === "Com GIF");
+    const semGif = lista.find((p) => p.titulo === "Sem GIF");
+
+    expect(comGif?.comGif).toBe(true);
+    expect(semGif?.comGif).toBe(false);
+  });
+
+  /**
+   * A armadilha que a varredura da árvore evita: procurar `"src"` num
+   * `JSON.stringify` do documento acharia também a palavra dentro de um
+   * parágrafo que alguém escreveu.
+   */
+  it('a palavra "src" num parágrafo não vira imagem', async () => {
+    const pessoa = await makeProfile();
+    await criarPost(pessoa.id, "Falando de código", {
+      body: {
+        type: "doc",
+        content: [
+          { type: "paragraph", content: [{ type: "text", text: 'o atributo src="foto.webp"' }] },
+        ],
+      },
+    });
+
+    const [post] = await postsDoPerfil(asMember(pessoa.id), pessoa.id);
+
+    expect(post?.imagens).toBe(0);
+    expect(post?.previa).toBeNull();
+  });
+});
+
+describe("RN39: fixar, desafixar e apagar", () => {
+  it("RN39: fixar o quarto dá a frase, e não o erro do banco", async () => {
+    const pessoa = await makeProfile();
+    for (const t of ["Um", "Dois", "Três"]) {
+      await criarPost(pessoa.id, t, { pinnedAt: new Date() });
+    }
+    const quarto = await criarPost(pessoa.id, "Quatro");
+
+    await expect(alternarFixado(asMember(pessoa.id), quarto.id, true)).rejects.toThrow(
+      /até 3 posts/,
+    );
+  });
+
+  it("RN39: desafixar libera a vaga", async () => {
+    const pessoa = await makeProfile();
+    const posts = [];
+    for (const t of ["Um", "Dois", "Três"]) {
+      posts.push(await criarPost(pessoa.id, t, { pinnedAt: new Date() }));
+    }
+    const quarto = await criarPost(pessoa.id, "Quatro");
+
+    await alternarFixado(asMember(pessoa.id), posts[0]!.id, false);
+    await alternarFixado(asMember(pessoa.id), quarto.id, true);
+
+    const lista = await postsDoPerfil(asMember(pessoa.id), pessoa.id);
+    expect(
+      lista
+        .filter((p) => p.fixado)
+        .map((p) => p.titulo)
+        .sort(),
+    ).toEqual(["Dois", "Quatro", "Três"]);
+  });
+
+  it("ninguém fixa nem apaga post de outra pessoa", async () => {
+    const pessoa = await makeProfile();
+    const outra = await makeProfile();
+    const post = await criarPost(pessoa.id, "Meu");
+
+    await expect(alternarFixado(asMember(outra.id), post.id, true)).rejects.toThrow(/não é seu/);
+    await expect(apagarPost(asMember(outra.id), post.id)).rejects.toThrow(/não é seu/);
+  });
+
+  it("apagar é lógico, e desafixa junto", async () => {
+    const pessoa = await makeProfile();
+    const post = await criarPost(pessoa.id, "Vai sair", { pinnedAt: new Date() });
+
+    await apagarPost(asMember(pessoa.id), post.id);
+
+    const linha = await db.post.findUnique({ where: { id: post.id } });
+    expect(linha?.deletedAt).not.toBeNull();
+    expect(linha?.pinnedAt).toBeNull();
+    // A linha continua existindo: é ela que impede o endereço ser reusado.
+    expect(linha?.slug).toBe("vai-sair");
   });
 });

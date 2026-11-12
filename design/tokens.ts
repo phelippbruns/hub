@@ -255,6 +255,8 @@ export const size = {
   sliderTrack: "6px",
   /** Diâmetro do botão do controle deslizante. 20 px é o mínimo em que o contorno de foco cabe sem encostar na trilha. */
   sliderKnob: "20px",
+  /** Prévia do post na lista do blog, na forma orgânica do perfil. 120 px: maior que a miniatura da comunidade (36) porque aqui ela é a imagem do post, e menor que a da contribuição (213) porque divide a linha com duas linhas de texto. */
+  postThumb: "120px",
 } as const;
 
 export const fontFamily =

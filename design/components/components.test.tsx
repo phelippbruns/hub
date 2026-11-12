@@ -37,6 +37,7 @@ import {
   Select,
   StarButton,
   TopicOpening,
+  PostRow,
   TopicRow,
 } from "./index";
 
@@ -408,6 +409,14 @@ describe("texto de gente nunca fura o cartão", () => {
     ],
     ["nome da comunidade na capa", <CommunityCover name={PALAVRA} coverUrl={null} />],
     ["nome do tópico na linha", <TopicRow name={PALAVRA} people={1} answers={1} />],
+    [
+      "título do post no blog",
+      <PostRow titulo={PALAVRA} resumo="curto" minutos={2} quando="há 2 dias" />,
+    ],
+    [
+      "resumo do post no blog",
+      <PostRow titulo="Post" resumo={PALAVRA} minutos={2} quando="há 2 dias" />,
+    ],
   ];
 
   it.each(casos)("%s", (_nome, elemento) => {
