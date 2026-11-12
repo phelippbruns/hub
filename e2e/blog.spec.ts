@@ -501,3 +501,33 @@ test.describe("RN39: escrever um post", () => {
     await expect(page.getByRole("button", { name: "Novo post" })).toHaveCount(0);
   });
 });
+
+/**
+ * A CSP exige nonce em todo script, e o Next só o injeta em rota que
+ * renderiza por requisição. As rotas abertas são cobertas em
+ * `design-system.spec.ts`; estas precisam de sessão.
+ *
+ * O perfil **com o painel aberto** entra aqui porque é a montagem nova: um
+ * Server Component dentro de `<Suspense>`, irmão da coluna. Sem nonce, o
+ * navegador bloqueia todos os scripts — sem erro no build e sem teste
+ * vermelho em lugar nenhum.
+ */
+test.describe("nonce nas telas do blog", () => {
+  test("todo script leva nonce, com e sem o painel aberto", async ({ page }) => {
+    const handle = await entrarNoApp(page, "nonceblog");
+    await criarPost(handle, "Com nonce");
+
+    for (const rota of ["/perfil", "/perfil?post=com-nonce", "/perfil?aba=colecao"]) {
+      await page.goto(rota);
+      await perfilCarregado(page, handle);
+
+      const semNonce = await page.evaluate(() =>
+        [...document.querySelectorAll("script")]
+          .filter((script) => !script.hasAttribute("nonce"))
+          .map((script) => script.src || "(inline)"),
+      );
+
+      expect(semNonce, `scripts sem nonce em ${rota}`).toEqual([]);
+    }
+  });
+});

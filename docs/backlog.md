@@ -551,6 +551,45 @@ Testes: Playwright do fluxo link, cadastro, onboarding e retorno ao tópico.
 Comece em modo de planejamento e só implemente depois da minha aprovação.
 ```
 
+## Fase 5.1: Blog e Status no perfil
+
+Entrou **fora da fila**, por decisão do PO em 9 de novembro de 2026, à
+frente da F17 e da F18. O custo foi dito e aceito: LGPD e Termos ficam
+para depois. Está no `vacilos.md`.
+
+### F22. Blog e Status (entregue em 12 de novembro de 2026)
+
+O perfil ganhou o que a pessoa **escreve** e o que ela está **fazendo
+agora**. RN39, RN40 e RN41.
+
+Oito blocos: banco, status, abas, lista com fixados, as peças do painel,
+o post aberto, o editor e o fechamento.
+
+**Dívidas que esta feature deixou, em ordem de valor:**
+
+1. **O editor de texto rico.** O MVP escreve em blocos — parágrafo,
+   subtítulo, imagem e GIF. Faltam negrito, itálico, lista, citação e
+   link. **A dívida é barata de propósito:** o formato guardado é
+   idêntico ao que um editor completo produziria, e
+   `features/perfil/blog/documento.tsx` já sabe desenhar tudo que falta.
+   Ligar o Tiptap é acrescentar uma superfície de escrita — sem migração,
+   sem mexer no desenho, sem mexer na leitura.
+2. **Unificar os dois painéis laterais.** O do tópico e o do post são
+   irmãos separados, por decisão do PO de não mexer na tela mais usada do
+   Hub nesta rodada. O do post nasceu sem dois defeitos que o do tópico
+   tem: fechar lá **perde a busca e os filtros** da lista, e o foco cai no
+   topo da página em vez de voltar para a linha. Unificar leva as duas
+   correções ao tópico.
+3. **O Círculo.** A coluna `audience` existe no banco com o valor
+   `circle` disponível, e o servidor recusa qualquer coisa diferente de
+   `everyone`. O conceito não existe no produto — há só
+   `seSeguemMutuamente`, usado na Cabine. Ligar exige nomear o conceito,
+   uma consulta de lista e uma função `hub_se_seguem_mutuamente` para o
+   RLS.
+4. **O histórico de status no painel.** A pílula do visitante hoje não é
+   clicável: os dados existem (`historicoDeStatus`) e a tela não. Era o
+   item 5.5 do pedido.
+
 ## Fase 6: notificações, segurança, configurações e termos
 
 ### F15. Notificações e marcar com @

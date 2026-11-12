@@ -1,6 +1,6 @@
 # Pendências do Hub
 
-Atualizado em 11 de outubro de 2026, depois da F12.
+Atualizado em 12 de novembro de 2026, depois do Blog e do Status.
 
 O que falta para o Hub existir. Separado pelo que **impede o lançamento**, pelo
 que é **decisão sua**, pelo que é **dívida técnica** e pela **fila de features**.
@@ -297,6 +297,42 @@ continuar assim com gente de verdade no Hub.**
 ## 4. Dívida técnica
 
 Coisas que funcionam, mas que vão cobrar caro se ficarem como estão.
+
+### 4.0 O blog escreve em blocos, não em texto rico
+
+**Decidido assim de propósito**, em 12 de novembro de 2026, quando o PO
+perguntou se dava para simplificar o MVP. Dá, e esta é a dívida mais
+barata do Hub — a razão está no `vacilos.md`.
+
+O editor tem parágrafo, subtítulo, imagem e GIF. Faltam **negrito,
+itálico, lista, citação e link**.
+
+**Por que ela quase não cobra:** o formato guardado é idêntico ao que um
+editor de texto rico produziria, e
+[features/perfil/blog/documento.tsx](../features/perfil/blog/documento.tsx)
+**já desenha tudo que falta** — ele só não tem quem produza. Ligar o
+Tiptap é acrescentar uma superfície de escrita: nenhum post existente
+muda, nenhuma consulta muda, nenhum desenho muda.
+
+**E há um ganho que se perde ao pagar a dívida**, que vale pesar antes:
+hoje o navegador manda o índice do arquivo e o servidor constrói o
+endereço da imagem. Com editor de texto rico, o documento vem pronto do
+navegador, e aí a validação do `src` passa a ser **obrigatória** — porque
+uma imagem apontando para um servidor qualquer seria buscada pelo
+navegador de todo mundo que lesse o post.
+
+### 4.0.1 Dois painéis laterais parecidos
+
+O do tópico e o do post. Separados por decisão do PO, para não mexer na
+tela mais usada do Hub na mesma rodada em que o blog nasceu.
+
+Eles **já divergem**, e para melhor: o do post fecha preservando os
+parâmetros da URL e devolve o foco para a linha que estava aberta. O do
+tópico perde a busca e os filtros ao fechar, e larga o foco no topo da
+página.
+
+Unificar leva as duas correções ao tópico. As peças comuns — a alça e a
+conta da largura — já subiram para `design/` e `lib/`.
 
 ### 4.1 Um banco só para tudo
 

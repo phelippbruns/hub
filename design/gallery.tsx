@@ -61,6 +61,7 @@ import {
   TopicName,
   TopicOpening,
   Janela,
+  AlcaDoPainel,
   PostRow,
   TopicCard,
   TopicRow,
@@ -227,6 +228,7 @@ export function DesignGallery() {
   const [janela, setJanela] = useState(false);
   const [selectedChip, setSelectedChip] = useState(true);
   const [member, setMember] = useState(false);
+  const [larguraDemo, setLarguraDemo] = useState(640);
   const [tab, setTab] = useState("contribuicoes");
   const [notify, setNotify] = useState(true);
   const [agree, setAgree] = useState(false);
@@ -956,6 +958,25 @@ export function DesignGallery() {
               }}
             />
             <TopicCard name="ninguém respondeu ainda" people={0} answers={0} ultima={null} />
+          </div>
+        </Card>
+
+        <Card title="Alça de painel">
+          {/*
+            Precisa de um pai `relative`: ela se posiciona sobre a borda
+            esquerda dele. É o mesmo arranjo do painel do tópico e do post.
+          */}
+          <div className="bg-paper h-cover relative w-full rounded-sm">
+            <AlcaDoPainel
+              largura={larguraDemo}
+              onLargura={setLarguraDemo}
+              minimo={520}
+              cookie="hub_demo_da_galeria"
+              rotulo="Largura do exemplo"
+            />
+            <p className="text-caption text-inkMuted p-3">
+              Arraste a borda esquerda, ou use as setas com ela em foco. Agora: {larguraDemo} px.
+            </p>
           </div>
         </Card>
 

@@ -878,6 +878,81 @@ jornada reprova numa rodada de otimização, a primeira pergunta não é
 é melhor?"**. Se for melhor, ela entra aqui. Se não for, quem muda é o
 código.
 
+## 21. O Blog e o Status entraram fora da fila
+
+### Escopo novo na frente do que trava o lançamento
+
+*Decidido pelo PO em 9 de novembro de 2026.*
+
+Blog e Status **não estavam no backlog**. A F12 entregou "Perfil, seguir e
+Coleção", e a fila ia do F17 (Configurações e LGPD) ao F21 (celular).
+
+*O que eu avisei, e ele decidiu com o custo à vista:* entrar na frente
+adia **F17 e F18**, que são os dois que travam um lançamento público —
+LGPD e Termos não são features, são obrigação, e a F18 depende de texto
+que só ele escreve.
+
+*Por que a decisão é defensável:* o Hub ainda não lançou, e Blog e Status
+são a aposta de produto que ele quer testar antes de polir o resto. Adiar
+uma obrigação legal é barato enquanto não há público; fica caro no dia em
+que houver.
+
+**Regra:** escopo novo na frente da fila é escolha legítima, e ela tem de
+ser feita **sabendo o que empurra**. O que não pode é a fila mudar sem
+ninguém dizer em voz alta o que ficou para trás.
+
+---
+
+### O perfil ganhou painel, e a F12 dizia que não teria
+
+*12 de novembro de 2026, Bloco 6.*
+
+A F12 decidiu: "na web, os perfis ficam centralizados… e **sem painel
+lateral**". O post do blog abre num painel lateral.
+
+*A ressalva que faz as duas coisas conviverem:* **sem post aberto, o
+perfil é exatamente o de antes.** O painel é irmão da coluna e só nasce
+quando há `?post=` no endereço — é como a comunidade já funciona com
+`?t=`. A F12 continua valendo para o perfil; ela só não previa que o
+perfil teria conteúdo que se abre.
+
+O PO corrigiu meu plano justamente aqui: a primeira versão dizia "o
+perfil vira duas colunas", e ele respondeu "o perfil continua do jeito
+que está, somente quando abre o post que ele vai para lateral". A jornada
+"sem post aberto, a coluna do perfil continua centralizada" guarda isso.
+
+**Regra:** quando uma decisão antiga parece atrapalhar uma nova, procure
+a ressalva antes de revogá-la. "Vale, menos neste estado" costuma ser
+mais verdadeiro — e mais barato — do que "não vale mais".
+
+---
+
+### O link do post não abre para quem não tem conta
+
+*12 de novembro de 2026, Bloco 6.*
+
+O plano dizia que o endereço canônico do post viraria **convite** sem
+conta, como o do tópico. Mudei durante a implementação.
+
+*Por quê:* `/c/...` é compartilhável porque **a comunidade é pública** —
+quem abre sem conta vê a capa, o nome e a pergunta. O **perfil não é
+público**, e nunca foi. Abrir o post deixaria alguém ler o que uma pessoa
+escreveu sem poder ver quem ela é.
+
+*E teria um custo técnico que eu não tinha visto ao planejar:* a lista de
+rotas públicas funciona por **prefixo**. Liberar `/<handle>/<post>`
+liberaria `/<qualquer>/<coisa>`, que é onde moram `/perfil/editar` e
+`/cabines/<id>`.
+
+Hoje quem recebe o link sem ter conta vai para a tela de entrar, como já
+acontece com um link de perfil.
+
+**Regra:** "faça igual ao que já existe" só vale quando a razão de
+existir é a mesma. O tópico é público porque a comunidade é; o post é de
+uma pessoa, e pessoa no Hub não é pública.
+
+---
+
 ### O editor de texto rico virou dívida, e a dívida é barata
 
 *12 de novembro de 2026, Bloco 7 do Blog.*
