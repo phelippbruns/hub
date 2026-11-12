@@ -62,6 +62,7 @@ import {
   TopicOpening,
   Janela,
   AlcaDoPainel,
+  HandleLink,
   PostRow,
   TopicCard,
   TopicRow,
@@ -958,6 +959,18 @@ export function DesignGallery() {
               }}
             />
             <TopicCard name="ninguém respondeu ainda" people={0} answers={0} ultima={null} />
+          </div>
+        </Card>
+
+        <Card title="O @ de uma pessoa">
+          <div className="flex flex-col gap-2">
+            <span className="text-caption text-inkMuted">
+              Escrito por <HandleLink handle="liasouza" className="font-normal" /> · há 2 h
+            </span>
+            <p className="text-caption text-inkMuted">
+              Sempre leva ao perfil. **Menos** dentro de algo que já é clicável: ali o @ continua
+              texto, porque âncora dentro de âncora é HTML inválido.
+            </p>
           </div>
         </Card>
 

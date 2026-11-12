@@ -1,3 +1,5 @@
+import { HandleLink } from "@/design/components";
+
 /** Mês e ano: o dia exato de uma comunidade não interessa a ninguém. */
 function mesEAno(data: Date) {
   return data.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
@@ -39,9 +41,14 @@ export function SobreAComunidade({
           linha fala só da data. "Criada por ninguém" seria pior que nada.
         */}
         <span className="text-caption text-inkMuted">
-          {criadaPor
-            ? `Criada por @${criadaPor.handle} em ${mesEAno(criadaEm)}`
-            : `Criada em ${mesEAno(criadaEm)}`}
+          {criadaPor ? (
+            <>
+              Criada por <HandleLink handle={criadaPor.handle} className="font-normal" /> em{" "}
+              {mesEAno(criadaEm)}
+            </>
+          ) : (
+            `Criada em ${mesEAno(criadaEm)}`
+          )}
         </span>
       </div>
 

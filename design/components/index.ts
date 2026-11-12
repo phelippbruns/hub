@@ -17,6 +17,7 @@ export { HotTopicCard } from "./hot-topic-card";
 export { AnswerCard } from "./answer-card";
 export { CommunityRow } from "./community-row";
 export { AlcaDoPainel } from "./alca-do-painel";
+export { HandleLink } from "./handle-link";
 export { PostRow } from "./post-row";
 export { TopicCard } from "./topic-card";
 export { TopicRow } from "./topic-row";

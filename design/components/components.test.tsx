@@ -38,6 +38,7 @@ import {
   StarButton,
   TopicOpening,
   PostRow,
+  TopicCard,
   TopicRow,
 } from "./index";
 
@@ -540,5 +541,66 @@ describe("o controle deslizante", () => {
       />,
     );
     expect(html).toContain("Já está no máximo");
+  });
+});
+
+/**
+ * **O `@` leva ao perfil — e nunca dentro de outro link.**
+ *
+ * Pedido do PO em 12 de novembro de 2026. O risco de cumpri-lo sem pensar é
+ * âncora dentro de âncora, que é HTML inválido: o navegador fecha a
+ * primeira sozinho, e o que sobra na tela não é o que o código diz. Por
+ * isso o `@` do `TopicCard` **continua texto** — ele mora dentro do link
+ * que abre o tópico, e quem leva ao perfil ali é o avatar.
+ */
+describe("o @ é link, menos onde já há um link em volta", () => {
+  it("o @ do cartão de contribuição leva ao perfil", () => {
+    const html = renderToStaticMarkup(
+      <AnswerCard author="Lia Souza" handle="liasouza" when="há 2 h">
+        Oi
+      </AnswerCard>,
+    );
+
+    expect(html).toContain('href="/liasouza"');
+  });
+
+  it("o @ do cartão de tópico continua texto", () => {
+    const html = renderToStaticMarkup(
+      <TopicCard
+        name="Tópico"
+        people={2}
+        answers={3}
+        ultima={{
+          texto: "oi",
+          autorNome: "Lia",
+          autorHandle: "liasouza",
+          avatarUrl: null,
+        }}
+      />,
+    );
+
+    expect(html).toContain("@liasouza");
+    expect(html, "o cartão inteiro já é link: um <a> aqui seria inválido").not.toContain(
+      'href="/liasouza"',
+    );
+  });
+
+  /**
+   * A barreira geral: nenhum componente do sistema desenha âncora dentro de
+   * âncora. Uma regex sobre o HTML achado é mais grosseira que um analisador,
+   * e é exatamente por isso que serve — ela não depende de eu lembrar de
+   * conferir o caso novo.
+   */
+  it.each(cases)("%s não aninha link dentro de link", (_nome, elemento) => {
+    const html = renderToStaticMarkup(elemento);
+
+    let profundidade = 0;
+    let maior = 0;
+    for (const marca of html.match(/<\/?a[\s>]/g) ?? []) {
+      profundidade += marca.startsWith("</") ? -1 : 1;
+      maior = Math.max(maior, profundidade);
+    }
+
+    expect(maior, "âncora dentro de âncora é HTML inválido").toBeLessThanOrEqual(1);
   });
 });

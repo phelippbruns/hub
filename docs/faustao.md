@@ -235,6 +235,66 @@ certa faz.
 
 ---
 
+### `.first()` pegou o cartão de trás, não a contribuição
+
+*12 de novembro de 2026, Bloco 2 das correções.*
+
+O `@` da contribuição virou link, e a jornada clicava em
+`getByRole("link", { name: "@fulano" }).first()`. Reprovava: a URL não
+mudava.
+
+*Por quê:* havia **dois** links com esse nome acessível na tela. O
+primeiro era o **cartão de tópico atrás do painel** — o `@` dele é texto
+dentro do link que abre o tópico, e o nome acessível de um link inclui o
+texto que ele envolve. `.first()` clicava nesse, que leva ao mesmo lugar
+onde já se estava.
+
+O diagnóstico levou três rodadas porque eu tentei adivinhar antes de
+medir. Quando imprimi `count()` e `getAttribute("href")`, a resposta
+apareceu na primeira linha: `quantos: 2`, `href: /c/...?t=...`.
+
+*Como resolvi:* escopar ao cartão da contribuição
+(`respostaPublicada(page, texto).getByRole(...)`), que é o elemento sobre
+o qual o teste fala.
+
+🔒 **Barrado** — `e2e/respostas.spec.ts`.
+
+*A lição:* **`.first()` é uma escolha, não um detalhe.** Ele diz "qualquer
+um serve", e quase nunca é verdade — numa tela com lista e painel, o
+primeiro de qualquer coisa costuma ser o de trás. E quando um seletor
+falha, `count()` e `getAttribute()` custam dez segundos e respondem o que
+três hipóteses não respondem.
+
+*E um detalhe que vale guardar:* o nome acessível de um link inclui todo o
+texto dentro dele. Um `@` escrito como texto dentro de um cartão clicável
+faz aquele cartão atender por `@fulano` — mesmo sem ser um link de perfil.
+
+---
+
+### A substituição que não casou porque o formatador já tinha rodado
+
+*Mesma rodada, minutos antes.*
+
+Para diagnosticar o caso acima, troquei um trecho do teste por um com
+`console.log`. O comando disse "ok" e **nada mudou**: o `prettier` havia
+quebrado `.first().click()` em três linhas, e eu procurei pela forma de
+uma linha.
+
+Rodei a jornada de novo e li o mesmo erro, agora achando que a hipótese
+estava errada — quando o que estava errado era eu não ter mexido no
+arquivo.
+
+*Como resolvi:* `assert a in s` antes de substituir, que é o que o
+`faustao.md` já manda ("editar com a ferramenta que falha alto"). Com ele,
+a tentativa seguinte falhou na hora, em vez de passar calada.
+
+*A lição, que é a mesma de sempre e eu repeti:* **substituição sem
+asserção é um comando que mente.** O arquivo tinha sido formatado entre
+eu lê-lo e eu editá-lo — e essa janela existe em toda edição depois de um
+`prettier --write`.
+
+---
+
 ### O redirecionamento do próprio perfil comia o parâmetro
 
 *12 de novembro de 2026, Bloco 6 do Blog.*

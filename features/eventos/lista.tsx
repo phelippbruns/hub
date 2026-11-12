@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Avatar, Button, EmptyState, SectionTitle } from "@/design/components";
+import { Avatar, Button, EmptyState, HandleLink, SectionTitle } from "@/design/components";
 import { ClockIcon, ConfirmedIcon, GlobeIcon, PlaceIcon } from "@/design/icons";
 import { alternarPresenca } from "./actions";
 import { FormularioDeEvento } from "./formulario";
@@ -196,7 +196,11 @@ function Evento({
             )}
           </span>
 
-          {evento.anfitriao ? <span>por @{evento.anfitriao.handle}</span> : null}
+          {evento.anfitriao ? (
+            <span>
+              por <HandleLink handle={evento.anfitriao.handle} className="font-normal" />
+            </span>
+          ) : null}
         </div>
 
         {evento.descricao ? (

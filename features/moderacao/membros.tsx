@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { BottomSheet, Button, Input } from "@/design/components";
+import { BottomSheet, Button, HandleLink, Input } from "@/design/components";
 import { tirarMembro } from "./actions";
 
 export type MembroNaTela = {
@@ -63,7 +63,7 @@ export function MembrosDaComunidade({
             <span className="min-w-0 flex-1">
               <span className="text-bodyStrong text-ink block">{membro.nome}</span>
               <span className="text-caption text-inkMuted block">
-                @{membro.handle}
+                <HandleLink handle={membro.handle} className="font-normal" />
                 {membro.criador
                   ? ", criadora"
                   : membro.moderador
