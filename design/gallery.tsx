@@ -868,12 +868,11 @@ export function DesignGallery() {
               opening="Como foi a primeira festa que te fez gostar de música eletrônica?"
               people={42}
               answers={87}
-              autor="Caio Mendes"
+              autor="caiomendes"
               ultima={{
                 texto: "Um set de 6 horas num galpão. Saí de lá sabendo que era isso.",
                 autorNome: "Lia Souza",
                 autorHandle: "liasouza",
-                autorAvatarUrl: null,
                 quando: "há 2 h",
               }}
               rostos={[

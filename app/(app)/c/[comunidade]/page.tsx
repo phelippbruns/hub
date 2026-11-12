@@ -49,11 +49,7 @@ import { jaCrieiTopicoHoje } from "@/lib/data/topics";
 import { CriarTopico } from "@/features/topicos/criar";
 import { meusSeguidoresParaCompartilhar } from "@/lib/data/follows";
 import { NotFoundError } from "@/lib/data/errors";
-import {
-  enderecoDaComunidade,
-  enderecoDoTopico,
-  enderecoParaCompartilharTopico,
-} from "@/lib/rotas";
+import { enderecoDaComunidade, enderecoParaCompartilharTopico } from "@/lib/rotas";
 
 export async function generateMetadata({
   params,
@@ -544,21 +540,28 @@ async function ListaDeTopicos({
         <div className="flex flex-col gap-2">
           {topicos.map((topico) =>
             hotTopic && topico.id === hotTopic.id ? (
-              <HotTopicCard
-                key={topico.id}
-                topic={hotTopic.name}
-                opening={hotTopic.description}
-                people={hotTopic.pessoas}
-                answers={hotTopic.respostas}
-                autor={hotTopic.autor?.name}
-                ultima={
-                  hotTopic.ultima
-                    ? { ...hotTopic.ultima, quando: haQuantoTempo(hotTopic.ultima.quando) }
-                    : null
-                }
-                rostos={hotTopic.primeirosRostos}
-                href={enderecoDoTopico(slug, hotTopic.slug)}
-              />
+              /*
+                **O cartão de destaque abre num clique, como os outros.**
+                Até 12 de novembro de 2026 só o botão "Contribuir" no canto
+                levava a algum lugar: clicar no título ou na pergunta não
+                fazia nada. É o mesmo `LinkDoTopico` da lista — e por isso o
+                botão saiu de dentro do cartão.
+              */
+              <LinkDoTopico key={topico.id} slugDaComunidade={slug} slug={hotTopic.slug}>
+                <HotTopicCard
+                  topic={hotTopic.name}
+                  opening={hotTopic.description}
+                  people={hotTopic.pessoas}
+                  answers={hotTopic.respostas}
+                  autor={hotTopic.autor?.handle}
+                  ultima={
+                    hotTopic.ultima
+                      ? { ...hotTopic.ultima, quando: haQuantoTempo(hotTopic.ultima.quando) }
+                      : null
+                  }
+                  rostos={hotTopic.primeirosRostos}
+                />
+              </LinkDoTopico>
             ) : (
               <LinkDoTopico key={topico.id} slugDaComunidade={slug} slug={topico.slug}>
                 <TopicCard

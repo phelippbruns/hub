@@ -132,7 +132,12 @@ test.describe("com conteúdo", () => {
     await expect(page.getByRole("heading", { name: "Hot Topics" })).toBeVisible();
     await expect(page.getByText("A pergunta que vai virar destaque.")).toBeVisible();
 
-    await page.getByRole("link", { name: "Contribuir" }).click();
+    /*
+      O cartão inteiro leva ao tópico desde 12 de novembro de 2026 — antes
+      só o botão "Contribuir" no canto. O botão saiu junto: âncora dentro
+      de âncora é HTML inválido.
+    */
+    await page.getByText("A pergunta que vai virar destaque.").click();
     await esperarTopicoNoPainel(page, "assunto-do-inicio");
   });
 

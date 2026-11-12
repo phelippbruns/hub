@@ -1,8 +1,5 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { Avatar } from "./avatar";
-import { Button, sizes, variants } from "./button";
-import { cn } from "../cn";
 
 /**
  * Cartão de Hot Topic: o tópico em destaque na comunidade (RN09).
@@ -30,15 +27,19 @@ export function HotTopicCard({
   autor,
   ultima,
   rostos = [],
-  href,
-  onAnswer,
   action,
 }: {
   topic: string;
   opening: string;
   people: number;
   answers: number;
-  /** Quem abriu o tópico. O protótipo mostra "Tópico de Caio Mendes". */
+  /**
+   * O **`@`** de quem abriu o tópico, sem o arroba: o rodapé escreve
+   * "Criado por @fulano".
+   *
+   * Era o nome real até 12 de novembro de 2026, e o PO trocou — o @ é como
+   * se encontra alguém no Hub, e o nome não é endereço de nada.
+   */
   autor?: string;
   /**
    * A última contribuição. Nula no tópico que ainda só tem a abertura — e aí
@@ -48,18 +49,10 @@ export function HotTopicCard({
     texto: string;
     autorNome: string;
     autorHandle: string;
-    autorAvatarUrl: string | null;
     quando: string;
   } | null;
   /** As primeiras caras de quem participou, para o rodapé. */
   rostos?: { nome: string; avatarUrl: string | null }[];
-  /**
-   * Para onde o Contribuir leva, quando o cartão está numa tela de servidor e
-   * não tem como receber uma função. Com `href`, ele vira link — um botão
-   * dentro de um link seria HTML inválido.
-   */
-  href?: string;
-  onAnswer?: () => void;
   /** Ação extra à direita do rodapé, como seguir ou compartilhar. */
   action?: ReactNode;
 }) {
@@ -79,14 +72,20 @@ export function HotTopicCard({
          * segundo fundo escuro não se distingue, e um claro viraria um
          * cartão dentro do cartão.
          */
-        <div className="border-sun flex items-start gap-2 border-l-2 pl-2">
-          <Avatar nome={ultima.autorNome} url={ultima.autorAvatarUrl} tamanho="sm" />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <p className="text-caption">
-              @{ultima.autorHandle} · {ultima.quando}
-            </p>
-            <p className="text-body line-clamp-2 wrap-anywhere">{ultima.texto}</p>
-          </div>
+        <div className="border-sun flex min-w-0 flex-col border-l-2 pl-2">
+          {/*
+            **Sem a foto de quem escreveu** (pedido do PO, 12 de novembro de
+            2026). Ela vinha antes do @, e o cartão já tem os rostos no
+            rodapé — duas fotos da mesma pessoa, em dois tamanhos, a dois
+            centímetros uma da outra.
+
+            O `@` aqui **não é link**: o cartão inteiro já é o link que abre
+            o tópico, e âncora dentro de âncora é HTML inválido.
+          */}
+          <p className="text-caption">
+            @{ultima.autorHandle} · {ultima.quando}
+          </p>
+          <p className="text-body line-clamp-2 wrap-anywhere">{ultima.texto}</p>
         </div>
       ) : null}
 
@@ -108,28 +107,31 @@ export function HotTopicCard({
               ))}
             </span>
           ) : null}
+          {/*
+            "Criado por @fulano" e não "Tópico de Fulano Silva": o @ é como
+            se encontra alguém no Hub, e o nome real não é endereço de nada.
+            Pedido do PO em 12 de novembro de 2026.
+          */}
           <p className="text-caption">
             {people} {people === 1 ? "pessoa" : "pessoas"} · {answers}{" "}
             {answers === 1 ? "contribuição" : "contribuições"}
-            {autor ? `. Tópico de ${autor}.` : ""}
+            {autor ? `. Criado por @${autor}` : ""}
           </p>
         </div>
 
-        <span className="flex shrink-0 items-center gap-2">
-          {action}
-          {href ? (
-            <Link
-              href={href}
-              className={cn("rounded-pill inline-block", variants.highlight, sizes.sm)}
-            >
-              Contribuir
-            </Link>
-          ) : (
-            <Button variant="highlight" size="sm" onClick={onAnswer}>
-              Contribuir
-            </Button>
-          )}
-        </span>
+        {/*
+          **O botão "Contribuir" saiu**, e com ele o `href` e o `onAnswer`.
+
+          Até 12 de novembro de 2026 ele era a **única** parte clicável do
+          cartão: clicar no título ou na pergunta não fazia nada, e o PO
+          relatou isso como "o tópico em destaque não abre em um clique".
+
+          Agora quem abre é o cartão inteiro, envolvido pelo mesmo
+          `LinkDoTopico` dos outros — e aí o botão não podia ficar, porque
+          âncora dentro de âncora é HTML inválido. Não se perde caminho
+          nenhum: abrir o tópico é exatamente onde se contribui.
+        */}
+        {action ? <span className="flex shrink-0 items-center gap-2">{action}</span> : null}
       </div>
     </article>
   );

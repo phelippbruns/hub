@@ -116,13 +116,23 @@ export default async function InicioPage() {
       {primeiro ? (
         <>
           <SectionTitle>Hot Topics</SectionTitle>
-          <HotTopicCard
-            topic={primeiro.comunidade.nome}
-            opening={primeiro.abertura}
-            people={primeiro.pessoas}
-            answers={primeiro.respostas}
+          {/*
+            O cartão inteiro abre o tópico desde 12 de novembro de 2026 —
+            antes só o botão "Contribuir" no canto levava a algum lugar.
+            Aqui o link é direto, e não `LinkDoTopico`: aquele preserva os
+            parâmetros da lista da comunidade, que no Início não existem.
+          */}
+          <Link
             href={enderecoDoTopico(primeiro.comunidade.slug, primeiro.topicoSlug)}
-          />
+            className="block"
+          >
+            <HotTopicCard
+              topic={primeiro.comunidade.nome}
+              opening={primeiro.abertura}
+              people={primeiro.pessoas}
+              answers={primeiro.respostas}
+            />
+          </Link>
 
           {outros.map((destaque) => (
             <HomeRow
