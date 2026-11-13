@@ -26,6 +26,7 @@ export function TopicOpening({
   pessoas,
   respostas,
   seguir,
+  midia,
   acoes,
 }: {
   /** O nome do tópico. É ele que carrega o asterisco. */
@@ -37,6 +38,14 @@ export function TopicOpening({
   respostas: number;
   /** O olho, no canto superior direito do cartão. */
   seguir?: ReactNode;
+  /**
+   * A imagem ou o GIF da abertura, quando há.
+   *
+   * Slot e não props de mídia: quem desenha é `MidiaDaContribuicao`, que é
+   * cliente (ela amplia na `Janela` ao clicar), e este cartão é usado
+   * também pela tela de convite, que não tem sessão.
+   */
+  midia?: ReactNode;
   /** Compartilhar e afins, quando a tela os coloca no rodapé. */
   acoes?: ReactNode;
 }) {
@@ -59,6 +68,9 @@ export function TopicOpening({
       ) : null}
 
       <p className="text-lead wrap-anywhere">{abertura}</p>
+
+      {/* Depois do texto: a abertura é a pergunta, e a imagem acompanha. */}
+      {midia ? <div className="flex">{midia}</div> : null}
 
       <div className="border-inkLine flex flex-wrap items-center gap-2 border-t pt-2">
         {quem ? (

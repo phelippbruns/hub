@@ -24,11 +24,14 @@ function unico(p: string) {
   return `${p}${Date.now() % 100000}${Math.floor(Math.random() * 100)}`;
 }
 
-async function entrarNoApp(page: Page, prefixo: string) {
+/** Devolve o `@` criado: quem não precisa dele só ignora o retorno. */
+async function entrarNoApp(page: Page, prefixo: string): Promise<string> {
+  const handle = unico("cic").slice(0, 20);
+
   await page.goto("/criar-conta");
   await page.getByLabel("Nome completo").fill("Pessoa do Ciclo");
   await page.getByLabel("Email").fill(`${unico(prefixo)}@teste.hub`);
-  await page.getByLabel("@").fill(unico("cic").slice(0, 20));
+  await page.getByLabel("@").fill(handle);
   await page.getByLabel("Senha", { exact: true }).fill("senhaboa123");
   await page.getByLabel("Data de nascimento").fill(`${new Date().getUTCFullYear() - 25}-03-10`);
 
@@ -40,6 +43,8 @@ async function entrarNoApp(page: Page, prefixo: string) {
   await cadastroConcluido(page);
   await concluirOnboarding(page);
   await expect(page).toHaveURL(/\/inicio/);
+
+  return handle;
 }
 
 /** Uma comunidade minha, com um tópico, e o endereço da comunidade. */
@@ -153,16 +158,22 @@ test.describe("depois da virada", () => {
         a.textContent?.includes("DESTAQUE DO DIA"),
       );
       if (!destaque) return "sem destaque";
-      const lista = destaque.parentElement;
+      /*
+        `closest("a")`: desde 12 de novembro de 2026 o cartão de destaque é
+        envolvido pelo mesmo `LinkDoTopico` dos outros, porque ele passou a
+        abrir num clique. Antes ele era filho direto da lista e os outros
+        não — agora todos são iguais, e quem é irmão na lista é o link.
+      */
+      const item = destaque.closest("a") ?? destaque;
+      const lista = item.parentElement;
       if (!lista) return "sem lista";
-      // Irmão de cartão de tópico: é isto que diz "mesma lista".
       const irmaos = lista.children.length;
-      return lista.firstElementChild === destaque ? `primeiro de ${irmaos}` : "não é o primeiro";
+      return lista.firstElementChild === item ? `primeiro de ${irmaos}` : "não é o primeiro";
     });
     expect(posicao).toBe("primeiro de 2");
 
-    // E o cartão leva ao tópico. O botão diz "Contribuir", não "Responder".
-    await cartao.getByRole("link", { name: "Contribuir" }).click();
+    // E o cartão leva ao tópico — o cartão inteiro, não um botão no canto.
+    await cartao.getByText("assunto da virada").click();
     await esperarTopicoNoPainel(page, "assunto-da-virada");
   });
 
@@ -285,5 +296,69 @@ test.describe("o agendamento", () => {
      */
     expect(tarefa?.schedule, "o ciclo não está agendado").toBe("0 * * * *");
     expect(tarefa?.command).toContain("hub_ciclo_pendente");
+  });
+});
+
+/**
+ * O cartão de destaque abre num clique (pedido do PO, 12 de novembro de
+ * 2026).
+ *
+ * Até ali, a **única** parte clicável do cartão era o botão "Contribuir" no
+ * canto inferior: clicar no título ou na pergunta não fazia nada. O botão
+ * saiu, e quem abre é o cartão inteiro — envolvido pelo mesmo link da lista.
+ */
+test.describe("o cartão de destaque abre num clique", () => {
+  test("clicar no título do destaque abre o tópico no painel", async ({ page }) => {
+    await entrarNoApp(page, "cliquedestaque");
+    const { comunidade } = await minhaComunidadeComTopico(page, "Clique no Destaque");
+
+    await houveMovimentoOntemEOCicloVirou("assunto-da-virada", 3);
+    await page.goto(comunidade);
+
+    const cartao = page.locator("article", { hasText: "DESTAQUE DO DIA" });
+    await expect(cartao).toBeVisible();
+
+    await cartao.getByText("assunto da virada").click();
+
+    await expect(page).toHaveURL(/\?t=assunto-da-virada/);
+    await esperarTopicoNoPainel(page, "assunto-da-virada");
+  });
+
+  test("clicar na pergunta também abre — não só o título", async ({ page }) => {
+    await entrarNoApp(page, "cliquepergunta");
+    const { comunidade } = await minhaComunidadeComTopico(page, "Clique na Pergunta");
+
+    await houveMovimentoOntemEOCicloVirou("assunto-da-virada", 3);
+    await page.goto(comunidade);
+
+    const cartao = page.locator("article", { hasText: "DESTAQUE DO DIA" });
+    await cartao.getByText("A pergunta que vai virar destaque.").click();
+
+    await expect(page).toHaveURL(/\?t=assunto-da-virada/);
+  });
+
+  test("o cartão não tem mais botão próprio", async ({ page }) => {
+    await entrarNoApp(page, "semcontribuir");
+    const { comunidade } = await minhaComunidadeComTopico(page, "Sem Contribuir");
+
+    await houveMovimentoOntemEOCicloVirou("assunto-da-virada", 3);
+    await page.goto(comunidade);
+
+    const cartao = page.locator("article", { hasText: "DESTAQUE DO DIA" });
+    // Positivo primeiro: o cartão chegou. Senão o zero abaixo passaria com
+    // a página ainda vazia.
+    await expect(cartao).toBeVisible();
+    await expect(cartao.getByRole("link", { name: "Contribuir" })).toHaveCount(0);
+  });
+
+  test("o rodapé diz quem criou, pelo @", async ({ page }) => {
+    const handle = await entrarNoApp(page, "quemcriou");
+    const { comunidade } = await minhaComunidadeComTopico(page, "Quem Criou");
+
+    await houveMovimentoOntemEOCicloVirou("assunto-da-virada", 3);
+    await page.goto(comunidade);
+
+    const cartao = page.locator("article", { hasText: "DESTAQUE DO DIA" });
+    await expect(cartao).toContainText(`Criado por @${handle}`);
   });
 });

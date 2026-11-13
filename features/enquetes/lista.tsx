@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Avatar, Button, EmptyState, SectionTitle } from "@/design/components";
+import { Avatar, Button, EmptyState, HandleLink, SectionTitle } from "@/design/components";
 import { ConfirmedIcon } from "@/design/icons";
 import { desfazerVoto, votarNaEnquete } from "./actions";
 import { FormularioDeEnquete } from "./formulario";
@@ -154,7 +154,12 @@ function Enquete({
           <Avatar nome={enquete.autor.name} url={enquete.autor.avatarUrl} tamanho="sm" />
         ) : null}
         <span className="text-caption text-inkMuted">
-          {enquete.autor ? `@${enquete.autor.handle} · ` : ""}
+          {enquete.autor ? (
+            <>
+              <HandleLink handle={enquete.autor.handle} className="font-normal" />{" "}
+            </>
+          ) : null}
+          {enquete.autor ? "· " : ""}
           {haQuantoTempo(enquete.criadaEm)}
         </span>
       </div>

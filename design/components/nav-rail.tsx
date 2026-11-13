@@ -6,14 +6,12 @@ import type { ReactNode } from "react";
 import {
   CabinNavIcon,
   CommunitiesNavIcon,
-  CommunityHash,
   ExploreNavIcon,
   HomeNavIcon,
   NotificationsNavIcon,
   PalavraHub,
   ProfileNavIcon,
   SettingsIcon,
-  TopicStar,
 } from "../icons";
 import { LevelMark } from "./level-mark";
 import { cn } from "../cn";
@@ -110,7 +108,14 @@ function areaAtual(pathname: string): string | null {
  * `shrink-0` porque ela não pode encolher quando o rótulo ao lado for longo:
  * é justamente a largura dela que mantém o ícone no lugar.
  */
-function Eixo({ children, className }: { children: ReactNode; className?: string }) {
+/**
+ * O eixo de 42 px em que todo ícone da barra fica centrado.
+ *
+ * **Exportado** desde 12 de novembro de 2026: o item de criar virou um
+ * slot montado em `app/(app)/`, e sem estas duas peças ele sairia
+ * desalinhado dos outros quando a barra está recolhida.
+ */
+export function Eixo({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <span className={cn("w-navItemBox grid shrink-0 place-items-center", className)}>
       {children}
@@ -128,7 +133,7 @@ function Eixo({ children, className }: { children: ReactNode; className?: string
  * `whitespace-nowrap` para o texto não quebrar em duas linhas durante os
  * 150 ms em que a barra ainda está estreita.
  */
-function Rotulo({ children }: { children: ReactNode }) {
+export function Rotulo({ children }: { children: ReactNode }) {
   return (
     <span className="whitespace-nowrap opacity-0 transition-opacity duration-100 ease-in-out group-hover/nav:opacity-100 group-has-[:focus-visible]/nav:opacity-100 motion-reduce:transition-none">
       {children}
@@ -139,10 +144,24 @@ function Rotulo({ children }: { children: ReactNode }) {
 export function NavRail({
   temNovidade = false,
   temCabineNova = false,
+  criar,
 }: {
   temNovidade?: boolean;
   /** Conversa com mensagem não lida, ou convite esperando. */
   temCabineNova?: boolean;
+  /**
+   * O item de criar, que é um `+` e abre uma janela.
+   *
+   * **Slot, e não um `<Link>` aqui dentro.** Criar tópico e criar
+   * comunidade moram em duas features diferentes, e a barra é do design
+   * system — ela não importa de `features/`. Quem monta o menu é
+   * `app/(app)/`, que é a camada que compõe.
+   *
+   * Eram dois links até 12 de novembro de 2026, e levavam a páginas
+   * próprias: o PO pediu um `+` só, com janela sobre a página em que se
+   * está.
+   */
+  criar?: ReactNode;
 }) {
   const pathname = usePathname();
   const atualHref = areaAtual(pathname);
@@ -271,31 +290,7 @@ export function NavRail({
         de cima, e os três empilhados mostravam a diferença.
       */}
       <div className="mt-auto flex flex-col gap-2">
-        <Link
-          href="/criar-topico"
-          aria-label="Criar tópico"
-          className="rounded-pill text-label h-navItem text-ink hover:bg-surfacePage flex items-center gap-2 font-semibold no-underline"
-        >
-          <Eixo>
-            <span className="bg-ink text-paper rounded-pill size-control grid place-items-center">
-              <TopicStar className="size-iconNav" />
-            </span>
-          </Eixo>
-          <Rotulo>Criar tópico</Rotulo>
-        </Link>
-
-        <Link
-          href="/comunidades/nova"
-          aria-label="Criar comunidade"
-          className="rounded-pill text-label h-navItem text-ink hover:bg-surfacePage flex items-center gap-2 font-semibold no-underline"
-        >
-          <Eixo>
-            <span className="bg-lavender text-ink rounded-pill size-control grid place-items-center">
-              <CommunityHash className="size-iconNav" />
-            </span>
-          </Eixo>
-          <Rotulo>Criar comunidade</Rotulo>
-        </Link>
+        {criar}
 
         <Link
           href="/configuracoes"

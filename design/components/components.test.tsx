@@ -38,6 +38,7 @@ import {
   StarButton,
   TopicOpening,
   PostRow,
+  TopicCard,
   TopicRow,
 } from "./index";
 
@@ -79,12 +80,11 @@ const cases: Array<[string, React.ReactElement]> = [
       opening="Como foi a primeira festa que te fez gostar de música eletrônica?"
       people={42}
       answers={87}
-      autor="Caio Mendes"
+      autor="caiomendes"
       ultima={{
         texto: "Um set de 6 horas num galpão. Saí de lá sabendo que era isso.",
         autorNome: "Lia Souza",
         autorHandle: "liasouza",
-        autorAvatarUrl: null,
         quando: "há 2 h",
       }}
       rostos={[
@@ -403,10 +403,7 @@ describe("texto de gente nunca fura o cartão", () => {
       </AnswerCard>,
     ],
     ["autor da contribuição", <AnswerCard author={PALAVRA} handle="lia" when="há 2 h" />],
-    [
-      "destaque do dia",
-      <HotTopicCard topic="Tópico" opening={PALAVRA} people={4} answers={9} href="/c/x/y" />,
-    ],
+    ["destaque do dia", <HotTopicCard topic="Tópico" opening={PALAVRA} people={4} answers={9} />],
     ["nome da comunidade na capa", <CommunityCover name={PALAVRA} coverUrl={null} />],
     ["nome do tópico na linha", <TopicRow name={PALAVRA} people={1} answers={1} />],
     [
@@ -540,5 +537,122 @@ describe("o controle deslizante", () => {
       />,
     );
     expect(html).toContain("Já está no máximo");
+  });
+});
+
+/**
+ * **O `@` leva ao perfil — e nunca dentro de outro link.**
+ *
+ * Pedido do PO em 12 de novembro de 2026. O risco de cumpri-lo sem pensar é
+ * âncora dentro de âncora, que é HTML inválido: o navegador fecha a
+ * primeira sozinho, e o que sobra na tela não é o que o código diz. Por
+ * isso o `@` do `TopicCard` **continua texto** — ele mora dentro do link
+ * que abre o tópico, e quem leva ao perfil ali é o avatar.
+ */
+describe("o @ é link, menos onde já há um link em volta", () => {
+  it("o @ do cartão de contribuição leva ao perfil", () => {
+    const html = renderToStaticMarkup(
+      <AnswerCard author="Lia Souza" handle="liasouza" when="há 2 h">
+        Oi
+      </AnswerCard>,
+    );
+
+    expect(html).toContain('href="/liasouza"');
+  });
+
+  it("o @ do cartão de tópico continua texto", () => {
+    const html = renderToStaticMarkup(
+      <TopicCard
+        name="Tópico"
+        people={2}
+        answers={3}
+        ultima={{
+          texto: "oi",
+          autorNome: "Lia",
+          autorHandle: "liasouza",
+          avatarUrl: null,
+        }}
+      />,
+    );
+
+    expect(html).toContain("@liasouza");
+    expect(html, "o cartão inteiro já é link: um <a> aqui seria inválido").not.toContain(
+      'href="/liasouza"',
+    );
+  });
+
+  /**
+   * A barreira geral: nenhum componente do sistema desenha âncora dentro de
+   * âncora. Uma regex sobre o HTML achado é mais grosseira que um analisador,
+   * e é exatamente por isso que serve — ela não depende de eu lembrar de
+   * conferir o caso novo.
+   */
+  it.each(cases)("%s não aninha link dentro de link", (_nome, elemento) => {
+    const html = renderToStaticMarkup(elemento);
+
+    let profundidade = 0;
+    let maior = 0;
+    for (const marca of html.match(/<\/?a[\s>]/g) ?? []) {
+      profundidade += marca.startsWith("</") ? -1 : 1;
+      maior = Math.max(maior, profundidade);
+    }
+
+    expect(maior, "âncora dentro de âncora é HTML inválido").toBeLessThanOrEqual(1);
+  });
+});
+
+/**
+ * O cartão de destaque, depois do pedido do PO de 12 de novembro de 2026.
+ *
+ * Os três itens dele andam juntos e no mesmo arquivo, então ficam no mesmo
+ * teste: a foto do meio sai, o rodapé diz o @ de quem criou, e o cartão
+ * deixa de ter botão próprio — porque quem abre o tópico passou a ser o
+ * cartão inteiro, envolvido pelo link da lista.
+ */
+describe("o cartão de destaque", () => {
+  const comUltima = (
+    <HotTopicCard
+      topic="Primeira festa"
+      opening="Como foi?"
+      people={2}
+      answers={5}
+      autor="phelipp"
+      ultima={{ texto: "foi assim", autorNome: "Lia", autorHandle: "liasouza", quando: "há 1 dia" }}
+      rostos={[{ nome: "Lia", avatarUrl: null }]}
+    />
+  );
+
+  it("o rodapé diz o @ de quem criou, não o nome real", () => {
+    const html = renderToStaticMarkup(comUltima);
+
+    expect(html).toContain("Criado por @phelipp");
+    expect(html, "nome real não é endereço de nada").not.toContain("Tópico de");
+  });
+
+  /**
+   * A foto do meio saiu porque o cartão **já tem** os rostos no rodapé —
+   * eram duas fotos da mesma pessoa, em dois tamanhos, a dois centímetros
+   * uma da outra.
+   */
+  it("o bloco da última contribuição não tem mais foto", () => {
+    const html = renderToStaticMarkup(comUltima);
+    const bloco = html.slice(html.indexOf("border-sun"), html.indexOf("flex-wrap"));
+
+    expect(bloco).toContain("@liasouza");
+    expect(bloco, "a foto de quem escreveu saiu do bloco do meio").not.toContain(
+      "hub-forma-perfil",
+    );
+  });
+
+  /**
+   * **A barreira do clique.** O cartão não pode ter link nem botão próprio:
+   * quem o envolve é o `LinkDoTopico`, e âncora dentro de âncora é HTML
+   * inválido — foi assim que ele passou meses abrindo só pelo canto.
+   */
+  it("o cartão não traz link nem botão por dentro", () => {
+    const html = renderToStaticMarkup(comUltima);
+
+    expect(html, "quem abre o tópico é o link em volta").not.toContain("<a ");
+    expect(html).not.toContain("Contribuir");
   });
 });

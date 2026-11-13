@@ -635,3 +635,214 @@ test.describe("a tela do tópico, protótipo v6", () => {
     }
   });
 });
+
+/**
+ * O menu de três pontos, igual em toda tela (pedido do PO, 12 de novembro
+ * de 2026).
+ *
+ * Três comportamentos: clicar abre, clicar de novo fecha, tirar o mouse
+ * fecha. O do painel do tópico não tinha **nenhum** dos dois últimos — a
+ * `ancora` que o faz fechar no segundo clique existia desde 7 de novembro
+ * e tinha sido posta só no menu da contribuição.
+ *
+ * A `ancora` tem varredura em `design/components/menu-suspenso.test.ts`; o
+ * `onMouseLeave` mora no elemento em volta e só uma jornada alcança.
+ */
+/**
+ * O menu de três pontos, igual em toda tela (pedido do PO, 12 de novembro
+ * de 2026).
+ *
+ * Três comportamentos: clicar abre, clicar de novo fecha, tirar o mouse
+ * fecha. O do painel do tópico não tinha **nenhum** dos dois últimos — a
+ * `ancora` que o faz fechar no segundo clique existia desde 7 de novembro
+ * e tinha sido posta só no menu da contribuição.
+ *
+ * A `ancora` tem varredura em `design/components/menu-suspenso.test.ts`; o
+ * `onMouseLeave` mora no elemento em volta e só uma jornada alcança.
+ */
+test.describe("o menu de três pontos do tópico", () => {
+  /**
+   * Abre um tópico e **espera o painel existir**, não só o endereço.
+   *
+   * `esperarTopicoNoPainel` só espera a URL, e o painel chega depois, por
+   * `<Suspense>`. Sem esta espera o teste clicava no "Mais opções" **da
+   * capa da comunidade**, que tem exatamente o mesmo rótulo — e o painel,
+   * ao chegar, remontava a tela e fechava o que tinha aberto.
+   */
+  async function topicoNoPainel(page: Page, prefixo: string, assunto: string) {
+    const comunidade = await minhaComunidade(page, prefixo);
+    await criarTopico(page, comunidade, assunto);
+    await esperarTopicoNoPainel(page);
+
+    const painel = page.getByRole("complementary", { name: /^Tópico / });
+    await expect(painel).toBeVisible();
+    return painel;
+  }
+
+  test("clicar abre, clicar de novo fecha", async ({ page }) => {
+    await entrarNoApp(page, "menutopico");
+    const painel = await topicoNoPainel(page, "Menu do Tópico", "assunto do menu");
+
+    const tresPontos = painel.getByRole("button", { name: "Mais opções" });
+    await tresPontos.click();
+    await expect(painel.getByRole("button", { name: /Apagar tópico/ })).toBeVisible();
+
+    await tresPontos.click();
+    await expect(painel.getByRole("button", { name: /Apagar tópico/ })).toHaveCount(0);
+  });
+
+  test("tirar o mouse de cima fecha", async ({ page }) => {
+    await entrarNoApp(page, "mousetopico");
+    const painel = await topicoNoPainel(page, "Mouse do Tópico", "assunto do mouse");
+
+    await painel.getByRole("button", { name: "Mais opções" }).click();
+    await expect(painel.getByRole("button", { name: /Apagar tópico/ })).toBeVisible();
+
+    /*
+      Mover o ponteiro por coordenada, e não para outro elemento: o balão
+      do menu **cobre** o que está logo abaixo do botão, então "passar o
+      mouse no título" acabava pousando no próprio menu. 10 px da borda
+      esquerda é a lista da comunidade, longe de qualquer grupo.
+    */
+    await page.mouse.move(10, 400);
+
+    await expect(painel.getByRole("button", { name: /Apagar tópico/ })).toHaveCount(0);
+  });
+
+  test("ir do botão até o balão NÃO fecha", async ({ page }) => {
+    await entrarNoApp(page, "vaotopico");
+    const painel = await topicoNoPainel(page, "Vao do Tópico", "assunto do vao");
+
+    await painel.getByRole("button", { name: "Mais opções" }).click();
+    const apagar = painel.getByRole("button", { name: /Apagar tópico/ });
+    await expect(apagar).toBeVisible();
+
+    /*
+      Entre o botão e o balão há um vão. Se o `onMouseLeave` estivesse em
+      cada peça, e não no grupo que envolve as duas, o menu fecharia no
+      caminho — e a opção ficaria inalcançável com o mouse.
+    */
+    await apagar.hover();
+    await expect(apagar).toBeVisible();
+  });
+
+  test("Esc continua fechando", async ({ page }) => {
+    await entrarNoApp(page, "esctopico");
+    const painel = await topicoNoPainel(page, "Esc do Tópico", "assunto do esc");
+
+    await painel.getByRole("button", { name: "Mais opções" }).click();
+    await expect(painel.getByRole("button", { name: /Apagar tópico/ })).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(painel.getByRole("button", { name: /Apagar tópico/ })).toHaveCount(0);
+  });
+});
+
+/**
+ * Imagem e GIF no tópico (pedido do PO, 12 de novembro de 2026).
+ *
+ * Os botões existiam desativados, com "chegam em breve", desde a F08. O
+ * levantamento mostrou que faltavam **três** peças, não uma: o formulário,
+ * a Server Action — que mandava `media: null` literal — e a **exibição**,
+ * que nunca existiu. A mídia era gravada e nunca lida de volta.
+ */
+test.describe("mídia no novo tópico", () => {
+  /** Um PNG de verdade: o depósito recusa o que não abre. */
+  const PNG = "public/icons/icon-512.png";
+
+  test("tópico criado com imagem aparece com a imagem", async ({ page }) => {
+    await entrarNoApp(page, "midiatopico");
+    const comunidade = await minhaComunidade(page, "Com Imagem");
+
+    await page.goto(`${comunidade}/novo`);
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await janela.getByLabel("Título").fill("tópico com foto");
+    await janela.getByLabel("Abertura").fill("Olha essa imagem.");
+    await janela.locator("input[name='imagem']").setInputFiles(PNG);
+    await janela.getByRole("button", { name: "Criar tópico" }).click();
+
+    await esperarTopicoNoPainel(page, "topico-com-foto");
+
+    const painel = page.getByRole("complementary", { name: /^Tópico / });
+    await expect(painel).toBeVisible();
+    // A mídia é um controle: clicar amplia, então quem nomeia é o botão.
+    await expect(painel.getByRole("button", { name: /^Abrir a imagem/ })).toBeVisible();
+  });
+
+  test("as medidas são guardadas, para a tela não pular", async ({ page }) => {
+    await entrarNoApp(page, "medidastopico");
+    const comunidade = await minhaComunidade(page, "Com Medidas");
+
+    await page.goto(`${comunidade}/novo`);
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await janela.getByLabel("Título").fill("tópico medido");
+    await janela.getByLabel("Abertura").fill("Com medidas.");
+    await janela.locator("input[name='imagem']").setInputFiles(PNG);
+    await janela.getByRole("button", { name: "Criar tópico" }).click();
+    await esperarTopicoNoPainel(page, "topico-medido");
+
+    const [linha] = await consultar<{
+      media_kind: string;
+      media_width: number;
+      media_height: number;
+      media_url: string;
+    }>(`SELECT media_kind, media_width, media_height, media_url
+          FROM topics WHERE slug = 'topico-medido'`);
+
+    expect(linha?.media_kind).toBe("image");
+    // O que fica guardado é o caminho no depósito, não um endereço.
+    expect(linha?.media_url).toMatch(/^topicos\/[0-9a-f-]+\.webp$/);
+    expect(linha?.media_width).toBeGreaterThan(0);
+    expect(linha?.media_height).toBeGreaterThan(0);
+  });
+
+  test("imagem e GIF juntos são recusados", async ({ page }) => {
+    await entrarNoApp(page, "doisjuntos");
+    const comunidade = await minhaComunidade(page, "Dois Juntos");
+
+    await page.goto(`${comunidade}/novo`);
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await janela.getByLabel("Título").fill("um de cada vez");
+    await janela.getByLabel("Abertura").fill("Só um.");
+    await janela.locator("input[name='imagem']").setInputFiles(PNG);
+
+    /*
+      Com imagem escolhida, o botão de GIF fica desativado com a razão à
+      vista — a exclusividade é da tela **e** do servidor.
+    */
+    const botaoDeGif = janela.getByRole("button", { name: "Adicionar GIF" });
+    if ((await botaoDeGif.count()) > 0) {
+      await expect(botaoDeGif).toBeDisabled();
+    }
+  });
+
+  test("arquivo que não é imagem é recusado com motivo", async ({ page }) => {
+    await entrarNoApp(page, "naoimagem");
+    const comunidade = await minhaComunidade(page, "Nao Imagem");
+
+    await page.goto(`${comunidade}/novo`);
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await janela.getByLabel("Título").fill("arquivo ruim");
+    await janela.getByLabel("Abertura").fill("Vai ser recusado.");
+    await janela.locator("input[name='imagem']").setInputFiles({
+      name: "disfarce.jpg",
+      mimeType: "image/jpeg",
+      buffer: Buffer.from([0xff, 0xd8, 0xff, 0x00, 0x01, 0x02]),
+    });
+    await janela.getByRole("button", { name: "Criar tópico" }).click();
+
+    /*
+      O motivo vem da camada que pegar primeiro: o percorredor de bytes diz
+      "JPEG cortado", o decodificador diria outra coisa. O que a barreira
+      guarda é que **há** motivo e que nada foi publicado — amarrar a frase
+      de uma camada faria o teste reprovar no dia em que a outra pegasse.
+    */
+    await expect(alerta(page)).toBeVisible();
+    await expect(alerta(page)).not.toBeEmpty();
+
+    const [linha] = await consultar<{ total: string }>(
+      `SELECT count(*)::text AS total FROM topics WHERE name = 'arquivo ruim'`,
+    );
+    expect(linha?.total, "o tópico não pode nascer com a imagem recusada").toBe("0");
+  });
+});

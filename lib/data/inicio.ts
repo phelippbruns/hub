@@ -96,6 +96,19 @@ export type TopicoSeguido = {
  *
  * Sem visita registrada, conta a partir de quando ela começou a seguir: é o
  * mais próximo de "o que apareceu desde que isto passou a me interessar".
+ *
+ * **A ordem é a da última movimentação**, pedido do PO em 12 de novembro de
+ * 2026. Era `novas DESC, t.created_at DESC` — e aí um tópico parado com 2
+ * contribuições não lidas ficava acima de um que acabou de se mexer com
+ * zero. O contador de novas continua existindo e continua no selo; ele só
+ * deixou de mandar na fila.
+ *
+ * "Movimentação" é a contribuição mais recente, e a abertura do tópico
+ * quando ainda não há nenhuma — senão tópico recém-aberto, que é
+ * exatamente o que merece atenção, nasceria no fim da lista.
+ *
+ * O índice que isto usa (`answers` por tópico e data) já existe desde a
+ * F09: nenhuma migration.
  */
 export async function topicosQueSigoComNovas(viewer: Viewer): Promise<TopicoSeguido[]> {
   const me = viewerProfileId(viewer);
@@ -124,12 +137,22 @@ export async function topicosQueSigoComNovas(viewer: Viewer): Promise<TopicoSegu
                AND a.deleted_at IS NULL
                AND a.created_at > COALESCE(f.last_seen_at, f.created_at)
                -- A própria resposta nunca é novidade para quem a escreveu.
-               AND a.author_id IS DISTINCT FROM ${me}::uuid) AS novas
+               AND a.author_id IS DISTINCT FROM ${me}::uuid) AS novas,
+           -- A última movimentação: a contribuição mais recente, ou a
+           -- abertura do tópico quando ninguém contribuiu ainda.
+           GREATEST(
+             t.created_at,
+             COALESCE(
+               (SELECT max(a.created_at) FROM answers a
+                 WHERE a.topic_id = t.id AND a.deleted_at IS NULL),
+               t.created_at
+             )
+           ) AS movimentacao
       FROM follows f
       JOIN topics t ON t.id = f.topic_id AND t.deleted_at IS NULL
       JOIN communities c ON c.id = t.community_id AND c.deleted_at IS NULL
      WHERE f.follower_id = ${me}::uuid AND f.target = 'topic'
-     ORDER BY novas DESC, t.created_at DESC
+     ORDER BY movimentacao DESC
      LIMIT ${LIMITES.topicosSeguidos}
   `;
 

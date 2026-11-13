@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { Avatar, Button, RoundIconButton } from "@/design/components";
 import { GifIcon, ImageIcon, SendIcon } from "@/design/icons";
-import { EscolherGif, type GifEscolhido } from "./escolher-gif";
+import { EscolherGif, type GifEscolhido } from "@/design/components";
 import { acharLink } from "@/lib/texto/links";
 import { TAMANHO_MAXIMO_EM_MB, problemaNaImagem } from "@/lib/midia/limites";
 import { responder, type EstadoDaResposta } from "./actions";

@@ -303,3 +303,96 @@ describe("quem acabou de chegar", () => {
     expect(await minhasUltimasInteracoes(viewerFor(eu.id))).toEqual([]);
   });
 });
+
+/**
+ * A ordem de "Tópicos que você segue" (pedido do PO, 12 de novembro de
+ * 2026).
+ *
+ * Era `novas DESC, created_at DESC`: um tópico **parado** com duas
+ * contribuições não lidas ficava acima de um que acabou de se mexer. O
+ * contador de novas continua no selo; ele só deixou de mandar na fila.
+ */
+describe("a ordem é a da última movimentação", () => {
+  /*
+   * Uma comunidade por tópico: a RN07 só deixa **um tópico por pessoa por
+   * dia** em cada comunidade, e estes testes precisam de dois ao mesmo
+   * tempo. A ordem de que falam é da lista do Início, que atravessa
+   * comunidades de qualquer jeito.
+   */
+  async function doisTopicos(eu: { id: string }, prefixo: string) {
+    const uma = await comunidade(`${prefixo} A`, eu);
+    const outra = await comunidade(`${prefixo} B`, eu);
+    const primeiro = await topico(eu, uma.id, `${prefixo} primeiro`);
+    const segundo = await topico(eu, outra.id, `${prefixo} segundo`);
+    await followTopic(viewerFor(eu.id), primeiro.id);
+    await followTopic(viewerFor(eu.id), segundo.id);
+    return { primeiro, segundo };
+  }
+
+  it("o tópico com a contribuição mais recente vem primeiro, mesmo com zero novas", async () => {
+    const eu = await makeProfile();
+    const { primeiro: parado, segundo: movimentado } = await doisTopicos(eu, "Ordem");
+
+    /*
+      O seguimento recua três dias: "nova" é o que chegou **depois** de eu
+      começar a seguir, então contribuição de ontem num tópico que passei a
+      seguir agora não conta — e o teste mediria zero dos dois lados,
+      provando nada sobre a ordem.
+    */
+    await db.$executeRawUnsafe(
+      `UPDATE follows SET created_at = now() - interval '3 days' WHERE topic_id = $1::uuid`,
+      parado.id,
+    );
+
+    // O parado tem duas não lidas, de ontem. O movimentado tem uma minha,
+    // de agora — que nunca conta como novidade para mim.
+    await responderam(parado.id, 2, ONTEM());
+    await db.answer.create({
+      data: { topicId: movimentado.id, authorId: eu.id, text: "minha", createdAt: new Date() },
+    });
+
+    const lista = await topicosQueSigoComNovas(viewerFor(eu.id));
+
+    expect(lista.map((t) => t.nome)).toEqual(["Ordem segundo", "Ordem primeiro"]);
+    // E o selo continua dizendo a verdade sobre o que não foi lido.
+    expect(lista.find((t) => t.nome === "Ordem primeiro")?.novas).toBe(2);
+    expect(lista.find((t) => t.nome === "Ordem segundo")?.novas).toBe(0);
+  });
+
+  it("tópico recém-aberto, sem contribuição nenhuma, não nasce no fim", async () => {
+    const eu = await makeProfile();
+    const { primeiro: antigo } = await doisTopicos(eu, "Recem");
+
+    await responderam(antigo.id, 1, ONTEM());
+
+    /*
+     * O segundo não tem contribuição nenhuma, e foi aberto depois. Sem a
+     * abertura contando como movimentação, o que acabou de nascer — que é
+     * justamente o que merece atenção — cairia para o fim da lista.
+     */
+    const lista = await topicosQueSigoComNovas(viewerFor(eu.id));
+    expect(lista[0]?.nome).toBe("Recem segundo");
+  });
+
+  it("contribuição apagada não conta como movimentação", async () => {
+    const eu = await makeProfile();
+    const { primeiro: comApagada, segundo: outro } = await doisTopicos(eu, "Apagada");
+
+    await responderam(outro.id, 1, new Date());
+
+    const quem = await makeProfile();
+    await db.answer.create({
+      data: {
+        topicId: comApagada.id,
+        authorId: quem.id,
+        text: "vai sair",
+        createdAt: new Date(Date.now() + 60_000),
+        deletedAt: new Date(),
+      },
+    });
+
+    // A apagada é mais recente, mas não existe para ninguém.
+    const lista = await topicosQueSigoComNovas(viewerFor(eu.id));
+    expect(lista[0]?.nome).toBe("Apagada segundo");
+  });
+});

@@ -46,7 +46,7 @@ export function problemaNaImagem(arquivo: File): string | null {
  * As três pastas do depósito. Cada uma tem um tamanho de tela, e por isso um
  * tamanho máximo de arquivo diferente.
  */
-export type PastaDeImagem = "respostas" | "capas" | "perfis" | "posts";
+export type PastaDeImagem = "respostas" | "capas" | "perfis" | "posts" | "topicos";
 
 /**
  * O maior lado que o Hub guarda, por pasta. Em pixels.
@@ -61,6 +61,7 @@ export type PastaDeImagem = "respostas" | "capas" | "perfis" | "posts";
  * | `respostas` | 213 × 213 na lista, **tela cheia** ao clicar | 1600 é o que a tela cheia pede num monitor comum |
  * | `perfis` | 125 px no perfil, 30 px nas listas | 512 cobre retina e a aproximação de RN30 |
  * | `posts` | capa e imagens do blog, numa coluna de até 50vw | 1600, o mesmo da contribuição |
+ * | `topicos` | a imagem da abertura, no cartão escuro | 1600, e amplia ao clicar |
  *
  * Medido em 8 de novembro de 2026 com uma foto de 4032 × 3024 e 4,54 MB:
  * vira 315 KB como capa, 148 KB como contribuição e 12 KB como foto de
@@ -82,6 +83,13 @@ export function ladoMaximo(pasta: PastaDeImagem): number {
      * mesmo número da contribuição, que também abre grande.
      */
     case "posts":
+      return 1600;
+    /*
+     * O tópico: a imagem aparece no cartão escuro da abertura, na mesma
+     * largura do painel, e amplia ao clicar como a da contribuição. Os
+     * mesmos 1600 px, pela mesma razão.
+     */
+    case "topicos":
       return 1600;
   }
 }

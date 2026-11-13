@@ -1,5 +1,11 @@
 import { Suspense } from "react";
-import { EmptyState, EndOfList, PaginaCarregando, TopicOpening } from "@/design/components";
+import {
+  EmptyState,
+  EndOfList,
+  MidiaDaContribuicao,
+  PaginaCarregando,
+  TopicOpening,
+} from "@/design/components";
 import { CampoDeResposta } from "@/features/respostas/campo";
 import { LinhaDeResposta } from "@/features/respostas/linha";
 import { OrdemDasRespostas as ControleDaOrdem } from "@/features/respostas/ordem";
@@ -25,6 +31,7 @@ export async function CorpoDoTopico({
   abertura,
   autor,
   seguir,
+  midia,
   pessoas,
   respostas,
   podeVerRespostas,
@@ -40,6 +47,13 @@ export async function CorpoDoTopico({
   autor?: { nome: string; avatarUrl?: string | null };
   /** O olho de seguir, montado pela página porque precisa de estado. */
   seguir?: React.ReactNode;
+  /** A imagem ou o GIF da abertura, com endereço já assinado. */
+  midia?: {
+    url: string;
+    parado?: string | null;
+    tipo?: "image" | "gif" | null;
+    medidas?: { largura: number; altura: number } | null;
+  } | null;
   pessoas: number;
   respostas: number;
   podeVerRespostas: boolean;
@@ -52,6 +66,22 @@ export async function CorpoDoTopico({
    */
   vistoEm: Date | null;
 }) {
+  /*
+   * Montada **uma vez**, e usada nos dois ramos: o de quem tem conta e o
+   * de quem não tem (RN16). Eram dois `TopicOpening` neste arquivo, e eu
+   * passei a mídia só para o primeiro — o da tela sem conta. Está no
+   * `faustao.md`.
+   */
+  const midiaDesenhada = midia ? (
+    <MidiaDaContribuicao
+      url={midia.url}
+      parado={midia.parado}
+      tipo={midia.tipo ?? "image"}
+      medidas={midia.medidas ?? undefined}
+      autor={typeof autor === "string" ? autor : (autor?.nome ?? "quem abriu")}
+    />
+  ) : null;
+
   if (!podeVerRespostas) {
     return (
       <>
@@ -62,6 +92,7 @@ export async function CorpoDoTopico({
           pessoas={pessoas}
           respostas={respostas}
           seguir={seguir}
+          midia={midiaDesenhada}
         />
         {/* RN16: sem conta, a lista de respostas não vem do servidor. */}
         <EmptyState
@@ -81,6 +112,7 @@ export async function CorpoDoTopico({
         pessoas={pessoas}
         respostas={respostas}
         seguir={seguir}
+        midia={midiaDesenhada}
       />
 
       <CampoDeResposta

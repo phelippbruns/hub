@@ -1454,3 +1454,32 @@ async function outraPessoa(context: BrowserContext, prefixo: string) {
   await entrarNoApp(visita, prefixo);
   return { contexto, visita };
 }
+
+/**
+ * O voltar da comunidade tem destino fixo (pedido do PO, 12 de novembro de
+ * 2026).
+ *
+ * Era `router.back()`, que volta para onde a pessoa veio — uma
+ * notificação, um perfil, a busca — ou **para fora do Hub**, quando a
+ * comunidade é a primeira tela da sessão, que é o caso de quem chega por
+ * link compartilhado.
+ */
+test.describe("o voltar da comunidade", () => {
+  test("leva a Minhas Comunidades, mesmo chegando direto pelo endereço", async ({ page }) => {
+    await entrarNoApp(page, "voltar");
+    await preencherNova(page, novoNome("Voltar Daqui"));
+    await page.waitForURL(/\/c\//);
+    const endereco = new URL(page.url()).pathname;
+
+    /*
+      Página nova, sem histórico nenhum: é aqui que `router.back()` saía do
+      Hub. Entrar pelo endereço é o que faz quem recebe um link.
+    */
+    await page.goto("/inicio");
+    await page.goto(endereco);
+
+    await page.getByRole("button", { name: "Voltar para Minhas Comunidades" }).click();
+
+    await expect(page).toHaveURL(/\/comunidades\/minhas$/);
+  });
+});

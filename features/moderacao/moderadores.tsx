@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { BottomSheet, Button, ConfirmSheet, Input } from "@/design/components";
+import { BottomSheet, Button, ConfirmSheet, HandleLink, Input } from "@/design/components";
 import { convidarParaModerar, procurarMembros, tirarDaModeracao } from "./actions";
 
 export type ModeradorNaTela = { id: string; nome: string; handle: string; criador: boolean };
@@ -43,7 +43,7 @@ export function Moderadores({
                 {pessoa.id === eu ? "Você" : pessoa.nome}
               </span>
               <span className="text-caption text-inkMuted block">
-                @{pessoa.handle}
+                <HandleLink handle={pessoa.handle} className="font-normal" />
                 {pessoa.criador ? ", criadora" : ""}
               </span>
             </span>
@@ -89,7 +89,9 @@ export function Moderadores({
             <div key={pessoa.id} className="flex items-center gap-2">
               <span className="min-w-0 flex-1">
                 <span className="text-bodyStrong text-ink block">{pessoa.nome}</span>
-                <span className="text-caption text-inkMuted block">@{pessoa.handle}</span>
+                <span className="text-caption text-inkMuted block">
+                  <HandleLink handle={pessoa.handle} className="font-normal" />
+                </span>
               </span>
               <Button
                 size="sm"

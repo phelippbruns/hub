@@ -17,6 +17,7 @@ export { HotTopicCard } from "./hot-topic-card";
 export { AnswerCard } from "./answer-card";
 export { CommunityRow } from "./community-row";
 export { AlcaDoPainel } from "./alca-do-painel";
+export { HandleLink } from "./handle-link";
 export { PostRow } from "./post-row";
 export { TopicCard } from "./topic-card";
 export { TopicRow } from "./topic-row";
@@ -37,7 +38,8 @@ export {
   EmptyState,
   EndOfList,
 } from "./states";
-export { NavRail } from "./nav-rail";
+export { EscolherGif, type GifEscolhido } from "./escolher-gif";
+export { Eixo, NavRail, Rotulo } from "./nav-rail";
 export { AppShell, ContentColumn, PageTitle } from "./app-shell";
 export { Segmented, type OpcaoSegmentada } from "./segmented";
 export { RadioGroup, type OpcaoDeEscolha } from "./radio-group";

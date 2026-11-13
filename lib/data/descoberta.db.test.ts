@@ -425,6 +425,66 @@ describe("as comunidades novas do Início", () => {
     expect(novas.map((c) => c.id).slice(0, 3)).toEqual([terceira.id, segunda.id, primeira.id]);
   });
 
+  /**
+   * **"Nova" é uma data, não uma posição na fila** (pedido do PO, 12 de
+   * novembro de 2026).
+   *
+   * A consulta pegava as 5 mais recentes de **todos os tempos**: num Hub
+   * parado, uma comunidade de outubro contava como nova.
+   */
+  it("comunidade criada hoje aparece; a de 30 dias atrás, não", async () => {
+    const universo = await makeUniverse("Som");
+    const quemOlha = await makeProfile();
+
+    const recente = await comunidadeCom(universo.id, "Recente", 1);
+    const antiga = await comunidadeCom(universo.id, "Antiga", 1);
+    await db.$executeRawUnsafe(
+      `UPDATE communities SET created_at = now() - interval '30 days' WHERE id = $1::uuid`,
+      antiga.id,
+    );
+
+    const novas = await comunidadesNovas(viewerFor(quemOlha.id));
+
+    expect(novas.map((c) => c.id)).toContain(recente.id);
+    expect(novas.map((c) => c.id)).not.toContain(antiga.id);
+  });
+
+  it("a janela é de 7 dias: a de 6 entra, a de 8 não", async () => {
+    const universo = await makeUniverse("Som");
+    const quemOlha = await makeProfile();
+
+    const dentro = await comunidadeCom(universo.id, "De seis dias", 1);
+    const fora = await comunidadeCom(universo.id, "De oito dias", 1);
+    await db.$executeRawUnsafe(
+      `UPDATE communities SET created_at = now() - interval '6 days' WHERE id = $1::uuid`,
+      dentro.id,
+    );
+    await db.$executeRawUnsafe(
+      `UPDATE communities SET created_at = now() - interval '8 days' WHERE id = $1::uuid`,
+      fora.id,
+    );
+
+    const ids = (await comunidadesNovas(viewerFor(quemOlha.id))).map((c) => c.id);
+
+    expect(ids).toContain(dentro.id);
+    expect(ids).not.toContain(fora.id);
+  });
+
+  it("sem nada novo, a lista volta vazia — e a seção some da tela", async () => {
+    const universo = await makeUniverse("Som");
+    const quemOlha = await makeProfile();
+    const velha = await comunidadeCom(universo.id, "Velha", 1);
+    await db.$executeRawUnsafe(
+      `UPDATE communities SET created_at = now() - interval '60 days' WHERE id = $1::uuid`,
+      velha.id,
+    );
+
+    // Positivo primeiro: a comunidade existe. Senão o vazio abaixo seria
+    // satisfeito por um banco sem comunidade nenhuma.
+    expect(await db.community.count({ where: { id: velha.id } })).toBe(1);
+    expect(await comunidadesNovas(viewerFor(quemOlha.id))).toEqual([]);
+  });
+
   it("não mostra comunidade onde eu já estou", async () => {
     const universo = await makeUniverse("Som");
     const quemOlha = await makeProfile();

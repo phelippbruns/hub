@@ -235,6 +235,137 @@ certa faz.
 
 ---
 
+### Liguei a mídia no ramo que quase ninguém vê
+
+*12 de novembro de 2026, Bloco 7 das correções.*
+
+A imagem do tópico era guardada certo — o teste de banco provava — e **não
+aparecia na tela**. Gastei quatro medições subindo a cadeia: o depósito
+assinava, a camada de dados devolvia o endereço, a página passava a prop.
+
+O erro estava em `features/topicos/corpo.tsx`: ele tem **dois**
+`TopicOpening`, um para quem tem conta e outro para quem não tem (RN16), e
+a minha substituição casou o primeiro — o de quem **não** tem conta, que é
+o ramo que quase nunca roda.
+
+*Como resolvi:* montar a mídia **uma vez**, numa constante antes dos dois
+ramos, e passar a mesma para os dois. Assim não existe "o outro lugar".
+
+🔒 **Barrado** — `e2e/topicos.spec.ts`, vista reprovar com a prop removida
+de um dos ramos.
+
+*A lição, que o Faustão já tem em "apaguei a promessa num lugar e deixei
+no outro":* **substituição por texto casa a primeira ocorrência, e a
+primeira raramente é a que importa.** Antes de editar, `grep -c` no padrão
+— se vier mais de um, o conserto é extrair, não repetir.
+
+*E uma lição sobre o diagnóstico:* medir de baixo para cima funcionou, mas
+custou caro. Ter rodado `grep -n "<TopicOpening" corpo.tsx` no começo
+teria mostrado "dois" na primeira linha.
+
+---
+
+### Esperei o endereço e cliquei no botão de outra tela
+
+*12 de novembro de 2026, Bloco 4 das correções.*
+
+A jornada do menu de três pontos do tópico reprovava com "o item não
+existe". Eu tinha acabado de corrigir o menu, e a correção estava certa.
+
+*O que acontecia:* `esperarTopicoNoPainel()` **só espera a URL**. O painel
+chega depois, por `<Suspense>`. Nesse intervalo, `getByRole("button", {
+name: "Mais opções" })` achava **um** botão — o da capa da comunidade, que
+tem exatamente o mesmo rótulo — clicava nele, e o painel ao chegar
+remontava a tela e fechava o que havia aberto.
+
+O modo estrito do Playwright não ajudou: com o painel ausente havia um
+botão só, então nada era ambíguo. A ambiguidade só existiria **depois**
+de a tela terminar de carregar.
+
+*Como resolvi:* esperar o painel existir
+(`getByRole("complementary", { name: /^Tópico / })`) e escopar tudo a ele.
+
+*E um segundo tropeço no mesmo teste:* "tirar o mouse fecha" apontava
+para o título do tópico — que fica **debaixo do balão do menu**. Passar o
+mouse ali pousava no próprio menu. Virou `page.mouse.move(10, 400)`, uma
+coordenada longe de qualquer grupo.
+
+🔒 **Barrado** — `e2e/topicos.spec.ts`, as quatro vistas reprovarem com a
+`ancora` e o `onMouseLeave` removidos.
+
+*A lição:* **esperar o endereço não é esperar a tela.** Numa página com
+`<Suspense>`, a URL muda primeiro e o conteúdo chega depois — e nesse vão
+um seletor por rótulo pode acertar o elemento de **outro** componente com
+o mesmo nome. Quando o teste fala de uma região, o escopo é a região, não
+a página.
+
+*E uma observação que vale guardar:* dois rótulos iguais em telas que se
+sobrepõem ("Mais opções" na capa e no painel) são uma armadilha mesmo com
+o modo estrito, porque a ambiguidade aparece e desaparece conforme o que
+já carregou.
+
+---
+
+### `.first()` pegou o cartão de trás, não a contribuição
+
+*12 de novembro de 2026, Bloco 2 das correções.*
+
+O `@` da contribuição virou link, e a jornada clicava em
+`getByRole("link", { name: "@fulano" }).first()`. Reprovava: a URL não
+mudava.
+
+*Por quê:* havia **dois** links com esse nome acessível na tela. O
+primeiro era o **cartão de tópico atrás do painel** — o `@` dele é texto
+dentro do link que abre o tópico, e o nome acessível de um link inclui o
+texto que ele envolve. `.first()` clicava nesse, que leva ao mesmo lugar
+onde já se estava.
+
+O diagnóstico levou três rodadas porque eu tentei adivinhar antes de
+medir. Quando imprimi `count()` e `getAttribute("href")`, a resposta
+apareceu na primeira linha: `quantos: 2`, `href: /c/...?t=...`.
+
+*Como resolvi:* escopar ao cartão da contribuição
+(`respostaPublicada(page, texto).getByRole(...)`), que é o elemento sobre
+o qual o teste fala.
+
+🔒 **Barrado** — `e2e/respostas.spec.ts`.
+
+*A lição:* **`.first()` é uma escolha, não um detalhe.** Ele diz "qualquer
+um serve", e quase nunca é verdade — numa tela com lista e painel, o
+primeiro de qualquer coisa costuma ser o de trás. E quando um seletor
+falha, `count()` e `getAttribute()` custam dez segundos e respondem o que
+três hipóteses não respondem.
+
+*E um detalhe que vale guardar:* o nome acessível de um link inclui todo o
+texto dentro dele. Um `@` escrito como texto dentro de um cartão clicável
+faz aquele cartão atender por `@fulano` — mesmo sem ser um link de perfil.
+
+---
+
+### A substituição que não casou porque o formatador já tinha rodado
+
+*Mesma rodada, minutos antes.*
+
+Para diagnosticar o caso acima, troquei um trecho do teste por um com
+`console.log`. O comando disse "ok" e **nada mudou**: o `prettier` havia
+quebrado `.first().click()` em três linhas, e eu procurei pela forma de
+uma linha.
+
+Rodei a jornada de novo e li o mesmo erro, agora achando que a hipótese
+estava errada — quando o que estava errado era eu não ter mexido no
+arquivo.
+
+*Como resolvi:* `assert a in s` antes de substituir, que é o que o
+`faustao.md` já manda ("editar com a ferramenta que falha alto"). Com ele,
+a tentativa seguinte falhou na hora, em vez de passar calada.
+
+*A lição, que é a mesma de sempre e eu repeti:* **substituição sem
+asserção é um comando que mente.** O arquivo tinha sido formatado entre
+eu lê-lo e eu editá-lo — e essa janela existe em toda edição depois de um
+`prettier --write`.
+
+---
+
 ### O redirecionamento do próprio perfil comia o parâmetro
 
 *12 de novembro de 2026, Bloco 6 do Blog.*

@@ -989,3 +989,78 @@ validação existiria para barrar isso; aqui o caminho não existe.
 mesmo necessário agora**. Quando o formato de dados é estável e o desenho
 já está pronto, o editor é a parte mais trocável do sistema — e a mais cara
 de construir cedo demais.
+
+## 22. Quinze correções, e três eram o mesmo defeito
+
+*12 de novembro de 2026, depois de o PO usar o Hub com o Blog no ar.*
+
+### "Clico e não acontece nada" era um componente só
+
+Três itens do documento do PO — a comunidade no Início, a comunidade no
+Explorar e o tópico em destaque — eram **a mesma coisa**: elementos que
+pareciam clicáveis e não eram.
+
+Os dois primeiros eram **a mesma linha**
+(`features/descoberta/linhas.tsx`), usada em quatro seções. As irmãs dela,
+no mesmo arquivo, já eram link desde sempre; só a de comunidade ficou de
+fora. Consertar um arquivo consertou o Início, as duas seções do Explorar
+e a Busca — esta última sem ninguém ter reclamado.
+
+**Regra:** quando o PO relata o mesmo sintoma em telas diferentes, a
+primeira pergunta é se é a mesma peça. Duas queixas podem ser um
+conserto; e o terceiro lugar, que ninguém viu ainda, vem junto de graça.
+
+---
+
+### Reclamação de uma tela, inconsistência do sistema
+
+O PO reclamou do menu de três pontos **do tópico**. O levantamento achou
+três comportamentos diferentes na mesma casa: a contribuição fechava nos
+dois gestos, o cabeçalho da comunidade num só, e o tópico em nenhum.
+
+A peça que resolve (`ancora`) existia desde 7 de novembro — tinha sido
+posta num menu e esquecida nos outros três.
+
+*O que ficou:* uma varredura que reprova todo `MenuSuspenso` sem
+`ancora`. O quarto menu não nasce errado.
+
+**Regra:** quando um comportamento do sistema está errado numa tela,
+conte quantas telas têm a mesma peça antes de consertar uma. E se a
+correção for uma prop que dá para esquecer, a varredura custa meia hora e
+vale para sempre.
+
+---
+
+### "Os botões não funcionam" eram três peças, e a terceira era invisível
+
+O PO reportou os botões de imagem e GIF desativados na criação de tópico,
+com a observação de que "essa feature já existe".
+
+Faltavam três coisas: o formulário, a Server Action — que mandava
+`media: null` literal — e **a exibição, que nunca existiu**. `media_url`
+era gravado desde a F08 e **nunca lido de volta**.
+
+*Por que isso importa:* ligar só os botões teria parecido funcionar. A
+imagem subiria, o banco guardaria, e ela sumiria — o pior tipo de
+conserto, porque só aparece quando alguém abre o tópico depois.
+
+**Regra:** antes de "ligar" uma feature que já existe pela metade, siga o
+dado até a tela. Guardar não é mostrar, e a metade que falta costuma ser
+a de depois do banco.
+
+---
+
+### Duas correções que não eram correção
+
+De quinze itens, dois saíram de escopo com o PO:
+
+- **"Para você" com perfis e tópicos** é feature, não conserto: sugerir
+  pessoas não existe no Hub, e "quem seguir" é a decisão de produto mais
+  delicada de uma rede social.
+- **"Últimas interações em ordem cronológica"** já estava certo. O que
+  mexia na lista era um filtro que tira os repetidos, e o PO decidiu
+  mantê-lo.
+
+**Regra:** antes de consertar, confira se está quebrado. Dois dos quinze
+itens viraram cinco minutos de leitura em vez de um dia de trabalho — e
+um deles teria sido trabalho **errado**.

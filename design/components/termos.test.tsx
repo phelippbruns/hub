@@ -33,12 +33,11 @@ describe("a tela não diz resposta", () => {
         opening="Qual foi a primeira foto que te orgulhou?"
         people={12}
         answers={34}
-        href="/c/x/y"
       />,
     ],
     [
       "cartão do Hot Topic com uma só",
-      <HotTopicCard topic="t" opening="o" people={1} answers={1} href="/c/x/y" />,
+      <HotTopicCard topic="t" opening="o" people={1} answers={1} />,
     ],
     [
       "abertura do tópico",

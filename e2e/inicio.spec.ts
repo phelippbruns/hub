@@ -132,7 +132,12 @@ test.describe("com conteúdo", () => {
     await expect(page.getByRole("heading", { name: "Hot Topics" })).toBeVisible();
     await expect(page.getByText("A pergunta que vai virar destaque.")).toBeVisible();
 
-    await page.getByRole("link", { name: "Contribuir" }).click();
+    /*
+      O cartão inteiro leva ao tópico desde 12 de novembro de 2026 — antes
+      só o botão "Contribuir" no canto. O botão saiu junto: âncora dentro
+      de âncora é HTML inválido.
+    */
+    await page.getByText("A pergunta que vai virar destaque.").click();
     await esperarTopicoNoPainel(page, "assunto-do-inicio");
   });
 
@@ -205,6 +210,41 @@ test.describe("com conteúdo", () => {
     await page.goto("/inicio");
     await expect(page.getByRole("heading", { name: "Suas últimas interações" })).toBeVisible();
     await expect(page.getByText(/2 depois da sua/)).toBeVisible();
+  });
+  /**
+   * O que saiu do Início (pedido do PO, 12 de novembro de 2026).
+   *
+   * Aqui dentro porque é aqui que mora `cenarioComDestaque`, que deixa a
+   * pessoa seguindo um tópico — sem isso a seção nem é desenhada.
+   */
+  test('"Ver coleção" não existe mais', async ({ page }) => {
+    await entrarNoApp(page, "semcolecao");
+    const comunidade = await cenarioComDestaque(page);
+
+    /*
+      Seguir o tópico: a seção "Tópicos que você segue" só é desenhada
+      quando há algum, e `cenarioComDestaque` cria o tópico sem segui-lo.
+    */
+    await page.goto(`${comunidade}/assunto-do-inicio`);
+    await page.getByRole("button", { name: /^Seguir o tópico/ }).click();
+    await expect(page.getByRole("button", { name: /^Seguindo o tópico/ })).toBeVisible();
+
+    await page.goto("/inicio");
+
+    // Positivo primeiro: a seção de que o link saiu está na tela.
+    await expect(page.getByRole("heading", { name: "Tópicos que você segue" })).toBeVisible();
+
+    await expect(page.getByRole("link", { name: "Ver coleção" })).toHaveCount(0);
+  });
+
+  test("o Início continua terminando em 'Você está em dia'", async ({ page }) => {
+    await entrarNoApp(page, "emdia");
+    await cenarioComDestaque(page);
+    await page.goto("/inicio");
+
+    // A janela de 7 dias pode esvaziar "Novas no Hub"; o fim da tela não
+    // depende dela.
+    await expect(page.getByText("Você está em dia.")).toBeVisible();
   });
 });
 

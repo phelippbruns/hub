@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { CommunityDoor, FollowButton, LevelMark, TopicName } from "@/design/components";
 import { alternarComunidade, alternarSeguirPessoa } from "./actions";
 import type { ComunidadeNaLista, PessoaNaBusca, TopicoNaBusca } from "@/lib/data/descoberta";
-import { enderecoDoTopico } from "@/lib/rotas";
+import Link from "next/link";
+import { enderecoDaComunidade, enderecoDoTopico } from "@/lib/rotas";
 
 /** Milhares com ponto, como o protótipo mostra: "3.412 membros". */
 function numero(valor: number) {
@@ -18,6 +19,20 @@ function numero(valor: number) {
  * na hora — é critério de aceite. O número é atualizado otimisticamente para
  * a tela não parecer travada enquanto o servidor responde; se der erro, ele
  * volta.
+ *
+ * **A capa e o nome abrem a comunidade.** Até 12 de novembro de 2026 esta
+ * linha era uma `<div>` em que **só o `#` era clicável**: clicar no nome não
+ * fazia nada, e o PO relatou isso duas vezes, em telas diferentes. As irmãs
+ * `LinhaTopico` e `LinhaPessoa`, logo abaixo, já eram link desde sempre — só
+ * esta ficou de fora.
+ *
+ * Um arquivo, quatro seções: "Novas no Hub" no Início, "Em alta" e "Para
+ * você" no Explorar, e os resultados de comunidade na Busca.
+ *
+ * **O `#` fica fora do link**, e não é detalhe de gosto: botão dentro de
+ * âncora é HTML inválido, e o navegador desfaz do jeito dele — entrar na
+ * comunidade passaria a navegar junto. É o mesmo arranjo de
+ * `features/comunidades/linha-minha.tsx`.
  */
 export function LinhaComunidade({
   comunidade,
@@ -49,27 +64,34 @@ export function LinhaComunidade({
   }
 
   return (
-    <div className="bg-paper flex items-center gap-3 rounded-sm p-3">
-      <span
-        aria-hidden="true"
-        className="size-thumb bg-lavender shrink-0 rounded-sm bg-cover bg-center"
-        style={comunidade.coverUrl ? { backgroundImage: `url(${comunidade.coverUrl})` } : undefined}
-      />
+    <div className="bg-paper hover:ring-lavender flex items-center gap-3 rounded-sm p-3 hover:ring-2 hover:ring-inset">
+      <Link
+        href={enderecoDaComunidade(comunidade.slug)}
+        className="flex min-w-0 flex-1 items-center gap-3"
+      >
+        <span
+          aria-hidden="true"
+          className="size-thumb bg-lavender shrink-0 rounded-sm bg-cover bg-center"
+          style={
+            comunidade.coverUrl ? { backgroundImage: `url(${comunidade.coverUrl})` } : undefined
+          }
+        />
 
-      <span className="min-w-0 flex-1">
-        <span className="text-bodyStrong text-ink block truncate">{comunidade.name}</span>
-        <span className="text-caption text-inkMuted block">
-          {numero(membros)} {membros === 1 ? "membro" : "membros"}
-          {/* Tela 11: membros e respostas de hoje em linhas separadas. */}
-          {mostrarRespostasHoje && comunidade.respostasHoje !== undefined ? (
-            <>
-              <br />
-              {numero(comunidade.respostasHoje)}{" "}
-              {comunidade.respostasHoje === 1 ? "contribuição hoje" : "contribuições hoje"}
-            </>
-          ) : null}
+        <span className="min-w-0 flex-1">
+          <span className="text-bodyStrong text-ink block truncate">{comunidade.name}</span>
+          <span className="text-caption text-inkMuted block">
+            {numero(membros)} {membros === 1 ? "membro" : "membros"}
+            {/* Tela 11: membros e respostas de hoje em linhas separadas. */}
+            {mostrarRespostasHoje && comunidade.respostasHoje !== undefined ? (
+              <>
+                <br />
+                {numero(comunidade.respostasHoje)}{" "}
+                {comunidade.respostasHoje === 1 ? "contribuição hoje" : "contribuições hoje"}
+              </>
+            ) : null}
+          </span>
         </span>
-      </span>
+      </Link>
 
       <CommunityDoor
         member={membro}

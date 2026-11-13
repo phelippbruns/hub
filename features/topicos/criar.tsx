@@ -32,6 +32,7 @@ export function CriarTopico({
   abrirDeInicio = false,
   /** `?nome=`, a sugestão de Primeiros passos. */
   nomeSugerido = "",
+  gifLigado = false,
 }: {
   slug: string;
   nomeDaComunidade: string;
@@ -47,6 +48,8 @@ export function CriarTopico({
    */
   abrirDeInicio?: boolean;
   nomeSugerido?: string;
+  /** Sem a chave do GIPHY, o botão de GIF simplesmente não aparece. */
+  gifLigado?: boolean;
 }) {
   const router = useRouter();
   const parametros = useSearchParams();
@@ -121,6 +124,7 @@ export function CriarTopico({
             jaUsouODia={jaUsouODia}
             escolherEntre={escolherEntre}
             nomeSugerido={nomeSugerido}
+            gifLigado={gifLigado}
           />
         ) : null}
       </Janela>

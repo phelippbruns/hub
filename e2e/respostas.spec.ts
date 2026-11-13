@@ -26,11 +26,14 @@ function unico(p: string) {
   return `${p}${Date.now() % 100000}${Math.floor(Math.random() * 100)}`;
 }
 
-async function entrarNoApp(page: Page, prefixo: string) {
+/** Devolve o `@` criado: quem não precisa dele só ignora o retorno. */
+async function entrarNoApp(page: Page, prefixo: string): Promise<string> {
+  const handle = unico("resp").slice(0, 20);
+
   await page.goto("/criar-conta");
   await page.getByLabel("Nome completo").fill("Pessoa que Responde");
   await page.getByLabel("Email").fill(`${unico(prefixo)}@teste.hub`);
-  await page.getByLabel("@").fill(unico("resp").slice(0, 20));
+  await page.getByLabel("@").fill(handle);
   await page.getByLabel("Senha", { exact: true }).fill("senhaboa123");
   await page.getByLabel("Data de nascimento").fill(`${new Date().getUTCFullYear() - 25}-03-10`);
 
@@ -42,6 +45,8 @@ async function entrarNoApp(page: Page, prefixo: string) {
   await cadastroConcluido(page);
   await concluirOnboarding(page);
   await expect(page).toHaveURL(/\/inicio/);
+
+  return handle;
 }
 
 /** Uma comunidade minha, com um tópico aberto, e o endereço dele. */
@@ -473,5 +478,36 @@ test.describe("sem a chave do GIPHY", () => {
     // E responder com imagem continua funcionando. Exato, porque o campo de
     // arquivo se chama "Adicionar imagem à resposta" e casaria por trecho.
     await expect(page.getByRole("button", { name: "Adicionar imagem", exact: true })).toBeVisible();
+  });
+});
+
+/**
+ * O `@` leva ao perfil (pedido do PO, 12 de novembro de 2026).
+ *
+ * O cabeçalho de toda contribuição é o lugar mais visível do Hub em que ele
+ * era texto morto — o avatar ao lado já levava ao perfil desde a F12.
+ */
+test.describe("o @ da contribuição leva ao perfil", () => {
+  test("clicar no @ abre o perfil de quem escreveu", async ({ page }) => {
+    const handle = await entrarNoApp(page, "arroba");
+    await meuTopico(page, "Com Arroba");
+
+    await campoDeContribuicao(page).fill("escrevi isso");
+    await botaoDeContribuir(page).click();
+    await expect(respostaPublicada(page, "escrevi isso")).toBeVisible();
+
+    /*
+     * Escopado ao cartão da contribuição, e não `.first()` na página: o
+     * cartão de tópico atrás do painel também tem `@<handle>` no nome
+     * acessível, porque o `@` dele é texto **dentro** do link que abre o
+     * tópico. `.first()` pegava esse, e o teste media a lista, não a
+     * contribuição.
+     */
+    await respostaPublicada(page, "escrevi isso")
+      .getByRole("link", { name: `@${handle}` })
+      .click();
+
+    await expect(page).toHaveURL(/\/perfil$/);
+    await expect(page.getByRole("heading", { level: 1, name: handle })).toBeVisible();
   });
 });

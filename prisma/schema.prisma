@@ -565,6 +565,13 @@ model Topic {
   description String     @db.VarChar(240)
   mediaUrl    String?    @map("media_url")
   mediaKind   MediaKind? @map("media_kind")
+  /// As medidas da mídia já guardada. Sem elas o cartão da abertura
+  /// **pula** quando a imagem chega — nasce sem altura e ganha duzentos
+  /// pixels de uma vez, o mesmo defeito que a contribuição já teve.
+  mediaWidth  Int?       @map("media_width")
+  mediaHeight Int?       @map("media_height")
+  /// Só para GIF: o primeiro quadro, para ele ficar parado na lista.
+  mediaStillUrl String?  @map("media_still_url")
 
   /// RN07: dia do ciclo em que o tópico foi criado, no fuso de Brasília.
   /// Preenchido por gatilho e com índice único por (comunidade, autor, dia):

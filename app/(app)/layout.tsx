@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell, NavRail } from "@/design/components";
+import { MenuDeCriar } from "./criar-menu";
+import { gifEstaLigado } from "@/lib/midia/giphy";
 import { getViewer } from "@/lib/auth/session";
 import { CABECALHO_DA_ROTA, ehCompartilhavel } from "@/lib/auth/rotas-publicas";
 import { jaFezOnboarding } from "@/lib/data/onboarding";
@@ -43,7 +45,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const [novidade, cabineNova] = await Promise.all([temNovidade(viewer), temCabineNova(viewer)]);
 
   return (
-    <AppShell nav={<NavRail temNovidade={novidade} temCabineNova={cabineNova} />}>
+    <AppShell
+      nav={
+        <NavRail
+          temNovidade={novidade}
+          temCabineNova={cabineNova}
+          criar={<MenuDeCriar gifLigado={gifEstaLigado()} />}
+        />
+      }
+    >
       {children}
     </AppShell>
   );

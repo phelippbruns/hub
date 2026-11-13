@@ -423,6 +423,15 @@ export async function topicosEmAlta(viewer: Viewer, limite = 5): Promise<TopicoN
 }
 
 /**
+ * Por quantos dias uma comunidade conta como nova.
+ *
+ * Sete, e não um: "criada no último dia" deixaria a seção vazia na maior
+ * parte do tempo, e quem abre o Hub três vezes por semana nunca veria o
+ * que nasceu. Uma semana é o quanto se leva para passar por aqui de novo.
+ */
+export const DIAS_DE_NOVIDADE = 7;
+
+/**
  * As comunidades que acabaram de nascer, para o Início.
  *
  * Só as que a pessoa **não** frequenta: a seção é para descobrir, e o que
@@ -433,6 +442,15 @@ export async function topicosEmAlta(viewer: Viewer, limite = 5): Promise<TopicoN
  * justamente o que acabou de ser criado, e toda comunidade nasce com uma
  * pessoa só. Aplicar o corte aqui esvaziaria a seção no dia em que ele
  * subir de zero.
+ *
+ * **"Nova" é uma data, e não uma posição na fila.** Até 12 de novembro de
+ * 2026 a consulta pegava as 5 mais recentes **de todos os tempos** — num
+ * Hub parado, uma comunidade de outubro contava como nova, e no dia em que
+ * cinco nascessem juntas a de ontem sumia. O PO reclamou do segundo caso.
+ *
+ * Com a janela, a seção **some nos dias em que nada nasceu**, e isso é o
+ * certo: "Novas no Hub" sem nada novo seria uma promessa vazia. A página
+ * só a desenha quando a lista tem alguém.
  */
 export async function comunidadesNovas(viewer: Viewer, limite = 5): Promise<ComunidadeNaLista[]> {
   const me = viewerProfileId(viewer);
@@ -444,6 +462,7 @@ export async function comunidadesNovas(viewer: Viewer, limite = 5): Promise<Comu
       FROM communities c
       JOIN universes u ON u.id = c.universe_id
      WHERE c.deleted_at IS NULL
+       AND c.created_at > now() - make_interval(days => ${DIAS_DE_NOVIDADE})
        AND NOT EXISTS (
          SELECT 1 FROM memberships m
           WHERE m.community_id = c.id AND m.profile_id = ${me}::uuid

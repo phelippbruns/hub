@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../cn";
+import { HandleLink } from "./handle-link";
 
 /**
  * Cartão de contribuição. Mostra o nome real do autor, como manda o
@@ -92,7 +93,8 @@ export function AnswerCard({
         {avatar}
         <span className="text-bodyStrong text-ink wrap-anywhere">{author}</span>
         <span className="text-caption text-inkMuted">
-          @{handle} · {when}
+          {/* O avatar ao lado já leva ao perfil desde a F12; o @ não levava. */}
+          <HandleLink handle={handle} className="text-inkMuted font-normal" /> · {when}
         </span>
         {acoes ? <span className="-mt-1 ml-auto shrink-0 self-start">{acoes}</span> : null}
       </div>

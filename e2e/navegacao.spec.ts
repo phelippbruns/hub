@@ -105,12 +105,27 @@ test.describe("barra de navegação", () => {
     }
   });
 
-  test("os dois botões de criar estão na barra, com nome", async ({ page }) => {
+  /**
+   * **Um botão de criar, não dois** (pedido do PO, 12 de novembro de 2026).
+   *
+   * Eram dois links que levavam a páginas próprias. Agora é um `+` que abre
+   * uma janela sobre a página em que a pessoa está, com as duas opções
+   * dentro.
+   */
+  test("a barra tem um botão de criar, e ele abre a janela com as duas opções", async ({
+    page,
+  }) => {
     await entrarNoApp(page, "criar");
     const barra = page.getByRole("navigation", { name: "Navegação principal" });
 
-    await expect(barra.getByRole("link", { name: "Criar comunidade" })).toBeVisible();
-    await expect(barra.getByRole("link", { name: "Criar tópico" })).toBeVisible();
+    await expect(barra.getByRole("link", { name: "Criar tópico" })).toHaveCount(0);
+    await expect(barra.getByRole("link", { name: "Criar comunidade" })).toHaveCount(0);
+
+    await barra.getByRole("button", { name: "Criar" }).click();
+
+    const janela = page.getByRole("dialog", { name: "Criar" });
+    await expect(janela.getByRole("button", { name: /^Criar tópico/ })).toBeVisible();
+    await expect(janela.getByRole("button", { name: /^Criar comunidade/ })).toBeVisible();
   });
 
   test("os botões de criar continuam na tela depois de descer a página", async ({ page }) => {
@@ -125,7 +140,7 @@ test.describe("barra de navegação", () => {
      */
     await entrarNoApp(page, "fixos");
     const barra = page.getByRole("navigation", { name: "Navegação principal" });
-    const criar = barra.getByRole("link", { name: "Criar tópico" });
+    const criar = barra.getByRole("button", { name: "Criar" });
 
     await page.goto("/comunidades");
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -133,8 +148,8 @@ test.describe("barra de navegação", () => {
     const janela = page.viewportSize()!.height;
     const caixa = await criar.boundingBox();
 
-    expect(caixa, "o botão de criar tópico desapareceu").not.toBeNull();
-    expect(caixa!.y, "o botão de criar tópico saiu da janela ao descer").toBeLessThan(janela);
+    expect(caixa, "o botão de criar desapareceu").not.toBeNull();
+    expect(caixa!.y, "o botão de criar saiu da janela ao descer").toBeLessThan(janela);
     expect(caixa!.y + caixa!.height).toBeGreaterThan(0);
   });
 });
@@ -299,13 +314,17 @@ test.describe("a barra fecha sozinha", () => {
     await expect.poll(async () => Math.round((await barra.boundingBox())!.width)).toBe(84);
   });
 
-  test("os três botões do rodapé têm ícones do mesmo tamanho", async ({ page }) => {
+  test("os dois botões do rodapé têm ícones do mesmo tamanho", async ({ page }) => {
     await entrarNoApp(page, "tamanhos");
     const barra = page.getByRole("navigation", { name: "Navegação principal" });
 
+    /*
+      `link` ou `button`: o item de criar virou botão em 12 de novembro de
+      2026, porque abre uma janela em vez de navegar.
+    */
     const medir = async (nome: string) => {
       const caixa = await barra
-        .getByRole("link", { name: nome, exact: true })
+        .getByRole(nome === "Criar" ? "button" : "link", { name: nome, exact: true })
         .locator("svg, span[aria-hidden='true']")
         .first()
         .boundingBox();
@@ -315,11 +334,10 @@ test.describe("a barra fecha sozinha", () => {
     // Três tamanhos diferentes em três botões empilhados é o tipo de coisa
     // que se nota antes de saber o que é.
     const engrenagem = await medir("Configurações");
-    expect(await medir("Criar tópico")).toBe(engrenagem);
-    expect(await medir("Criar comunidade")).toBe(engrenagem);
+    expect(await medir("Criar")).toBe(engrenagem);
   });
 
-  test("os dois botões de criar são cheios, cada um com a cor do seu nível", async ({ page }) => {
+  test("o botão de criar é um disco cheio", async ({ page }) => {
     await entrarNoApp(page, "cheios");
     const barra = page.getByRole("navigation", { name: "Navegação principal" });
 
@@ -332,38 +350,39 @@ test.describe("a barra fecha sozinha", () => {
      * A cor mora no **disco** dentro da linha, não na linha: é o disco que
      * é redondo, e a linha é só o alvo de clique com o rótulo ao lado.
      */
-    const disco = (nome: string) =>
-      barra.getByRole("link", { name: nome, exact: true }).locator("span > span");
+    const disco = barra.getByRole("button", { name: "Criar", exact: true }).locator("span > span");
 
-    await expect(disco("Criar tópico")).toHaveCSS("background-color", "rgb(30, 26, 51)");
-    await expect(disco("Criar comunidade")).toHaveCSS("background-color", "rgb(166, 156, 251)");
+    await expect(disco).toHaveCSS("background-color", "rgb(30, 26, 51)");
   });
 
   test("o glifo fica centrado no botão fechado", async ({ page }) => {
     await entrarNoApp(page, "centro");
     const barra = page.getByRole("navigation", { name: "Navegação principal" });
 
-    for (const nome of ["Criar tópico", "Criar comunidade"]) {
-      const botao = barra.getByRole("link", { name: nome, exact: true });
-      const fora = (await botao.boundingBox())!;
-      const dentro = (await botao.locator("svg").first().boundingBox())!;
+    const botao = barra.getByRole("button", { name: "Criar", exact: true });
+    const fora = (await botao.boundingBox())!;
+    const dentro = (await botao.locator("svg").first().boundingBox())!;
 
-      const desvio = dentro.x + dentro.width / 2 - (fora.x + fora.width / 2);
-      expect(Math.abs(desvio), `${nome} com o desenho fora do centro`).toBeLessThan(1);
-    }
+    const desvio = dentro.x + dentro.width / 2 - (fora.x + fora.width / 2);
+    expect(Math.abs(desvio), "Criar com o desenho fora do centro").toBeLessThan(1);
   });
 
-  test("abertos, os dois botões de criar têm a mesma largura", async ({ page }) => {
+  /**
+   * Eram os dois botões de criar comparados entre si. Com um só, a
+   * comparação que sobra — e que guarda a mesma coisa, o item ocupando a
+   * barra inteira — é contra a engrenagem, o vizinho dele no rodapé.
+   */
+  test("aberto, o botão de criar tem a largura do vizinho", async ({ page }) => {
     await entrarNoApp(page, "larguras");
     const barra = page.getByRole("navigation", { name: "Navegação principal" });
 
     await barra.hover();
     await expect.poll(async () => Math.round((await barra.boundingBox())!.width)).toBe(232);
 
-    const largura = async (nome: string) =>
-      Math.round((await barra.getByRole("link", { name: nome, exact: true }).boundingBox())!.width);
+    const largura = async (papel: "link" | "button", nome: string) =>
+      Math.round((await barra.getByRole(papel, { name: nome, exact: true }).boundingBox())!.width);
 
-    expect(await largura("Criar tópico")).toBe(await largura("Criar comunidade"));
+    expect(await largura("button", "Criar")).toBe(await largura("link", "Configurações"));
   });
 });
 
@@ -382,9 +401,13 @@ test("os rótulos da barra lateral começam no mesmo x", async ({ page }) => {
   await barra.hover();
 
   const esquerdas = await barra.evaluate((nav) => {
-    const nomes = ["Início", "Explorar", "Criar tópico", "Criar comunidade", "Configurações"];
+    const nomes = ["Início", "Explorar", "Criar", "Configurações"];
     return nomes.map((nome) => {
-      const alvo = [...nav.querySelectorAll("a")].find((a) => a.textContent?.trim() === nome);
+      // `a, button`: o item de criar virou botão em 12 de novembro de 2026,
+      // porque abre uma janela em vez de navegar.
+      const alvo = [...nav.querySelectorAll("a, button")].find(
+        (el) => el.textContent?.trim() === nome,
+      );
       // O rótulo é o último filho do link; o ícone é o primeiro.
       const rotulo = alvo?.lastElementChild as HTMLElement | undefined;
       return rotulo ? Math.round(rotulo.getBoundingClientRect().left) : -1;
@@ -434,9 +457,7 @@ test("Configurações tem os Termos, e Sair é a última coisa da tela", async (
  * E Configurações vinha com 16 px de distância contra os 8 px dos dois de
  * cima; empilhados, a diferença aparecia.
  */
-test("os botões de criar são redondos e os três últimos são igualmente espaçados", async ({
-  page,
-}) => {
+test("o botão de criar é redondo, e os dois últimos são igualmente espaçados", async ({ page }) => {
   await entrarNoApp(page, "redondos");
   await page.goto("/inicio");
 
@@ -444,8 +465,8 @@ test("os botões de criar são redondos e os três últimos são igualmente espa
 
   const medidas = await barra.evaluate((nav) => {
     const linha = (nome: string) =>
-      [...nav.querySelectorAll("a")].find((a) => a.getAttribute("aria-label") === nome) ??
-      [...nav.querySelectorAll("a")].find((a) => a.textContent?.trim() === nome);
+      [...nav.querySelectorAll("a, button")].find((el) => el.getAttribute("aria-label") === nome) ??
+      [...nav.querySelectorAll("a, button")].find((el) => el.textContent?.trim() === nome);
 
     const disco = (nome: string) => {
       const span = linha(nome)!.querySelector("span > span") as HTMLElement;
@@ -457,21 +478,16 @@ test("os botões de criar são redondos e os três últimos são igualmente espa
     const base = (nome: string) => Math.round(linha(nome)!.getBoundingClientRect().bottom);
 
     return {
-      topico: disco("Criar tópico"),
-      comunidade: disco("Criar comunidade"),
-      vaos: [
-        topo("Criar comunidade") - base("Criar tópico"),
-        topo("Configurações") - base("Criar comunidade"),
-      ],
+      criar: disco("Criar"),
+      vao: topo("Configurações") - base("Criar"),
     };
   });
 
   // `control` é 42 px, e redondo quer dizer largura igual à altura.
-  expect(medidas.topico).toEqual({ largura: 42, altura: 42 });
-  expect(medidas.comunidade).toEqual({ largura: 42, altura: 42 });
+  expect(medidas.criar).toEqual({ largura: 42, altura: 42 });
 
-  // `space2`, os mesmos 8 px entre os três.
-  expect(medidas.vaos, `vãos de ${medidas.vaos.join(" e ")} px`).toEqual([8, 8]);
+  // `space2`, os mesmos 8 px que separam os outros itens da barra.
+  expect(medidas.vao, `vão de ${medidas.vao} px`).toBe(8);
 });
 
 /**
@@ -557,4 +573,89 @@ test("a chave cresce no hover da marca, e a palavra sai quando a barra abre", as
   await barra.getByRole("link", { name: "Explorar" }).hover();
   await expect.poll(opacidade, { timeout: 2000 }).toBeGreaterThan(0.9);
   expect(await animacao()).toBe("none");
+});
+
+/**
+ * O `+` abre uma janela **sobre a página em que a pessoa está** (pedido do
+ * PO, 12 de novembro de 2026).
+ *
+ * Eram dois links que levavam embora: `/criar-topico` com uma comunidade
+ * redirecionava, com duas ou mais abria o formulário sobre uma página quase
+ * vazia — e **fechar a janela jogava a pessoa em `/comunidades/minhas`**,
+ * uma terceira tela que ela não pediu.
+ */
+test.describe("o + de criar", () => {
+  test("abre sobre a página atual, sem mudar o endereço", async ({ page }) => {
+    await entrarNoApp(page, "maisaqui");
+    await page.goto("/comunidades");
+    const antes = page.url();
+
+    await page.getByRole("button", { name: "Criar" }).click();
+    await expect(page.getByRole("dialog", { name: "Criar" })).toBeVisible();
+
+    expect(page.url(), "abrir a janela não pode navegar").toBe(antes);
+  });
+
+  test("fechar deixa a pessoa onde estava", async ({ page }) => {
+    await entrarNoApp(page, "maisfecha");
+    await page.goto("/notificacoes");
+    const antes = page.url();
+
+    await page.getByRole("button", { name: "Criar" }).click();
+    await expect(page.getByRole("dialog", { name: "Criar" })).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    await expect(page.getByRole("dialog", { name: "Criar" })).toHaveCount(0);
+    expect(page.url()).toBe(antes);
+  });
+
+  test("criar tópico escolhe entre as comunidades de que sou membro", async ({ page }) => {
+    await entrarNoApp(page, "maistopico");
+    await page.goto("/inicio");
+
+    await page.getByRole("button", { name: "Criar" }).click();
+    await page.getByRole("button", { name: /^Criar tópico/ }).click();
+
+    const janela = page.getByRole("dialog", { name: "Novo tópico" });
+    await expect(janela).toBeVisible();
+
+    /*
+      O onboarding deixa a pessoa em 3 comunidades, então o campo aparece —
+      e ele lista só as dela, que é o que `minhasComunidades` já garantia.
+    */
+    await expect(janela.getByLabel("Comunidade")).toBeVisible();
+
+    /*
+      Pelo `<select>` de verdade, e não por `getByLabel`: aquele devolve o
+      campo que o rótulo descreve, que aqui não é o elemento nativo — e
+      `options` vinha `undefined`. O formulário tem um select só.
+    */
+    const quantas = await janela
+      .locator("select")
+      .evaluate((el) => (el as HTMLSelectElement).options.length);
+    expect(quantas).toBeGreaterThanOrEqual(3);
+  });
+
+  test("criar comunidade abre o formulário na mesma janela", async ({ page }) => {
+    await entrarNoApp(page, "maiscomunidade");
+    await page.goto("/inicio");
+    const antes = page.url();
+
+    await page.getByRole("button", { name: "Criar" }).click();
+    await page.getByRole("button", { name: /^Criar comunidade/ }).click();
+
+    const janela = page.getByRole("dialog", { name: "Nova comunidade" });
+    await expect(janela.getByLabel("Nome")).toBeVisible();
+    expect(page.url()).toBe(antes);
+  });
+
+  test("os endereços antigos continuam abrindo", async ({ page }) => {
+    await entrarNoApp(page, "maisantigos");
+
+    await page.goto("/criar-topico");
+    await expect(page.getByRole("dialog", { name: "Novo tópico" })).toBeVisible();
+
+    await page.goto("/comunidades/nova");
+    await expect(page.getByRole("heading", { name: "Nova comunidade" })).toBeVisible();
+  });
 });
