@@ -171,6 +171,24 @@ export function CopyLinkIcon(props: IconProps) {
   );
 }
 
+/**
+ * O post do blog: uma folha com linhas de texto.
+ *
+ * O Hub tem um sinal para cada nível — `{` universo, `#` comunidade, `*`
+ * tópico —, mas o post não é um nível da hierarquia: é texto de autor, que
+ * mora dentro do perfil. Por isso uma folha, e não um sinal.
+ */
+export function PostIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M6 3h8l4 4v14H6z" />
+      <path d="M14 3v4h4" />
+      <path d="M9 12h6" />
+      <path d="M9 16h6" />
+    </IconBase>
+  );
+}
+
 export function ImageIcon(props: IconProps) {
   return (
     <IconBase {...props}>

@@ -158,8 +158,8 @@ export async function createAnswer(viewer: Viewer, input: unknown) {
 **Cite o código da RN em comentários e testes.** Toda regra de negócio implementada leva o código da regra no comentário, e o teste que a cobre leva o código no nome:
 
 ```ts
-// RN07: cada pessoa cria no máximo 1 tópico por dia em cada comunidade.
-it("RN07: recusa o segundo tópico do dia na mesma comunidade", async () => { … });
+// RN07: cada pessoa cria no máximo 10 tópicos por dia em cada comunidade.
+it("RN07: aceita o 10º tópico do dia e recusa o seguinte", async () => { … });
 ```
 
 As regras RN01 a RN34 estão em [docs/escopo.md](docs/escopo.md).

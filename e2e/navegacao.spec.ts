@@ -337,22 +337,33 @@ test.describe("a barra fecha sozinha", () => {
     expect(await medir("Criar")).toBe(engrenagem);
   });
 
-  test("o botão de criar é um disco cheio", async ({ page }) => {
+  test("o botão de criar é desenhado como os outros itens da barra", async ({ page }) => {
     await entrarNoApp(page, "cheios");
     const barra = page.getByRole("navigation", { name: "Navegação principal" });
 
     /*
-     * Este botão já saiu errado três vezes: uma cerquilha solta, depois um
-     * selo de 24 px dentro de um anel vazado de 42, e depois uma pílula
-     * oval de 52. O que o prende é o disco cheio — se ele voltar a ser
-     * vazado, isto reprova.
+     * Este botão já saiu errado quatro vezes: uma cerquilha solta, um selo
+     * de 24 px dentro de um anel vazado de 42, uma pílula oval de 52, e um
+     * disco cheio em `ink` — a única forma com fundo da coluna inteira, que
+     * na barra recolhida lia como botão de outra natureza. Saiu por decisão
+     * do PO em 15 de novembro de 2026.
      *
-     * A cor mora no **disco** dentro da linha, não na linha: é o disco que
-     * é redondo, e a linha é só o alvo de clique com o rótulo ao lado.
+     * **A barreira compara com um vizinho em vez de fixar um valor.** Fixar
+     * "sem fundo" deixaria passar um `+` com a cor de texto errada, e fixar
+     * a cor em hexadecimal faria esta jornada mentir no dia em que o token
+     * mudasse. Configurações é o par certo: mesmo bloco, mesmo estado,
+     * nenhum dos dois é a página atual.
      */
-    const disco = barra.getByRole("button", { name: "Criar", exact: true }).locator("span > span");
+    const criar = barra.getByRole("button", { name: "Criar", exact: true });
+    const configuracoes = barra.getByRole("link", { name: "Configurações" });
 
-    await expect(disco).toHaveCSS("background-color", "rgb(30, 26, 51)");
+    await expect(criar).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    expect(await criar.evaluate((no) => getComputedStyle(no).color)).toBe(
+      await configuracoes.evaluate((no) => getComputedStyle(no).color),
+    );
+
+    // E o ícone não mora mais dentro de um disco: o `Eixo` o envolve direto.
+    await expect(criar.locator("span > span")).toHaveCount(0);
   });
 
   test("o glifo fica centrado no botão fechado", async ({ page }) => {
@@ -446,18 +457,22 @@ test("Configurações tem os Termos, e Sair é a última coisa da tela", async (
 });
 
 /**
- * Os botões de criar são redondos, e os três últimos itens ficam à mesma
+ * O `+` se alinha com os outros itens, e os três últimos ficam à mesma
  * distância um do outro.
  *
- * Na rodada passada os dois de criar viraram pílulas de 52 px para o rótulo
- * cair no eixo, e o que se via era uma forma oval onde antes havia um botão
- * redondo — queixa do PO. O círculo voltou, agora **dentro** do `Eixo`, o
- * que resolve o rótulo sem mudar o desenho.
+ * Este canto da barra já mudou quatro vezes. A última: o `+` era um disco
+ * cheio de 42 px dentro do `Eixo`, e saiu em 15 de novembro de 2026, por
+ * decisão do PO — nenhum outro item da coluna tem fundo. O que esta jornada
+ * guarda agora é o **alinhamento**: o glifo do `+` tem de ocupar a mesma
+ * caixa dos outros, senão o rótulo "Criar" começa num x diferente de
+ * "Configurações" e a coluna fica torta com a barra aberta.
  *
  * E Configurações vinha com 16 px de distância contra os 8 px dos dois de
  * cima; empilhados, a diferença aparecia.
  */
-test("o botão de criar é redondo, e os dois últimos são igualmente espaçados", async ({ page }) => {
+test("o `+` se alinha com os outros, e os dois últimos são igualmente espaçados", async ({
+  page,
+}) => {
   await entrarNoApp(page, "redondos");
   await page.goto("/inicio");
 
@@ -468,23 +483,26 @@ test("o botão de criar é redondo, e os dois últimos são igualmente espaçado
       [...nav.querySelectorAll("a, button")].find((el) => el.getAttribute("aria-label") === nome) ??
       [...nav.querySelectorAll("a, button")].find((el) => el.textContent?.trim() === nome);
 
-    const disco = (nome: string) => {
-      const span = linha(nome)!.querySelector("span > span") as HTMLElement;
+    // O `Eixo`: a caixa que centra o ícone e fixa onde o rótulo começa.
+    const eixo = (nome: string) => {
+      const span = linha(nome)!.querySelector("span") as HTMLElement;
       const caixa = span.getBoundingClientRect();
-      return { largura: Math.round(caixa.width), altura: Math.round(caixa.height) };
+      return { largura: Math.round(caixa.width), x: Math.round(caixa.x) };
     };
 
     const topo = (nome: string) => Math.round(linha(nome)!.getBoundingClientRect().top);
     const base = (nome: string) => Math.round(linha(nome)!.getBoundingClientRect().bottom);
 
     return {
-      criar: disco("Criar"),
+      criar: eixo("Criar"),
+      configuracoes: eixo("Configurações"),
       vao: topo("Configurações") - base("Criar"),
     };
   });
 
-  // `control` é 42 px, e redondo quer dizer largura igual à altura.
-  expect(medidas.criar).toEqual({ largura: 42, altura: 42 });
+  // `navItemBox` é 52 px, e os dois começam no mesmo x.
+  expect(medidas.criar).toEqual(medidas.configuracoes);
+  expect(medidas.criar.largura).toBe(52);
 
   // `space2`, os mesmos 8 px que separam os outros itens da barra.
   expect(medidas.vao, `vão de ${medidas.vao} px`).toBe(8);

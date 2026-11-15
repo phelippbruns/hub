@@ -393,9 +393,28 @@ test.describe("criar tópico pelo atalho da barra", () => {
     await preencherNovaComunidade(page, livre);
     await page.waitForURL(/\/c\/[^/]+$/);
 
-    // RN07: um tópico por dia por comunidade. Gasta o da primeira.
+    /*
+     * RN07: dez por dia por comunidade. Gasta a cota da primeira — um pela
+     * tela, para exercitar o caminho de verdade, e os outros nove pelo
+     * banco, porque repetir a mesma volta nove vezes custaria minutos e não
+     * provaria nada a mais.
+     */
     await criarTopico(page, daGasta, "O do dia");
     await esperarTopicoNoPainel(page, "o-do-dia");
+
+    // O autor sai do tópico recém-criado: o `@` da jornada é gerado na
+    // hora, e procurá-lo por um nome fixo não acharia ninguém.
+    const [criado] = await consultar<{ community_id: string; author_id: string }>(`
+      SELECT t.community_id, t.author_id FROM topics t
+        JOIN communities c ON c.id = t.community_id
+       WHERE c.slug = '${daGasta.replace("/c/", "")}'
+       LIMIT 1`);
+    for (let i = 2; i <= 10; i += 1) {
+      await consultar(`
+        INSERT INTO topics (id, community_id, author_id, name, description, created_at)
+        VALUES (gen_random_uuid(), '${criado!.community_id}', '${criado!.author_id}',
+                'preenchendo ${i}', 'Abertura de número ${i}.', now())`);
+    }
 
     await page.goto("/criar-topico");
     const janela = page.getByRole("dialog", { name: "Novo tópico" });
@@ -409,11 +428,11 @@ test.describe("criar tópico pelo atalho da barra", () => {
     await campo.selectOption({ label: gasta });
     // Por texto literal, e não `new RegExp` com uma variável: o lint de
     // segurança recusa o construtor com argumento montado.
-    await expect(janela.getByText(`Você já criou um tópico em ${gasta} hoje`)).toBeVisible();
+    await expect(janela.getByText(`Você já criou 10 tópicos em ${gasta} hoje`)).toBeVisible();
     await expect(janela.getByRole("button", { name: "Criar tópico" })).toBeDisabled();
 
     await campo.selectOption({ label: livre });
-    await expect(janela.getByText(/Você já criou um tópico em/)).toHaveCount(0);
+    await expect(janela.getByText(/Você já criou 10 tópicos em/)).toHaveCount(0);
     await expect(janela.getByRole("button", { name: "Criar tópico" })).toBeEnabled();
   });
 });

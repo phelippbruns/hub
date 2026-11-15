@@ -5,7 +5,7 @@ import { CriarTopico } from "@/features/topicos/criar";
 import { getViewer } from "@/lib/auth/session";
 import { gifEstaLigado } from "@/lib/midia/giphy";
 import { minhasComunidades } from "@/lib/data/comunidades";
-import { ondeAindaPossoCriarHoje } from "@/lib/data/topics";
+import { comunidadesSemVagaHoje } from "@/lib/data/topics";
 
 export const metadata: Metadata = { title: "Criar tópico · Hub" };
 
@@ -48,7 +48,7 @@ export default async function CriarTopicoPage() {
    * trocar a comunidade no campo tem de trocar o aviso junto, e isso
    * acontece no navegador, sem nova ida ao servidor.
    */
-  const gastas = await ondeAindaPossoCriarHoje(viewer);
+  const gastas = await comunidadesSemVagaHoje(viewer);
   const escolherEntre = comunidades.map((c) => ({
     slug: c.slug,
     nome: c.name,

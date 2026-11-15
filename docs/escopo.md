@@ -96,7 +96,7 @@ O motivo para voltar é o ciclo diário: todo dia às 00h, cada comunidade ganha
 - Conta pessoas diferentes, não respostas. Uma pessoa pode responder várias vezes, mas vale uma vez.
 - O ciclo vira às 00h para todos, não em 24 horas corridas.
 - O Hot Topic não pode vencer o ciclo seguinte.
-- Cada pessoa cria no máximo 1 tópico por dia em cada comunidade.
+- Cada pessoa cria no máximo 10 tópicos por dia em cada comunidade.
 
 ## Escopo funcional
 
@@ -199,7 +199,7 @@ São 38 regras. Elas substituem integralmente as RN01 a RN23 do escopo anterior.
 | RN04 | Não podem existir duas comunidades com o mesmo nome. A comparação ignora maiúsculas, acentos, espaços e plural simples. A checagem roda no envio. | Comunidades |
 | RN05 | A comunidade fica disponível em Explorar ao atingir 20 membros. Antes disso, só aparece na busca. | Comunidades |
 | RN06 | Quem cria a comunidade é moderador e pode nomear outros. Quando um moderador sai e **ainda há outras pessoas**, a moderação passa automaticamente para o membro mais ativo da comunidade, e ele é avisado disso antes de sair. Sem ninguém restante, vale a RN35. | Moderação |
-| RN07 | Qualquer membro cria tópicos, com limite de 1 por pessoa por dia em cada comunidade. | Tópicos |
+| RN07 | Qualquer membro cria tópicos, com limite de **10 por pessoa por dia em cada comunidade**. Era 1 até 15 de novembro de 2026; o PO subiu o número em vez de tirar o limite, porque ele não existe só para conter volume — é ele que impede uma pessoa de ocupar a lista inteira de uma comunidade num dia, e o ciclo das 00h sairia de uma lista com dono. O número mora em `hub_topicos_por_dia()` no banco e em `TOPICOS_POR_DIA` no app, e há teste que reprova se discordarem. | Tópicos |
 | RN08 | Todo tópico tem nome e descrição de até 240 caracteres, com GIF ou 1 imagem opcional. O autor pode apagar o tópico enquanto ele tiver menos de 5 respostas de outras pessoas, sem contar as do próprio autor; elas também são apagadas, com aviso antes. A partir de 5 respostas, o tópico não pode mais ser apagado pelo autor, só pela moderação. O limite pode mudar conforme a escala. | Tópicos |
 | RN09 | O ciclo vira às 00h. O Hot Topic do dia é o tópico com mais pessoas diferentes respondendo no ciclo anterior. | Ciclo |
 | RN10 | O Hot Topic de um ciclo não pode vencer o ciclo seguinte. | Ciclo |

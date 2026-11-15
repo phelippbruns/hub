@@ -6,8 +6,17 @@
  * gatilho não existem em dublê.
  */
 import { beforeEach, describe, expect, it } from "vitest";
-import { db, joinAs, makeCommunity, makeProfile, makeUniverse, resetDatabase } from "./testing/db";
-import { createTopic, deleteTopic, createAnswer } from "./topics";
+import pg from "pg";
+import {
+  db,
+  duasTransacoes,
+  joinAs,
+  makeCommunity,
+  makeProfile,
+  makeUniverse,
+  resetDatabase,
+} from "./testing/db";
+import { TOPICOS_POR_DIA, createTopic, deleteTopic, createAnswer } from "./topics";
 import { createCommunity } from "./communities";
 import { inviteToCabin } from "./cabins";
 import { viewerFor } from "./viewer";
@@ -65,28 +74,114 @@ describe("RN04: não existem duas comunidades com o mesmo nome", () => {
   });
 });
 
-describe("RN07: 1 tópico por pessoa por dia em cada comunidade", () => {
-  it("recusa o segundo tópico do dia na mesma comunidade", async () => {
+describe(`RN07: ${TOPICOS_POR_DIA} tópicos por pessoa por dia em cada comunidade`, () => {
+  it(`RN07: aceita o ${TOPICOS_POR_DIA}º tópico do dia e recusa o seguinte`, async () => {
     const lia = await makeProfile();
     const universe = await makeUniverse();
     const community = await makeCommunity(universe.id, lia.id);
     const viewer = viewerFor(lia.id);
 
-    await createTopic(viewer, {
-      communityId: community.id,
-      name: "primeira festa",
-      description: "Como foi a primeira festa?",
-      media: null,
-    });
+    /*
+     * Os dez primeiros passam, um a um. Criar só dois e afirmar que o
+     * segundo passa não distinguiria o limite 10 do limite nenhum — foi
+     * um índice único até 15 de novembro de 2026, e o que o substituiu é
+     * uma contagem, que pode errar o número sem errar a existência.
+     */
+    for (let i = 1; i <= TOPICOS_POR_DIA; i += 1) {
+      await expect(
+        createTopic(viewer, {
+          communityId: community.id,
+          name: `tópico ${i}`,
+          description: `O de número ${i}`,
+          media: null,
+        }),
+      ).resolves.toBeTruthy();
+    }
 
     await expect(
       createTopic(viewer, {
         communityId: community.id,
-        name: "segundo tópico",
+        name: "o que passa do limite",
         description: "Não deveria passar",
         media: null,
       }),
     ).rejects.toThrow(RuleViolationError);
+  });
+
+  it(`RN07: duas transações ao mesmo tempo não passam do ${TOPICOS_POR_DIA}º`, async () => {
+    const lia = await makeProfile();
+    const universe = await makeUniverse();
+    const community = await makeCommunity(universe.id, lia.id);
+    const viewer = viewerFor(lia.id);
+
+    // Deixa **uma** vaga, e manda duas transações disputá-la.
+    for (let i = 1; i < TOPICOS_POR_DIA; i += 1) {
+      await createTopic(viewer, {
+        communityId: community.id,
+        name: `tópico ${i}`,
+        description: `O de número ${i}`,
+        media: null,
+      });
+    }
+
+    /*
+     * **Duas conexões, não `Promise.all` sobre o Prisma.** Medido em 15 de
+     * novembro de 2026: duas chamadas de `createTopic` em paralelo
+     * **serializam** no cliente, e o teste passava igual com a trava
+     * arrancada do gatilho — ou seja, não provava nada. Para ver a corrida
+     * é preciso abrir duas transações e intercalá-las à mão.
+     *
+     * É esta a razão de o gatilho travar a linha de quem escreve antes de
+     * contar. Sem `FOR UPDATE`, as duas contam o mesmo, as duas passam, e a
+     * comunidade termina o dia com uma a mais — sem erro em lugar nenhum.
+     */
+    const { bloqueou, resultados } = await duasTransacoes(
+      async ({ a, b, commitA, esperarBloqueioDeB }) => {
+        const inserir = (cliente: pg.Client, nome: string) =>
+          cliente.query(
+            // `slug` e `cycle_date` são preenchidos por gatilho, mas as
+            // colunas são NOT NULL: o INSERT precisa mandar algo.
+            `INSERT INTO topics (id, community_id, author_id, name, slug, description, cycle_date)
+             VALUES (gen_random_uuid(), $1, $2, $3, $4, 'disputa', now())`,
+            [community.id, lia.id, nome, nome],
+          );
+
+        const comoFoi = (promessa: Promise<unknown>) =>
+          promessa.then(
+            () => ({ status: "fulfilled" as const }),
+            () => ({ status: "rejected" as const }),
+          );
+
+        /*
+         * A ordem é o teste inteiro:
+         *
+         * 1. A insere e **não** confirma — contou 9, e segura a trava;
+         * 2. B tenta inserir com A ainda aberta, e tem de **ficar parada**;
+         * 3. A confirma, B acorda, conta 10 e é recusada.
+         *
+         * O passo 2 é o que separa barreira de sorte: sem a trava, B conta
+         * 9 e passa, e o resultado final depende de quem chega primeiro na
+         * rede.
+         */
+        const primeira = await comoFoi(inserir(a, "disputa-a"));
+        const segunda = comoFoi(inserir(b, "disputa-b"));
+
+        const bloqueou = await esperarBloqueioDeB();
+        await commitA();
+
+        return { bloqueou, resultados: [primeira, await segunda] };
+      },
+    );
+
+    // RN07: a segunda espera a primeira, em vez de contar junto com ela.
+    expect(bloqueou).toBe(true);
+    expect(resultados.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(resultados.filter((r) => r.status === "rejected")).toHaveLength(1);
+
+    const total = await db.topic.count({
+      where: { communityId: community.id, authorId: lia.id, deletedAt: null },
+    });
+    expect(total).toBe(TOPICOS_POR_DIA);
   });
 
   it("deixa a mesma pessoa criar em outra comunidade no mesmo dia", async () => {
@@ -135,25 +230,44 @@ describe("RN07: 1 tópico por pessoa por dia em cada comunidade", () => {
     ).resolves.toBeTruthy();
   });
 
-  it("libera criar outro depois de apagar o do dia", async () => {
+  it("RN07: apagar um tópico do dia devolve a vaga", async () => {
     const lia = await makeProfile();
     const universe = await makeUniverse();
     const community = await makeCommunity(universe.id, lia.id);
     const viewer = viewerFor(lia.id);
 
-    const topic = await createTopic(viewer, {
-      communityId: community.id,
-      name: "um",
-      description: "primeiro",
-      media: null,
-    });
-    await deleteTopic(viewer, topic!.id);
+    /*
+     * **Enche a cota antes de apagar.** Criar um, apagar e criar outro
+     * passaria com limite 10 mesmo que a contagem ignorasse `deleted_at`
+     * por completo — o teste precisa estar na borda para dizer algo.
+     */
+    let primeiro: { id: string } | null = null;
+    for (let i = 1; i <= TOPICOS_POR_DIA; i += 1) {
+      const criado = await createTopic(viewer, {
+        communityId: community.id,
+        name: `tópico ${i}`,
+        description: `O de número ${i}`,
+        media: null,
+      });
+      primeiro ??= criado;
+    }
 
     await expect(
       createTopic(viewer, {
         communityId: community.id,
-        name: "dois",
-        description: "depois de apagar",
+        name: "com a cota cheia",
+        description: "não passa",
+        media: null,
+      }),
+    ).rejects.toThrow(RuleViolationError);
+
+    await deleteTopic(viewer, primeiro!.id);
+
+    await expect(
+      createTopic(viewer, {
+        communityId: community.id,
+        name: "depois de apagar",
+        description: "a vaga voltou",
         media: null,
       }),
     ).resolves.toBeTruthy();

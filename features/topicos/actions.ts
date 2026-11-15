@@ -8,7 +8,7 @@
  */
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createTopic, deleteTopic } from "@/lib/data/topics";
+import { TOPICOS_POR_DIA, createTopic, deleteTopic } from "@/lib/data/topics";
 import { followTopic, unfollowTopic } from "@/lib/data/follows";
 import { getViewer } from "@/lib/auth/session";
 import { RuleViolationError, UnauthenticatedError } from "@/lib/data/errors";
@@ -49,9 +49,9 @@ export type EstadoDaCriacao = {
 /**
  * Criar tópico (RN07, RN08).
  *
- * O limite de 1 por dia é do banco — índice único sobre o dia do ciclo. Aqui
- * a corrida vira mensagem: duas requisições ao mesmo tempo passariam por
- * qualquer checagem no app, e só o índice as separa.
+ * O limite diário é do banco — gatilho com contagem e trava de linha sobre o
+ * dia do ciclo. Aqui a corrida vira mensagem: duas requisições ao mesmo tempo
+ * passariam por qualquer checagem no app, e só o gatilho as separa.
  */
 export async function criarTopico(
   _anterior: EstadoDaCriacao,
@@ -143,7 +143,7 @@ export async function criarTopico(
   } catch (erro) {
     if (erro instanceof RuleViolationError && erro.rule === "RN07") {
       return {
-        erro: "Você já criou um tópico nesta comunidade hoje. O próximo pode ser criado depois da virada das 00h.",
+        erro: `Você já criou ${TOPICOS_POR_DIA} tópicos nesta comunidade hoje. O próximo pode ser criado depois da virada das 00h.`,
       };
     }
     throw erro;

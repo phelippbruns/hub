@@ -58,13 +58,21 @@ export function EditorDePost({
       {/* Montado só quando abre: cada abertura começa limpa, em vez de
           guardar o que foi escrito e desistido na vez anterior. */}
       {aberto ? (
-        <Formulario handle={handle} base={base} gifLigado={gifLigado} onFechar={onFechar} />
+        <FormularioDePost handle={handle} base={base} gifLigado={gifLigado} onFechar={onFechar} />
       ) : null}
     </Janela>
   );
 }
 
-function Formulario({
+/**
+ * O miolo do editor, **sem a `Janela`**.
+ *
+ * Exportado porque o menu de criar da barra lateral
+ * ([app/(app)/criar-menu.tsx]) já desenha a própria `Janela`: aninhar duas
+ * prenderia o foco e o `Esc` em duas camadas, e fechar a de cima deixaria a
+ * de baixo aberta sobre a página.
+ */
+export function FormularioDePost({
   handle,
   base,
   gifLigado,

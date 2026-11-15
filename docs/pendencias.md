@@ -514,34 +514,35 @@ Me diga qual caminho te incomodou — onde você estava, para onde queria ir, e 
 que teve de fazer. Com isso eu digo o tamanho. Chutar aqui seria repetir o erro
 de orçamento que já está no Vacilos.
 
-#### 4.6.5 Tirar o limite de 1 tópico por dia — **decisão de produto**
+#### 4.6.5 O limite de tópicos por dia — **resolvido em 15 de novembro de 2026**
 
-A RN07 limita cada pessoa a 1 tópico por dia em cada comunidade. O PO decidiu
-em 11 de outubro **tirar o limite no começo**, enquanto o Hub é pequeno.
+A RN07 limitava cada pessoa a **1 tópico por dia** em cada comunidade. O PO
+decidiu em 11 de outubro tirar o limite; esta seção recomendou **subir em vez
+de tirar**, e foi o que ele escolheu em 15 de novembro: **10 por dia, por
+comunidade**.
 
-Custo: **2 a 3 horas**. A regra tem duas metades, e as duas saem juntas — a
-checagem no app (que dá a mensagem boa) e o índice único
-`topics_one_per_author_per_day` no banco (que é quem garante a regra quando
-duas requisições chegam juntas). Sai também o aviso na tela de criar e o botão
-desativado, e a RN07 é reescrita.
+A razão da recomendação continua valendo e vale repetir: o limite não existe
+só para conter volume. Ele é o que impede uma pessoa de abrir dez tópicos no
+mesmo dia e ocupar a lista inteira — o Hot Topic continua elegendo por pessoas
+diferentes respondendo, mas a lista de onde ele sai passaria a ter dono.
 
-**O que você precisa saber antes:** o limite não existe só para conter
-volume. Ele é o que faz o ciclo das 00h ser uma disputa entre **pessoas
-diferentes** em vez de entre quem posta mais. Sem limite, uma pessoa pode abrir
-dez tópicos no mesmo dia na mesma comunidade e ocupar a lista inteira — e o Hot
-Topic continua elegendo por pessoas distintas respondendo, mas a lista de onde
-ele sai passa a ter um dono.
+**E esta seção estava errada numa frase, que vale deixar registrada.** Ela
+dizia que subir o limite "não precisa apagar o índice do banco — só trocar o
+número dele", e orçava 1 hora. Não havia número a trocar: a RN07 era um
+**índice único parcial**, e índice único sabe dizer "no máximo um", nunca "no
+máximo dez". A troca foi estrutural — o índice saiu e entrou um gatilho com
+contagem e trava de linha, copiando a RN21, que limita convites de Cabine a 10
+por dia desde outubro e cujo comentário já dizia, por escrito, "diferente do
+RN07, aqui não dá para usar índice único".
 
-Dois caminhos, e eu recomendo o segundo:
+A estimativa foi escrita olhando a regra de longe. É o mesmo erro que o
+`faustao.md` registra como "explicar em vez de medir": uma boa explicação dá a
+mesma sensação de um teste verde e não custa nada.
 
-1. **Tirar o limite.** Simples, e a lista fica sem defesa.
-2. **Subir o limite em vez de tirar** — 3 ou 5 por dia, o número vindo de uma
-   constante única (como `RN05` já faz com o corte de membros, hoje em 0). O
-   atrito sai do caminho de quem está começando, a defesa continua existindo, e
-   voltar atrás é mudar um número em vez de escrever uma migration de novo.
-
-Se escolher o 2, o custo cai para **1 hora** e não precisa apagar o índice do
-banco — só trocar o número dele.
+**Como ficou:** o número mora em `hub_topicos_por_dia()` no banco e em
+`TOPICOS_POR_DIA` em `lib/topicos.ts`, com teste que reprova se os dois
+discordarem — o mesmo arranjo que a RN08 já usava. Mudar o limite de novo é
+trocar os dois números.
 
 ---
 

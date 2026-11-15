@@ -51,9 +51,13 @@ export class RuleViolationError extends Error {
 export function translateDatabaseError(error: unknown): never {
   const text = error instanceof Error ? error.message : String(error);
 
-  if (text.includes("topics_one_per_author_per_day")) {
-    throw new RuleViolationError("RN07", "Você já criou um tópico nesta comunidade hoje");
-  }
+  /*
+   * A RN07 não aparece aqui por nome de índice desde 15 de novembro de 2026:
+   * o índice único `topics_one_per_author_per_day` saiu quando o limite subiu
+   * de 1 para 10, e quem garante a regra agora é um gatilho que levanta
+   * `RN07: ...`. O laço lá embaixo, que casa pelo prefixo da regra, é quem a
+   * traduz — e a mensagem passa a vir do banco, num lugar só.
+   */
   if (text.includes("communities_name_normalized_key") || text.includes("name_normalized")) {
     throw new RuleViolationError("RN04", "Já existe uma comunidade com esse nome");
   }

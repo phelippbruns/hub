@@ -99,18 +99,47 @@ test.describe("criar tópico", () => {
     await expect(painel.getByText(/0 pessoas · 0 contribuições/)).toBeVisible();
   });
 
-  test("RN07: o segundo tópico do dia na mesma comunidade é barrado", async ({ page }) => {
+  test("RN07: com a cota do dia cheia, a janela avisa antes de escrever", async ({ page }) => {
     await entrarNoApp(page, "limitedia");
-    const comunidade = await minhaComunidade(page, "Um Por Dia");
+    const comunidade = await minhaComunidade(page, "Dez Por Dia");
 
-    await criarTopico(page, comunidade, "o do dia");
-    await esperarTopicoNoPainel(page, "o-do-dia");
+    await criarTopico(page, comunidade, "o primeiro");
+    await esperarTopicoNoPainel(page, "o-primeiro");
 
-    // O aviso aparece **antes** de escrever, não como recusa depois.
+    /*
+     * **A janela ainda está liberada com um tópico criado** — é a metade
+     * que o limite de 1 não conseguia testar, e é o que teria pego o aviso
+     * invertido do menu de criar, que ficou uma semana em produção.
+     */
     await page.goto(`${comunidade}/novo`);
     const janela = page.getByRole("dialog", { name: "Novo tópico" });
-    await expect(alerta(janela)).toContainText("já criou um tópico");
-    await expect(janela.getByRole("button", { name: "Criar tópico" })).toBeDisabled();
+    await expect(janela.getByRole("button", { name: "Criar tópico" })).toBeEnabled();
+    await expect(alerta(janela)).toHaveCount(0);
+
+    /*
+     * Os outros nove vêm pelo banco: criar dez pela tela levaria minutos e
+     * provaria a mesma coisa. O que importa aqui é a janela diante da cota
+     * cheia — encher a cota é preparação, não o teste.
+     */
+    // O autor sai do tópico que acabou de ser criado: o `@` da jornada é
+    // gerado na hora, e procurá-lo por um nome fixo não acharia ninguém.
+    const [criado] = await consultar<{ community_id: string; author_id: string }>(`
+      SELECT t.community_id, t.author_id FROM topics t
+        JOIN communities c ON c.id = t.community_id
+       WHERE c.slug = '${comunidade.replace("/c/", "")}'
+       LIMIT 1`);
+    for (let i = 2; i <= 10; i += 1) {
+      await consultar(`
+        INSERT INTO topics (id, community_id, author_id, name, description, created_at)
+        VALUES (gen_random_uuid(), '${criado!.community_id}', '${criado!.author_id}',
+                'preenchendo ${i}', 'Abertura de número ${i}.', now())`);
+    }
+
+    // Agora sim: o aviso aparece **antes** de escrever, não como recusa depois.
+    await page.goto(`${comunidade}/novo`);
+    const cheia = page.getByRole("dialog", { name: "Novo tópico" });
+    await expect(alerta(cheia)).toContainText("já criou 10 tópicos");
+    await expect(cheia.getByRole("button", { name: "Criar tópico" })).toBeDisabled();
   });
 
   test("a comunidade abre a janela de criar, e a lista continua atrás", async ({ page }) => {
@@ -158,8 +187,15 @@ test.describe("criar tópico", () => {
 
     await page.goto(`${comunidade}/novo`);
     const janela = page.getByRole("dialog", { name: "Novo tópico" });
-    await expect(janela.getByText(/1 tópico por dia nesta comunidade/)).toBeVisible();
+    /*
+     * A janela **não anuncia o número** do limite, por decisão do PO em 15
+     * de novembro de 2026: dez por dia é um teto que quase ninguém encosta,
+     * e anunciá-lo convida a tentar. O aviso do ciclo continua.
+     */
     await expect(janela.getByText(/às 00h, fica em destaque/)).toBeVisible();
+    // O positivo **antes** do `toHaveCount(0)`: nada é o estado inicial de
+    // qualquer página, e a ausência sozinha passaria com a janela vazia.
+    await expect(janela.getByText(/tópico por dia nesta comunidade/)).toHaveCount(0);
   });
 
   test("o botão da barra abre a janela com o campo de comunidade", async ({ page }) => {
@@ -290,16 +326,17 @@ test.describe("o painel do tópico", () => {
     await esperarTopicoAberto(page);
 
     /*
-      RN07 deixa criar um tópico por dia, então o segundo vem pelo banco —
-      o que importa aqui é o comportamento do histórico, não a criação.
+      O segundo tópico vem pelo banco porque criá-lo pela tela custaria
+      outra volta inteira: o que importa aqui é o comportamento do
+      histórico, não a criação.
     */
     const [id] = await consultar<{ id: string }>(`
       SELECT c.id FROM communities c WHERE c.slug = '${comunidade.replace("/c/", "")}'`);
     /*
-      Sem autor: a RN07 tem um índice único em (comunidade, autor, dia), e
-      um segundo tópico da mesma pessoa no mesmo dia é recusado pelo banco
-      — como deve ser. O autor nulo é o caso de quem saiu do Hub, que o
-      modelo já prevê (`onDelete: SetNull`).
+      Sem autor, que é o caso de quem saiu do Hub e o modelo já prevê
+      (`onDelete: SetNull`). Era obrigatório quando a RN07 valia 1 por dia;
+      hoje valeria com autor, e fica assim porque exercita o caminho do
+      tópico órfão de graça.
     */
     await consultar(`
       INSERT INTO topics (id, community_id, author_id, name, description, created_at)
