@@ -1,12 +1,12 @@
 import { Prisma } from "@/prisma/generated/client";
 import { prisma } from "./prisma";
 import {
-  corpoEnviadoSchema,
+  documentoEnviadoSchema,
   minutosDeLeitura,
   montarDocumento,
   resumoDoCorpo,
   textoPuro,
-  type BlocoEnviado,
+  type DocumentoEnviado,
 } from "./documento-do-post";
 import { tituloDoPostSchema } from "./validation";
 import { enderecosDeMidia } from "@/lib/midia/deposito";
@@ -299,8 +299,8 @@ export async function postPorEndereco(
 /** O que a tela manda ao criar ou editar um post. */
 export type PostParaSalvar = {
   titulo: string;
-  blocos: BlocoEnviado[];
-  /** As mídias já guardadas, na ordem dos blocos de imagem e GIF. */
+  documento: DocumentoEnviado;
+  /** As mídias já guardadas, na ordem dos nós de imagem e GIF. */
   midias: { src: string; largura?: number; altura?: number }[];
   /** Caminho da capa no depósito, ou `null` para tirar. `undefined` = não mexer. */
   capa?: string | null;
@@ -321,16 +321,16 @@ export type PostParaSalvar = {
 export async function criarPost(viewer: Viewer, entrada: PostParaSalvar) {
   const me = requireProfileId(viewer);
   const titulo = tituloDoPostSchema.parse(entrada.titulo);
-  const blocos = corpoEnviadoSchema.parse(entrada.blocos);
+  const documento = documentoEnviadoSchema.parse(entrada.documento);
 
-  const texto = textoPuro(blocos);
+  const texto = textoPuro(documento);
 
   try {
     return await prisma.post.create({
       data: {
         authorId: me,
         title: titulo,
-        body: montarDocumento(blocos, entrada.midias) as Prisma.InputJsonValue,
+        body: montarDocumento(documento, entrada.midias) as Prisma.InputJsonValue,
         excerpt: resumoDoCorpo(texto),
         readMinutes: minutosDeLeitura(texto),
         coverUrl: entrada.capa ?? null,
@@ -359,7 +359,7 @@ export async function criarPost(viewer: Viewer, entrada: PostParaSalvar) {
 export async function editarPost(viewer: Viewer, postId: string, entrada: PostParaSalvar) {
   const me = requireProfileId(viewer);
   const titulo = tituloDoPostSchema.parse(entrada.titulo);
-  const blocos = corpoEnviadoSchema.parse(entrada.blocos);
+  const documento = documentoEnviadoSchema.parse(entrada.documento);
 
   const post = await prisma.post.findFirst({
     where: { id: postId, deletedAt: null },
@@ -368,14 +368,14 @@ export async function editarPost(viewer: Viewer, postId: string, entrada: PostPa
   if (!post) throw new NotFoundError("Post");
   if (post.authorId !== me) throw new ForbiddenError("Este post não é seu");
 
-  const texto = textoPuro(blocos);
+  const texto = textoPuro(documento);
 
   try {
     return await prisma.post.update({
       where: { id: postId },
       data: {
         title: titulo,
-        body: montarDocumento(blocos, entrada.midias) as Prisma.InputJsonValue,
+        body: montarDocumento(documento, entrada.midias) as Prisma.InputJsonValue,
         excerpt: resumoDoCorpo(texto),
         readMinutes: minutosDeLeitura(texto),
         // `undefined` é "não mexer": salvar o texto não pode apagar a capa.
