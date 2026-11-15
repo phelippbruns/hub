@@ -298,28 +298,28 @@ continuar assim com gente de verdade no Hub.**
 
 Coisas que funcionam, mas que vão cobrar caro se ficarem como estão.
 
-### 4.0 O blog escreve em blocos, não em texto rico
+### 4.0 ~~O blog escreve em blocos~~ — **pago em 15 de novembro de 2026**
 
-**Decidido assim de propósito**, em 12 de novembro de 2026, quando o PO
-perguntou se dava para simplificar o MVP. Dá, e esta é a dívida mais
-barata do Hub — a razão está no `vacilos.md`.
+O Tiptap entrou, e o blog tem negrito, itálico, lista, citação e link, além
+do subtítulo, da imagem e do GIF que já tinha.
 
-O editor tem parágrafo, subtítulo, imagem e GIF. Faltam **negrito,
-itálico, lista, citação e link**.
-
-**Por que ela quase não cobra:** o formato guardado é idêntico ao que um
-editor de texto rico produziria, e
+A dívida era mesmo barata na parte que esta seção previa: o formato guardado
+não mudou, nenhum post existente migrou,
 [features/perfil/blog/documento.tsx](../features/perfil/blog/documento.tsx)
-**já desenha tudo que falta** — ele só não tem quem produza. Ligar o
-Tiptap é acrescentar uma superfície de escrita: nenhum post existente
-muda, nenhuma consulta muda, nenhum desenho muda.
+não mudou uma linha.
 
-**E há um ganho que se perde ao pagar a dívida**, que vale pesar antes:
-hoje o navegador manda o índice do arquivo e o servidor constrói o
-endereço da imagem. Com editor de texto rico, o documento vem pronto do
-navegador, e aí a validação do `src` passa a ser **obrigatória** — porque
-uma imagem apontando para um servidor qualquer seria buscada pelo
-navegador de todo mundo que lesse o post.
+**O que esta seção previa certo, e vale registrar porque custou trabalho:**
+com o documento chegando pronto do navegador, a validação do `src` deixaria
+de ser desnecessária. A saída foi **não deixar o `src` existir**: o nó de
+imagem carrega o índice do arquivo, o schema nem declara `src`, e quem
+escreve o endereço continua sendo o depósito. A impossibilidade foi mantida
+em vez de trocada por uma conferência.
+
+**E uma lição nova, que não estava prevista:** a lista de nós agora existe em
+**três** lugares — o que o editor oferece, o que o schema aceita e o que o
+desenho desenha. Se o editor oferecer algo que o desenho não faz, a pessoa
+formata, publica, e o texto volta sem a formatação — sem erro na tela e sem
+teste vermelho. `features/perfil/blog/formato.test.ts` compara as três.
 
 ### 4.0.1 Dois painéis laterais parecidos
 
@@ -333,6 +333,54 @@ página.
 
 Unificar leva as duas correções ao tópico. As peças comuns — a alça e a
 conta da largura — já subiram para `design/` e `lib/`.
+
+### 4.0.2 Texto rico no resto do Hub — **custo levantado, decisão sua**
+
+Pedido do PO em 15 de novembro, junto com o Tiptap no blog.
+
+**A resposta curta: o Hub já tem uma solução para texto rico fora do blog, e
+ela não é o Tiptap.** Toda outra superfície de escrita é uma coluna de texto
+puro com a RN16 recusando endereços, desenhada com marcações por sinal —
+`@` pessoa, `#` comunidade, `*` tópico — resolvidas contra o banco. O blog é
+exceção porque a **RN41 lhe deu licença explícita**; nenhuma outra tem.
+
+As superfícies, e o que cada uma guarda hoje:
+
+| Onde | Coluna | Limite | Desenho |
+| --- | --- | --- | --- |
+| Contribuição | `VarChar(240)` | 240 | `TextoMarcado` (`@#*` viram link) |
+| Mensagem da Cabine | `VarChar(1000)` | 1.000 | texto cru |
+| Abertura do tópico | `VarChar(240)` | 240 | texto cru |
+| Intro da comunidade | `VarChar(240)` | 240 | texto cru |
+| Sobre da comunidade | texto | 500 | texto cru |
+| Regras da comunidade | texto, uma por linha | 5 linhas | lista |
+| Bio do perfil | `VarChar(120)` | 120 | texto cru |
+| Status do perfil | `VarChar(60)` | 60 | texto cru |
+
+**O custo de levar texto rico a qualquer uma delas**, em ordem de peso:
+
+1. **Mudar a RN16 no escopo.** Ela bloqueia links em *todo* texto e enumera
+   duas exceções (o campo Links do perfil, pela RN27; o corpo do post, pela
+   RN41). Texto rico com botão de link numa contribuição é abrir a terceira —
+   e a RN16 existe para barrar spam em conversa. **É decisão de produto, não
+   de implementação.**
+2. **Migrar a coluna de `VarChar` para `Json`**, e recontar os limites de
+   caracteres sobre a árvore em vez do comprimento da string. Cada uma tem
+   um `CHECK` ou validação que depende de ser texto.
+3. **Reescrever o desenho de cada tela.** Hoje é literalmente `{valor}`
+   dentro de um `<p>`.
+4. **Conciliar com `TextoMarcado`.** Ele acha `@#*` por **posição na
+   string** (`lib/texto/marcacoes.ts` devolve início e fim). Numa árvore de
+   nós com marcas, isso é um problema diferente, não um ajuste.
+
+**Estimativa honesta, por superfície:** 3 a 5 dias cada uma, mais a decisão
+de produto sobre a RN16 — que é o item caro e não é meu para tomar. A
+contribuição é a mais cara das oito, porque é a única com `TextoMarcado`.
+
+**A recomendação:** não fazer, e não por custo. Uma rede sem curtida que
+permite negrito e link em qualquer campo convida ao que a RN16 fecha. Se um
+dia alguma superfície pedir formatação, a candidata natural é o **Sobre da
+comunidade** — é texto de autor, como o post, e não fala numa conversa.
 
 ### 4.1 Um banco só para tudo
 

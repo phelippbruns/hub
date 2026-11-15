@@ -611,18 +611,42 @@ liberaria `/<qualquer>/<coisa>`, onde moram `/perfil/editar` e
 **O corpo do post é JSON desenhado como React, nunca HTML.** A regra de
 segurança 8 continua inteira: nenhuma string de HTML existe em momento
 nenhum, e por isso não há sanitizador no projeto. O desenho é
-[features/perfil/blog/documento.tsx](features/perfil/blog/documento.tsx), e
-ele já sabe fazer negrito, itálico, lista, citação e link — **só não tem
-quem produza**, porque o editor do MVP é de blocos. Ligar um editor de
-texto rico depois não migra dado nem mexe no desenho.
+[features/perfil/blog/documento.tsx](features/perfil/blog/documento.tsx) —
+negrito, itálico, lista, citação e link, e desde 15 de novembro de 2026 o
+Tiptap produz todos eles. O formato guardado não mudou com a troca do
+editor: nenhum post migrou.
+
+**A lista do post vive em três lugares, e eles têm de concordar:** o que o
+editor oferece ([features/perfil/blog/tiptap.ts](features/perfil/blog/tiptap.ts)),
+o que o servidor aceita
+([lib/data/documento-do-post.ts](lib/data/documento-do-post.ts)) e o que o
+desenho desenha. Nó desconhecido cai no `default: return null` e **some em
+silêncio** — oferecer tachado na barra faria a pessoa formatar, publicar, e
+o texto voltar sem a formatação, sem erro e sem teste vermelho.
+[features/perfil/blog/formato.test.ts](features/perfil/blog/formato.test.ts)
+compara as três e reprova.
 
 **E o `src` de cada imagem é construído pelo servidor.** O navegador manda
 o **índice** do arquivo no formulário, nunca um caminho. Um nó de imagem
 apontando para um servidor qualquer seria buscado pelo navegador de **todo
-mundo que lesse o post** — um rastreador de IP dentro do Hub. O teste em
-`lib/data/documento-do-post.test.ts` **tenta forjar** e exige que o caminho
-do depósito vença; a primeira versão dele passava com o defeito instalado
+mundo que lesse o post** — um rastreador de IP dentro do Hub.
+
+Isso **sobreviveu de propósito** à chegada do Tiptap, que entrega o
+documento pronto: o nó de imagem carrega o índice, o schema nem declara
+`src`, e um forjado é descartado antes de qualquer coisa ler. A alternativa
+era trocar uma impossibilidade por uma conferência, e conferência tem furo.
+O teste em `lib/data/documento-do-post.test.ts` **tenta forjar** — no
+primeiro nível e dentro de uma lista — e exige que o caminho do depósito
+vença; a primeira versão dele, em novembro, passava com o defeito instalado
 porque só conferia o caso bom.
+
+**Componente de cliente que mexe no editor não força renderização por
+tecla.** `useEditorState` existe para isso. Uma versão com `setState` a cada
+transação guardou "O que funcionou" como **"u"**: o React remontava mais
+rápido do que as teclas chegavam, e o texto se perdia sem erro nenhum. Nas
+jornadas, digitar logo depois de clicar num botão da barra tem o mesmo
+problema — esperar `aria-pressed` não basta, é preciso esperar o foco voltar
+ao `contenteditable`.
 
 **Post se edita; contribuição não (RN14).** São coisas diferentes:
 contribuição é fala numa conversa, e corrigir o que já foi dito muda o que
