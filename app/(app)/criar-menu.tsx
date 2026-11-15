@@ -5,7 +5,30 @@ import { Eixo, Janela, LoadingBlock, Rotulo, Skeleton } from "@/design/component
 import { CommunityHash, CreateIcon, PostIcon, TopicStar } from "@/design/icons";
 import { FormularioNovoTopico } from "@/features/topicos/formulario-novo";
 import { FormularioNovaComunidade } from "@/features/comunidades/formulario-nova";
-import { FormularioDePost } from "@/features/perfil/blog/editor";
+import dynamic from "next/dynamic";
+
+/**
+ * O editor de post entra **só quando alguém escolhe escrever**.
+ *
+ * Importado direto, ele vinha junto com a barra lateral — que está em toda
+ * tela autenticada — e o Tiptap carrega o ProseMirror inteiro: medido em 15
+ * de novembro de 2026, 400 KB, o maior pedaço do build, baixado em toda
+ * navegação do Hub para alimentar uma janela que quase nunca abre.
+ *
+ * É a mesma razão pela qual a lista de comunidades é buscada na abertura e
+ * não no layout.
+ */
+const FormularioDePost = dynamic(
+  () => import("@/features/perfil/blog/editor").then((m) => m.FormularioDePost),
+  {
+    loading: () => (
+      <LoadingBlock label="Abrindo o editor">
+        <Skeleton className="h-navItem w-full" />
+        <Skeleton className="h-navItem w-full" />
+      </LoadingBlock>
+    ),
+  },
+);
 import {
   comunidadesParaCriarTopico,
   meuHandleParaCriar,
