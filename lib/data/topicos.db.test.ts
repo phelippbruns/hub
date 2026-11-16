@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { db, makeProfile, makeUniverse, resetDatabase } from "./testing/db";
 import {
   LIMITE_RESPOSTAS_PARA_APAGAR,
+  TOPICOS_POR_DIA,
   createAnswer,
   createTopic,
   jaCrieiTopicoHoje,
@@ -178,33 +179,65 @@ describe("RN08: o limite de respostas", () => {
 });
 
 describe("RN07: avisar antes de escrever", () => {
-  it("diz que o tópico do dia já foi usado naquela comunidade", async () => {
+  it("RN07: o número do banco e o do app são o mesmo", async () => {
+    const linhas = await prisma.$queryRaw<{ limite: number }[]>`
+      SELECT hub_topicos_por_dia() AS limite
+    `;
+
+    /*
+     * O gatilho garante a regra; o app explica o aviso e o formulário
+     * desligado. Se os dois discordarem, a tela deixa escrever onde o banco
+     * recusa — ou, pior, fecha a porta que o banco deixou aberta. Ninguém
+     * perceberia sem este teste.
+     */
+    expect(linhas[0]?.limite).toBe(TOPICOS_POR_DIA);
+  });
+
+  it(`RN07: só avisa depois do ${TOPICOS_POR_DIA}º tópico do dia`, async () => {
     const lia = await makeProfile();
     const c = await comunidade("Música", lia);
 
     expect(await jaCrieiTopicoHoje(viewerFor(lia.id), c.id)).toBe(false);
 
-    await topico(lia, c.id, "o do dia");
+    /*
+     * **Confere no penúltimo também.** Um aviso que só olhasse "existe
+     * algum tópico hoje" passaria no primeiro e no último; é o meio que
+     * distingue a contagem do booleano antigo.
+     */
+    for (let i = 1; i < TOPICOS_POR_DIA; i += 1) {
+      await topico(lia, c.id, `tópico ${i}`);
+      expect(await jaCrieiTopicoHoje(viewerFor(lia.id), c.id)).toBe(false);
+    }
 
-    // A tela de criar usa isto para avisar antes de a pessoa escrever tudo.
+    await topico(lia, c.id, "o que fecha a cota");
     expect(await jaCrieiTopicoHoje(viewerFor(lia.id), c.id)).toBe(true);
   });
 
-  it("o limite é por comunidade, não do Hub inteiro", async () => {
+  it("RN07: o limite é por comunidade, não do Hub inteiro", async () => {
     const lia = await makeProfile();
     const musica = await comunidade("Música", lia);
     const cinema = await comunidade("Cinema", lia);
-    await topico(lia, musica.id, "o do dia");
 
+    for (let i = 1; i <= TOPICOS_POR_DIA; i += 1) {
+      await topico(lia, musica.id, `tópico ${i}`);
+    }
+
+    expect(await jaCrieiTopicoHoje(viewerFor(lia.id), musica.id)).toBe(true);
     expect(await jaCrieiTopicoHoje(viewerFor(lia.id), cinema.id)).toBe(false);
   });
 
-  it("apagar o tópico do dia libera criar outro", async () => {
+  it("RN07: apagar um tópico do dia devolve a vaga", async () => {
     const lia = await makeProfile();
     const c = await comunidade("Música", lia);
-    const t = await topico(lia, c.id, "arrependi");
 
-    await db.topic.update({ where: { id: t.id }, data: { deletedAt: new Date() } });
+    let primeiro: { id: string } | null = null;
+    for (let i = 1; i <= TOPICOS_POR_DIA; i += 1) {
+      const t = await topico(lia, c.id, `tópico ${i}`);
+      primeiro ??= t;
+    }
+    expect(await jaCrieiTopicoHoje(viewerFor(lia.id), c.id)).toBe(true);
+
+    await db.topic.update({ where: { id: primeiro!.id }, data: { deletedAt: new Date() } });
 
     expect(await jaCrieiTopicoHoje(viewerFor(lia.id), c.id)).toBe(false);
   });

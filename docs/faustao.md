@@ -2678,6 +2678,148 @@ não volta atrás. A jornada que não abria é a que guarda isso.
 `onMudar` em linha. Ou ele tem dependência vazia, ou ele não deveria ser
 um `ref callback`.
 
+### O nome da função mentia, e eu acreditei nele
+
+**Quando:** 12 de novembro de 2026, escrito; 15 de novembro, encontrado — com uma semana em produção no meio.
+
+**O que aconteceu:** `ondeAindaPossoCriarHoje()` devolve as comunidades
+em que a pessoa **já gastou** o tópico do dia. O nome diz o contrário.
+Havia um comentário de três linhas logo abaixo explicando que é assim de
+propósito ("devolve as gastas, a lista menor das duas") — e o comentário
+mora **dentro** da função, onde quem a chama não passa.
+
+Ao escrever o menu de criar da barra, li o nome, nomeei a variável
+`livres` e neguei o resultado:
+
+```ts
+const [comunidades, livres] = await Promise.all([
+  minhasComunidades(viewer),
+  ondeAindaPossoCriarHoje(viewer),
+]);
+return comunidades.map((c) => ({ …, jaUsouODia: !livres.has(c.id) }));
+```
+
+O aviso do limite ficou **exatamente invertido**. A janela dizia "você já
+criou um tópico hoje" nas comunidades em que a pessoa **não** tinha
+criado, e lá ela desligava o formulário inteiro — título, abertura,
+botão de publicar, botão de imagem e botão de GIF, todos por
+`disabled={semVaga || …}`.
+
+**Por que passou:** por tudo. O `typecheck` vê `Set<string>` dos dois
+lados. O `lint` não tem opinião sobre nomes. As jornadas do limite
+criavam um tópico e conferiam que o aviso **aparecia** — e com a negação
+invertida ele aparecia mesmo, só que pelo motivo errado. A outra metade,
+"com zero tópicos o formulário está liberado", não era testada por
+ninguém: era óbvia demais para merecer um teste.
+
+E a queixa que o PO mandou não foi "o aviso está errado". Foi **"os
+ícones de imagem e GIF não funcionam"** — porque é isso que se vê. O
+sintoma estava a três camadas da causa.
+
+🔒 **Barrado** — a função passou a se chamar `comunidadesSemVagaHoje`, e
+a jornada agora confere os **dois** lados: com a cota livre o formulário
+está habilitado e sem alerta, com a cota cheia o alerta aparece.
+
+**A lição:** o nome de uma função é a documentação que **viaja com ela**;
+o comentário dentro do corpo fica para trás. Quando os dois discordam,
+conserte o nome, não o comentário. E a metade "está liberado" de um aviso
+precisa de teste tanto quanto a metade "está bloqueado" — foi a que
+faltou, e foi por ela que o defeito saiu.
+
+### A corrida que o teste não via, duas vezes
+
+**Quando:** 15 de novembro de 2026, subindo a RN07 de 1 para 10 tópicos por dia.
+
+**O que aconteceu:** o índice único saiu e entrou um gatilho com
+contagem, que trava a linha do autor antes de contar. Escrevi o teste da
+corrida, ele passou — e eu fui conferir se ele reprovava com a trava
+arrancada. **Passou igual.** Duas vezes, por dois motivos diferentes:
+
+1. **`Promise.all` sobre a camada de dados não corre.** Duas chamadas de
+   `createTopic` em paralelo **serializam no cliente**: medi 109 ms com
+   uma espera de 50 ms dentro do gatilho, ou seja, uma depois da outra. O
+   teste nunca chegou a disputar nada.
+2. **Duas transações cruas também não bastam.** Abri duas conexões, uma
+   inserindo sem confirmar e a outra tentando — e continuou verde sem a
+   trava. A segunda às vezes chega ao servidor **depois** do `COMMIT` da
+   primeira, vê a linha e se recusa sozinha. Verde por temporização.
+
+Entre as duas tentativas houve ainda um impasse: esperar as duas
+transações antes de confirmar a primeira trava por construção, porque a
+trava existe exatamente para pôr a segunda em fila.
+
+**Por que passou:** porque "o resultado final está certo" e "a barreira
+funcionou" são afirmações diferentes, e o teste só sabia medir a
+primeira.
+
+🔒 **Barrado** — `duasTransacoes` (`lib/data/testing/db.ts`) abre um
+terceiro cliente só para observar, e pergunta ao `pg_stat_activity` se a
+segunda está **parada esperando trava**:
+
+```ts
+const bloqueou = await esperarBloqueioDeB();
+await commitA();
+expect(bloqueou).toBe(true);
+```
+
+É a única pergunta que distingue "foi barrada" de "chegou tarde". Sem a
+trava no gatilho, ela devolve `false` — visto reprovar.
+
+**A lição:** para provar barreira de corrida, não basta olhar o
+resultado; é preciso observar o **estado intermediário**. E teste de
+corrida que nunca foi visto reprovar não é teste de corrida, é uma moeda
+que caiu do lado certo.
+
+### Uma renderização por tecla engoliu o texto
+
+**Quando:** 15 de novembro de 2026, ligando o Tiptap no blog.
+
+**O que aconteceu:** o contador de caracteres e os botões acesos da barra
+precisavam acompanhar o editor, e eu fiz o óbvio — escutar `transaction`
+e forçar uma renderização:
+
+```ts
+editor.on("transaction", () => redesenhar((n) => n + 1));
+```
+
+A jornada publicou um subtítulo escrito "O que funcionou" e o banco
+guardou **"u"**. Não é truncamento: o React remontava mais rápido do que
+as teclas chegavam, e o meio da palavra se perdia.
+
+**Por que passou:** não passou — a jornada pegou. Mas quase não pegou
+pelo motivo certo: o relatório dizia "heading não encontrado", e a
+primeira leitura foi "o subtítulo não está sendo aplicado". Foi preciso
+uma sonda que imprimisse o HTML do editor **e** o JSON guardado para ver
+que o nó estava certo e o texto é que estava pela metade.
+
+🔒 **Barrado** — `useEditorState`, que é o mecanismo do próprio Tiptap
+para ler estado sem remontar. E a jornada das cinco formatações confere
+pelas **tags** (`<strong>`, `<em>`, `<li>`, `<blockquote>`), não pelo
+texto: texto aparece na tela de qualquer jeito.
+
+**A lição, que é a mesma de sempre:** quando o sintoma é "sumiu", imprima
+o dado nos dois lados antes de explicar. Eu ia escrever "o `toggleHeading`
+não está pegando" — e a medida diz que estava.
+
+### Dois enganos pequenos que vieram de olhar pouco
+
+**Quando:** 15 de novembro de 2026, na mesma rodada.
+
+**O primeiro:** afirmei ao PO que "o editor nunca teve jornada". Tinha
+seis. Meu `grep` terminava em `| head -15`, e elas começam na linha 383.
+Falar de ausência a partir de uma busca truncada é afirmar o que não se
+mediu — e eu tinha acabado de escrever isso no Faustão.
+
+**O segundo:** troquei a asserção de um teste de `getByText` para
+`toHaveAttribute("title", …)` porque *lembrava* que o `disabledHint`
+virava `title`. Vira no `RoundIconButton`; no `Button` ele é texto
+visível ao lado. Dois minutos de leitura do componente teriam evitado uma
+rodada de jornada de três minutos e meio.
+
+**A lição:** `head` numa busca é uma resposta parcial disfarçada de
+completa. E componente que você vai citar numa asserção se abre antes,
+não depois.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
@@ -2685,7 +2827,10 @@ barreira: migrations no deploy, jornadas em série, plural do português,
 a ordem de formatar e medir (`npm run verificar`), o endereço de tópico
 num lugar só, os quatro caminhos de fechar um menu suspenso,
 segredo no repositório, corrida entre testes, um ícone aceso por tela, os
-utilitários de zero, e os dois limites de camada que o build recusa.
+utilitários de zero, os dois limites de camada que o build recusa, o
+aviso do limite diário conferido **nos dois sentidos**, a trava do gatilho
+observada em `pg_stat_activity`, e as três listas do post — editor,
+schema e desenho — comparadas entre si.
 
 O resto é 👁 — protegido só por esta página. **Cada um desses é uma dívida**, e
 a pergunta a fazer em cada revisão é: dá para virar teste?

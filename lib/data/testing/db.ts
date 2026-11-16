@@ -131,3 +131,82 @@ export async function asViewer<T>(
     await client.end();
   }
 }
+
+/**
+ * Duas transações abertas ao mesmo tempo, para provar barreira de corrida.
+ *
+ * **Por que não `Promise.all` sobre o Prisma:** medido em 15 de novembro de
+ * 2026, duas chamadas da camada de dados em paralelo serializam no cliente —
+ * a segunda só sai depois que a primeira volta. Um teste escrito assim passa
+ * do mesmo jeito com a trava arrancada do gatilho.
+ *
+ * **E por que não basta disparar as duas e olhar o resultado:** medido no
+ * mesmo dia, com a trava arrancada o teste continuava verde — a segunda
+ * transação às vezes chega ao servidor depois do `COMMIT` da primeira, e aí
+ * ela vê a linha e recusa sozinha. Verde por sorte de temporização, não por
+ * barreira: uma moeda, não um teste.
+ *
+ * Por isso `run` recebe `esperarBloqueioDeB`, que pergunta ao próprio
+ * Postgres se a segunda está **parada esperando trava**. É a única pergunta
+ * que distingue "foi barrada" de "chegou tarde". Sem a trava no gatilho ela
+ * nunca fica em espera, e o teste reprova — que é o que se quer de uma
+ * barreira.
+ *
+ * Conecta como dono (sem `SET ROLE`), porque o que se testa é o gatilho, não
+ * o RLS — para RLS existe `asViewer`.
+ */
+export async function duasTransacoes<T>(
+  run: (contexto: {
+    a: pg.Client;
+    b: pg.Client;
+    /** Confirma a primeira, liberando quem espera por ela. */
+    commitA: () => Promise<void>;
+    /** `true` se a segunda ficou parada esperando trava dentro do prazo. */
+    esperarBloqueioDeB: (prazoEmMs?: number) => Promise<boolean>;
+  }) => Promise<T>,
+): Promise<T> {
+  const a = new pg.Client(url);
+  const b = new pg.Client(url);
+  const observador = new pg.Client(url);
+  await Promise.all([a.connect(), b.connect(), observador.connect()]);
+
+  const pidDeB = (await b.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0]!.pid;
+
+  let aConfirmada = false;
+  const commitA = async () => {
+    if (aConfirmada) return;
+    aConfirmada = true;
+    await a.query("COMMIT");
+  };
+
+  /*
+   * Um terceiro cliente para observar, porque `a` e `b` estão ocupados: `b`
+   * está justamente parado, e perguntar por ele a ele mesmo nunca
+   * responderia.
+   */
+  const esperarBloqueioDeB = async (prazoEmMs = 2000) => {
+    const limite = Date.now() + prazoEmMs;
+    while (Date.now() < limite) {
+      const { rows } = await observador.query<{ esperando: boolean }>(
+        `SELECT wait_event_type = 'Lock' AS esperando
+           FROM pg_stat_activity WHERE pid = $1`,
+        [pidDeB],
+      );
+      if (rows[0]?.esperando) return true;
+      await new Promise((pronto) => setTimeout(pronto, 25));
+    }
+    return false;
+  };
+
+  try {
+    await Promise.all([a.query("BEGIN"), b.query("BEGIN")]);
+    const resultado = await run({ a, b, commitA, esperarBloqueioDeB });
+    await commitA();
+    // `COMMIT` numa transação já abortada é `ROLLBACK`, e o Postgres não
+    // reclama: não é preciso saber qual das duas falhou.
+    await b.query("COMMIT");
+    return resultado;
+  } finally {
+    await Promise.all([a.end(), b.end(), observador.end()]);
+  }
+}

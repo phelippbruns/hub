@@ -13,7 +13,7 @@ import { getViewer } from "@/lib/auth/session";
 import { ForbiddenError, NotFoundError, UnauthenticatedError } from "@/lib/data/errors";
 import { ZodError } from "zod";
 import { alternarFixado, apagarPost, criarPost, editarPost } from "@/lib/data/blog";
-import { corpoEnviadoSchema } from "@/lib/data/documento-do-post";
+import { documentoEnviadoSchema, midiasPedidas } from "@/lib/data/documento-do-post";
 import { guardarImagem } from "@/lib/midia/deposito";
 import { ImagemRecusada, TAMANHO_MAXIMO, TAMANHO_MAXIMO_EM_MB } from "@/lib/midia/imagem";
 
@@ -88,25 +88,31 @@ export async function salvarPost(
   const postId = formulario.get("postId");
   const handle = String(formulario.get("handle") ?? "");
 
-  let blocos;
+  /*
+   * O documento chega pronto do Tiptap, e é validado **antes** de qualquer
+   * upload: subir arquivo de um post que o schema vai recusar gasta rede e
+   * deixa lixo no depósito.
+   */
+  let documento;
   try {
-    blocos = corpoEnviadoSchema.parse(JSON.parse(String(formulario.get("blocos") ?? "[]")));
+    documento = documentoEnviadoSchema.parse(
+      JSON.parse(String(formulario.get("documento") ?? "null")),
+    );
   } catch (erro) {
     if (erro instanceof ZodError) return { erro: erro.issues[0]?.message ?? "Confira o post" };
     return { erro: "Não consegui ler o post. Recarregue a página." };
   }
 
-  // As mídias, na ordem dos blocos que as pedem.
+  // As mídias, na ordem dos nós que as pedem.
   const midias: { src: string; largura?: number; altura?: number }[] = [];
   try {
-    for (const bloco of blocos) {
-      if (bloco.tipo === "gif") {
-        midias.push({ src: bloco.url, largura: bloco.largura, altura: bloco.altura });
+    for (const pedida of midiasPedidas(documento)) {
+      if ("gif" in pedida) {
+        midias.push({ src: pedida.gif, largura: pedida.largura, altura: pedida.altura });
         continue;
       }
-      if (bloco.tipo !== "imagem") continue;
 
-      const arquivo = formulario.get(`imagem${bloco.arquivo}`);
+      const arquivo = formulario.get(`imagem${pedida.arquivo}`);
       if (!(arquivo instanceof File) || arquivo.size === 0) {
         return { erro: "Uma das imagens não chegou. Escolha de novo." };
       }
@@ -140,7 +146,7 @@ export async function salvarPost(
 
     const entrada = {
       titulo: String(formulario.get("titulo") ?? ""),
-      blocos,
+      documento,
       midias,
       capa: caminhoDaCapa,
       capaMedidas: medidasDaCapa,

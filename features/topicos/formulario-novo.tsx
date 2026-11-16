@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
-import { Button, Input, Select, TextField } from "@/design/components";
+import { useActionState, useId, useRef, useState } from "react";
+import { Button, Input, RoundIconButton, Select, TextField } from "@/design/components";
 import { GifIcon, ImageIcon } from "@/design/icons";
 import { EscolherGif, type GifEscolhido } from "@/design/components";
-import { problemaNaImagem } from "@/lib/midia/limites";
+import { TAMANHO_MAXIMO_EM_MB, problemaNaImagem } from "@/lib/midia/limites";
+import { TOPICOS_POR_DIA } from "@/lib/topicos";
 import { criarTopico, type EstadoDaCriacao } from "./actions";
 
 /**
@@ -61,6 +62,7 @@ export function FormularioNovoTopico({
   const [gif, setGif] = useState<GifEscolhido | null>(null);
   const [escolhendoGif, setEscolhendoGif] = useState(false);
   const arquivoRef = useRef<HTMLInputElement>(null);
+  const idDoLimite = useId();
 
   /*
    * O aviso do arquivo vem antes do envio, pelas mesmas conferências que o
@@ -90,8 +92,8 @@ export function FormularioNovoTopico({
 
       {semVaga ? (
         <p role="alert" className="text-body text-error">
-          Você já criou um tópico em {nome} hoje. O próximo pode ser criado depois da virada das
-          00h.
+          Você já criou {TOPICOS_POR_DIA} tópicos em {nome} hoje. O próximo pode ser criado depois
+          da virada das 00h.
         </p>
       ) : null}
 
@@ -132,39 +134,51 @@ export function FormularioNovoTopico({
         os dois, e o botão do outro fica desativado com a razão à vista.
       */}
       <div className="flex flex-wrap items-center gap-2">
+        {/*
+          `sr-only` com `aria-hidden` e `tabIndex={-1}`, nunca `hidden`: o
+          seletor do foco preso da `Janela` casa `input:not([disabled])`, e
+          um input de `display:none` entra na lista sem poder receber foco.
+          É a mesma precaução da contribuição.
+        */}
         <input
           ref={arquivoRef}
           type="file"
           name="imagem"
           accept="image/jpeg,image/png,image/webp"
-          className="hidden"
+          className="sr-only"
+          aria-hidden="true"
+          tabIndex={-1}
           onChange={(evento) => setImagem(evento.target.files?.[0] ?? null)}
         />
 
-        <Button
-          variant="secondary"
-          size="sm"
-          type="button"
-          aria-label="Adicionar imagem"
+        {/*
+          `RoundIconButton`, como no campo de contribuição — é o controle do
+          sistema para ícone sozinho. Eram `Button variant="secondary"`, que
+          com um ícone no meio vira uma pílula contornada: forma diferente
+          para a mesma ação, e o `disabledHint` dele empilha o motivo abaixo
+          do botão, desalinhando a fileira inteira.
+        */}
+        <RoundIconButton
+          label="Adicionar imagem"
           disabled={semVaga || gif !== null}
           disabledHint={gif ? "Já há um GIF neste tópico" : undefined}
           onClick={() => arquivoRef.current?.click()}
         >
           <ImageIcon decorative className="size-icon" />
-        </Button>
+        </RoundIconButton>
+        <span id={idDoLimite} className="sr-only">
+          JPEG, PNG ou WebP, até {TAMANHO_MAXIMO_EM_MB} MB
+        </span>
 
         {gifLigado ? (
-          <Button
-            variant="secondary"
-            size="sm"
-            type="button"
-            aria-label="Adicionar GIF"
+          <RoundIconButton
+            label="Adicionar GIF"
             disabled={semVaga || imagem !== null}
             disabledHint={imagem ? "Já há uma imagem neste tópico" : undefined}
             onClick={() => setEscolhendoGif(true)}
           >
             <GifIcon decorative className="size-icon" />
-          </Button>
+          </RoundIconButton>
         ) : null}
 
         {imagem ? (
@@ -205,6 +219,12 @@ export function FormularioNovoTopico({
         </p>
       ) : null}
 
+      {/*
+        **Logo abaixo dos botões, não no fim do formulário.** `EscolherGif` é
+        uma folha desenhada no fluxo, sem véu nem portal; aberta no fim de um
+        formulário dentro de uma janela que rola, ela nascia abaixo da dobra —
+        e para quem clicava, o botão de GIF não fazia nada.
+      */}
       <EscolherGif
         aberto={escolhendoGif}
         onFechar={() => setEscolhendoGif(false)}
@@ -215,8 +235,7 @@ export function FormularioNovoTopico({
       />
 
       <p className="text-caption text-inkMuted">
-        Você pode criar 1 tópico por dia nesta comunidade. O tópico com mais pessoas respondendo até
-        o fim do ciclo, às 00h, fica em destaque.
+        O tópico com mais pessoas respondendo até o fim do ciclo, às 00h, fica em destaque.
       </p>
 
       {estado.erro ? (
@@ -231,7 +250,17 @@ export function FormularioNovoTopico({
         entre eles. Print do PO de 31 de outubro.
       */}
       <div className="flex justify-end">
-        <Button type="submit" disabled={pendente || semVaga}>
+        {/*
+          `problemaDaImagem` desliga o envio, e não só aparece na tela.
+          Antes ele era calculado, mostrado, e o botão continuava ligado: a
+          pessoa mandava assim mesmo e recebia a recusa do servidor com a
+          pergunta já escrita. É o padrão `oQueFalta` da contribuição.
+        */}
+        <Button
+          type="submit"
+          disabled={pendente || semVaga || problemaDaImagem !== null}
+          disabledHint={problemaDaImagem ?? undefined}
+        >
           Criar tópico
         </Button>
       </div>

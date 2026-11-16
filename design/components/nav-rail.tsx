@@ -274,16 +274,14 @@ export function NavRail({
       })}
 
       {/*
-        Criar fica no fim da barra, separado da navegação: são ações, não
-        lugares. Cada um leva a cor do seu nível, cheia: tópico em ink com o
-        asterisco em paper, comunidade em lavanda com a cerquilha em ink.
+        Criar fica no fim da barra, separado da navegação: é ação, não
+        lugar. **Mas desenhado como todos os outros** — ícone sem fundo,
+        `text-inkMuted`, `hover:bg-surfacePage`.
 
-        **São círculos de novo.** Na rodada passada eles viraram pílulas de
-        52 px para o rótulo cair no mesmo x dos outros — e o que se via era
-        uma forma oval onde antes havia um botão redondo. Agora o círculo de
-        42 px mora **dentro** do `Eixo` de 52, centrado nele: o desenho
-        volta a ser redondo e o rótulo começa no mesmo lugar que todos os
-        outros, sem recuo mágico nenhum.
+        Ele já teve um círculo cheio em `bg-ink`, e era a única forma com
+        fundo da coluna inteira: na barra recolhida, onde só os ícones
+        aparecem, aquilo lia como um botão de outra natureza. Saiu por
+        decisão do PO em 15 de novembro de 2026.
 
         Configurações entra no mesmo bloco, com o mesmo `gap-2`. Antes ele
         vinha depois, com `mt-3`: 16 px de distância contra os 8 px dos dois

@@ -2,42 +2,39 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Input, Janela, RoundIconButton, TextField } from "@/design/components";
-import { GifIcon, ImageIcon, SetaBaixoIcon, SetaCimaIcon, CloseIcon } from "@/design/icons";
+import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
+import { Button, Input, Janela, RoundIconButton } from "@/design/components";
+import { GifIcon, ImageIcon } from "@/design/icons";
 import { EscolherGif, type GifEscolhido } from "@/design/components";
 import { problemaNaImagem } from "@/lib/midia/limites";
 import { enderecoDoPost } from "@/lib/rotas";
-import { LIMITE_DO_CORPO, LIMITE_DO_SUBTITULO, LIMITE_DO_TITULO, MAXIMO_DE_BLOCOS } from "./shared";
+import { LIMITE_DO_CORPO, LIMITE_DO_TITULO } from "./shared";
+import { extensoesDoPost, type DocumentoDoEditor } from "./tiptap";
 import { salvarPost, type EstadoDoEditor } from "./actions";
 
 /**
- * O editor de post: **blocos, não texto rico**.
+ * O editor de post: **texto rico, com Tiptap**.
  *
- * Decisão do PO em 12 de novembro de 2026, com o Tiptap registrado como
- * dívida. Uma caixa por parágrafo, e botões para acrescentar subtítulo,
- * imagem ou GIF. Fica sem negrito, itálico, lista, citação e link.
+ * Substituiu o editor de blocos em 15 de novembro de 2026, por pedido do
+ * PO. O que a dívida prometia se cumpriu: o formato guardado é o mesmo, o
+ * desenho (`documento.tsx`) não mudou uma linha, e nenhum post existente
+ * migrou.
  *
- * **O que isso compra:** nenhuma dependência nova, nenhuma superfície de
- * sanitização, e — o que mais importa — **o endereço de cada imagem é
- * construído pelo servidor**. O navegador manda o índice do arquivo, não
- * um caminho. Com um editor de texto rico o documento viria pronto do
- * navegador, e um nó de imagem forjado seria buscado pelo navegador de
- * todo mundo que lesse o post.
+ * **O que mudou de verdade, e não estava na dívida:** antes o navegador
+ * mandava uma lista de blocos e o servidor montava a árvore, o que tornava
+ * **impossível** forjar o endereço de uma imagem. Agora o documento chega
+ * pronto. A impossibilidade foi mantida de propósito: o nó de imagem carrega
+ * o **índice do arquivo**, nunca um `src`, e quem escreve o `src` continua
+ * sendo o depósito. Veja `lib/data/documento-do-post.ts`.
  *
- * **O que isso custa, e por que a dívida é barata:** o formato guardado é
- * o mesmo que o editor completo produziria, e o renderizador já sabe
- * desenhar o que falta. Ligar o Tiptap depois é acrescentar uma superfície
- * de escrita — sem migração e sem mexer no desenho.
+ * **A barra oferece só o que o desenho sabe desenhar** — negrito, itálico,
+ * subtítulo, lista, citação e link. O `StarterKit` ofereceria tachado,
+ * código e linha divisória; o desenho os ignoraria, e o texto voltaria sem
+ * a formatação aplicada. A poda está em `tiptap.ts`.
  */
 
-type Bloco =
-  | { id: number; tipo: "paragrafo"; texto: string }
-  | { id: number; tipo: "subtitulo"; texto: string }
-  | { id: number; tipo: "imagem"; arquivo: File | null }
-  | { id: number; tipo: "gif"; gif: GifEscolhido };
-
-let proximoId = 0;
-const novoId = () => (proximoId += 1);
+/** Fora do componente: um literal novo a cada render trocaria as opções. */
+const DOCUMENTO_VAZIO = { type: "doc", content: [{ type: "paragraph" }] };
 
 export function EditorDePost({
   aberto,
@@ -58,13 +55,21 @@ export function EditorDePost({
       {/* Montado só quando abre: cada abertura começa limpa, em vez de
           guardar o que foi escrito e desistido na vez anterior. */}
       {aberto ? (
-        <Formulario handle={handle} base={base} gifLigado={gifLigado} onFechar={onFechar} />
+        <FormularioDePost handle={handle} base={base} gifLigado={gifLigado} onFechar={onFechar} />
       ) : null}
     </Janela>
   );
 }
 
-function Formulario({
+/**
+ * O miolo do editor, **sem a `Janela`**.
+ *
+ * Exportado porque o menu de criar da barra lateral
+ * ([app/(app)/criar-menu.tsx]) já desenha a própria `Janela`: aninhar duas
+ * prenderia o foco e o `Esc` em duas camadas, e fechar a de cima deixaria a
+ * de baixo aberta sobre a página.
+ */
+export function FormularioDePost({
   handle,
   base,
   gifLigado,
@@ -78,10 +83,49 @@ function Formulario({
   const router = useRouter();
   const [titulo, setTitulo] = useState("");
   const [capa, setCapa] = useState<File | null>(null);
-  const [blocos, setBlocos] = useState<Bloco[]>([{ id: novoId(), tipo: "paragrafo", texto: "" }]);
   const [escolhendoGif, setEscolhendoGif] = useState(false);
   const [estado, enviar, enviando] = useActionState<EstadoDoEditor, FormData>(salvarPost, {});
-  const formulario = useRef<HTMLFormElement>(null);
+  const arquivoRef = useRef<HTMLInputElement>(null);
+
+  /*
+   * Os arquivos escolhidos, na ordem em que entraram.
+   *
+   * O nó do documento guarda o **índice** nesta lista, e é este índice que
+   * viaja no formulário como `imagem0`, `imagem1`. Guardar o `File` dentro
+   * do documento não daria certo: o documento é serializado para JSON.
+   */
+  const [arquivos, setArquivos] = useState<File[]>([]);
+
+  const editor = useEditor({
+    extensions: extensoesDoPost,
+    content: DOCUMENTO_VAZIO,
+    // O Next avisa sobre diferença entre servidor e navegador se o editor
+    // tentar desenhar na renderização do servidor.
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class:
+          "text-body text-ink bg-surfacePage min-h-postEditor rounded-sm p-3 focus:outline-none",
+        "aria-label": "Corpo do post",
+      },
+    },
+  });
+
+  /*
+   * **`useEditorState`, e não um `setState` a cada transação.**
+   *
+   * A primeira versão escutava `transaction` e forçava uma renderização por
+   * tecla. Medido em 15 de novembro de 2026: digitar "O que funcionou" num
+   * subtítulo guardava **"u"** — o React remontava o `EditorContent` mais
+   * rápido do que as teclas chegavam, e o texto se perdia sem erro nenhum.
+   * Este hook lê o que a tela precisa e só redesenha quando o valor muda.
+   */
+  const estadoDoEditor = useEditorState({
+    editor,
+    selector: ({ editor: atual }) => ({
+      caracteres: atual?.getText({ blockSeparator: " " }).trim().length ?? 0,
+    }),
+  });
 
   /*
    * Ir para o post publicado quando o servidor aceitou — e não no clique:
@@ -94,88 +138,56 @@ function Formulario({
     router.push(enderecoDoPost(base, estado.salvo));
   }, [estado.salvo, base, onFechar, router]);
 
-  const caracteres = blocos
-    .filter((b) => b.tipo === "paragrafo" || b.tipo === "subtitulo")
-    .reduce((total, b) => total + (b as { texto: string }).texto.length, 0);
-
-  const semTexto = !blocos.some((b) => b.tipo === "paragrafo" && b.texto.trim().length > 0);
-  const imagemVazia = blocos.some((b) => b.tipo === "imagem" && b.arquivo === null);
+  const caracteres = estadoDoEditor?.caracteres ?? 0;
+  const temTexto = caracteres > 0;
   const problemaDaCapa = capa ? problemaNaImagem(capa) : null;
 
-  const oQueFalta = problemaDaCapa
-    ? problemaDaCapa
-    : titulo.trim().length === 0
+  const oQueFalta =
+    problemaDaCapa ??
+    (titulo.trim().length === 0
       ? "Dê um título ao post."
-      : semTexto
+      : !temTexto
         ? "Escreva ao menos um parágrafo."
-        : imagemVazia
-          ? "Escolha o arquivo da imagem, ou tire o bloco."
-          : caracteres > LIMITE_DO_CORPO
-            ? `O texto passa de ${LIMITE_DO_CORPO.toLocaleString("pt-BR")} caracteres.`
-            : null;
+        : caracteres > LIMITE_DO_CORPO
+          ? `O texto passa de ${LIMITE_DO_CORPO.toLocaleString("pt-BR")} caracteres.`
+          : null);
 
-  function trocar(id: number, mudanca: Partial<Bloco>) {
-    setBlocos((atuais) => atuais.map((b) => (b.id === id ? ({ ...b, ...mudanca } as Bloco) : b)));
+  /** Acrescenta uma imagem ao documento, com o índice do arquivo. */
+  function acrescentarImagem(arquivo: File) {
+    const indice = arquivos.length;
+    setArquivos((atuais) => [...atuais, arquivo]);
+    editor?.chain().focus().setImage({ arquivo: indice }).run();
   }
 
-  function acrescentar(bloco: Bloco) {
-    setBlocos((atuais) => (atuais.length >= MAXIMO_DE_BLOCOS ? atuais : [...atuais, bloco]));
-  }
-
-  function mover(id: number, direcao: -1 | 1) {
-    setBlocos((atuais) => {
-      const i = atuais.findIndex((b) => b.id === id);
-      const j = i + direcao;
-      if (i < 0 || j < 0 || j >= atuais.length) return atuais;
-      /*
-       * `splice` e não troca por índice: o lint do Hub barra indexar por
-       * variável, e com razão em geral. Tirar e reinserir diz a mesma
-       * coisa sem indexar.
-       */
-      const copia = [...atuais];
-      const [movido] = copia.splice(i, 1);
-      if (!movido) return atuais;
-      copia.splice(j, 0, movido);
-      return copia;
-    });
+  /** Acrescenta um GIF: ele já vem com endereço e medidas do GIPHY. */
+  function acrescentarGif(gif: GifEscolhido) {
+    editor
+      ?.chain()
+      .focus()
+      .setImage({ gif: gif.url, largura: gif.largura, altura: gif.altura })
+      .run();
   }
 
   /**
-   * O que o servidor recebe: a **estrutura**, nunca o documento pronto.
+   * O que o servidor recebe: o documento **e** os arquivos, separados.
    *
-   * Bloco de imagem leva o índice do arquivo no formulário, e os arquivos
-   * vão em campos próprios. Quem decide o `src` é o depósito.
+   * O documento não tem `src` nenhum — cada nó de imagem leva o índice do
+   * arquivo, e quem escreve o endereço é o depósito. É a mesma promessa do
+   * editor de blocos, mantida com o editor novo.
    */
   function aoEnviar(dados: FormData) {
-    let indice = 0;
-    const estrutura = blocos
-      .map((bloco) => {
-        if (bloco.tipo === "paragrafo" || bloco.tipo === "subtitulo") {
-          const texto = bloco.texto.trim();
-          return texto ? { tipo: bloco.tipo, texto } : null;
-        }
-        if (bloco.tipo === "gif") {
-          return {
-            tipo: "gif" as const,
-            url: bloco.gif.url,
-            largura: bloco.gif.largura,
-            altura: bloco.gif.altura,
-          };
-        }
-        if (!bloco.arquivo) return null;
-        dados.set(`imagem${indice}`, bloco.arquivo);
-        return { tipo: "imagem" as const, arquivo: indice++ };
-      })
-      .filter((b) => b !== null);
+    const documento = editor?.getJSON() as DocumentoDoEditor | undefined;
+    if (!documento) return;
 
-    dados.set("blocos", JSON.stringify(estrutura));
+    arquivos.forEach((arquivo, i) => dados.set(`imagem${i}`, arquivo));
+    dados.set("documento", JSON.stringify(documento));
     dados.set("handle", handle);
     if (capa) dados.set("capa", capa);
     enviar(dados);
   }
 
   return (
-    <form ref={formulario} action={aoEnviar} className="flex flex-col gap-3">
+    <form action={aoEnviar} className="flex flex-col gap-3">
       <Input
         name="titulo"
         label="Título"
@@ -201,133 +213,39 @@ function Formulario({
         </p>
       </div>
 
-      <div className="flex flex-col gap-2">
-        {blocos.map((bloco, i) => (
-          <div key={bloco.id} className="bg-surfacePage flex flex-col gap-1 rounded-sm p-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-caption text-inkMuted font-bold">
-                {bloco.tipo === "paragrafo"
-                  ? "Parágrafo"
-                  : bloco.tipo === "subtitulo"
-                    ? "Subtítulo"
-                    : bloco.tipo === "imagem"
-                      ? "Imagem"
-                      : "GIF"}
-              </span>
-              <span className="flex gap-1">
-                <RoundIconButton
-                  label={`Mover o bloco ${i + 1} para cima`}
-                  tamanho="sm"
-                  nu
-                  disabled={i === 0}
-                  disabledHint="Já é o primeiro"
-                  onClick={() => mover(bloco.id, -1)}
-                >
-                  <SetaCimaIcon decorative className="size-iconSm" />
-                </RoundIconButton>
-                <RoundIconButton
-                  label={`Mover o bloco ${i + 1} para baixo`}
-                  tamanho="sm"
-                  nu
-                  disabled={i === blocos.length - 1}
-                  disabledHint="Já é o último"
-                  onClick={() => mover(bloco.id, 1)}
-                >
-                  <SetaBaixoIcon decorative className="size-iconSm" />
-                </RoundIconButton>
-                <RoundIconButton
-                  label={`Tirar o bloco ${i + 1}`}
-                  tamanho="sm"
-                  nu
-                  disabled={blocos.length === 1}
-                  disabledHint="O post precisa de um bloco"
-                  onClick={() => setBlocos((atuais) => atuais.filter((b) => b.id !== bloco.id))}
-                >
-                  <CloseIcon decorative className="size-iconSm" />
-                </RoundIconButton>
-              </span>
-            </div>
+      {editor ? <BarraDeFormato editor={editor} /> : null}
 
-            {bloco.tipo === "paragrafo" ? (
-              <TextField
-                label={`Parágrafo ${i + 1}`}
-                /* O contador do campo seria um por bloco; o que importa é
-                   o do post inteiro, logo abaixo dos botões. */
-                maxLength={LIMITE_DO_CORPO}
-                value={bloco.texto}
-                onValueChange={(texto) => trocar(bloco.id, { texto })}
-                rows={4}
-                placeholder="Escreva aqui."
-              />
-            ) : null}
-
-            {bloco.tipo === "subtitulo" ? (
-              <Input
-                label={`Subtítulo ${i + 1}`}
-                rotuloOculto
-                value={bloco.texto}
-                onChange={(evento) => trocar(bloco.id, { texto: evento.target.value })}
-                maxLength={LIMITE_DO_SUBTITULO}
-                placeholder="O que funcionou"
-              />
-            ) : null}
-
-            {bloco.tipo === "imagem" ? (
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                aria-label={`Arquivo da imagem ${i + 1}`}
-                onChange={(evento) =>
-                  trocar(bloco.id, { arquivo: evento.target.files?.[0] ?? null })
-                }
-                className="text-caption text-inkMuted"
-              />
-            ) : null}
-
-            {bloco.tipo === "gif" ? (
-              // eslint-disable-next-line @next/next/no-img-element -- endereço do GIPHY
-              <img src={bloco.gif.url} alt="" className="h-avatarLg w-auto rounded-sm" />
-            ) : null}
-          </div>
-        ))}
-      </div>
+      <EditorContent editor={editor} />
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          type="button"
-          onClick={() => acrescentar({ id: novoId(), tipo: "paragrafo", texto: "" })}
-        >
-          + Parágrafo
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          type="button"
-          onClick={() => acrescentar({ id: novoId(), tipo: "subtitulo", texto: "" })}
-        >
-          + Subtítulo
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          type="button"
-          onClick={() => acrescentar({ id: novoId(), tipo: "imagem", arquivo: null })}
-        >
-          <ImageIcon decorative className="size-iconSm" />
-          Imagem
-        </Button>
+        {/*
+          `sr-only` com `aria-hidden` e `tabIndex={-1}`, nunca `hidden`: o
+          seletor do foco preso da `Janela` casa `input:not([disabled])`, e
+          um input de `display:none` entra na lista sem poder receber foco.
+        */}
+        <input
+          ref={arquivoRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
+          aria-hidden="true"
+          tabIndex={-1}
+          onChange={(evento) => {
+            const escolhido = evento.target.files?.[0];
+            if (escolhido) acrescentarImagem(escolhido);
+            // Limpa, senão escolher o mesmo arquivo duas vezes não dispara.
+            evento.target.value = "";
+          }}
+        />
+
+        <RoundIconButton label="Inserir imagem" onClick={() => arquivoRef.current?.click()}>
+          <ImageIcon decorative className="size-icon" />
+        </RoundIconButton>
+
         {gifLigado ? (
-          <Button
-            variant="secondary"
-            size="sm"
-            type="button"
-            onClick={() => setEscolhendoGif(true)}
-          >
-            <GifIcon decorative className="size-iconSm" />
-            GIF
-          </Button>
+          <RoundIconButton label="Inserir GIF" onClick={() => setEscolhendoGif(true)}>
+            <GifIcon decorative className="size-icon" />
+          </RoundIconButton>
         ) : null}
 
         <span
@@ -336,6 +254,27 @@ function Formulario({
           {caracteres.toLocaleString("pt-BR")} de {LIMITE_DO_CORPO.toLocaleString("pt-BR")}
         </span>
       </div>
+
+      {/*
+        **Logo abaixo dos botões, não no fim do formulário.** `EscolherGif` é
+        uma folha desenhada no fluxo, sem véu nem portal; aberta no fim de um
+        formulário dentro de uma janela que rola, ela nasce abaixo da dobra —
+        e para quem clica, o botão de GIF não faz nada.
+      */}
+      <EscolherGif
+        aberto={escolhendoGif}
+        onFechar={() => setEscolhendoGif(false)}
+        onEscolher={(gif) => {
+          acrescentarGif(gif);
+          setEscolhendoGif(false);
+        }}
+      />
+
+      {problemaDaCapa ? (
+        <p role="alert" className="text-caption text-error">
+          {problemaDaCapa}
+        </p>
+      ) : null}
 
       {estado.erro ? (
         <p role="alert" className="text-caption text-error">
@@ -355,15 +294,118 @@ function Formulario({
           {enviando ? "Publicando…" : "Publicar"}
         </Button>
       </div>
-
-      <EscolherGif
-        aberto={escolhendoGif}
-        onFechar={() => setEscolhendoGif(false)}
-        onEscolher={(gif) => {
-          acrescentar({ id: novoId(), tipo: "gif", gif });
-          setEscolhendoGif(false);
-        }}
-      />
     </form>
+  );
+}
+
+/**
+ * A barra de formatação.
+ *
+ * **Só o que o desenho sabe desenhar.** Cada botão daqui tem um caso no
+ * `switch` de `documento.tsx`; um botão a mais aqui faria o texto sumir
+ * depois de publicado. `design/components/post-formato.test.ts` compara as
+ * duas listas e reprova se discordarem.
+ */
+function BarraDeFormato({ editor }: { editor: Editor }) {
+  /*
+   * Pelo mesmo motivo do contador: um `setState` por transação para acender
+   * os botões remontaria o editor a cada tecla, e o texto se perderia.
+   */
+  const ativo = useEditorState({
+    editor,
+    selector: ({ editor: atual }) => ({
+      bold: atual.isActive("bold"),
+      italic: atual.isActive("italic"),
+      heading: atual.isActive("heading"),
+      bulletList: atual.isActive("bulletList"),
+      orderedList: atual.isActive("orderedList"),
+      blockquote: atual.isActive("blockquote"),
+      link: atual.isActive("link"),
+    }),
+  });
+
+  const ligado = "bg-ink text-paper";
+  const desligado = "bg-surfacePage text-ink";
+
+  const botao = (rotulo: string, ativo: boolean, aoClicar: () => void, conteudo: string) => (
+    <button
+      type="button"
+      aria-label={rotulo}
+      aria-pressed={ativo}
+      onClick={aoClicar}
+      className={`rounded-sm px-2 py-1 ${ativo ? ligado : desligado} text-caption cursor-pointer font-bold`}
+    >
+      {conteudo}
+    </button>
+  );
+
+  return (
+    <div role="toolbar" aria-label="Formatação do texto" className="flex flex-wrap gap-1">
+      {botao("Negrito", ativo.bold, () => editor.chain().focus().toggleBold().run(), "B")}
+      {botao("Itálico", ativo.italic, () => editor.chain().focus().toggleItalic().run(), "I")}
+      {botao(
+        "Subtítulo",
+        ativo.heading,
+        () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
+        "Subtítulo",
+      )}
+      {botao(
+        "Lista com marcadores",
+        ativo.bulletList,
+        () => editor.chain().focus().toggleBulletList().run(),
+        "Lista",
+      )}
+      {botao(
+        "Lista numerada",
+        ativo.orderedList,
+        () => editor.chain().focus().toggleOrderedList().run(),
+        "1. Lista",
+      )}
+      {botao(
+        "Citação",
+        ativo.blockquote,
+        () => editor.chain().focus().toggleBlockquote().run(),
+        "Citação",
+      )}
+      <BotaoDeLink editor={editor} />
+    </div>
+  );
+}
+
+/**
+ * O link, que é o único com endereço a pedir.
+ *
+ * RN41: o corpo do post é o único texto do Hub que aceita endereços. O
+ * servidor confere `http`/`https` de novo — aqui a conferência é para dar
+ * a mensagem boa, não para garantir a regra.
+ */
+function BotaoDeLink({ editor }: { editor: Editor }) {
+  const ativo = useEditorState({ editor, selector: ({ editor: e }) => e.isActive("link") });
+
+  function alternar() {
+    if (ativo) {
+      editor.chain().focus().unsetLink().run();
+      return;
+    }
+
+    const endereco = window.prompt("Endereço do link (começando com https://)");
+    if (!endereco) return;
+    if (!/^https?:\/\//i.test(endereco)) {
+      window.alert("O link precisa começar com http:// ou https://");
+      return;
+    }
+    editor.chain().focus().setLink({ href: endereco }).run();
+  }
+
+  return (
+    <button
+      type="button"
+      aria-label={ativo ? "Tirar o link" : "Inserir link"}
+      aria-pressed={ativo}
+      onClick={alternar}
+      className={`rounded-sm px-2 py-1 ${ativo ? "bg-ink text-paper" : "bg-surfacePage text-ink"} text-caption cursor-pointer font-bold`}
+    >
+      Link
+    </button>
   );
 }

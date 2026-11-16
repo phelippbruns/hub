@@ -2,10 +2,38 @@
 
 import { useState, useTransition } from "react";
 import { Eixo, Janela, LoadingBlock, Rotulo, Skeleton } from "@/design/components";
-import { CommunityHash, CreateIcon, TopicStar } from "@/design/icons";
+import { CommunityHash, CreateIcon, PostIcon, TopicStar } from "@/design/icons";
 import { FormularioNovoTopico } from "@/features/topicos/formulario-novo";
 import { FormularioNovaComunidade } from "@/features/comunidades/formulario-nova";
-import { comunidadesParaCriarTopico, type ComunidadeParaCriar } from "./criar-actions";
+import dynamic from "next/dynamic";
+
+/**
+ * O editor de post entra **só quando alguém escolhe escrever**.
+ *
+ * Importado direto, ele vinha junto com a barra lateral — que está em toda
+ * tela autenticada — e o Tiptap carrega o ProseMirror inteiro: medido em 15
+ * de novembro de 2026, 400 KB, o maior pedaço do build, baixado em toda
+ * navegação do Hub para alimentar uma janela que quase nunca abre.
+ *
+ * É a mesma razão pela qual a lista de comunidades é buscada na abertura e
+ * não no layout.
+ */
+const FormularioDePost = dynamic(
+  () => import("@/features/perfil/blog/editor").then((m) => m.FormularioDePost),
+  {
+    loading: () => (
+      <LoadingBlock label="Abrindo o editor">
+        <Skeleton className="h-navItem w-full" />
+        <Skeleton className="h-navItem w-full" />
+      </LoadingBlock>
+    ),
+  },
+);
+import {
+  comunidadesParaCriarTopico,
+  meuHandleParaCriar,
+  type ComunidadeParaCriar,
+} from "./criar-actions";
 
 /**
  * O `+` da barra lateral, e a janela que ele abre.
@@ -29,12 +57,14 @@ import { comunidadesParaCriarTopico, type ComunidadeParaCriar } from "./criar-ac
  * que já foi compartilhado nunca vira 404.
  */
 
-type Passo = "fechado" | "escolher" | "topico" | "comunidade";
+type Passo = "fechado" | "escolher" | "topico" | "comunidade" | "post";
 
 export function MenuDeCriar({ gifLigado = false }: { gifLigado?: boolean }) {
   const [passo, setPasso] = useState<Passo>("fechado");
   const [comunidades, setComunidades] = useState<ComunidadeParaCriar[] | null>(null);
+  const [handle, setHandle] = useState<string | null>(null);
   const [carregando, carregar] = useTransition();
+  const [carregandoHandle, carregarHandle] = useTransition();
 
   function abrirTopico() {
     setPasso("topico");
@@ -45,6 +75,14 @@ export function MenuDeCriar({ gifLigado = false }: { gifLigado?: boolean }) {
      */
     if (comunidades === null) {
       carregar(async () => setComunidades(await comunidadesParaCriarTopico()));
+    }
+  }
+
+  function abrirPost() {
+    setPasso("post");
+    // Mesma razão da lista de comunidades: pedido na abertura, não no layout.
+    if (handle === null) {
+      carregarHandle(async () => setHandle(await meuHandleParaCriar()));
     }
   }
 
@@ -59,12 +97,17 @@ export function MenuDeCriar({ gifLigado = false }: { gifLigado?: boolean }) {
         aria-label="Criar"
         aria-expanded={passo !== "fechado"}
         onClick={() => setPasso("escolher")}
-        className="rounded-pill text-label h-navItem text-ink hover:bg-surfacePage flex cursor-pointer items-center gap-2 font-semibold"
+        /*
+         * O mesmo molde dos outros itens da barra, inclusive Configurações
+         * ([design/components/nav-rail.tsx]): ícone sem fundo, `text-inkMuted`,
+         * `hover:bg-surfacePage`. Ele tinha um círculo cheio em `bg-ink`, que
+         * era a única forma com fundo na coluna inteira — decisão do PO em 15
+         * de novembro de 2026.
+         */
+        className="rounded-pill text-label h-navItem text-inkMuted hover:bg-surfacePage flex cursor-pointer items-center gap-2 font-semibold"
       >
         <Eixo>
-          <span className="bg-ink text-paper rounded-pill size-control grid place-items-center">
-            <CreateIcon decorative className="size-iconNav" />
-          </span>
+          <CreateIcon decorative className="size-iconNav" />
         </Eixo>
         <Rotulo>Criar</Rotulo>
       </button>
@@ -85,6 +128,13 @@ export function MenuDeCriar({ gifLigado = false }: { gifLigado?: boolean }) {
               fundo="bg-lavender text-ink"
               titulo="Criar comunidade"
               explicacao="Um interesse novo, com capa e descrição."
+            />
+            <Opcao
+              onClick={abrirPost}
+              icone={<PostIcon decorative className="size-iconNav" />}
+              fundo="bg-surfaceNeutral text-ink"
+              titulo="Criar post"
+              explicacao="Um texto seu, no blog do seu perfil."
             />
           </div>
         ) : null}
@@ -114,6 +164,28 @@ export function MenuDeCriar({ gifLigado = false }: { gifLigado?: boolean }) {
           )
         ) : null}
 
+        {passo === "post" ? (
+          carregandoHandle || handle === null ? (
+            <LoadingBlock label="Abrindo o editor">
+              <Skeleton className="h-navItem w-full" />
+              <Skeleton className="h-navItem w-full" />
+            </LoadingBlock>
+          ) : (
+            /*
+             * O miolo do editor, **sem a `Janela` dele**: esta aqui já é a
+             * janela. `base` é "/perfil" porque é para lá que o dono vai —
+             * `/<handle>` redireciona para `/perfil`, e o redirect comia o
+             * `?post=`, que está no `faustao.md`.
+             */
+            <FormularioDePost
+              handle={handle}
+              base="/perfil"
+              gifLigado={gifLigado}
+              onFechar={fechar}
+            />
+          )
+        ) : null}
+
         {passo === "comunidade" ? <FormularioNovaComunidade /> : null}
       </Janela>
     </>
@@ -126,6 +198,8 @@ function tituloDa(passo: Passo): string {
       return "Novo tópico";
     case "comunidade":
       return "Nova comunidade";
+    case "post":
+      return "Novo post";
     default:
       return "Criar";
   }

@@ -15,6 +15,7 @@ import { createAnswerSchema, createTopicSchema, idDeContribuicaoSchema } from ".
 import { requireProfileId, viewerProfileId, type Viewer } from "./viewer";
 import { assertNotBlocked, requireActiveMembership } from "./access";
 import { comAvatar, comAvatares, enderecosDeMidia } from "@/lib/midia/deposito";
+import { TOPICOS_POR_DIA } from "@/lib/topicos";
 import { avisar, avisarMarcados } from "./notificacoes";
 import { marcacoesDoTexto, marcacoesQueExistem } from "./marcacoes";
 import { EXPLORE_MIN_MEMBERS } from "./communities";
@@ -30,6 +31,14 @@ import { enderecoDoTopico as paraOTopico } from "@/lib/rotas";
  */
 export const LIMITE_RESPOSTAS_PARA_APAGAR = 5;
 
+/**
+ * RN07: o limite diário, vindo de [lib/topicos.ts](@/lib/topicos) — módulo
+ * neutro porque o formulário de criar é componente de cliente e não pode
+ * importar daqui. Reexportado para quem está no servidor achar o número
+ * onde a regra mora.
+ */
+export { TOPICOS_POR_DIA };
+
 /** Quantas respostas de **outras** pessoas o tópico tem (RN08). */
 export async function respostasDeOutros(topicId: string, authorId: string | null) {
   return prisma.answer.count({
@@ -42,7 +51,7 @@ export async function respostasDeOutros(topicId: string, authorId: string | null
 }
 
 /**
- * RN07: se a pessoa já gastou o tópico do dia nesta comunidade.
+ * RN07: se a pessoa já gastou as vagas do dia nesta comunidade.
  *
  * A tela de criar usa isto para avisar **antes** de alguém escrever uma
  * pergunta inteira e só então descobrir que não pode publicar hoje.
@@ -52,20 +61,19 @@ export async function jaCrieiTopicoHoje(viewer: Viewer, communityId: string): Pr
   if (!me) return false;
 
   const linhas = await prisma.$queryRaw<{ existe: boolean }[]>`
-    SELECT EXISTS (
-      SELECT 1 FROM topics
-       WHERE community_id = ${communityId}::uuid
-         AND author_id = ${me}::uuid
-         AND deleted_at IS NULL
-         AND cycle_date = hub_cycle_date(now())
-    ) AS existe
+    SELECT count(*) >= ${TOPICOS_POR_DIA} AS existe
+      FROM topics
+     WHERE community_id = ${communityId}::uuid
+       AND author_id = ${me}::uuid
+       AND deleted_at IS NULL
+       AND cycle_date = hub_cycle_date(now())
   `;
   return linhas[0]?.existe ?? false;
 }
 
 /**
- * RN07, para a janela que escolhe a comunidade: onde ainda cabe um
- * tópico hoje, em **uma** consulta.
+ * RN07, para a janela que escolhe a comunidade: **onde o dia já acabou**,
+ * em uma consulta.
  *
  * A `jaCrieiTopicoHoje` responde por uma comunidade. Com o campo de
  * escolher comunidade, a janela precisa da resposta de todas ao mesmo
@@ -74,21 +82,30 @@ export async function jaCrieiTopicoHoje(viewer: Viewer, communityId: string): Pr
  *
  * Uma consulta e não N: quem está em vinte comunidades pagaria vinte
  * idas ao banco para abrir uma janela.
+ *
+ * **O nome diz o que ela devolve, e isso custou um defeito em produção.**
+ * Ela se chamava `ondeAindaPossoCriarHoje` e devolvia o contrário — as
+ * gastas. O menu de criar da barra leu o nome, negou o resultado, e passou
+ * a avisar "você já criou hoje" exatamente nas comunidades em que a pessoa
+ * **não** tinha criado — desligando o formulário inteiro, botões de imagem
+ * e de GIF junto. Está no `faustao.md`.
  */
-export async function ondeAindaPossoCriarHoje(viewer: Viewer): Promise<Set<string>> {
+export async function comunidadesSemVagaHoje(viewer: Viewer): Promise<Set<string>> {
   const me = viewerProfileId(viewer);
   if (!me) return new Set();
 
   const usadas = await prisma.$queryRaw<{ community_id: string }[]>`
-    SELECT DISTINCT community_id
+    SELECT community_id
       FROM topics
      WHERE author_id = ${me}::uuid
        AND deleted_at IS NULL
        AND cycle_date = hub_cycle_date(now())
+     GROUP BY community_id
+    HAVING count(*) >= ${TOPICOS_POR_DIA}
   `;
 
-  // Devolve as **gastas**: quem pergunta sabe em quais comunidades está,
-  // e a lista de gastas é sempre a menor das duas.
+  // As gastas, e não as livres: quem pergunta já sabe em quais
+  // comunidades está, e a lista de gastas é sempre a menor das duas.
   return new Set(usadas.map((linha) => linha.community_id));
 }
 

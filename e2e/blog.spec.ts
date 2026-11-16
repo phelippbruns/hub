@@ -379,6 +379,48 @@ test.describe("o post aberto no painel", () => {
   });
 });
 
+/**
+ * O corpo do post é um `contenteditable` do Tiptap, não um campo.
+ *
+ * E o título pede `exact`: sem ele, "Título" casa também com o botão
+ * "Subtítulo" da barra de formatação, e o seletor fica ambíguo.
+ */
+const corpoDoPost = (page: Page) => page.getByRole("textbox", { name: "Corpo do post" });
+const titulo = (page: Page) => page.getByRole("textbox", { name: "Título", exact: true });
+
+async function escrever(page: Page, texto: string) {
+  await corpoDoPost(page).click();
+  await page.keyboard.type(texto);
+}
+
+/**
+ * Liga uma formatação e espera o editor estar pronto para receber texto.
+ *
+ * **Duas esperas, e as duas são necessárias.** `aria-pressed` diz que o
+ * comando rodou; o foco de volta no `contenteditable` diz que as teclas
+ * vão chegar. Com só a primeira, mediu-se "MEU SUBTITULO" virar
+ * "SUBTITULO" — `keyboard.type` começa antes de o foco voltar do botão, e
+ * as teclas do começo somem sem erro nenhum.
+ */
+async function aplicar(page: Page, nome: string) {
+  const botao = page.getByRole("button", { name: nome, exact: true });
+  await botao.click();
+  await expect(botao).toHaveAttribute("aria-pressed", "true");
+  await page.waitForFunction(
+    () => document.activeElement?.getAttribute("contenteditable") === "true",
+  );
+}
+
+/** Desliga uma formatação, com a mesma espera de foco. */
+async function desaplicar(page: Page, nome: string) {
+  const botao = page.getByRole("button", { name: nome, exact: true });
+  await botao.click();
+  await expect(botao).toHaveAttribute("aria-pressed", "false");
+  await page.waitForFunction(
+    () => document.activeElement?.getAttribute("contenteditable") === "true",
+  );
+}
+
 test.describe("RN39: escrever um post", () => {
   test("RN39: escrevo, publico, e o post abre no painel", async ({ page }) => {
     const handle = await entrarNoApp(page, "escrever");
@@ -388,14 +430,17 @@ test.describe("RN39: escrever um post", () => {
     await page.getByRole("button", { name: "Novo post" }).click();
     await expect(page.getByRole("dialog", { name: "Novo post" })).toBeVisible();
 
-    await page.getByLabel("Título").fill("Uma noite no galpão");
-    await page.getByLabel("Parágrafo 1").fill("Toquei das 2h às 5h num galpão sem janela nenhuma.");
+    await titulo(page).fill("Uma noite no galpão");
 
-    await page.getByRole("button", { name: "+ Subtítulo" }).click();
-    await page.getByLabel("Subtítulo 2").fill("O que funcionou");
+    await escrever(page, "Toquei das 2h às 5h num galpão sem janela nenhuma.");
+    await page.keyboard.press("Enter");
 
-    await page.getByRole("button", { name: "+ Parágrafo" }).click();
-    await page.getByLabel("Parágrafo 3").fill("Começar mais lento do que eu queria.");
+    await aplicar(page, "Subtítulo");
+    await page.keyboard.type("O que funcionou");
+
+    // Sair do subtítulo: o Enter abre um parágrafo, que é o que se quer.
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("Começar mais lento do que eu queria.");
 
     await page.getByRole("button", { name: "Publicar" }).click();
 
@@ -413,8 +458,8 @@ test.describe("RN39: escrever um post", () => {
     await perfilCarregado(page, handle);
 
     await page.getByRole("button", { name: "Novo post" }).click();
-    await page.getByLabel("Título").fill("Discos por ano");
-    await page.getByLabel("Parágrafo 1").fill("palavra ".repeat(400).trim());
+    await titulo(page).fill("Discos por ano");
+    await escrever(page, "palavra ".repeat(400).trim());
     await page.getByRole("button", { name: "Publicar" }).click();
     await expect(page).toHaveURL(/post=discos-por-ano/);
 
@@ -437,34 +482,105 @@ test.describe("RN39: escrever um post", () => {
     await page.getByRole("button", { name: "Novo post" }).click();
     const publicar = page.getByRole("button", { name: "Publicar" });
 
+    /*
+     * O motivo é **texto ao lado do botão**, e não o `title` dele: é assim
+     * que o `disabledHint` do `Button` o entrega — diferente do
+     * `RoundIconButton`, que usa `title` porque não tem onde escrever.
+     */
     await expect(publicar).toBeDisabled();
     await expect(page.getByText("Dê um título ao post.")).toBeVisible();
 
-    await page.getByLabel("Título").fill("Tem título");
+    await titulo(page).fill("Tem título");
     await expect(page.getByText("Escreva ao menos um parágrafo.")).toBeVisible();
 
-    await page.getByLabel("Parágrafo 1").fill("Agora tem texto.");
+    await escrever(page, "Agora tem texto.");
     await expect(publicar).toBeEnabled();
   });
 
-  test("dá para reordenar e tirar blocos", async ({ page }) => {
-    const handle = await entrarNoApp(page, "reordenar");
+  /**
+   * Substituiu "dá para reordenar e tirar blocos", que era do editor de
+   * blocos: com texto rico não há blocos a mover — move-se o cursor. O que
+   * continua valendo é que **a ordem do que se escreve é a ordem do que se
+   * lê**, e é isso que esta jornada guarda.
+   */
+  test("a ordem do que se escreve é a ordem do que se lê", async ({ page }) => {
+    const handle = await entrarNoApp(page, "ordem");
     await page.goto("/perfil");
     await perfilCarregado(page, handle);
 
     await page.getByRole("button", { name: "Novo post" }).click();
-    await page.getByLabel("Título").fill("Fora de ordem");
-    await page.getByLabel("Parágrafo 1").fill("Era o primeiro.");
-    await page.getByRole("button", { name: "+ Parágrafo" }).click();
-    await page.getByLabel("Parágrafo 2").fill("Era o segundo.");
+    await titulo(page).fill("Em ordem");
+    await escrever(page, "Era o primeiro.");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("Era o segundo.");
 
-    await page.getByRole("button", { name: "Mover o bloco 2 para cima" }).click();
     await page.getByRole("button", { name: "Publicar" }).click();
 
-    await expect(page).toHaveURL(/post=fora-de-ordem/);
-    const painel = page.getByRole("complementary", { name: "Post Fora de ordem" });
+    await expect(page).toHaveURL(/post=em-ordem/);
+    const painel = page.getByRole("complementary", { name: "Post Em ordem" });
     const paragrafos = painel.locator("p");
-    await expect(paragrafos.first()).toContainText("Era o segundo.");
+    await expect(paragrafos.first()).toContainText("Era o primeiro.");
+    await expect(paragrafos.nth(1)).toContainText("Era o segundo.");
+  });
+
+  test("as cinco formatações sobrevivem a publicar e reabrir", async ({ page }) => {
+    const handle = await entrarNoApp(page, "formato");
+    await page.goto("/perfil");
+    await perfilCarregado(page, handle);
+
+    await page.getByRole("button", { name: "Novo post" }).click();
+    await titulo(page).fill("Com tudo que dá");
+    await corpoDoPost(page).click();
+
+    await aplicar(page, "Negrito");
+    await page.keyboard.type("forte");
+    await desaplicar(page, "Negrito");
+    await page.keyboard.press("Enter");
+
+    await aplicar(page, "Itálico");
+    await page.keyboard.type("torto");
+    await desaplicar(page, "Itálico");
+    await page.keyboard.press("Enter");
+
+    await aplicar(page, "Lista com marcadores");
+    await page.keyboard.type("um item");
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Enter");
+
+    await aplicar(page, "Citação");
+    await page.keyboard.type("alguém disse");
+
+    await page.getByRole("button", { name: "Publicar" }).click();
+    await page.waitForURL(/post=com-tudo-que-da/);
+
+    /*
+     * **Pelas tags, e não pelo texto.** "forte" aparece na tela de
+     * qualquer jeito; o que esta jornada precisa saber é se ele voltou
+     * dentro de um `<strong>` — é exatamente aí que a formatação some
+     * quando o editor oferece algo que o desenho não desenha.
+     */
+    const painel = page.getByRole("complementary", { name: "Post Com tudo que dá" });
+    await expect(painel.locator("strong", { hasText: "forte" })).toBeVisible();
+    await expect(painel.locator("em", { hasText: "torto" })).toBeVisible();
+    await expect(painel.locator("li", { hasText: "um item" })).toBeVisible();
+    await expect(painel.locator("blockquote", { hasText: "alguém disse" })).toBeVisible();
+  });
+
+  test("a barra não oferece o que o desenho não sabe desenhar", async ({ page }) => {
+    const handle = await entrarNoApp(page, "podado");
+    await page.goto("/perfil");
+    await perfilCarregado(page, handle);
+
+    await page.getByRole("button", { name: "Novo post" }).click();
+
+    const barra = page.getByRole("toolbar", { name: "Formatação do texto" });
+    // O positivo primeiro: a barra chegou. Sem isto, as ausências abaixo
+    // passariam com a janela ainda vazia.
+    await expect(barra.getByRole("button", { name: "Negrito" })).toBeVisible();
+
+    for (const proibido of ["Tachado", "Código", "Linha divisória"]) {
+      await expect(barra.getByRole("button", { name: proibido })).toHaveCount(0);
+    }
   });
 
   test("dois posts com o mesmo título ganham endereços diferentes", async ({ page }) => {
@@ -474,8 +590,8 @@ test.describe("RN39: escrever um post", () => {
       await page.goto("/perfil");
       await perfilCarregado(page, handle);
       await page.getByRole("button", { name: "Novo post" }).click();
-      await page.getByLabel("Título").fill("Teoria do set");
-      await page.getByLabel("Parágrafo 1").fill("Uma faixa que ninguém reconhece.");
+      await titulo(page).fill("Teoria do set");
+      await escrever(page, "Uma faixa que ninguém reconhece.");
       await page.getByRole("button", { name: "Publicar" }).click();
       await expect(page).toHaveURL(/post=teoria-do-set/);
     }

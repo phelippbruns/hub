@@ -35,23 +35,34 @@ export function larguraDoPainelDoPost(valor: string | undefined): number {
 }
 
 /**
- * Os blocos que um post pode ter (RN39).
+ * O que um post pode conter (RN39).
  *
- * **É uma lista fechada, e é o editor inteiro.** O MVP escreve por blocos
- * em vez de texto rico: uma caixa por parágrafo, mais botões para
- * acrescentar subtítulo, imagem ou GIF. Decisão do PO em 12 de novembro de
- * 2026, com o Tiptap registrado como dívida.
+ * **É uma lista fechada, e os três lados do Hub concordam com ela:** o
+ * editor (Tiptap, podado a isto), o schema do servidor
+ * (`lib/data/documento-do-post.ts`) e o desenho
+ * (`features/perfil/blog/documento.tsx`). Um nó que o editor oferecesse e
+ * o desenho não soubesse desenhar sumiria depois de publicado — texto que
+ * desaparece sem erro é pior que texto recusado na hora.
  *
- * **O formato guardado é o mesmo que o editor completo produziria**, e é
- * por isso que a dívida é barata: ligar o Tiptap depois não migra dado
- * nenhum e não mexe no desenho. O renderizador em `documento.tsx` já sabe
- * desenhar negrito, itálico, lista, citação e link — ele só não tem quem
- * produza isso ainda.
+ * O editor era de blocos até 15 de novembro de 2026, por decisão do PO de
+ * 12 de novembro. O formato guardado não mudou com a troca: nenhum post
+ * existente migrou.
  */
-export const TIPOS_DE_BLOCO = ["paragrafo", "subtitulo", "imagem", "gif"] as const;
-export type TipoDeBloco = (typeof TIPOS_DE_BLOCO)[number];
+export const NOS_DO_POST = [
+  "paragraph",
+  "heading",
+  "blockquote",
+  "bulletList",
+  "orderedList",
+  "listItem",
+  "image",
+  "hardBreak",
+  "text",
+] as const;
 
-/** O limite de caracteres do corpo inteiro, somando os blocos de texto. */
+/** As marcas de texto aceitas. `link` é a exceção da RN41 à RN16. */
+export const MARCAS_DO_POST = ["bold", "italic", "link"] as const;
+
 export const LIMITE_DO_CORPO = 5000;
 
 /** O limite do título. */
@@ -60,18 +71,12 @@ export const LIMITE_DO_TITULO = 100;
 /** Um subtítulo é uma linha, não um parágrafo. */
 export const LIMITE_DO_SUBTITULO = 120;
 
-/** Quantos blocos cabem num post. Teto de sanidade, não de produto. */
-export const MAXIMO_DE_BLOCOS = 120;
-
-export function nomeDoBloco(tipo: TipoDeBloco): string {
-  switch (tipo) {
-    case "paragrafo":
-      return "Parágrafo";
-    case "subtitulo":
-      return "Subtítulo";
-    case "imagem":
-      return "Imagem";
-    case "gif":
-      return "GIF";
-  }
-}
+/**
+ * Quantos nós cabem num post. Teto de sanidade, não de produto.
+ *
+ * Conta a árvore inteira, não só o primeiro nível: com listas e citações,
+ * um documento raso de dez itens tem trinta nós. O teto existe para o
+ * schema recursivo não virar porta de entrada — uma árvore enorme custa
+ * memória antes de qualquer regra rodar.
+ */
+export const MAXIMO_DE_NOS = 400;
