@@ -723,6 +723,56 @@ Entrega: relatório em docs/auditoria-mvp.md com o que passou, o que falhou e pr
 Comece em modo de planejamento e só implemente depois da minha aprovação.
 ```
 
+### Segurança: o aviso de "tabela pública" do Supabase
+
+Pedido pelo PO em 24 de novembro de 2026, a partir de um email do Supabase
+datado de **14 de novembro**.
+
+**O aviso:** `rls_disabled_in_public` — "Table publicly accessible. Anyone with
+your project URL can read, edit, and delete all data in this table because
+Row-Level Security is not enabled." Projeto `hub`.
+
+**Por que não é urgente, e por que ainda assim precisa ser conferido.** O aviso
+é de 14 de novembro. Em **24 de novembro** a migration
+`20261124120000_navegador_so_le_a_cabine` revogou **tudo** de `anon` e
+`authenticated` em todas as tabelas do schema `public`, e devolveu só
+`SELECT` em `messages` e em `cabin_members`. O Row Level Security é a segunda
+barreira; o privilégio é a primeira, e ela agora nega por padrão — inclusive
+para tabelas futuras, via `ALTER DEFAULT PRIVILEGES`. Uma tabela sem RLS
+continua inalcançável pelo navegador porque o papel não tem privilégio nenhum
+nela.
+
+Mas o aviso **não diz qual tabela é**, e o painel do Supabase avalia RLS, não
+privilégio: é provável que ele continue apontando a mesma tabela mesmo com a
+porta fechada. Confundir "o painel parou de avisar" com "está resolvido" — ou
+o contrário — é o erro a evitar aqui.
+
+**O que fazer:**
+
+1. Abrir o Security Advisor do projeto e anotar **qual** tabela dispara o
+   aviso. Sem o nome, não há o que conferir.
+2. Medir o estado real, não o painel: com a chave publicável e mais nada,
+   tentar `SELECT`, `INSERT`, `UPDATE` e `DELETE` naquela tabela. O esperado é
+   `permission denied`. `lib/data/privilegios.db.test.ts` já faz essa medição
+   para o conjunto todo e é o lugar de acrescentar a tabela nomeada.
+3. Se a tabela realmente estiver sem RLS, **ligar RLS nela com uma política de
+   negação** — não porque o navegador a alcance hoje, mas porque a regra de
+   segurança 2 manda ter as duas barreiras, e porque uma concessão futura
+   feita por engano encontraria a segunda em pé.
+4. Conferir se o aviso some, e registrar o que fez sumir: o RLS ligado, ou o
+   privilégio revogado.
+
+**Critérios de aceite:**
+
+- O relatório diz **o nome da tabela** do aviso.
+- Existe um teste em `lib/data/privilegios.db.test.ts` que nomeia essa tabela e
+  reprova se ela voltar a ser alcançável pela chave publicável — e esse teste
+  foi visto reprovando, com a concessão reposta à mão.
+- Se faltava RLS, há migration ligando-o, e o Security Advisor não aponta mais
+  a tabela.
+- Se não faltava, o relatório diz por que o aviso existia e que a medição
+  mostrou acesso negado.
+
 ## Fase 8: celular
 
 ### F21. Versão de celular
