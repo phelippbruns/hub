@@ -61,8 +61,8 @@ describe("a classificação restrita nunca falta", () => {
 
     await procurarGifs("festa", "chave-de-teste");
 
-    // `g` é a mais restritiva do GIPHY. O Hub tem gente de 18 anos
-    // recém-feitos; um GIF impróprio numa busca inocente faz alguém sair.
+    // `g` é a mais restritiva do GIPHY. O Hub aceita gente de 16 anos
+    // (RN29); um GIF impróprio numa busca inocente faz alguém sair.
     expect(pedidos[0]?.searchParams.get("rating")).toBe("g");
     expect(pedidos[0]?.pathname).toContain("/search");
     expect(pedidos[0]?.searchParams.get("q")).toBe("festa");

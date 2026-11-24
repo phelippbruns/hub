@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BackIcon } from "@/design/icons";
+import { AVISO_DE_IDADE } from "@/lib/idade";
 
 export const metadata: Metadata = { title: "Termos e privacidade · Hub" };
 
@@ -19,8 +20,8 @@ export default function TermosPage() {
       </header>
 
       <p className="text-body text-ink">
-        O Hub é para maiores de 18 anos. Ao criar conta, você concorda com os Termos de uso e com a
-        Política de privacidade.
+        {AVISO_DE_IDADE} Ao criar conta, você concorda com os Termos de uso e com a Política de
+        privacidade.
       </p>
       <p className="text-caption text-inkMuted">
         O texto completo, com resumo em linguagem simples, chega junto com a tela de Termos.

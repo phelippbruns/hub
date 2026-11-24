@@ -7,6 +7,7 @@ import { criarConta, verificarHandle } from "./actions";
 import type { ActionState } from "./shared";
 import { GoogleButton } from "./google-button";
 import { useEffect, useState } from "react";
+import { AVISO_DE_IDADE } from "@/lib/idade";
 
 /**
  * Tela 3, versão Criar conta.
@@ -103,7 +104,7 @@ export function CriarContaForm({ googleEnabled }: { googleEnabled: boolean }) {
             o verificador, nunca a prova. */}
         <div className="bg-paper flex flex-col gap-1 rounded-sm p-2">
           <p className="text-bodyStrong text-ink">Verificar idade</p>
-          <p className="text-caption text-inkMuted">O Hub é para maiores de 18 anos.</p>
+          <p className="text-caption text-inkMuted">{AVISO_DE_IDADE}</p>
           <Input
             label="Data de nascimento"
             name="birthDate"

@@ -102,26 +102,44 @@ vira 📌 com a troca das marcas, se você decidir fazê-la.
 
 ## 2. Regra escrita de um jeito, implementada de outro
 
-### Idade mínima: 16 no documento, 18 no código
+### ~~Idade mínima: 16 no documento, 18 no código~~ — **resolvido em 24 de novembro de 2026, para 16**
 
-A RN29 diz 16 anos. O PO decidiu 18, e o código fixou 18 em `MINIMUM_AGE`.
-O documento nunca foi corrigido.
+A RN29 diz 16 anos. Em outubro o PO decidiu 18, e o código fixou 18 em
+`MINIMUM_AGE`. O documento nunca foi corrigido, e **os dois discordaram por
+quarenta dias**.
 
-*O que custou:* nada ainda. O risco é o seguinte: a próxima pessoa que
-implementar algo ligado a idade vai ler o escopo, achar 16, e escrever 16 —
-sem nenhum teste reclamando, porque o teste confere o código contra o código.
+Em 24 de novembro o PO decidiu **16**, que é o número da RN. Resolveu a
+divergência pelo lado do documento.
 
-*Por que não apareceu antes:* a decisão foi tomada numa conversa, e o código
-mudou na mesma hora. Parecia resolvido, porque o comportamento estava certo.
+*O que custou:* quarenta dias de uma armadilha montada, e nada mais — por
+sorte. Ninguém implementou nada ligado a idade nesse período. Quem tivesse
+implementado leria o escopo, acharia 16, escreveria 16, e **nenhum teste
+reclamaria**: o teste conferia o código contra o código.
 
-*Como ficou:* anotado no CLAUDE.md e nas [pendências](pendencias.md), ainda
-esperando a correção do escopo.
+*E custou uma coisa que eu só vi ao consertar:* o número estava escrito à
+mão em **quatro** lugares — a constante, as duas telas de cadastro e os
+Termos. Mudar a decisão exigia achar os quatro. Isso é o que faz uma
+divergência durar: não é a decisão esquecida, é o número espalhado.
 
-**Regra:** decisão que contraria uma RN tem de mudar a RN no mesmo dia. Código
-certo com documento errado é uma armadilha com data marcada.
+*Por que não apareceu antes:* a decisão de outubro foi tomada numa conversa e
+o código mudou na mesma hora. Parecia resolvido, porque o comportamento
+estava certo — e comportamento certo é exatamente o que esconde erro de
+produto.
 
-💭 **Solto** — nada liga a RN ao código. Um teste que lesse `MINIMUM_AGE` e o
-número escrito na RN29 tornaria isso 📌.
+*Como ficou:* o número mora em `lib/idade.ts`, sozinho, e a frase das telas
+sai dele. [lib/idade.test.ts](../lib/idade.test.ts) varre o código e reprova
+quem escrever "maiores de N" em texto de tela — **vista reprovando** com o 18
+de volta numa das telas.
+
+**Regra:** decisão que contraria uma RN tem de mudar a RN **ou** o código no
+mesmo dia, e dizer qual dos dois. Código certo com documento errado é uma
+armadilha com data marcada. E número que é regra de negócio mora num lugar
+só — espalhado, ele transforma "mudar de ideia" numa caçada.
+
+📌 **Amarrado** — o número num lugar só, com varredura. O que **continua
+solto** é a ligação entre o texto da RN29 e a constante: se alguém editar o
+"16" da tabela do escopo, nada reclama. Um teste que lesse a linha da RN29 e
+a comparasse com `MINIMUM_AGE` fecharia isso.
 
 ### Verificação de idade por autodeclaração, que a própria regra proíbe
 

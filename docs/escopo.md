@@ -329,7 +329,7 @@ Ideia registrada para depois do MVP: aba Coleção no perfil, com uma seleção 
 Restam 16 pontos. Os três primeiros bloqueiam o lançamento.
 
 - [ ] Método de verificação de idade, a definir com revisão jurídica.
-- [ ] Idade mínima de 16 ou 17 anos: o ECA Digital fala em contas "de até 16 anos", o que pode incluir quem tem 16. Revisão jurídica.
+- [x] Idade mínima: **16 anos**, decidido pelo PO em 24 de novembro de 2026 e fixado em `lib/idade.ts`. Fica em aberto a ponta jurídica: o ECA Digital fala em contas "de até 16 anos", o que pode incluir quem tem 16 — se a revisão disser que não serve, o número muda num arquivo só.
 - [ ] Comunidades curadas no lançamento. (Universos saíram do produto na F12.1.)
 - [ ] Fuso horário do ciclo. Premissa: 00h no horário de Brasília.
 - [ ] Valores de corte de cada métrica, definidos antes do lançamento.

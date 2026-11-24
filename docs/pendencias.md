@@ -31,13 +31,23 @@ verificação de verdade, **sem refazer cadastro de ninguém**.
 Para desligar a autodeclaração: remover `AGE_VERIFIER` das variáveis da Vercel.
 Sem ela, o cadastro é recusado — que é o lado seguro.
 
-### 1.2 Idade mínima: 16, 17 ou 18
+### 1.2 ~~Idade mínima: 16, 17 ou 18~~ — **decidido: 16, em 24 de novembro de 2026**
 
-O código usa **18**, por decisão sua. O escopo e a RN29 dizem **16**, e há um
-ponto em aberto sobre 16 ou 17 por causa do ECA Digital.
+Você decidiu **16**, que é o número que a RN29 e o escopo sempre disseram. O
+código dizia 18 desde outubro; agora dizem a mesma coisa.
 
-**Os documentos e o código discordam.** Alinhar os dois é rápido; decidir qual
-é o número certo é revisão jurídica.
+O número está num lugar só (`lib/idade.ts`), e uma varredura reprova quem
+voltar a escrevê-lo numa tela. Antes ele estava em quatro lugares, e era isso
+que fazia a divergência durar.
+
+**O que isto não resolve:** continua valendo a autodeclaração (1.1). Quem diz
+ter 16 entra, e o Hub não confere. Baixar a idade **aumenta** o número de
+pessoas que a RN29 queria proteger e que hoje entram sem verificação — então
+1.1 ficou mais urgente, não menos.
+
+**E uma ponta jurídica fica aberta:** o ECA Digital fala em contas "de até 16
+anos", o que pode incluir quem tem 16. Se a revisão jurídica disser que 16 não
+serve, o número volta a mudar — e agora muda num arquivo só.
 
 ### 1.3 Universos e comunidades curadas
 

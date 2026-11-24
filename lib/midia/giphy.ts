@@ -9,8 +9,8 @@ import { serverEnv } from "@/lib/env";
  * daqui, e a tela conversa com uma rota nossa.
  *
  * **Classificação restrita.** `rating=g` é a mais restritiva do GIPHY: nada
- * de sugestivo, violento ou de linguagem forte. O Hub tem gente de 18 anos
- * recém-feitos e conversas sobre interesses pessoais; um GIF impróprio
+ * de sugestivo, violento ou de linguagem forte. O Hub aceita gente de 16 anos (RN29)
+ * e conversas sobre interesses pessoais; um GIF impróprio
  * aparecendo numa busca inocente é o tipo de coisa que faz alguém sair.
  */
 
