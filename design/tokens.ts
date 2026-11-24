@@ -19,7 +19,7 @@ export const color = {
   surfacePage: "#F1EEFF",
   /** Cartão da contribuição de OUTRA pessoa, sobre o fundo paper da tela do tópico. 15,2:1 com ink; 6,8:1 com inkMuted. Contra paper tem só 1,1:1 — é separação sutil de propósito, e só funciona sobre paper: sobre surfacePage dá 1,0:1 e some. */
   surfaceNeutral: "#F3F3F5",
-  /** Chip selecionado, botão de ícone, selo de posição no ciclo, marca de Universo secundária. Texto sobre ela sempre em ink. Contra surfacePage tem só 2,1:1, então estado selecionado precisa de um segundo sinal além da cor (o ✓ do chip). */
+  /** Chip selecionado, botão de ícone, selo de posição no ciclo, marca de comunidade. Texto sobre ela sempre em ink. Contra surfacePage tem só 2,1:1, então estado selecionado precisa de um segundo sinal além da cor (o ✓ do chip). */
   lavender: "#A69CFB",
   /** Hover do botão de estrela e espaço reservado da mídia enquanto carrega. 13,0:1 com ink; 5,8:1 com inkMuted. Fundo de estado, nunca de texto longo. */
   lavenderSoft: "#E4DFFF",
@@ -94,7 +94,7 @@ export const typography = {
     fontWeight: 800,
     letterSpacing: "-0.02em",
   },
-  /** Nome de comunidade e de Universo no cabeçalho. */
+  /** Nome de comunidade no cabeçalho. */
   subtitle: {
     fontSize: "20px",
     lineHeight: "26px",
@@ -152,7 +152,7 @@ export const spacing = {
 } as const;
 
 export const radius = {
-  /** Chips, campos de texto curtos, marca de Universo, cartões de post. */
+  /** Chips, campos de texto curtos, marca de nível, cartões de post. */
   radiusSm: "12px",
   /** Cartão da pergunta e cartões de destaque. */
   radiusMd: "18px",
@@ -261,3 +261,28 @@ export const size = {
 
 export const fontFamily =
   '"Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif' as const;
+
+/**
+ * A tabela de pares de contraste do design system, na ordem publicada.
+ *
+ * `design/contrast.ts` mede cada um e `design/contrast.test.ts` reprova se o
+ * valor divergir; o HTML do documento desenha a mesma lista.
+ */
+export const contrastPairs = [
+  { foreground: "ink", background: "surfacePage", expected: 14.7, usage: "qualquer-texto" },
+  { foreground: "ink", background: "paper", expected: 16.8, usage: "qualquer-texto" },
+  { foreground: "ink", background: "lavender", expected: 7, usage: "qualquer-texto" },
+  { foreground: "ink", background: "sun", expected: 12.3, usage: "qualquer-texto" },
+  { foreground: "inkMuted", background: "surfacePage", expected: 6.6, usage: "qualquer-texto" },
+  { foreground: "ink", background: "surfaceNeutral", expected: 15.2, usage: "qualquer-texto" },
+  { foreground: "inkMuted", background: "surfaceNeutral", expected: 6.8, usage: "qualquer-texto" },
+  { foreground: "ink", background: "lavenderSoft", expected: 13, usage: "qualquer-texto" },
+  { foreground: "inkMutedOnDark", background: "ink", expected: 10.6, usage: "qualquer-texto" },
+  { foreground: "error", background: "paper", expected: 6.6, usage: "qualquer-texto" },
+  { foreground: "success", background: "paper", expected: 6.4, usage: "qualquer-texto" },
+  { foreground: "inkMuted", background: "lavender", expected: 3.1, usage: "texto-grande" },
+  { foreground: "paper", background: "lavender", expected: 2.4, usage: "proibido" },
+  { foreground: "lavender", background: "surfacePage", expected: 2.1, usage: "nao-e-sinal-unico" },
+  { foreground: "surfaceNeutral", background: "paper", expected: 1.1, usage: "nao-e-sinal-unico" },
+  { foreground: "inkLine", background: "ink", expected: 1.4, usage: "nao-e-sinal-unico" },
+] as const;

@@ -2,11 +2,22 @@
 
 Hub é uma rede social de comunidades por interesse. O caminho que a interface sustenta é interesse, comunidade, tópico, resposta, afinidade, conversa e relação. A interface é calma e plana, e não tem feed infinito: o Início termina em "Você está em dia". A identidade fica concentrada em três lugares: os ícones de tipo ({, #, *), a tipografia Bricolage Grotesque em peso alto e a cor fixa de cada nível da hierarquia.
 
+**Onde cada coisa mora.** Quatro lugares, e só um deles é editável.
+
+| Lugar | O que é | Como se muda |
+| --- | --- | --- |
+| [tokens.json](tokens.json) | A **alavanca**. Cor, tipografia, espaçamento, raio, as 44 medidas e a tabela de contraste. | Mude aqui e rode `npm run tokens`. |
+| [index.html](index.html) | A **leitura**: a fundação inteira desenhada, que abre com dois cliques, sem servidor. | Gerado. Nunca edite à mão — `npm run tokens:check` reprova na CI. |
+| `/design` no app | A **prova viva**: os componentes rodando o código de verdade. | Mude o componente. |
+| O documento navegável do design system | A versão para **compartilhar e decidir**, com os componentes e os ícones. | Atualizado junto com este README. |
+
+`design/tokens.ts` e `design/tokens.css` também são gerados do mesmo JSON. Nenhum hex, nenhum pixel e nenhum raio é escrito à mão no código.
+
 Este sistema segue o documento HUB v2. Ele substitui o modelo anterior de pergunta do dia, revelação e votação.
 
 ## Estrutura
 
-Universo organiza. Comunidade conecta. Tópico provoca. Resposta participa. Cabine aproxima. Universos são mantidos pela plataforma. Comunidades são criadas por usuários dentro de um Universo. Tópicos são criados por membros, com nome e uma abertura. Respostas ficam diretamente no tópico, sem comentários encadeados. Cabines são conversas privadas que começam por convite aceito.
+Comunidade conecta. Tópico provoca. Resposta participa. Cabine aproxima. Comunidades são criadas por quem usa o Hub. Tópicos são criados por membros, com nome e uma abertura. Respostas ficam diretamente no tópico, sem comentários encadeados. Cabines são conversas privadas que começam por convite aceito.
 
 ## Ciclo do Hot Topic
 
@@ -17,10 +28,10 @@ Tópico ativo é o tópico com ao menos uma resposta nas últimas 24 horas. É e
 ## Princípios
 
 1. **Participação, não popularidade.** Não há curtidas nem contador por resposta. Tópicos sempre mostram quantas pessoas e quantas respostas têm. O perfil conta contribuições (respostas mais tópicos criados) e comunidades, numa linha de texto e não num placar de caixas. "Dias ativos" saiu na F18: media assiduidade, que é o oposto de participar no seu tempo.
-2. **Cada nível tem uma cor fixa, em toda a rede.** Universo é `sun`, comunidade é `lavender`, tópico é `ink`. A regra vale para marcas, chips selecionados e ícones de tipo. O cartão de Hot Topic não leva selo; quem o identifica é o título da seção.
+2. **Cada nível tem uma cor fixa, em toda a rede.** Comunidade é `lavender`, tópico é `ink`, e a marca do Hub é `sun`. A regra vale para marcas, chips selecionados e ícones de tipo. O cartão de Hot Topic não leva selo; quem o identifica é o título da seção.
 
-   O Universo saiu do produto na F12.1, e desde então **`sun` é a ação principal de uma tela**: o Responder dentro do cartão de Hot Topic, a pílula do card atual no Paginador, o "Iniciar Jornada" do onboarding, o Seguir no perfil, e a marca `{` do Hub. Uma por tela — duas competiriam, e aí nenhuma seria a principal.
-3. **Ícone de tipo, nome natural.** `{` marca Universo, `#` marca comunidade, `*` marca tópico, cada um na cor do seu nível. **Os três são traçado, não letra**: letra depende das métricas que cada sistema lê da fonte, e foi por isso que a chave apareceu torta três vezes. A chave e a cerquilha vêm dos arquivos de logo em [logo/](logo/) — são o contorno real da Bricolage em peso 800, não uma imitação dele —, e cada uma traz junto a própria posição dentro do quadrado, inclusive o acerto óptico da chave, 7,5 de 1024 à esquerda do centro geométrico. O asterisco continua desenhado à mão, numa grade de 24: nenhum arquivo de logo o define. Os símbolos aparecem como ícones ao lado do nome, nunca dentro dele: "Música Eletrônica", não "#música eletrônica". Em listas, a comunidade aparece com uma miniatura da capa no lugar da marca #. Na página da comunidade, a marca # é o próprio botão de entrar e sair: contorno lavanda para visitante, preenchida em lavanda para membro.
+   **`sun` é a ação principal de uma tela**: o Responder dentro do cartão de Hot Topic, a pílula do card atual no Paginador, o "Iniciar Jornada" do onboarding, o Seguir no perfil, e a marca `{` do Hub. Uma por tela — duas competiriam, e aí nenhuma seria a principal.
+3. **Ícone de tipo, nome natural.** `{` é a marca do Hub, `#` marca comunidade, `*` marca tópico, cada um na cor do seu nível. **Os três são traçado, não letra**: letra depende das métricas que cada sistema lê da fonte, e foi por isso que a chave apareceu torta três vezes. A chave e a cerquilha vêm dos arquivos de logo em [logo/](logo/) — são o contorno real da Bricolage em peso 800, não uma imitação dele —, e cada uma traz junto a própria posição dentro do quadrado, inclusive o acerto óptico da chave, 7,5 de 1024 à esquerda do centro geométrico. O asterisco continua desenhado à mão, numa grade de 24: nenhum arquivo de logo o define. Os símbolos aparecem como ícones ao lado do nome, nunca dentro dele: "Música Eletrônica", não "#música eletrônica". Em listas, a comunidade aparece com uma miniatura da capa no lugar da marca #. Na página da comunidade, a marca # é o próprio botão de entrar e sair: contorno lavanda para visitante, preenchida em lavanda para membro.
 4. **Plano, sem sombra.** A hierarquia vem de cor de fundo e peso tipográfico.
 5. **Texto sobre cor é sempre `ink`,** exceto sobre `ink` e `error`, que levam `paper`.
 6. **A lista termina.** Toda lista do Início acaba com uma marca de fim.
@@ -121,15 +132,71 @@ Grade de 8 px, igual no celular e na web. No celular: 16 px nas laterais, 12 px 
 
 ## Seguir
 
-O mesmo olho em contorno segue tópicos e pessoas. Inativo, fica com contorno `inkMuted`. Ativo, fica sobre fundo `lavender`. Seguir um tópico também o salva na Coleção, aba privada do perfil próprio, que organiza os tópicos por Universo (marca { amarela), por comunidade (marca # lavanda) ou em ordem cronológica (relógio). As novidades dos tópicos seguidos aparecem no Início. Seguir é sempre manual: responder a um tópico não o segue.
+O mesmo olho em contorno segue tópicos e pessoas. Inativo, fica com contorno `inkMuted`. Ativo, fica sobre fundo `lavender`. Seguir um tópico também o salva na Coleção, aba privada do perfil próprio, que organiza os tópicos por comunidade (marca # lavanda) ou em ordem cronológica (relógio). As novidades dos tópicos seguidos aparecem no Início. Seguir é sempre manual: responder a um tópico não o segue.
 
 ## Estados
 
 Carregando usa blocos estáticos em lavanda clara, sem brilho animado. Erro usa `error` com ícone e ação de tentar de novo. Sucesso usa `success`. Botão desativado sempre vem com texto que explica o que falta. Convite pendente mostra "Aguardando" sem prazo.
 
+## O que o modo escuro exige
+
+Não há tema escuro, e não há paleta escura rascunhada. Esta seção é o
+levantamento que a decisão precisa: **onde o escuro vai doer**, medido, para a
+escolha ser feita com número e não com gosto.
+
+São cinco obstáculos, e o custo de cada um é diferente.
+
+**1. Três superfícies quase iguais.** `paper` (#FFFFFF), `surfacePage`
+(#F1EEFF) e `surfaceNeutral` (#F3F3F5) se separam por 1,03:1 a 1,14:1 — pouco
+**de propósito**: a hierarquia do Hub vem de espaço e peso, não de contorno.
+No claro isso funciona porque o olho separa bem no alto da escala. No escuro
+ele separa pior, e três cinzas escuros a 1,1:1 viram uma mancha só. É o
+obstáculo mais caro, porque dele depende uma regra inteira do produto: **a
+tela do tópico é branca enquanto o resto do app é lavanda** justamente porque
+os dois fundos de cartão de contribuição — `surfacePage` na sua,
+`surfaceNeutral` nas dos outros — só se distinguem sobre `paper`. Sobre
+`surfacePage` a sua fica da cor exata da página. No escuro essa engenharia
+tem de ser refeita, não traduzida.
+
+**2. O princípio 5 inverte.** "Texto sobre cor é sempre `ink`" vale hoje
+porque `ink` é a cor mais escura da paleta. No escuro `ink` é o **fundo**, e a
+frase passa a dizer o contrário do que quer dizer. As duas cores que carregam
+texto — `lavender` e `sun` — precisam continuar carregando: `ink` sobre
+`lavender` dá 7,0:1 e sobre `sun` 12,3:1, e esses dois números são o que
+mantém chip selecionado e botão de destaque legíveis. Qualquer escuro que
+clareie `lavender` para "combinar" perde o primeiro.
+
+**3. O Hub já tem uma superfície escura, e ela já foi medida.** O cartão de
+abertura do tópico é `ink`, com `paper` no texto principal (16,8:1) e
+`inkMutedOnDark` (#CFC9EE) no secundário (10,6:1). O filete interno é
+`inkLine` (#3A3456), 1,4:1 contra `ink` — divisor decorativo, nunca borda de
+controle. **O modo escuro não começa do zero: começa desse trio**, que é a
+única parte do sistema já provada contra fundo escuro.
+
+**4. Os oito fundos de perfil são oito decisões, não uma.** Quem é dono
+escolhe a cor da própria página (RN27) entre 8, e **todas as 8 são claras** —
+da mais clara, `fundoBranco`, à mais escura, `fundoPreto` (#CDCDD3). O teste
+`design/contrast.test.ts` exige que `ink` e `inkMuted` passem 4,5:1 em todas,
+e `fundoPreto` já raspa o limite com `inkMuted` em 4,73. No escuro cada uma
+precisa de um par próprio, e a pergunta de produto vem antes da técnica: a
+cor escolhida é **a cor da pessoa** ou é um claro que o tema escuro deve
+escurecer? Se for o primeiro, o perfil é uma ilha clara dentro de um app
+escuro. Se for o segundo, a escolha de oito pessoas muda sem elas pedirem.
+
+**5. `sun` é o que menos sofre.** Ela é a ação principal de uma tela, uma por
+tela, e tem 12,3:1 com `ink` — funciona sobre fundo escuro sem mudar de valor.
+No escuro ela continua sendo o único amarelo da tela, e é isso que a faz
+funcionar como sinal.
+
+O formato dos tokens já aceita o segundo tema: cada cor é `{"light": "…"}`
+hoje e vira `{"light": "…", "dark": "…"}` quando houver decisão. **Não falta
+estrutura — falta escolha.**
+
 ## Fora deste sistema por enquanto
 
-Modo história da Cabine (feature posterior), tema escuro, conjunto de ícones próprio e regras de movimento. Os componentes Cartão da Pergunta e Abas da Cabine ficaram obsoletos com o HUB v2.
+Modo história da Cabine (feature posterior), conjunto de ícones próprio e
+regras de movimento. Os componentes Cartão da Pergunta e Abas da Cabine
+ficaram obsoletos com o HUB v2.
 
 
 ## Logo
