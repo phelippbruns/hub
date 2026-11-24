@@ -292,6 +292,36 @@ A grande vale a pena se a descoberta for repensada junto, não antes.
 Os quatro primeiros são aceitáveis enquanto é só teste. **Nenhum deles pode
 continuar assim com gente de verdade no Hub.**
 
+### 3.1 A varredura de 24 de novembro de 2026
+
+Pedida por você junto com a atualização de segurança do Next. O que ela
+achou, e o que ela encerrou.
+
+**Consertado na mesma rodada: o navegador lia o banco quase inteiro.** O
+Supabase concede todos os privilégios a `anon` e `authenticated` por padrão,
+e a chave publicável está dentro de todo navegador. Sobrava o RLS, que é por
+linha e não por coluna — então a política que torna nome, @ e foto públicos
+(RN17) entregava **as 27 colunas de `profiles`**, inclusive a data de
+nascimento de todo mundo, o método de verificação de idade e as preferências
+de notificação. `memberships` saía em massa pelo mesmo caminho. Escrever já
+estava barrado; a falha era de leitura. A porta fechou e só a leitura de
+`messages` voltou, que é do que a Cabine precisa.
+
+**Encerrado: o `prod.env` de 11 de outubro não vazou credencial nenhuma.** A
+Vercel troca os valores sensíveis por um marcador ao exportar — senha do
+banco, chave secreta, JWT e chave do GIPHY saíram todos como `[SENSITIVE]`.
+O único valor real e sensível era um token temporário da Vercel, que expirou
+em 12 de outubro. Este item pode sair de qualquer lista de preocupação.
+
+**Conferido e correto:** nenhum segredo no pacote do navegador; nenhum
+`eval` nem HTML de usuário; nenhum SQL montado por concatenação fora dos
+testes; RLS ligado em todas as tabelas; cabeçalhos de segurança completos no
+ar; depósito de imagens sem política nenhuma (proposital); toda Server
+Action confere a sessão, menos as de entrar e criar conta, que por definição
+não têm uma; e a limitação de taxa de autenticação existe e é testada —
+10 tentativas de login por email em 15 minutos, 5 de cadastro por hora, com
+tetos por IP bem mais altos para não punir quem divide uma rede.
+
 ---
 
 ## 4. Dívida técnica
