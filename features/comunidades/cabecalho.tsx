@@ -246,10 +246,13 @@ export function CabecalhoDaComunidade({
               não é lugar de barra de ferramentas.
 
               O `relative` é do botão, e não do bloco: é dele que o drop se
-              pendura.
+              pendura. E `inline-block` com ele, para a caixa deste `span`
+              incluir o botão: aqui ele é item de um `flex`, que já o
+              transforma em bloco, mas depender disso é o defeito que o
+              Chromium 159 cobrou na contribuição em 24 de novembro de 2026.
             */
             <span
-              className="relative"
+              className="relative inline-block"
               ref={grupoDoMenu}
               onMouseLeave={() => setAberto((a) => (a === "menu" ? "nenhum" : a))}
             >

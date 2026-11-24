@@ -610,8 +610,20 @@ clique não faz nada. O defeito viveu três anos, foi corrigido num menu em
 quatro ficaram iguais, e
 [design/components/menu-suspenso.test.ts](design/components/menu-suspenso.test.ts) reprova o
 quinto que nascer sem ela. O fechar ao tirar o mouse mora no grupo que
-envolve **botão e balão** — nos dois, nunca em cada um, porque entre eles
-há um vão que o ponteiro atravessa.
+envolve **botão e balão** — nos dois, nunca em cada um, porque sair do
+botão já dispararia a saída.
+
+**E a âncora declara a própria caixa.** O balão é `absolute right-0` e se
+pendura na caixa do elemento `relative` que o envolve, que **precisa
+incluir o botão**. Um `<span>` nu é elemento de linha, e o Chromium 159
+passou a pendurá-lo na caixa de linha: o balão nascia 44 px à esquerda, ao
+lado do botão em vez de embaixo, e levar o mouse de um até o outro fechava
+o menu debaixo do cursor. Três das quatro âncoras em `<span>` escapavam
+**por acidente**, por serem itens de um `flex` — depender disso é o
+defeito. Hoje cada uma leva `inline-block`, a varredura reprova a que
+nascer sem caixa, e a jornada "todo balão termina na direita do botão"
+([e2e/correcoes-v6.spec.ts](e2e/correcoes-v6.spec.ts)) **mede** os quatro:
+`toBeVisible` passa com o balão fora de lugar.
 
 **O `@` de uma pessoa é sempre link** ([design/components/handle-link.tsx](design/components/handle-link.tsx)),
 **menos dentro de algo que já é clicável**: no cartão de tópico e na lista
