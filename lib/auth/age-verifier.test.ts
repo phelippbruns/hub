@@ -33,9 +33,16 @@ describe(`idade mínima de ${MINIMUM_AGE} anos`, () => {
     if (result.status === "rejected") expect(result.reason).toContain(String(MINIMUM_AGE));
   });
 
-  it("a idade mínima é 18, como o PO definiu", () => {
-    // O escopo ainda fala em 16; vale alinhar o documento.
-    expect(MINIMUM_AGE).toBe(18);
+  it("RN29: a idade mínima é 16, como o escopo e o PO dizem", () => {
+    /*
+     * O número fica preso aqui de propósito.
+     *
+     * Ele é a porta do Hub: trocado por descuido, um lado barra quem podia
+     * entrar e o outro aceita quem a RN29 queria barrar — e nenhum dos dois
+     * aparece como erro, só como gente a mais ou a menos. Era 18 no código e
+     * 16 no escopo por mais de um mês, sem nada reclamar.
+     */
+    expect(MINIMUM_AGE).toBe(16);
   });
 
   it("registra o método usado, para dar para reavaliar depois", async () => {

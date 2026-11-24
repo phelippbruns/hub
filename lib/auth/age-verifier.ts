@@ -17,15 +17,23 @@
  */
 
 /**
- * Idade mínima do Hub.
+ * A idade mínima mora em [lib/idade.ts](../idade.ts), que não tem import
+ * nenhum: as telas que a mostram são componentes de cliente, e este arquivo
+ * lê `process.env`.
  *
- * A RN29 e o escopo falam em 16 anos; o PO definiu **18**. Mantido 18 por ser
- * a decisão mais recente e a mais restritiva — errar para o lado de barrar
- * alguém de 17 é menos grave do que aceitar quem a regra queria barrar.
+ * Reexportada aqui porque quem já importava daqui continua funcionando, e
+ * porque é no `verify` abaixo que ela decide algo.
  *
- * Vale alinhar docs/escopo.md com esta decisão.
+ * **16 anos**, decidido pelo PO em 24 de novembro de 2026. Antes o código
+ * dizia 18, por uma decisão de outubro, e discordou do escopo por mais de um
+ * mês. **Isto afrouxa a porta, não aperta:** quem tem 16 ou 17 passa a
+ * entrar, e até o provedor da RN29 existir o Hub só sabe a idade por
+ * autodeclaração — `resolveAgeVerifier` nega por padrão, e a pendência 1.1
+ * continua sendo a que bloqueia o lançamento.
  */
-export const MINIMUM_AGE = 18;
+import { MINIMUM_AGE } from "../idade";
+
+export { MINIMUM_AGE };
 
 export type AgeVerificationRequest = {
   /** Identifica a tentativa nos registros do provedor. Nunca o email. */

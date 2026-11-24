@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { consultar } from "./apoio-banco";
 import { alerta, cadastroConcluido, concluirOnboarding } from "./apoio-tela";
+import { MINIMUM_AGE } from "@/lib/idade";
 
 /**
  * Jornadas da entrada (F03).
@@ -148,9 +149,16 @@ test.describe("RN29: criar conta", () => {
     await expect(page).toHaveURL(/\/criar-conta/);
   });
 
-  // 17 é o caso que importa: quem tem 12 qualquer regra barra. A fronteira é
-  // onde o erro mora, e ela mudou de 16 para 18.
-  for (const idade of [12, 17]) {
+  /*
+   * **15 é o caso que importa.** Quem tem 12 qualquer regra barra; o erro
+   * mora na fronteira, que é 16 desde 24 de novembro de 2026 (RN29). O par
+   * aqui embaixo e o teste de 16 logo abaixo cercam a fronteira pelos dois
+   * lados — sem o de baixo, um limite errado para cima passaria calado.
+   *
+   * A fronteira já andou: era 16 no escopo, virou 18 no código em outubro, e
+   * voltou a 16 por decisão do PO. Está em docs/vacilos.md.
+   */
+  for (const idade of [12, 15]) {
     test(`não cria conta para quem tem ${idade} anos`, async ({ page }) => {
       await page.goto("/criar-conta");
       await preencherCadastro(page, {
@@ -162,18 +170,18 @@ test.describe("RN29: criar conta", () => {
       await aceitarTermos(page);
       await page.getByRole("button", { name: "Continuar" }).click();
 
-      await expect(alerta(page)).toContainText("18 anos");
+      await expect(alerta(page)).toContainText(`${MINIMUM_AGE} anos`);
       await expect(page).toHaveURL(/\/criar-conta/);
     });
   }
 
-  test("cria conta para quem acabou de fazer 18", async ({ page }) => {
+  test(`cria conta para quem acabou de fazer ${MINIMUM_AGE}`, async ({ page }) => {
     await page.goto("/criar-conta");
     await preencherCadastro(page, {
-      nome: "Pessoa de 18",
-      email: novoEmail("dezoito"),
+      nome: "Pessoa na fronteira",
+      email: novoEmail("fronteira"),
       senha: "senhaboa123",
-      nascimento: nascimentoComIdade(18),
+      nascimento: nascimentoComIdade(MINIMUM_AGE),
     });
     await aceitarTermos(page);
     await page.getByRole("button", { name: "Continuar" }).click();

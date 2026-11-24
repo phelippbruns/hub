@@ -422,8 +422,19 @@ políticas desde a F02.
 
 ### Idade mínima
 
-**18 anos**, definida pelo PO e fixada em `MINIMUM_AGE` ([lib/auth/age-verifier.ts](lib/auth/age-verifier.ts)).
-O escopo e a RN29 ainda falam em 16 — vale alinhar o documento.
+**16 anos**, decidida pelo PO em 24 de novembro de 2026 e fixada em
+`MINIMUM_AGE` ([lib/idade.ts](lib/idade.ts)) — que é o número que a RN29 e o
+escopo sempre disseram. O código dizia **18** desde outubro, e os dois
+discordaram por mais de um mês.
+
+**O número mora num arquivo sem import nenhum**, e não no verificador, porque
+três telas o mostram e duas são componentes de cliente — o verificador lê
+`process.env` e é código de servidor. A frase das telas é `AVISO_DE_IDADE`, do
+mesmo arquivo: estava escrita à mão em três lugares, e foi assim que a
+divergência durou. [lib/idade.test.ts](lib/idade.test.ts) varre `app/`,
+`features/`, `design/` e `lib/` e reprova quem voltar a escrever "maiores de
+N" em texto de tela. Comentário que conta a história passa — apagá-lo apagaria
+o motivo.
 
 A verificação usa **só a data declarada** (`AGE_VERIFIER=self_declared`), o que
 a RN29 proíbe. É decisão registrada do PO para permitir cadastros de teste, e

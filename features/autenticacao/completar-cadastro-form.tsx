@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { Button, Checkbox, Input, Steps } from "@/design/components";
 import { completarCadastro } from "./actions";
 import type { ActionState } from "./shared";
+import { AVISO_DE_IDADE } from "@/lib/idade";
 
 /**
  * Tela 3, versão "Complete seu cadastro".
@@ -68,7 +69,7 @@ export function CompletarCadastroForm({
 
       <div className="bg-paper flex flex-col gap-1 rounded-sm p-2">
         <p className="text-bodyStrong text-ink">Verificar idade</p>
-        <p className="text-caption text-inkMuted">O Hub é para maiores de 18 anos.</p>
+        <p className="text-caption text-inkMuted">{AVISO_DE_IDADE}</p>
         <Input
           label="Data de nascimento"
           name="birthDate"
