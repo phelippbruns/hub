@@ -78,6 +78,105 @@ coisa certa?".
 
 👁 **Atenção** — puro hábito.
 
+### Verde hoje não é verde amanhã: o navegador atualiza sozinho
+
+Em 24 de novembro de 2026 o PR de atualização de dependências reprovou numa
+jornada: o menu "..." da contribuição **fugia do cursor**. Clicar no botão e
+mover o mouse até "Apagar contribuição" fechava o menu no caminho.
+
+Não havia commit nenhum sobre menu. O que mudou foi o navegador: o
+Chromium 159 passou a pendurar um elemento `absolute` na caixa de linha
+quando o `relative` é um `<span>`, e o balão nascia 44 px à esquerda —
+ao lado do botão em vez de embaixo, tocando-o num ponto só.
+
+| Navegador | Direita do botão | Direita do balão |
+| --- | --- | --- |
+| Chrome 158 | 1248 | 1248 |
+| Chromium 159 | 1248 | 1204 |
+
+*Por que passou:* **nada passou — o defeito ainda não existia.** A suíte
+estava verde porque o navegador da Playwright era o Chromium 153. O defeito
+ia chegar quando o Chrome do PO atualizasse, sem deploy, sem commit e sem
+aviso: um dia o menu funciona, no outro não. A atualização de dependências
+foi o que trouxe o Chrome do futuro para dentro da CI, semanas antes.
+
+*Como resolvi:* cada âncora de menu declara a própria caixa
+(`relative inline-block`), e a jornada "todo balão termina na direita do
+botão" mede os quatro menus da tela — geometria, não visibilidade:
+`toBeVisible` passa com o balão a 44 px de onde devia.
+
+**Regra:** atualizar dependências não é limpeza de rotina, é **antecipar o
+mundo**. Um PR do Dependabot que reprova pode estar denunciando um defeito
+que ainda não chegou — antes de mexer no teste para ele passar, medir no
+navegador que ele usa e no navegador de hoje, e comparar.
+
+🔒 **Barrado** — a jornada mede os quatro menus, e a varredura
+(`design/components/menu-suspenso.test.ts`) reprova a âncora que nasça sem
+caixa própria. As duas foram vistas reprovando com o defeito de volta.
+
+### Eu disse "quatro quebrados" lendo o código; a medida disse um
+
+Na mesma rodada, relatei ao PO que **quatro** menus estavam quebrados, porque
+quatro usam `<span>` como âncora. Fui medir: três estavam dentro de um
+`flex`, que transforma o filho em bloco e dá caixa própria de graça. **Só um
+quebrava.**
+
+*Por que passou:* a leitura era correta sobre o código e errada sobre a tela.
+Quatro `<span>` iguais no editor não são quatro `<span>` iguais no
+navegador — o pai decide. E a explicação era boa o bastante para eu não
+desconfiar dela.
+
+*Como resolvi:* medi os quatro e corrigi o relato na mensagem seguinte. A
+correção dos três que escaparam **ficou de pé** — porque escapar por acidente
+é o defeito: tirar o `flex` do pai um dia quebraria os três calado.
+
+**Regra:** é a mesma de `w-full shrink-0` e a mesma da seção 8, item 5 —
+**causa entra depois da medida.** E uma a mais: contar quantos lugares têm o
+formato errado não é contar quantos estão errados.
+
+👁 **Atenção** — é hábito. A barreira da entrada acima cobre o defeito, não
+a pressa de explicar.
+
+### Parei de medir quando o número concordou com a teoria
+
+Na mesma rodada, a suíte completa reprovou numa jornada da Cabine — "a
+mensagem não chegou pelo Realtime". O grupo de dependências atualizava o
+`supabase-js`, e a Cabine é o único lugar em que o navegador fala direto
+com o Supabase. Hipótese óbvia.
+
+Rodei uma vez com a versão nova: reprovou. Uma vez com a antiga: passou.
+**Relatei que a biblioteca tinha quebrado o tempo real** e fui investigar o
+changelog, o protocolo do WebSocket e o código da biblioteca — uns quarenta
+minutos. O WebSocket entregava a mensagem, o que me levou a culpar a tela.
+
+Então medi o **tempo** de entrega, três vezes em cada versão:
+
+| Versão | Medidas |
+| --- | --- |
+| 2.119 (nova) | 795 ms, 815 ms, **2217 ms** |
+| 2.117 (antiga) | **reprovou**, 832 ms, 796 ms |
+
+A jornada exige menos de 2 s, que é o critério do produto. A entrega leva uns
+800 ms e de vez em quando passa de 2 s — **nas duas versões**. Máquina minha,
+com Docker, build e navegador disputando. Não havia defeito nenhum.
+
+*Por que passou:* porque uma rodada em cada versão deu **exatamente** o
+resultado que a hipótese pedia, e eu tratei coincidência como controle. Um
+teste com limite de tempo perto da média falha por sorteio: duas amostras
+não distinguem "a versão nova é mais lenta" de "esta jornada é instável".
+
+*Como resolvi:* medi o tempo em vez do passa/reprova, e repeti. O número —
+800 ms com picos — respondeu as duas perguntas de uma vez.
+
+**Regra:** antes de culpar uma mudança por um teste vermelho, **repetir nos
+dois lados**. Uma amostra de cada não é comparação, é anedota. E num teste
+com limite de tempo, medir o tempo diz mais do que o veredito: o veredito
+esconde se o limite está apertado.
+
+👁 **Atenção** — é hábito. A jornada da Cabine continua com 2 s, que é o
+critério do PO, e continua podendo falhar numa máquina ocupada; a CI é quem
+decide.
+
 ---
 
 ## 2. Testes que não testam
@@ -3054,7 +3153,8 @@ aviso do limite diário conferido **nos dois sentidos**, o nome de quem
 envia no tempo real (com a revalidação presa), o que o navegador alcança
 no banco (o mínimo **e** o suficiente), a trava do gatilho observada em
 `pg_stat_activity`, e as três listas do post — editor, schema e desenho —
-comparadas entre si.
+comparadas entre si, e a caixa própria de toda âncora de menu — medida na
+tela e varrida no código.
 
 O resto é 👁 — protegido só por esta página. **Cada um desses é uma dívida**, e
 a pergunta a fazer em cada revisão é: dá para virar teste?

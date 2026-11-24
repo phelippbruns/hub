@@ -115,3 +115,109 @@ describe("todo menu suspenso leva âncora", () => {
     },
   );
 });
+
+/**
+ * **E a âncora de todo menu declara a própria caixa.**
+ *
+ * O balão é `absolute right-0`: ele se pendura na caixa do elemento
+ * `relative` que o envolve, e **essa caixa tem de incluir o botão**.
+ *
+ * Em 24 de novembro de 2026 o Chromium 159 mudou de onde um elemento
+ * posicionado se pendura quando o `relative` é um elemento **de linha**, e
+ * o menu da contribuição passou a nascer 44 px à esquerda — ao lado do
+ * botão, em vez de embaixo. Botão e balão passavam a se tocar num ponto
+ * só, e levar o mouse de um até o outro fechava o menu debaixo do cursor.
+ *
+ * Três das quatro âncoras em `<span>` escaparam **por acidente**: eram
+ * itens de um `flex`, que transforma o filho em bloco e dá caixa própria
+ * de graça. É isso que esta varredura tira do caminho — a âncora não
+ * depende mais de onde foi parar.
+ *
+ * `<div>` já é bloco, e passa sem classe nenhuma. `<span>` precisa dizer.
+ *
+ * **O que ela não alcança:** a geometria. Uma classe certa com um pai
+ * estranho ainda poderia errar, e nenhuma leitura de texto veria. Quem
+ * mede são os quatro menus da jornada "todo balão termina na direita do
+ * botão" (`e2e/correcoes-v6.spec.ts`).
+ */
+
+/** Classes do Tailwind que dão caixa própria ao elemento. */
+const CAIXA_PROPRIA = [
+  "block",
+  "inline-block",
+  "flex",
+  "inline-flex",
+  "grid",
+  "inline-grid",
+  "table",
+  "flow-root",
+];
+
+/** Tags que já são bloco sem precisar de classe. */
+const JA_SAO_BLOCO = new Set(["div", "section", "header", "footer", "aside", "nav", "li", "p"]);
+
+/** A abertura da tag que carrega `ref={nome}`, com o nome da tag. */
+function ancoraDe(fonte: string, nome: string): { tag: string; abertura: string } | null {
+  const ref = fonte.indexOf(`ref={${nome}}`);
+  if (ref < 0) return null;
+
+  // De trás para a frente até o `<` que abre este elemento.
+  let inicio = -1;
+  for (let i = ref; i >= 0; i--) {
+    if (fonte[i] === "<") {
+      inicio = i;
+      break;
+    }
+    if (fonte[i] === ">") return null; // passou o fim de outra tag: não é aqui.
+  }
+  if (inicio < 0) return null;
+
+  const tag = /^<([A-Za-z][\w.-]*)/.exec(fonte.slice(inicio))?.[1];
+  if (!tag) return null;
+
+  let profundidade = 0;
+  for (let i = inicio; i < fonte.length; i++) {
+    const c = fonte[i];
+    if (c === "{") profundidade += 1;
+    else if (c === "}") profundidade -= 1;
+    else if (c === ">" && profundidade === 0) {
+      return { tag, abertura: fonte.slice(inicio, i + 1) };
+    }
+  }
+  return null;
+}
+
+describe("a âncora de todo menu tem caixa própria", () => {
+  const todos = PASTAS.flatMap(arquivos).filter((arquivo) => !PERMITIDOS.has(arquivo));
+
+  const ancoras = todos.flatMap((arquivo) => {
+    const fonte = readFileSync(arquivo, "utf8");
+    return aberturasDeMenu(fonte)
+      .map((abertura) => /\bancora=\{([A-Za-z_$][\w$]*)\}/.exec(abertura)?.[1])
+      .filter((nome): nome is string => !!nome)
+      .map((nome) => ({ arquivo, nome, achada: ancoraDe(fonte, nome) }));
+  });
+
+  it("acha as âncoras que existem hoje", () => {
+    // Varredura que não acha nada passa vazia e não guarda coisa nenhuma.
+    expect(ancoras.length).toBeGreaterThanOrEqual(6);
+    expect(ancoras.filter((a) => !a.achada)).toEqual([]);
+  });
+
+  it.each(ancoras.map((a) => [`${a.arquivo} → ${a.nome}`, a] as const))(
+    "%s declara a caixa",
+    (_nome, { achada }) => {
+      const { tag, abertura } = achada!;
+      if (JA_SAO_BLOCO.has(tag)) return;
+
+      const classes = /className="([^"]*)"/.exec(abertura)?.[1]?.split(/\s+/) ?? [];
+
+      expect(
+        classes.some((c) => CAIXA_PROPRIA.includes(c)),
+        `<${tag}> é elemento de linha, e o balão se pendura na caixa dele. ` +
+          `Sem uma classe de caixa (${CAIXA_PROPRIA.join(", ")}), o menu nasce ao ` +
+          `lado do botão em vez de embaixo — e fecha quando o mouse vai até ele.`,
+      ).toBe(true);
+    },
+  );
+});

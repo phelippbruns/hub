@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import {
   cadastroConcluido,
   campoDeContribuicao,
@@ -587,5 +587,85 @@ test.describe("a lista de contribuições", () => {
     await expect(page.getByRole("button", { name: "Carregar mais contribuições" })).toHaveCount(0);
     // E a primeira, que é a mais antiga, chegou na segunda página.
     await expect(page.getByText(texto)).toBeVisible();
+  });
+});
+
+/**
+ * **Todo balão termina na direita do botão que o abriu.**
+ *
+ * O `MenuSuspenso` é `absolute right-0`: ele se pendura na caixa do
+ * elemento `relative` que o envolve, e **essa caixa tem de incluir o
+ * botão**. Quando não inclui, o balão nasce ao lado em vez de embaixo —
+ * botão e balão passam a se tocar num ponto só, e levar o mouse de um até
+ * o outro **fecha o menu debaixo do cursor**.
+ *
+ * Isso apareceu em 24 de novembro de 2026, com o Chromium 159, que mudou
+ * de onde um elemento posicionado se pendura quando o `relative` é um
+ * elemento **de linha**. Medido naquele dia, na mesma página:
+ *
+ * | Navegador | Direita do botão | Direita do balão |
+ * | --- | --- | --- |
+ * | Chrome 158 | 1248 | 1248 |
+ * | Chromium 159 | 1248 | 1204 |
+ *
+ * Três dos quatro `<span>` que ancoram menu estavam dentro de um `flex`,
+ * que transforma o filho em bloco e dá caixa própria de graça — então só
+ * o da contribuição quebrou. **Depender disso é o defeito**: tirar o
+ * `flex` do pai, um dia, quebraria os outros três calado. Por isso cada
+ * âncora declara a própria caixa, e esta jornada **mede os quatro**.
+ *
+ * Ela mede a geometria, e não a visibilidade: `toBeVisible` passa com o
+ * balão a 44 px de onde devia.
+ */
+test.describe("todo balão termina na direita do botão", () => {
+  async function direitasIguais(page: Page, botao: Locator, quem: string) {
+    await botao.click();
+    const balao = page.getByRole("dialog");
+    await expect(balao, `${quem}: o balão não abriu`).toBeVisible();
+
+    const b = (await botao.boundingBox())!;
+    const d = (await balao.boundingBox())!;
+
+    expect(
+      Math.round(d.x + d.width),
+      `${quem}: o balão termina em ${Math.round(d.x + d.width)} e o botão em ` +
+        `${Math.round(b.x + b.width)}. Fora de linha, o caminho do botão até o ` +
+        `balão atravessa página vazia e o menu fecha no meio.`,
+    ).toBe(Math.round(b.x + b.width));
+
+    // E o balão desce do botão, não sobe nem cobre: encosta embaixo.
+    expect(Math.round(d.y), `${quem}: o balão não encosta embaixo do botão`).toBe(
+      Math.round(b.y + b.height),
+    );
+
+    await page.keyboard.press("Escape");
+    await expect(balao).toHaveCount(0);
+  }
+
+  test("na capa da comunidade, no painel do tópico e na contribuição", async ({ page }) => {
+    await entrarNoApp(page, "direita");
+    const { comunidade, texto } = await topicoComUmaContribuicao(page, "Direita");
+
+    /*
+     * A capa primeiro, **com o painel fechado**: com ele aberto existem
+     * dois botões "Mais opções" na tela, e um deles é o do painel.
+     */
+    await page.goto(comunidade);
+    await direitasIguais(page, page.getByRole("button", { name: "Mais opções" }), "capa");
+
+    // Agora o tópico, que abre o painel e traz os outros três.
+    await page.goBack();
+    await esperarTopicoNoPainel(page, "primeiro-disco");
+
+    const painel = page.locator("aside");
+    await direitasIguais(
+      page,
+      painel.getByRole("button", { name: /^Compartilhar / }),
+      "compartilhar do painel",
+    );
+    await direitasIguais(page, painel.getByRole("button", { name: "Mais opções" }), "painel");
+
+    const cartao = page.locator("article").filter({ hasText: texto }).first();
+    await direitasIguais(page, cartao.getByRole("button", { name: /^Opções/ }), "contribuição");
   });
 });

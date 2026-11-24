@@ -145,17 +145,26 @@ export function LinhaDeResposta({
       A escuta de "saiu com o mouse" fica **neste** grupo, que envolve o
       botão e o balão — e não em cada um.
       
-      O balão abre 4 px abaixo do botão; sair do botão para entrar nele
-      atravessa esse vão, e uma escuta por elemento fecharia o menu no
+      O balão encosta embaixo do botão — `mt-0` no componente, porque um
+      vão de 4 px era buraco por onde o ponteiro passava. Mesmo encostado,
+      uma escuta no botão dispararia ao sair dele e fecharia o menu no
       caminho. `onMouseLeave` no grupo só dispara quando o ponteiro sai
       dos dois.
 
       Teclado e toque não disparam saída de mouse: para eles continuam
       valendo `Esc`, o clique fora e o clique no próprio botão.
+
+      **E `inline-block` não é enfeite.** O balão é `absolute right-0` e se
+      pendura na caixa deste `span` — que precisa incluir o botão. Como
+      `span` é elemento de linha, o Chromium 159 passou a pendurá-lo na
+      caixa de linha, e o balão nascia 44 px à esquerda, ao lado do botão
+      em vez de embaixo: levar o mouse de um até o outro fechava o menu no
+      caminho. Medido em 24 de novembro de 2026; a jornada "todo balão
+      termina na direita do botão" é quem guarda.
     */
     <span
       ref={grupo}
-      className="relative"
+      className="relative inline-block"
       onMouseLeave={() => setAberto((a) => (a === "menu" ? "nenhum" : a))}
     >
       <RoundIconButton

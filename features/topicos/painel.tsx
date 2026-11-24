@@ -167,8 +167,16 @@ export function PainelDoTopico({
           <CommunityChip nome={nomeDaComunidade} href={`/c/${comunidadeSlug}`} />
         </span>
 
+        {/*
+          `inline-block` junto com `relative`: o balão é `absolute right-0`
+          e se pendura na caixa deste `span`, que precisa incluir o botão.
+          Aqui ele é item de um `flex`, e isso já o transforma em bloco —
+          então a classe é inerte **hoje**. Ela está escrita porque tirar o
+          `flex` do pai um dia quebraria o menu calado, como o Chromium 159
+          quebrou o da contribuição em 24 de novembro de 2026.
+        */}
         <span
-          className="relative"
+          className="relative inline-block"
           ref={grupoDeCompartilhar}
           onMouseLeave={() => setAberto((a) => (a === "compartilhar" ? "nenhum" : a))}
         >
@@ -202,7 +210,8 @@ export function PainelDoTopico({
         </span>
 
         <span
-          className="relative"
+          // `inline-block` pelo mesmo motivo do irmão acima.
+          className="relative inline-block"
           /*
             O estado é compartilhado entre os dois menus e a folha de
             apagar, então o handler confere o valor antes de fechar: sem
