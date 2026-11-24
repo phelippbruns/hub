@@ -260,6 +260,32 @@ Cinco coisas precisam estar de pé ao mesmo tempo, e a falta de qualquer uma dá
 
 E a assinatura não reenvia o que passou: ao chegar em `SUBSCRIBED`, a tela busca de novo o que o servidor tem, senão a mensagem enviada entre abrir e assinar some até alguém recarregar.
 
+**A assinatura entrega colunas, não a mensagem que a tela desenha.** Ela não
+passa pelo Prisma nem pela camada de dados: chega `id`, `text`, `author_id`,
+`media_kind` — e nada mais. Tudo que a tela mostra e **não é coluna** tem de
+ser resolvido no cliente, de propósito:
+
+- **o nome e a foto de quem enviou** vêm da lista de participantes, que a
+  página já carregou para o cabeçalho (`quemEnviou` em
+  [features/cabines/conversa.tsx](features/cabines/conversa.tsx)). Até 23 de
+  novembro de 2026 isso ficava `null`, e **toda mensagem que chegava ao vivo
+  aparecia como "Pessoa que saiu do Hub"**;
+- **o endereço da imagem** não dá para resolver no cliente — `media_url` é o
+  caminho no depósito, e assinar exigiria abrir o depósito. Essa espera o
+  servidor, e é a exceção consciente.
+
+Autor que não está na lista — alguém acrescentado ao grupo depois de a tela
+abrir — **não vira nome escolhido**: a tela pede `router.refresh()` e o
+servidor resolve.
+
+**E defeito assim não se vê pelo estado final: ele se cura.** A busca ao
+assinar traz tudo resolvido, então o erro dura o que a rede demorar — um
+piscar na máquina de quem desenvolve, um nome parado na tela com o servidor
+em São Paulo. A jornada **segura a revalidação** (`page.route` sobre os
+pedidos `_rsc`) antes de mandar a mensagem, para a única fonte possível do
+nome ser a assinatura. Contar o piscar, sem segurar nada, passa ou reprova
+por sorte de temporização — foi tentado, e está no `faustao.md`.
+
 **A imagem é reduzida ao tamanho em que o Hub a desenha, e só isso é
 guardado.** Até 8 de novembro de 2026 a foto ia para o depósito como veio,
 até 4 MB, e o arquivo inteiro era baixado para pintar um avatar de 30 px —

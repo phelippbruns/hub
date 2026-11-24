@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { PaginaCarregando } from "@/design/components";
 import { CabecalhoDaCabine } from "@/features/cabines/cabecalho";
 import { CampoDeMensagem } from "@/features/cabines/campo-de-mensagem";
-import { Conversa, type MensagemNaTela } from "@/features/cabines/conversa";
+import { Conversa, type MensagemNaTela, type QuemEstaNaCabine } from "@/features/cabines/conversa";
 import { ListaDeCabines } from "@/features/cabines/lista";
 import { MenuDaCabine } from "@/features/cabines/menu";
 import { getViewer } from "@/lib/auth/session";
@@ -103,7 +103,20 @@ export default async function CabinePage({ params }: { params: Params }) {
           <Suspense
             fallback={<PaginaCarregando titulo={false} linhas={2} label="Carregando a conversa" />}
           >
-            <Mensagens cabinId={cabine.id} />
+            <Mensagens
+              cabinId={cabine.id}
+              /*
+                Quem está na conversa desce junto: é com esta lista que a
+                tela dá nome a quem chega pelo tempo real, sem ida ao
+                servidor. A página já a carregou para o cabeçalho.
+              */
+              participantes={cabine.participantes.map((p) => ({
+                id: p.id,
+                nome: p.nome,
+                handle: p.handle,
+                avatarUrl: p.avatarUrl,
+              }))}
+            />
           </Suspense>
         </div>
 
@@ -126,7 +139,13 @@ export default async function CabinePage({ params }: { params: Params }) {
 }
 
 /** As mensagens, que são a consulta cara: uma assinatura por imagem. */
-async function Mensagens({ cabinId }: { cabinId: string }) {
+async function Mensagens({
+  cabinId,
+  participantes,
+}: {
+  cabinId: string;
+  participantes: QuemEstaNaCabine[];
+}) {
   const viewer = await getViewer();
   const mensagens = await listMessages(viewer, cabinId);
   const meuId = viewer.kind === "member" ? viewer.profileId : "";
@@ -148,5 +167,7 @@ async function Mensagens({ cabinId }: { cabinId: string }) {
     compartilhado: mensagem.compartilhado,
   }));
 
-  return <Conversa cabinId={cabinId} iniciais={naTela} meuId={meuId} />;
+  return (
+    <Conversa cabinId={cabinId} iniciais={naTela} meuId={meuId} participantes={participantes} />
+  );
 }
