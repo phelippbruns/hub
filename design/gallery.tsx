@@ -793,7 +793,7 @@ export function DesignGallery() {
 
         <Card title="Comunidade sugerida" wide>
           <div className="w-full">
-            <SuggestionRow nome="Música Eletrônica" universo="Música" membros={3412} href="#" />
+            <SuggestionRow nome="Música Eletrônica" membros={3412} href="#" />
           </div>
         </Card>
 

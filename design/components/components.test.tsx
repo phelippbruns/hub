@@ -298,10 +298,7 @@ const cases: Array<[string, React.ReactElement]> = [
       quando="há 20 min"
     />,
   ],
-  [
-    "comunidade sugerida",
-    <SuggestionRow nome="Vinil" universo="Música" membros={2100} href="/c/vinil" />,
-  ],
+  ["comunidade sugerida", <SuggestionRow nome="Vinil" membros={2100} href="/c/vinil" />],
   [
     "mídia da contribuição",
     <MidiaDaContribuicao
