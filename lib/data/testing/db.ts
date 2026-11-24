@@ -112,6 +112,24 @@ export async function joinAs(communityId: string, profileId: string) {
  * provaria que as políticas funcionam. Aqui a conexão usa um papel comum e se
  * identifica com `hub.viewer_id`, que é o que `hub_viewer_id()` lê quando não
  * há sessão do Supabase.
+ *
+ * **Os privilégios são devolvidos dentro de uma transação, e desfeitos no
+ * fim.** Desde 24 de novembro de 2026 `anon` e `authenticated` não alcançam
+ * tabela nenhuma: a chave publicável viaja em todo navegador, e o RLS é por
+ * linha, nunca por coluna — foi assim que a data de nascimento de todo mundo
+ * ficou legível.
+ *
+ * Só que o Hub tem **duas** barreiras de propósito (regra de segurança 2), e
+ * sem os privilégios a consulta para antes da política: os testes de RLS
+ * morreriam com "permission denied" sem nunca exercitar o que foram escritos
+ * para provar. O `GRANT` aqui é o que mantém a segunda barreira **medida** —
+ * se um dia alguém reabrir a primeira, estes testes dizem se a de baixo
+ * ainda segura.
+ *
+ * `GRANT` é transacional no Postgres, então o `ROLLBACK` do fim o desfaz
+ * sozinho, inclusive quando o teste estoura no meio. Nada vaza para a
+ * próxima conexão — e `lib/data/privilegios.db.test.ts` confere o estado
+ * real, fora daqui.
  */
 export async function asViewer<T>(
   viewerId: string | null,
@@ -120,12 +138,47 @@ export async function asViewer<T>(
   const client = new pg.Client(url);
   await client.connect();
   try {
+    await client.query("BEGIN");
+    await client.query("GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated");
+
     // `authenticated` é o papel que o Supabase usa para quem está logado: tem
     // acesso às tabelas, mas está sujeito ao RLS.
     await client.query("SET ROLE authenticated");
     if (viewerId) {
       await client.query("SELECT set_config('hub.viewer_id', $1, false)", [viewerId]);
     }
+    return await run(client);
+  } finally {
+    /*
+     * `ROLLBACK` e não `COMMIT`: o que interessa destes testes é o que a
+     * política respondeu, nunca o que ficou gravado. E é ele que devolve os
+     * privilégios ao estado fechado.
+     */
+    await client.query("ROLLBACK").catch(() => {});
+    await client.end();
+  }
+}
+
+/**
+ * Uma conexão como o navegador a tem: papel `authenticated` e **nenhum
+ * privilégio devolvido**.
+ *
+ * Diferente de `asViewer`, que concede tudo para medir o RLS. Aqui o que se
+ * mede é o contrário: se os privilégios que sobraram bastam para as
+ * políticas **rodarem**.
+ *
+ * A distinção custou uma CI vermelha em 24 de novembro de 2026. A política
+ * de `messages` chama `hub_is_cabin_member()`, que lê `cabin_members` como
+ * quem perguntou; sem aquele privilégio a política falha por dentro e o
+ * Postgres recusa a consulta inteira. A tabela `messages` seguia
+ * alcançável, o teste de privilégio mínimo passava, e a mensagem da Cabine
+ * não chegava — sem erro na tela nem no servidor.
+ */
+export async function comoNavegador<T>(run: (client: pg.Client) => Promise<T>): Promise<T> {
+  const client = new pg.Client(url);
+  await client.connect();
+  try {
+    await client.query("SET ROLE authenticated");
     return await run(client);
   } finally {
     await client.end();

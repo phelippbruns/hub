@@ -2880,6 +2880,168 @@ servidor, e a decisão precisa ser consciente. A imagem desta mesma tela já
 era um caso conhecido e está comentado no arquivo; o nome passou batido
 porque ninguém perguntou "o que mais falta nesta linha?".
 
+### A data de nascimento de todo mundo estava legível com a chave pública
+
+**Quando:** desde a F02 (4 de outubro de 2026). Achado em 24 de novembro, numa varredura que o PO pediu.
+
+**O que estava acontecendo:** com a chave publicável do Supabase — que viaja
+dentro de **todo navegador**, visível para quem abre as ferramentas de
+desenvolvedor — um `GET /rest/v1/profiles` devolvia a tabela inteira:
+`birth_date`, `age_verification_status`, `age_verification_method`,
+`invite_policy`, os quatro `notify_*` e `hide_followers`. `memberships` saía
+em massa pelo mesmo caminho.
+
+**A causa é um mal-entendido sobre o Postgres**, e está escrita na própria
+política:
+
+```sql
+/* RN17: nome, @ e foto são públicos; é o que todo conteúdo exibe. */
+CREATE POLICY profiles_read ON profiles FOR SELECT
+  USING (deleted_at IS NULL AND NOT hub_has_block_between(id, hub_viewer_id()));
+```
+
+O comentário diz três colunas. **RLS é por linha, nunca por coluna** —
+liberar a linha libera as 27. A intenção estava certa e o mecanismo não
+sabia cumpri-la.
+
+Por baixo disso há o padrão do Supabase, que concede **todos** os
+privilégios a `anon` e `authenticated` em todas as tabelas de `public`. O
+RLS não era a segunda barreira ali: era a única.
+
+**Por que passou:** por três camadas de conferência, todas olhando para o
+lado certo e enxergando a coisa errada.
+
+1. **O teste de RLS existe e passa.** `privacidade.db.test.ts` prova que
+   visitante não lê resposta e que a Coleção alheia não aparece. Ele mede as
+   **linhas** que a política devolve, que é o que a política decide — e nunca
+   perguntou quais **colunas** vinham junto.
+2. **O `CLAUDE.md` afirma a doutrina certa** ("RLS ligado mesmo assim",
+   "segunda barreira") e ela estava implementada. A falha não foi esquecer a
+   segunda barreira: foi a primeira não existir.
+3. **Escrever estava barrado.** `DELETE` anônimo pelo REST devolve 204 sem
+   apagar linha nenhuma. Quem conferisse escrita — que é o reflexo — sairia
+   tranquilo.
+
+🔒 **Barrado** — a migration `20261124120000` revoga os privilégios de `anon`
+e `authenticated` em tudo e devolve só `SELECT` em `messages`, que é do que o
+Realtime da Cabine precisa. O padrão para **tabelas futuras** também foi
+revogado: sem isso a próxima migration entrega a tabela nova aberta, e é o
+mesmo formato do menu suspenso que nasceu errado quatro vezes.
+`lib/data/privilegios.db.test.ts` confere o estado real — inclusive
+`has_column_privilege('anon','profiles','birth_date','SELECT')`, que é a
+coluna que começou tudo — e foi visto reprovar nos quatro casos.
+
+**E a segunda barreira continua medida.** Sem privilégio, a consulta para
+antes da política, e os treze testes de RLS morreriam com "permission
+denied" sem exercitar nada. `asViewer` passou a devolver os privilégios
+**dentro de uma transação**, desfeita no `ROLLBACK`. Duas barreiras só valem
+quando as duas são conferidas; a de cima protege hoje, a de baixo protege no
+dia em que alguém reabrir a de cima.
+
+**A lição:** *"o teste passa"* e *"a regra vale"* são afirmações sobre coisas
+diferentes quando o mecanismo tem granularidade menor que a intenção. A
+política decide **linhas**; o comentário prometia **colunas**. Quando um
+comentário descreve a intenção num vocabulário que o mecanismo não tem, ele
+não está documentando — está escondendo.
+
+E o atalho que teria achado isto em dois minutos, a qualquer dia dos
+cinquenta: **pedir os próprios dados com a chave que está no navegador.** Foi
+o primeiro comando da varredura.
+
+### Duas afirmações minhas que a medida derrubou, na mesma varredura
+
+**Quando:** 24 de novembro de 2026.
+
+**A primeira.** Relatei ao PO que a regra de segurança 5 do `CLAUDE.md`
+estava mentindo — que a limitação de taxa não existia. Existe:
+`lib/data/auth-attempts.ts`, com teto por email e por IP para entrar, criar
+conta e recuperar senha, usada nas três ações e coberta por teste de banco.
+Meu `grep` procurou `rateLimit` e o módulo se chama `isRateLimited`:
+**errei por uma maiúscula**, e transformei a ausência de resultado em
+afirmação de ausência.
+
+**A segunda.** Testei a leitura anônima contra produção e relatei que estava
+protegida. O `.env.local` aponta para o Supabase **local**, que estava
+desligado: a resposta foi HTTP 000, conexão recusada. Li "sem dados" como
+"negado". Era o contrário — a leitura funcionava, e eu só descobri ao repetir
+contra um banco que estava de pé.
+
+**A lição:** resposta vazia não é resposta negativa. `grep` sem acerto,
+`curl` sem conexão e consulta sem linha dizem todos a mesma coisa — nada — e
+nenhum deles diz "não existe". Antes de afirmar ausência, prove que a
+pergunta chegou: rode o mesmo comando contra um caso que **deveria** achar
+algo. Na varredura isso custou duas correções ao PO no mesmo relatório.
+
+### Fechei a porta do banco e tranquei a Cabine junto
+
+**Quando:** 24 de novembro de 2026, na própria varredura de segurança.
+
+**O que aconteceu:** revoguei os privilégios de `anon` e `authenticated` em
+todas as tabelas e devolvi `SELECT` só em `messages`, que é o que a
+assinatura da Cabine lê. Rodei a jornada do tempo real: verde. Rodei a suíte
+inteira: 340 verdes. Subi o PR.
+
+**A CI reprovou na jornada do tempo real.** E a primeira coisa que eu pensei
+foi que ela nem roda lá.
+
+**Dois erros encadeados, e o segundo é pior que o primeiro.**
+
+*O primeiro, técnico.* `messages_read_member` chama `hub_is_cabin_member()`,
+que é `LANGUAGE sql STABLE` — roda como **quem perguntou**, não como dono — e
+lê `cabin_members`. Sem aquele privilégio a política falha **por dentro**, e o
+Postgres recusa a consulta inteira:
+
+```
+ERROR:  permission denied for table cabin_members
+CONTEXT:  SQL function "hub_is_cabin_member" statement 1
+```
+
+`messages` continuava alcançável. O teste que eu tinha escrito media o
+privilégio **mínimo** — "`authenticated` só lê `messages`" — e passava feliz.
+Ninguém media o privilégio **suficiente**.
+
+Para quem usa, o sintoma é a mensagem que não chega. Sem erro na tela, sem
+erro no servidor: quem falhou foi a política.
+
+*O segundo, de leitura.* O comentário dentro do próprio teste dizia "a CI sobe
+o Supabase com `-x realtime`: o serviço simplesmente não existe lá". A linha
+77 do workflow exclui sete serviços, e `realtime` **não é um deles**. O
+comentário estava desatualizado, eu o repeti ao PO como fato, e quase usei a
+frase para descartar uma CI vermelha que estava certa.
+
+**Por que a rodada local ficou verde com o defeito em pé.** Minha primeira
+explicação foi que o serviço de Realtime estava de pé desde antes da
+migration, e que bastaria reiniciá-lo. **Medi, e está errada:** com o
+privilégio arrancado e o serviço reiniciado, a jornada passou do mesmo jeito,
+enquanto o SQL continuava respondendo `permission denied`.
+
+O que a medida diz é mais incômodo: **o Realtime local não aplica a política
+como o da CI aplica.** A mesma jornada, no mesmo código, é mais fraca aqui do
+que lá. Não persegui o porquê — o que importa é a consequência, e ela é que
+**para privilégio e RLS, a jornada local não é prova**. A prova é o SQL, e é
+por isso que a barreira ficou num teste de banco e não numa jornada.
+
+🔒 **Barrado** — a migration concede as **duas** tabelas, e
+`privilegios.db.test.ts` ganhou um teste que roda a política de verdade.
+Ele precisou de uma conexão nova: a primeira versão usava `asViewer`, **que
+concede todos os privilégios dentro da transação** para medir o RLS — e
+passou com o defeito instalado. `comoNavegador` conecta, assume o papel e
+**não devolve nada**, que é o estado real do navegador. Visto reprovar com o
+privilégio arrancado, com a mensagem que descreve a falha.
+
+**A lição, e ela tem duas metades.**
+
+**Privilégio mínimo e privilégio suficiente são medidas diferentes, e as duas
+precisam de teste.** "Alcança só o que deve" não diz "alcança o que precisa".
+Entre as duas mora toda política que consulta uma segunda tabela — e, num
+banco com RLS, isso é quase toda política.
+
+**E comentário é afirmação sem teste.** O que diz respeito ao mundo fora do
+arquivo — o que a CI faz, onde um serviço roda, o que outro time configurou —
+envelhece sem avisar e ninguém o vê envelhecer. Quando um comentário desses
+contradiz uma medida, **a medida ganha, sempre**, e o comentário vira a
+próxima coisa a conferir. Eu fiz o contrário por alguns minutos.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
@@ -2889,9 +3051,10 @@ num lugar só, os quatro caminhos de fechar um menu suspenso,
 segredo no repositório, corrida entre testes, um ícone aceso por tela, os
 utilitários de zero, os dois limites de camada que o build recusa, o
 aviso do limite diário conferido **nos dois sentidos**, o nome de quem
-envia no tempo real (com a revalidação presa), a trava do gatilho
-observada em `pg_stat_activity`, e as três listas do post — editor,
-schema e desenho — comparadas entre si.
+envia no tempo real (com a revalidação presa), o que o navegador alcança
+no banco (o mínimo **e** o suficiente), a trava do gatilho observada em
+`pg_stat_activity`, e as três listas do post — editor, schema e desenho —
+comparadas entre si.
 
 O resto é 👁 — protegido só por esta página. **Cada um desses é uma dívida**, e
 a pergunta a fazer em cada revisão é: dá para virar teste?

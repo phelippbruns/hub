@@ -28,14 +28,15 @@ function unico(p: string) {
 /**
  * O serviço de Realtime está de pé?
  *
- * A CI sobe o Supabase com `-x realtime`: o serviço simplesmente não existe
- * lá. Sem esta porteira, a jornada do tempo real reprovaria sempre na CI
- * por falta de infraestrutura, e não por defeito — e o hábito de reprovar
- * por motivo errado é o que ensina a ignorar o vermelho.
+ * **A CI roda esta jornada.** `.github/workflows/ci.yml` exclui
+ * `imgproxy,studio,edge-runtime,logflare,vector,supavisor,postgres-meta` —
+ * e `realtime` **não** está nessa lista. Este comentário dizia o contrário
+ * até 24 de novembro de 2026, e a frase errada me fez descartar uma CI
+ * vermelha como "o teste nem roda lá": ela rodava, e estava certa.
  *
- * A porteira é **barulhenta de propósito**: o motivo aparece no relatório,
- * em vez de um teste que some. Para ligar de verdade, tire `realtime` da
- * lista de exclusões em `.github/workflows/ci.yml`.
+ * A porteira continua existindo para quem roda sem o serviço de pé — o
+ * Supabase local pode subir sem ele —, e é **barulhenta de propósito**: o
+ * motivo aparece no relatório, em vez de um teste que some.
  */
 function temRealtime(): boolean {
   try {
