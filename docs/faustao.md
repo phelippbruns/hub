@@ -2820,6 +2820,66 @@ rodada de jornada de três minutos e meio.
 completa. E componente que você vai citar numa asserção se abre antes,
 não depois.
 
+### A mensagem chegava com o nome de ninguém
+
+**Quando:** escrito na F13, achado em 23 de novembro de 2026 — pelo PO, usando o Hub.
+
+**O que aconteceu:** o Realtime entrega a **linha crua** de `messages`: id,
+texto, `author_id` e o tipo de mídia. Nome não existe nessa tabela. O
+manipulador preenchia `autor: null`, e a tela caía no texto de reserva:
+
+```
+Pessoa que saiu do Hub
+```
+
+Toda mensagem que chegava ao vivo aparecia assim, com o avatar genérico, até
+o servidor mandar a lista resolvida.
+
+**Por que passou pela jornada:** existe jornada de tempo real desde a F13, e
+ela confere que a mensagem **chega**. Chegava mesmo — com o nome de outra
+pessoa. Testei o caminho que eu tinha em mente.
+
+E ela é **pulada na CI**: o Supabase de lá sobe com `-x realtime`, porque o
+serviço não cabe no tempo da esteira. Então nem o teste incompleto rodava.
+
+**Por que quase não foi achado nem depois de reportado**, que é a parte que
+custou: o defeito **se cura sozinho**. Ao assinar o canal a tela busca o que
+o servidor tem, e essa resposta traz o autor resolvido. Numa rede local a
+cura chega em poucas centenas de milissegundos; em produção, com o servidor
+em São Paulo, demora o bastante para o nome ficar parado na tela — que é
+como o PO o viu.
+
+Escrevi a asserção olhando o **estado final** e ela passou com o defeito em
+pé. Troquei por um observador que contava o piscar: passou de novo, porque
+a corrida pendeu para o outro lado. Só então instrumentei o app e vi os dois
+caminhos acontecerem em ordem — a assinatura entregando, e o servidor
+corrigindo logo atrás.
+
+🔒 **Barrado** — duas coisas, e as duas foram vistas reprovar:
+
+1. A jornada **segura a volta do servidor** (`page.route` sobre os pedidos
+   `_rsc`) antes de a mensagem ser enviada. Com a revalidação presa, a única
+   fonte possível do nome é a assinatura: se ela não souber dizer quem
+   enviou, o teste reprova **sempre**, e não quando dá sorte.
+2. `quemEnviou` tem teste de unidade próprio, inclusive para o caso de borda
+   — quem entrou no grupo depois de a tela abrir não está na lista, e aí a
+   resposta é `null` e um pedido de revalidação, nunca um nome escolhido.
+
+**A lição, e ela é dupla:**
+
+**Defeito que se cura sozinho precisa de teste que impeça a cura.** Olhar o
+estado final não vê nada, e contar o piscar é uma moeda — o mesmo erro do
+teste de corrida da RN07, oito dias antes. Em ambos a saída foi a mesma:
+tirar o acaso de dentro do teste, segurando o que corrigia.
+
+**E dado que vem por outro caminho chega incompleto.** A assinatura não
+passa pelo Prisma nem pela camada de dados: ela entrega colunas. Tudo que a
+tela desenha e que **não é coluna** — nome, foto, endereço assinado, texto
+de "há quanto tempo" — tem de ser resolvido no cliente ou esperado do
+servidor, e a decisão precisa ser consciente. A imagem desta mesma tela já
+era um caso conhecido e está comentado no arquivo; o nome passou batido
+porque ninguém perguntou "o que mais falta nesta linha?".
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
@@ -2828,7 +2888,8 @@ a ordem de formatar e medir (`npm run verificar`), o endereço de tópico
 num lugar só, os quatro caminhos de fechar um menu suspenso,
 segredo no repositório, corrida entre testes, um ícone aceso por tela, os
 utilitários de zero, os dois limites de camada que o build recusa, o
-aviso do limite diário conferido **nos dois sentidos**, a trava do gatilho
+aviso do limite diário conferido **nos dois sentidos**, o nome de quem
+envia no tempo real (com a revalidação presa), a trava do gatilho
 observada em `pg_stat_activity`, e as três listas do post — editor,
 schema e desenho — comparadas entre si.
 

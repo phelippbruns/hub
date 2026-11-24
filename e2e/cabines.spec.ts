@@ -213,6 +213,35 @@ test.describe("a conversa em tempo real", () => {
        * "a mensagem não chegou pelo Realtime" — culpando a entrega por um
        * envio que não aconteceu. O banco ficava sem a linha.
        */
+      // Observa a conversa **antes** do envio: se o nome errado aparecer
+      // por um instante e for corrigido, o estado final não contaria.
+      /*
+       * **Segura a volta do servidor, para o nome ter de vir do tempo real.**
+       *
+       * O Realtime entrega a linha crua de `messages`, que tem `author_id` e
+       * nenhum nome — a tabela não guarda nome. Quando a tela não resolvia
+       * esse id, a mensagem aparecia como "Pessoa que saiu do Hub" e só era
+       * corrigida quando o servidor mandasse a lista resolvida.
+       *
+       * Isso torna o defeito **invisível para quem olha o estado final**:
+       * escrevi a asserção assim primeiro e ela passou com o defeito em pé.
+       * Observar o piscar também não serve — ele dura o que a rede demorar,
+       * e aqui a rede é local: o teste virava uma moeda.
+       *
+       * Segurando a revalidação, a única fonte possível do nome é a
+       * assinatura. Se ela não souber dizer quem enviou, isto reprova —
+       * sempre, não quando dá sorte. Em produção o servidor está em São
+       * Paulo, então o que aqui seria um piscar é um nome parado na tela,
+       * que foi como o PO o encontrou.
+       */
+      await page.route(
+        (url) => url.searchParams.has("_rsc"),
+        async (rota) => {
+          await new Promise((pronto) => setTimeout(pronto, 10_000));
+          await rota.continue();
+        },
+      );
+
       const texto = `mensagem de ${Date.now()}`;
       await expect(outra.page.getByRole("button", { name: "Enviar" })).toBeVisible();
       await outra.page.getByRole("textbox", { name: "Mensagem" }).fill(texto);
@@ -232,6 +261,24 @@ test.describe("a conversa em tempo real", () => {
         page.getByRole("region", { name: "Conversa" }).getByText(texto),
         "a mensagem não chegou pelo Realtime",
       ).toBeVisible({ timeout: 2000 });
+
+      /*
+       * **E de quem ela é.** O Realtime entrega a linha crua de `messages`,
+       * que tem o id do autor e nenhum nome — a tabela não guarda nome. Sem
+       * resolver esse id a tela caía no texto de reserva, "Pessoa que saiu
+       * do Hub", e ficava assim até alguém recarregar: a busca ao servidor
+       * acontece **uma vez**, ao assinar o canal, nunca a cada mensagem.
+       *
+       * A jornada conferia só que a mensagem chegava. Chegava mesmo — com o
+       * nome de outra pessoa.
+       */
+      const balao = page
+        .getByRole("region", { name: "Conversa" })
+        .locator("div", { hasText: texto })
+        .last();
+      await expect(balao, "a mensagem chegou com o nome errado").toContainText(outra.nome);
+
+      await expect(page.getByText("Pessoa que saiu do Hub")).toHaveCount(0);
     } finally {
       await outra.contexto.close();
     }
