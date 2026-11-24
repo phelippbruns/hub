@@ -56,5 +56,22 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
  */
 GRANT SELECT ON messages TO authenticated;
 
+/*
+ * **E `cabin_members`, porque a política de `messages` a lê.**
+ *
+ * `messages_read_member` chama `hub_is_cabin_member()`, que é
+ * `LANGUAGE sql STABLE` — roda como **quem perguntou**, não como dono. Sem
+ * este privilégio a política não consegue responder, e o Postgres recusa a
+ * consulta inteira: "permission denied for table cabin_members".
+ *
+ * Para quem usa, o sintoma é a mensagem que não chega — sem erro na tela e
+ * sem erro no servidor, porque quem falhou foi a política.
+ *
+ * **Não é um furo**: `cabin_members_read` já restringe as linhas às Cabines
+ * de quem pergunta. O privilégio deixa a política rodar; quem decide o que
+ * ela devolve continua sendo ela.
+ */
+GRANT SELECT ON cabin_members TO authenticated;
+
 COMMENT ON TABLE messages IS
   'A única tabela que o navegador lê direto, pelo Realtime da Cabine. Ver a migration 20261124120000.';

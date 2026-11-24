@@ -160,6 +160,32 @@ export async function asViewer<T>(
 }
 
 /**
+ * Uma conexão como o navegador a tem: papel `authenticated` e **nenhum
+ * privilégio devolvido**.
+ *
+ * Diferente de `asViewer`, que concede tudo para medir o RLS. Aqui o que se
+ * mede é o contrário: se os privilégios que sobraram bastam para as
+ * políticas **rodarem**.
+ *
+ * A distinção custou uma CI vermelha em 24 de novembro de 2026. A política
+ * de `messages` chama `hub_is_cabin_member()`, que lê `cabin_members` como
+ * quem perguntou; sem aquele privilégio a política falha por dentro e o
+ * Postgres recusa a consulta inteira. A tabela `messages` seguia
+ * alcançável, o teste de privilégio mínimo passava, e a mensagem da Cabine
+ * não chegava — sem erro na tela nem no servidor.
+ */
+export async function comoNavegador<T>(run: (client: pg.Client) => Promise<T>): Promise<T> {
+  const client = new pg.Client(url);
+  await client.connect();
+  try {
+    await client.query("SET ROLE authenticated");
+    return await run(client);
+  } finally {
+    await client.end();
+  }
+}
+
+/**
  * Duas transações abertas ao mesmo tempo, para provar barreira de corrida.
  *
  * **Por que não `Promise.all` sobre o Prisma:** medido em 15 de novembro de

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { db } from "./testing/db";
+import { comoNavegador, db } from "./testing/db";
 
 /**
  * O que o navegador alcança no banco, e só isso.
@@ -47,10 +47,41 @@ describe("privilégios de quem chega pelo navegador", () => {
    * (`messages_read_member`) é quem autoriza. Para a política ser avaliada,
    * o papel precisa do privilégio de leitura na tabela.
    */
-  it("`authenticated` só lê `messages`, e só lê", async () => {
+  it("`authenticated` só lê a Cabine, e só lê", async () => {
     const dele = (await privilegiosDoNavegador()).filter((l) => l.role === "authenticated");
 
-    expect(dele.map((l) => `${l.tabela}.${l.privilegio}`)).toEqual(["messages.SELECT"]);
+    /*
+     * `messages` é o que a assinatura lê. `cabin_members` entra porque a
+     * política de `messages` a consulta — ver o teste abaixo, que é o que
+     * prende as duas coisas juntas.
+     */
+    expect(dele.map((l) => `${l.tabela}.${l.privilegio}`)).toEqual([
+      "cabin_members.SELECT",
+      "messages.SELECT",
+    ]);
+  });
+
+  /**
+   * **A política precisa conseguir rodar, não só a tabela ser alcançável.**
+   *
+   * `messages_read_member` chama `hub_is_cabin_member()`, que é
+   * `LANGUAGE sql STABLE`: roda como quem perguntou. Quando revoguei os
+   * privilégios, a tabela `messages` continuou alcançável e a política
+   * passou a falhar por dentro — "permission denied for table
+   * cabin_members" — e o Postgres recusou a consulta inteira.
+   *
+   * Para quem usa, o sintoma foi a mensagem da Cabine que não chega: sem
+   * erro na tela, sem erro no servidor. Quem falhou foi a política.
+   *
+   * O teste de cima media o privilégio **mínimo** e passou feliz. Este mede
+   * o privilégio **suficiente**, que é a outra metade. Medido em 24 de
+   * novembro de 2026, com a CI vermelha e a rodada local verde.
+   */
+  it("a política de `messages` roda como `authenticated`, sem faltar privilégio", async () => {
+    await expect(
+      comoNavegador((cliente) => cliente.query("SELECT count(*) FROM messages")),
+      "a política de messages não consegue rodar: falta privilégio numa tabela que ela consulta",
+    ).resolves.toBeTruthy();
   });
 
   /**

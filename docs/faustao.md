@@ -2912,6 +2912,76 @@ nenhum deles diz "não existe". Antes de afirmar ausência, prove que a
 pergunta chegou: rode o mesmo comando contra um caso que **deveria** achar
 algo. Na varredura isso custou duas correções ao PO no mesmo relatório.
 
+### Fechei a porta do banco e tranquei a Cabine junto
+
+**Quando:** 24 de novembro de 2026, na própria varredura de segurança.
+
+**O que aconteceu:** revoguei os privilégios de `anon` e `authenticated` em
+todas as tabelas e devolvi `SELECT` só em `messages`, que é o que a
+assinatura da Cabine lê. Rodei a jornada do tempo real: verde. Rodei a suíte
+inteira: 340 verdes. Subi o PR.
+
+**A CI reprovou na jornada do tempo real.** E a primeira coisa que eu pensei
+foi que ela nem roda lá.
+
+**Dois erros encadeados, e o segundo é pior que o primeiro.**
+
+*O primeiro, técnico.* `messages_read_member` chama `hub_is_cabin_member()`,
+que é `LANGUAGE sql STABLE` — roda como **quem perguntou**, não como dono — e
+lê `cabin_members`. Sem aquele privilégio a política falha **por dentro**, e o
+Postgres recusa a consulta inteira:
+
+```
+ERROR:  permission denied for table cabin_members
+CONTEXT:  SQL function "hub_is_cabin_member" statement 1
+```
+
+`messages` continuava alcançável. O teste que eu tinha escrito media o
+privilégio **mínimo** — "`authenticated` só lê `messages`" — e passava feliz.
+Ninguém media o privilégio **suficiente**.
+
+Para quem usa, o sintoma é a mensagem que não chega. Sem erro na tela, sem
+erro no servidor: quem falhou foi a política.
+
+*O segundo, de leitura.* O comentário dentro do próprio teste dizia "a CI sobe
+o Supabase com `-x realtime`: o serviço simplesmente não existe lá". A linha
+77 do workflow exclui sete serviços, e `realtime` **não é um deles**. O
+comentário estava desatualizado, eu o repeti ao PO como fato, e quase usei a
+frase para descartar uma CI vermelha que estava certa.
+
+**Por que a rodada local ficou verde com o defeito em pé.** Minha primeira
+explicação foi que o serviço de Realtime estava de pé desde antes da
+migration, e que bastaria reiniciá-lo. **Medi, e está errada:** com o
+privilégio arrancado e o serviço reiniciado, a jornada passou do mesmo jeito,
+enquanto o SQL continuava respondendo `permission denied`.
+
+O que a medida diz é mais incômodo: **o Realtime local não aplica a política
+como o da CI aplica.** A mesma jornada, no mesmo código, é mais fraca aqui do
+que lá. Não persegui o porquê — o que importa é a consequência, e ela é que
+**para privilégio e RLS, a jornada local não é prova**. A prova é o SQL, e é
+por isso que a barreira ficou num teste de banco e não numa jornada.
+
+🔒 **Barrado** — a migration concede as **duas** tabelas, e
+`privilegios.db.test.ts` ganhou um teste que roda a política de verdade.
+Ele precisou de uma conexão nova: a primeira versão usava `asViewer`, **que
+concede todos os privilégios dentro da transação** para medir o RLS — e
+passou com o defeito instalado. `comoNavegador` conecta, assume o papel e
+**não devolve nada**, que é o estado real do navegador. Visto reprovar com o
+privilégio arrancado, com a mensagem que descreve a falha.
+
+**A lição, e ela tem duas metades.**
+
+**Privilégio mínimo e privilégio suficiente são medidas diferentes, e as duas
+precisam de teste.** "Alcança só o que deve" não diz "alcança o que precisa".
+Entre as duas mora toda política que consulta uma segunda tabela — e, num
+banco com RLS, isso é quase toda política.
+
+**E comentário é afirmação sem teste.** O que diz respeito ao mundo fora do
+arquivo — o que a CI faz, onde um serviço roda, o que outro time configurou —
+envelhece sem avisar e ninguém o vê envelhecer. Quando um comentário desses
+contradiz uma medida, **a medida ganha, sempre**, e o comentário vira a
+próxima coisa a conferir. Eu fiz o contrário por alguns minutos.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
@@ -2921,7 +2991,7 @@ num lugar só, os quatro caminhos de fechar um menu suspenso,
 segredo no repositório, corrida entre testes, um ícone aceso por tela, os
 utilitários de zero, os dois limites de camada que o build recusa, o
 aviso do limite diário conferido **nos dois sentidos**, o que o navegador
-alcança no banco, a trava do gatilho
+alcança no banco (o mínimo **e** o suficiente), a trava do gatilho
 observada em `pg_stat_activity`, e as três listas do post — editor,
 schema e desenho — comparadas entre si.
 
