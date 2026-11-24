@@ -158,13 +158,43 @@ os dois fundos de cartão de contribuição — `surfacePage` na sua,
 `surfacePage` a sua fica da cor exata da página. No escuro essa engenharia
 tem de ser refeita, não traduzida.
 
-**2. O princípio 5 inverte.** "Texto sobre cor é sempre `ink`" vale hoje
-porque `ink` é a cor mais escura da paleta. No escuro `ink` é o **fundo**, e a
-frase passa a dizer o contrário do que quer dizer. As duas cores que carregam
-texto — `lavender` e `sun` — precisam continuar carregando: `ink` sobre
-`lavender` dá 7,0:1 e sobre `sun` 12,3:1, e esses dois números são o que
-mantém chip selecionado e botão de destaque legíveis. Qualquer escuro que
-clareie `lavender` para "combinar" perde o primeiro.
+**2. O princípio 5 inverte — e isto deixou de ser previsão.** "Texto sobre cor
+é sempre `ink`" vale hoje porque `ink` é a cor mais escura da paleta. No escuro
+`ink` é o **fundo**, e a frase passa a dizer o contrário do que quer dizer.
+
+Em 24 de novembro de 2026 isto foi **medido**. Preenchi os 21 valores escuros
+com uma paleta plausível — `ink` claro (#F2EFFF), superfícies escuras,
+`lavender` e `sun` mantidos como destaque — e rodei o teste de contraste. Sete
+reprovações, todas no mesmo ponto:
+
+| Par | Claro | Escuro |
+| --- | --- | --- |
+| `ink` sobre `sun` | 12,26:1 | **1,21:1** |
+| `ink` sobre `lavender` | 7,01:1 | **2,90:1** |
+| `inkMuted` sobre `lavender` | 3,12:1 | **1,53:1** |
+| `paper` sobre `lavender` | 2,39:1 | **5,23:1** |
+
+A última linha é a que explica as outras: ela **inverteu**. `paper` sobre
+`lavender` é proibido como texto hoje, e na paleta escura virou legível. Os
+papéis trocam de lado.
+
+**A consequência é estrutural, não de valor.** Não existe escolha de 21 hex que
+resolva isto, porque o problema não é o tom: é que `sun` e `lavender` são
+**destaque**, e destaque é claro nos dois temas — então o texto sobre elas tem
+de ser escuro nos dois temas, enquanto `ink` precisa ser claro no escuro. Uma
+cor não faz os dois trabalhos.
+
+Duas saídas, e as duas são decisão de design, não de implementação:
+
+- **um token novo para "texto sobre destaque"**, escuro nos dois temas. Hoje
+  `ink` faz esse papel por coincidência de ser escuro; o papel passaria a ser
+  explícito, e a tabela de pares trocaria `ink` por ele nesses casos;
+- **ou `sun` e `lavender` escurecem no escuro** — o que resolve o contraste e
+  **custa o sinal**: `sun` é a ação principal de uma tela, uma por tela, e ela
+  funciona porque é o único amarelo. Amarelo escuro não chama.
+
+Qualquer escuro que mexa só nos valores vai bater nisto na primeira tela com
+botão de destaque.
 
 **3. O Hub já tem uma superfície escura, e ela já foi medida.** O cartão de
 abertura do tópico é `ink`, com `paper` no texto principal (16,8:1) e
@@ -188,9 +218,31 @@ tela, e tem 12,3:1 com `ink` — funciona sobre fundo escuro sem mudar de valor.
 No escuro ela continua sendo o único amarelo da tela, e é isso que a faz
 funcionar como sinal.
 
-O formato dos tokens já aceita o segundo tema: cada cor é `{"light": "…"}`
-hoje e vira `{"light": "…", "dark": "…"}` quando houver decisão. **Não falta
-estrutura — falta escolha.**
+### O encanamento já está pronto. Falta a escolha.
+
+Desde a versão 13 do `tokens.json` (24 de novembro de 2026) **cada um dos 21
+tokens de cor tem um campo `dark`**, vazio. Preencher os 21 e rodar
+`npm run tokens` liga o tema escuro no Hub inteiro — app, galeria `/design` e
+páginas de referência —, porque nenhuma utilidade do Tailwind guarda valor:
+todas resolvem por `var()`, e o gerador emite o bloco escuro para
+`[data-theme="dark"]` e para `prefers-color-scheme: dark`.
+
+Três coisas que o encanamento garante, e que vale saber antes de começar:
+
+- **é tudo ou nada.** O gerador recusa 1 a 20 valores preenchidos: a cor
+  esquecida manteria o valor claro e viraria texto claro sobre fundo claro num
+  canto que ninguém abre;
+- **o contraste é cobrado no escuro pelos mesmos limites** — os 16 pares e os
+  8 fundos de perfil, 4,5:1 para texto, 3:1 para texto grande, e o **teto** de
+  3:1 nos pares que são sutis de propósito. Paleta ilegível não entra: o teste
+  diz qual par e qual número;
+- **só cor tem tema.** Tipografia, espaçamento, raio e as 44 medidas não mudam
+  entre claro e escuro — uma troca de design muda o `value` delas, que já
+  existe.
+
+O que **não** está pronto, e é decisão de produto: onde fica o interruptor, se
+ele segue o sistema, e se a escolha é por conta. O encanamento atende aos dois
+gatilhos; a tela não existe.
 
 ## Fora deste sistema por enquanto
 

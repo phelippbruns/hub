@@ -12,7 +12,16 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { format, resolveConfig } from "prettier";
 
-type ColorToken = { name: string; value: string; usage: string };
+/**
+ * `dark` é o valor do tema escuro, e é **string vazia enquanto ninguém
+ * decidiu**. O campo existe em todos os 21 tokens de cor desde a versão 13
+ * do JSON, para que token novo nasça com o lugar do escuro já aberto — e a
+ * validação abaixo reprova quem o omitir.
+ *
+ * Só cor tem tema. Tipografia, espaçamento, raio e as 44 medidas não mudam
+ * entre claro e escuro: uma troca de design muda o `value` delas.
+ */
+type ColorToken = { name: string; value: string; dark: string; usage: string };
 type TypeStyle = {
   name: string;
   fontSize: string;
@@ -64,6 +73,57 @@ const sizes = tokens.size.tokens;
 const sans = tokens.type.families.sans;
 const pares = tokens.contrast.pairs;
 
+/**
+ * **O tema escuro, e a razão de ele ser tudo ou nada.**
+ *
+ * `cores` são os 21 tokens que têm tema. `escuros` são os que já foram
+ * decididos.
+ *
+ * Enquanto `escuros` estiver vazio, o gerador **não emite bloco escuro
+ * nenhum** e `design/tokens.css` sai byte a byte igual ao de antes da versão
+ * 13 do JSON — o Hub continua só claro e o `tokens:check` da CI segue estável.
+ *
+ * E se alguém preencher **parte** dos 21, o gerador derruba. Um tema
+ * incompleto é pior do que nenhum: a cor que ficou de fora continua com o
+ * valor claro, e o resultado é texto claro sobre fundo claro em algum canto —
+ * que ninguém encontra testando as telas que lembrou de abrir. Tudo ou nada é
+ * o que torna isso impossível, em vez de improvável.
+ */
+const cores: ColorToken[] = [...colors, ...fundos];
+
+/*
+ * A conferência do campo vem **antes** de qualquer leitura dele.
+ *
+ * Na primeira versão ela vinha depois, e um token sem `dark` derrubava o
+ * gerador num `Cannot read properties of undefined (reading 'trim')` — rastro
+ * de pilha onde eu tinha escrito uma mensagem que dizia o que fazer. Mensagem
+ * boa escrita abaixo do uso é mensagem que nunca aparece.
+ */
+const semCampoEscuro = cores.filter((c) => typeof c.dark !== "string").map((c) => c.name);
+if (semCampoEscuro.length > 0) {
+  console.error(
+    `Tokens de cor sem o campo "dark": ${semCampoEscuro.join(", ")}.\n` +
+      'Todo token de cor tem o campo, mesmo vazio ("") — é o lugar do tema escuro, e\n' +
+      "token que nasce sem ele nasce invisível para o escuro. Veja docs/design-system/tokens.json.",
+  );
+  process.exit(1);
+}
+
+const escuros = cores.filter((c) => c.dark.trim() !== "");
+const temEscuro = escuros.length > 0;
+
+if (temEscuro && escuros.length !== cores.length) {
+  const faltam = cores.filter((c) => c.dark.trim() === "").map((c) => c.name);
+  console.error(
+    `O tema escuro está pela metade: ${escuros.length} de ${cores.length} preenchidos.\n` +
+      `Faltam: ${faltam.join(", ")}.\n\n` +
+      "Tema incompleto é pior do que nenhum: a cor que ficou de fora mantém o valor\n" +
+      "claro, e vira texto claro sobre fundo claro num canto que ninguém abre.\n" +
+      "Preencha os que faltam, ou esvazie os preenchidos para voltar ao claro.",
+  );
+  process.exit(1);
+}
+
 const header = (extension: string) => {
   const open = extension === "css" ? "/*" : "/**";
   return `${open}
@@ -99,6 +159,22 @@ ${fundos.map((c) => `  /** ${c.usage} */\n  ${c.name}: "${c.value}",`).join("\n"
 } as const;
 
 export type FundoDePerfil = keyof typeof fundoDePerfil;
+
+/**
+ * As mesmas ${cores.length} cores no tema escuro — ${temEscuro ? "decidido" : "**ainda não decidido**"}.
+ *
+ * Mapa vazio enquanto ninguém preencheu o campo \`dark\` no JSON, e por isso
+ * o tipo é \`Record\`, não um objeto literal: o teste de contraste olha o
+ * tamanho para saber se tem o que medir, em vez de o \`typecheck\` quebrar no
+ * dia em que alguém decidir.
+ *
+ * O gerador só aceita 0 ou ${cores.length} — tema pela metade deixa a cor
+ * esquecida com o valor claro, e vira texto claro sobre fundo claro num canto
+ * que ninguém abre.
+ */
+export const colorDark: Record<string, string> = {
+${escuros.map((c) => `  ${c.name}: "${c.dark}",`).join("\n")}
+};
 
 /** Escala tipográfica. Uma família só: Bricolage Grotesque. */
 export const typography = {
@@ -193,7 +269,55 @@ ${radii.map((r) => `  --radius-${shortName(r.name)}: ${r.value};`).join("\n")}
 
   --font-sans: var(--hub-font-sans), ${sans};
 }
-`;
+${
+  temEscuro
+    ? `
+/* ------------------------------------------------------------------ escuro
+
+   **Fora do \`@theme\`, e sem \`@layer\`, de propósito.**
+
+   O \`@theme\` do Tailwind não é condicional: ele sai compilado dentro de
+   \`@layer theme { :root, :host { … } }\`, e não aceita um seletor como
+   \`[data-theme="dark"]\`. Então o escuro é CSS comum.
+
+   E **sem layer** porque declaração não-layered vence qualquer layer por
+   regra de cascata, independente da ordem do arquivo. Dentro de um
+   \`@layer\` qualquer, isto perderia para o \`@theme\` em metade dos casos e
+   funcionaria na outra metade — que é o pior dos dois mundos.
+
+   Nenhuma utilidade do Tailwind guarda valor: todas resolvem por \`var()\`
+   (\`.bg-ink{background-color:var(--color-ink)}\`). Trocar as 21 custom
+   properties aqui re-veste o Hub inteiro.
+
+   Dois gatilhos, e os dois importam: \`prefers-color-scheme\` atende quem
+   configurou o sistema e nunca vai procurar interruptor, e
+   \`[data-theme]\` atende a escolha explícita — que é o que permite as duas
+   coisas que o sistema sozinho não dá: alguém discordar do sistema, e as
+   páginas de referência mostrarem os dois temas lado a lado.
+
+   \`color-scheme: dark\` não é enfeite: \`app/globals.css\` fixa \`light\`, e
+   sem isto a barra de rolagem, o \`<input type=date>\` e o \`<select>\`
+   continuam claros no meio da tela escura. */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+${escuros.map((c) => `  --color-${c.name}: ${c.dark};`).join("\n")}
+}
+
+@media (prefers-color-scheme: dark) {
+  /* \`:not([data-theme="light"])\` é o que deixa alguém escolher claro mesmo
+     com o sistema no escuro. Sem isto, a preferência do sistema venceria a
+     escolha da pessoa, e o interruptor só funcionaria num sentido. */
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+${escuros.map((c) => `    --color-${c.name}: ${c.dark};`).join("\n")}
+  }
+}
+`
+    : ""
+}`;
 
 // -------------------------------------------------------------- index.html
 

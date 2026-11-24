@@ -64,6 +64,20 @@ export const fundoDePerfil = {
 
 export type FundoDePerfil = keyof typeof fundoDePerfil;
 
+/**
+ * As mesmas 21 cores no tema escuro — **ainda não decidido**.
+ *
+ * Mapa vazio enquanto ninguém preencheu o campo `dark` no JSON, e por isso
+ * o tipo é `Record`, não um objeto literal: o teste de contraste olha o
+ * tamanho para saber se tem o que medir, em vez de o `typecheck` quebrar no
+ * dia em que alguém decidir.
+ *
+ * O gerador só aceita 0 ou 21 — tema pela metade deixa a cor
+ * esquecida com o valor claro, e vira texto claro sobre fundo claro num canto
+ * que ninguém abre.
+ */
+export const colorDark: Record<string, string> = {};
+
 /** Escala tipográfica. Uma família só: Bricolage Grotesque. */
 export const typography = {
   /** A marca na tela de abertura. Só ali. */
