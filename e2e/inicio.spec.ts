@@ -95,6 +95,23 @@ test.describe("sem comunidade nenhuma", () => {
     await expect(page.getByText(/Entre em comunidades para acompanhar/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Explorar comunidades" })).toBeVisible();
 
+    /*
+     * **F12.1: nenhuma sugestão diz "Hubverso".** A linha de sugestão
+     * mostrava `comunidade.universo.name` na segunda linha, e como toda
+     * comunidade cai no Hubverso desde a F12.1, ela dizia "Hubverso" para
+     * todas. A jornada que guarda a saída do Universo cobria só o Explorar,
+     * e este é o **único** lugar do app que desenha `SuggestionRow` — por
+     * isso o nome sobreviveu aqui.
+     *
+     * A espera positiva vem antes: as sugestões de verdade têm de estar na
+     * tela para a contagem zero significar algo. `toHaveCount(0)` é a única
+     * asserção do Playwright satisfeita pelo **nada**, e nada é o estado
+     * inicial de qualquer página.
+     */
+    const sugestoes = page.getByText(/\d+ membros?$/);
+    await expect(sugestoes.first()).toBeVisible();
+    await expect(page.getByText("Hubverso")).toHaveCount(0);
+
     // E o estado vazio não termina em "Você está em dia": não há o que estar
     // em dia quando não se acompanha nada.
     await expect(page.getByText("Você está em dia.")).toHaveCount(0);

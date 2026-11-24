@@ -81,7 +81,6 @@ export default async function InicioPage() {
               <SuggestionRow
                 key={comunidade.id}
                 nome={comunidade.name}
-                universo={comunidade.universo.name}
                 membros={comunidade.membersCount}
                 href={`/c/${comunidade.slug}`}
               />

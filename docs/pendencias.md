@@ -1,6 +1,7 @@
 # Pendências do Hub
 
-Atualizado em 12 de novembro de 2026, depois do Blog e do Status.
+Atualizado em 24 de novembro de 2026, na limpeza que tirou daqui tudo que
+já tinha sido feito.
 
 O que falta para o Hub existir. Separado pelo que **impede o lançamento**, pelo
 que é **decisão sua**, pelo que é **dívida técnica** e pela **fila de features**.
@@ -75,38 +76,11 @@ vale decidir se o número volta de uma vez ou sobe aos poucos.
 
 ---
 
-## 2. Cadastro: o que o PO pediu em 4 de outubro
+## 2. Cadastro: o que ainda depende de você
 
-Quatro pedidos, com o custo de cada um medido no código de hoje.
-
-### Tornar o @ obrigatório — **feito em 10 de outubro**
-
-O campo era "@ (opcional)" e o Hub gerava um a partir do nome. Agora é
-obrigatório: um @ que a pessoa não escolheu é um @ que ela não lembra — e
-desde a mesma data o @ também serve para entrar.
-
-O caminho do **Google** continua sugerindo um, porque lá a pessoa volta já
-autenticada; quem pede o @ é a tela de completar cadastro.
-
-### Avisar que o @ já existe — **já funcionava**
-
-Três camadas: a tela avisa enquanto a pessoa digita (sem esperar o envio), o
-servidor confere de novo antes de criar, e o banco tem índice único por trás.
-
-### Entrar pelo @ — **feito em 10 de outubro**
-
-Um campo só, "Email ou @", que aceita os dois; com ou sem o arroba na frente.
-O Supabase Auth só conhece email, então o servidor traduz o @ no email antes
-de chamar o login, e o email nunca chega à tela.
-
-Duas coisas que valem saber:
-
-- **Não abre a porta de enumeração.** O @ já é público no Hub: aparece na
-  busca de pessoas e no endereço do perfil. O que continua escondido é quais
-  **emails** têm conta.
-- **A limitação de taxa é pelo email**, mesmo quando se entra pelo @ — senão
-  bastaria alternar entre o @ e o email da mesma conta para dobrar o número
-  de senhas que dá para testar.
+Dos pedidos de 4 de outubro, **três já estão no ar**: o @ virou obrigatório,
+a tela avisa quando ele já existe, e dá para entrar pelo @ ou pelo email no
+mesmo campo. Ficaram dois, e os dois são decisão sua.
 
 ### Moderação automática de imagem — **em aberto**
 
@@ -145,37 +119,6 @@ que hoje só existe em desenvolvimento (Mailpit).
 **Decisão sua:** avisar na tela (rápido, abre a porta de enumeração) ou avisar
 por email (seguro, depende de envio de email funcionando).
 
-### Editar a capa da comunidade — **feito em 10 de outubro**
-
-Entrou junto com a F09, porque a F09 construiu o caminho de upload inteiro e
-a capa passou a reusá-lo: a mesma conferência de bytes, a mesma remoção de
-localização, o mesmo depósito.
-
-Só quem modera troca. A capa antiga sai do depósito; a capa padrão do
-Universo nunca, porque é compartilhada.
-
-O texto abaixo fica como registro do que foi decidido antes.
-
-### Como era quando foi anotado — **junto com a F20**
-
-Pedido do PO em 10 de outubro: uma opção "Editar capa" no menu de três
-pontos da comunidade.
-
-Não é o ajuste pequeno que parece. Hoje **o Hub não envia arquivo nenhum** —
-a comunidade nasce com a capa do Universo, e a tela de criar diz isso. Fazer
-a edição de verdade é construir o caminho de upload inteiro, que a regra de
-segurança 7 define: tipos permitidos, tamanho máximo, URLs assinadas com
-validade curta e **remoção dos metadados de localização das fotos** (uma foto
-de celular carrega onde foi tirada; publicar isso sem querer é um problema
-sério numa rede social).
-
-Era para ser da F20. Virou F09 quando o PO escolheu construir o envio de
-imagem junto com as respostas, e as três perguntas em aberto foram
-respondidas: **só quem modera**, a capa antiga **é apagada**, e a imagem de
-resposta entrou junto.
-
-Fica para a F20 só a foto de perfil e a imagem da Cabine.
-
 ### Número único no endereço do tópico — **depois**
 
 Hoje, dois tópicos de mesmo nome **na mesma comunidade** ganham um número no
@@ -204,76 +147,6 @@ São duas coisas separadas:
    Política ficam na mesma página ou em duas, porque o aceite cita as duas.
 
 Mande o texto quando tiver: o encaixe é direto.
-
-### Ver quem me segue — **custo baixo, 1 dia**
-
-Pedido do PO em 11 de outubro: a lista de quem me segue, igual à de quem eu
-sigo, só que ao contrário. **Só o dono vê.** O link fica no mesmo lugar: no
-número de "seguidores" do perfil próprio.
-
-É a menor das três. Quase tudo já existe: a tela de `/perfil/seguindo`, a
-busca dentro dela, a função que recusa quem não é o dono. Falta a consulta
-espelhada, uma rota e o número virar link.
-
-**Muda a RN28**, que hoje diz que o número de seguidores "não abre lista,
-para evitar comparação entre perfis". A razão dela continua de pé — ninguém
-vê os seguidores de outra pessoa —, mas o texto precisa ser corrigido para
-dizer "só o dono abre".
-
-### Marcar pessoas com @ nas respostas — **médio, 3 a 4 dias; entrou na F15**
-
-Pedido do PO em 11 de outubro: escrever `@lia` numa resposta e isso virar um
-caminho para o perfil dela.
-
-Não é só pintar o texto de outra cor. São quatro partes, e a última é a que
-pesa:
-
-1. **Achar o @ no texto** e transformar em link ao desenhar — perto do que
-   `lib/texto/links.ts` já faz para a RN16, com os mesmos cuidados de
-   acento, pontuação e @ que não existe.
-2. **Sugerir enquanto digita**, senão a pessoa precisa decorar o @ exato.
-3. **Guardar quem foi marcado**, para a notificação não depender de reler o
-   texto depois.
-4. **Notificar quem foi marcado** — e isto é a F15. Marcar sem avisar não
-   serve para nada, então ou esta parte espera a F15, ou a F15 vem antes.
-
-**Decidido em 11 de outubro: vai junto com a F15**, que passou a se chamar
-"Notificações e marcar com @" no [backlog](backlog.md). Lá ficam o escopo
-inteiro, os critérios de aceite e a resposta à pergunta de produto abaixo:
-marcar vale só entre membros da mesma comunidade, e respeita bloqueio e
-silenciamento.
-
-Tem também uma pergunta de produto: **marcação é convite ou intromissão?**
-Numa rede sem curtida, ser arrastado para uma conversa por qualquer pessoa é
-um vetor de incômodo. Vale decidir se dá para desligar, e se marcar só vale
-para quem está na mesma comunidade.
-
-### Comunidade sem Universo, e o Hubverso — **médio no mínimo, grande se os Universos saírem**
-
-Pedido do PO em 11 de outubro: deixar criar comunidade sem escolher Universo;
-ela cai num Universo de banco chamado **Hubverso**. E a ideia maior por trás:
-**acabar com os Universos.**
-
-São duas coisas de tamanho muito diferente, e vale decidir qual é a de agora.
-
-**A pequena — 1 a 2 dias.** O Hubverso existe no banco, o campo Universo sai
-do formulário de criar (ou vira opcional), e quem não escolhe cai nele. O
-Universo continua existindo em todo lugar; só deixa de ser uma pergunta na
-hora de criar. Pontos a resolver: o Hubverso aparece no Explorar como os
-outros? E a **capa**, que hoje a comunidade herda do Universo quando não
-envia uma (RN03) — o Hubverso precisa de uma capa padrão própria.
-
-**A grande — 1 a 2 semanas, e é uma mudança de produto.** Universo é o
-primeiro degrau da hierarquia do Hub (RN01) e aparece em 25 arquivos: o
-Explorar é uma lista de Universos, o onboarding escolhe comunidades **por
-Universo** (RN31), a Coleção agrupa por Universo, a capa padrão vem dele, e
-existe a tela `/u/<universo>`. Tirar isso não é apagar uma coluna: é
-responder **como alguém descobre comunidade sem eles**, e hoje a resposta
-inteira do Explorar depende deles.
-
-Minha leitura, para você decidir: a pequena resolve o incômodo real — ter de
-escolher um Universo para criar uma comunidade — e não fecha nenhuma porta.
-A grande vale a pena se a descoberta for repensada junto, não antes.
 
 ---
 
@@ -327,29 +200,6 @@ tetos por IP bem mais altos para não punir quem divide uma rede.
 ## 4. Dívida técnica
 
 Coisas que funcionam, mas que vão cobrar caro se ficarem como estão.
-
-### 4.0 ~~O blog escreve em blocos~~ — **pago em 15 de novembro de 2026**
-
-O Tiptap entrou, e o blog tem negrito, itálico, lista, citação e link, além
-do subtítulo, da imagem e do GIF que já tinha.
-
-A dívida era mesmo barata na parte que esta seção previa: o formato guardado
-não mudou, nenhum post existente migrou,
-[features/perfil/blog/documento.tsx](../features/perfil/blog/documento.tsx)
-não mudou uma linha.
-
-**O que esta seção previa certo, e vale registrar porque custou trabalho:**
-com o documento chegando pronto do navegador, a validação do `src` deixaria
-de ser desnecessária. A saída foi **não deixar o `src` existir**: o nó de
-imagem carrega o índice do arquivo, o schema nem declara `src`, e quem
-escreve o endereço continua sendo o depósito. A impossibilidade foi mantida
-em vez de trocada por uma conferência.
-
-**E uma lição nova, que não estava prevista:** a lista de nós agora existe em
-**três** lugares — o que o editor oferece, o que o schema aceita e o que o
-desenho desenha. Se o editor oferecer algo que o desenho não faz, a pessoa
-formata, publica, e o texto volta sem a formatação — sem erro na tela e sem
-teste vermelho. `features/perfil/blog/formato.test.ts` compara as três.
 
 ### 4.0.1 Dois painéis laterais parecidos
 
@@ -458,22 +308,46 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 
 ---
 
-### 4.5.1 A CI não roda o tempo real da Cabine — **um passo seu**
+### 4.5.1 ~~A CI não roda o tempo real da Cabine~~ — **era falso, e cobrou**
 
-A CI sobe o Supabase com `-x realtime`: o serviço de tempo real **não existe
-lá**. A jornada que prova a Cabine funcionando — duas abas, a mensagem
-chegando sem recarregar — se pula sozinha na CI, dizendo o motivo no
-relatório.
+Este item dizia que a CI sobe o Supabase com `-x realtime` e que a jornada
+do tempo real se pulava sozinha lá — e pedia um passo seu para corrigir.
+**Nada disso é verdade.** A linha 77 de `.github/workflows/ci.yml` exclui
+sete serviços, e `realtime` não é nenhum deles: a CI roda a jornada da
+Cabine com tempo real de verdade desde que a F13 subiu.
 
-É o mesmo caso do `storage-api` na F09, quando o envio de imagem não podia
-ser testado na CI até o serviço ser ligado. Está no [Faustão](faustao.md).
+O engano tinha versão no código também, num comentário dentro da própria
+jornada, e quase custou caro: em 24 de novembro de 2026 eu usei esse
+comentário para explicar por que uma CI vermelha "não contava". Ela
+contava, e estava certa — tinha achado um defeito real que a minha máquina
+escondia. O comentário foi reescrito na mesma rodada; está no
+[Faustão](faustao.md).
 
-**O passo:** em `.github/workflows/ci.yml`, tire `realtime,` da linha
-`npx supabase start -x realtime,imgproxy,studio,…`. Eu não consigo fazer
-isso: meu acesso não tem permissão para alterar arquivos de workflow.
+**A lição, que vale mais que o item:** nota antiga em documento não é
+medida. Quando ela disser que uma conferência não roda, abra o arquivo da
+conferência antes de acreditar.
 
-Enquanto não for feito, a feature mais delicada do Hub — mensagem privada
-chegando em tempo real — é conferida só na minha máquina.
+### 4.6 Pedidos do PO em 11 de outubro
+
+Cinco pontos levantados depois de usar o Hub em produção. **Quatro foram
+resolvidos:** a foto de perfil que não aparecia fora do perfil e o aviso de
+imagem acima de 4 MB, em 15 de outubro; a navegação que parecia lenta,
+tratada no mesmo dia com `loading.tsx` em toda rota que consulta o banco; e
+o limite de tópicos por dia (4.6.5), que subiu de 1 para 10 em 15 de
+novembro.
+
+Sobra um, e ele depende de você.
+
+#### 4.6.4 Fluxo de navegação entre comunidades e tópicos — **precisa de detalhe seu**
+
+Anotado, mas não sei o suficiente para orçar. O que existe hoje: da comunidade
+se chega ao tópico clicando no nome; do tópico se volta pelo botão Voltar ou
+pelo nome da comunidade no topo; o Hot Topic tem caminho próprio; e desde 11 de
+outubro existe o botão de criar tópico dentro da comunidade.
+
+Me diga qual caminho te incomodou — onde você estava, para onde queria ir, e o
+que teve de fazer. Com isso eu digo o tamanho. Chutar aqui seria repetir o erro
+de orçamento que já está no Vacilos.
 
 ### 4.7 Web Push: a metade da F15 que ficou para depois — **um passo seu**
 
@@ -496,131 +370,46 @@ interruptores já são respeitados ali. O push entra nela.
 **Quando quiser fazer:** me diga, eu gero o par de chaves e te mostro
 exatamente onde colar na Vercel.
 
-### 4.6 Pedidos do PO em 11 de outubro
+### 4.8 A miniatura de 36 px ignora o enquadramento da capa
 
-Cinco pontos levantados depois de usar o Hub em produção. Dois são defeito com
-causa já encontrada, dois são qualidade e um é decisão de produto.
+A capa da comunidade guarda uma âncora desde a F20, e a página grande a
+respeita. As **miniaturas quadradas** nas listas (`size-thumb`, 36 px)
+continuam recortando no centro.
 
-#### 4.6.1 Foto de perfil não aparece nas respostas e nos tópicos — **resolvido em 15 de outubro**
+É de propósito: a âncora foi escolhida numa faixa deitada, e num quadrado a
+sobra troca de eixo — o que a pessoa centralizou pode sair do quadro. E
+`object-cover` centralizado nunca deixa buraco, em proporção nenhuma.
 
-A foto aparece no perfil e **em nenhum outro lugar**. Não é cache nem upload: é
-endereço.
+**O que fazer, se um dia incomodar:** uma função pura
+`pontoDeInteresse(medidas, enquadramento, quadro)` em
+`lib/midia/enquadramento.ts` devolvendo o centro do recorte em fração da
+imagem, usada como `object-position` na miniatura. Mantém a garantia de não
+deixar buraco, honra o que a pessoa escolheu olhar, e ignora o zoom, que
+num quadrado de 36 px não muda nada visível.
 
-O depósito de imagens é privado, então `profiles.avatar_url` guarda um
-**caminho** (`perfis/<id>.jpg`), não um endereço — quem desenha precisa pedir
-uma URL assinada. Só um lugar faz isso: `lib/data/perfil.ts`. A resposta
-([lib/data/topics.ts](../lib/data/topics.ts)), o autor do tópico, a descoberta
-([lib/data/descoberta.ts](../lib/data/descoberta.ts)) e a lista de seguindo
-entregam o caminho cru para a tela, que o usa como se fosse endereço. O
-navegador procura `perfis/abc.jpg` ao lado da página, não acha, e não mostra
-nada — sem erro visível.
+**Tamanho:** meio dia, a maior parte em levar cinco colunas a mais nas
+consultas que alimentam as cinco listas.
 
-**A causa de verdade não é o esquecimento, é onde a assinatura mora.** Ela está
-em cada chamador, então todo chamador novo pode esquecer, e nada avisa. A
-correção é assinar **uma vez**, onde o avatar sai da camada de dados, e os
-testes conferirem que nenhuma consulta devolve caminho cru de avatar.
+### 4.9 O que ficou de fora dos reparos do protótipo v6
 
-**Feito:** `comAvatar()` e `comAvatares()` em `lib/midia/deposito.ts`,
-aplicados nas sete consultas que devolvem gente, e
-`lib/data/avatares.db.test.ts` como barreira — ele chama cada uma e reprova se
-o que sai parecer caminho de depósito. Entrada no [Faustão](faustao.md).
+Os sete PRs foram para produção e o PO abriu a tela com um PDF de dez
+correções.
 
-#### 4.6.2 Deixar claro quando a imagem passa de 4 MB — **resolvido em 15 de outubro**
+O resto está no PR A (o que estava quebrado e eu reproduzi) e no PR B (o que
+faltava).
 
-Desde 11 de outubro o Hub confere o tamanho no navegador e mostra o motivo.
-Duas coisas erradas sobraram:
+**O que ficou de fora por decisão dele**, em 31 de outubro:
 
-1. **O aviso fica longe.** Ele é desenhado no fim do formulário, embaixo do
-   seletor de GIF, enquanto o problema aconteceu no botão de imagem, no topo.
-   Quem escolhe uma foto grande vê o botão Responder apagar e não liga uma
-   coisa à outra.
-2. **O botão desativado não explica.** O design system exige: botão desativado
-   vem com texto dizendo o que falta — é o `disabledHint` do `<Button>`, usado
-   em **um** lugar no projeto inteiro. O composer de resposta não usa.
+| Item do protótipo | Decisão |
+| --- | --- |
+| **Aviso temporário** depois de cada ação ("Voto registrado", "Link copiado") | Adiado. Hoje cada botão troca o próprio texto, que resolve mal mas resolve. Um aviso de verdade é um componente novo, com fila e tempo, e vale fazer uma vez para o Hub inteiro — não só para a comunidade. |
+| Selo **Fixado** no tópico | Depois. Precisa de campo no banco e de uma RN, e o Hot Topic já ocupa esse papel — com a vantagem de ser eleito pela participação, não escolhido. |
+| **Silenciar notificações** por comunidade | Não entra: o escopo diz que não há no MVP. |
+| Bloco **"Desde sua última visita"** | Descartado. No HTML do PO a função existe e nunca é chamada: era rascunho. |
 
-E falta dizer o limite **antes** da escolha, não depois: "JPEG, PNG ou WebP,
-até 4 MB" ao lado do botão de imagem.
-
-**Feito** nas três telas que enviam imagem. O aviso subiu para logo abaixo do
-botão que escolhe a foto, todo botão de enviar desativado passou a dizer o que
-falta (`disabledHint`), e o limite aparece **antes** da escolha: no nome do
-botão de imagem no composer, e como texto na capa e no perfil.
-
-#### 4.6.3 A navegação parece lenta — **tratado em 15 de outubro**
-
-"Parece" é a palavra certa: suspeito que o problema não é velocidade, é
-**ausência de sinal**.
-
-Toda rota do Hub renderiza por requisição (`force-dynamic` no
-[app/layout.tsx](../app/layout.tsx), exigido pela CSP com nonce). Isso quer
-dizer que cada navegação espera o servidor. E **não existe um único
-`loading.tsx` no projeto** — conferido. Sem ele, o Next não tem o que mostrar
-durante a espera: a tela anterior fica parada, sem nada acontecendo, até a
-nova chegar inteira. Dois segundos sem feedback parecem dez.
-
-**Feito:** `loading.tsx` em 7 rotas — Início, Explorar, Minhas comunidades,
-busca, seu perfil, quem você segue e criar tópico — todas com
-`<PaginaCarregando>`, o esqueleto que entrou no design system e na galeria. A
-regra ficou no CLAUDE.md, ao lado do `force-dynamic` que a causa.
-
-**Quatro rotas ficaram de fora, e isso é dívida consciente:** comunidade,
-tópico, perfil de outra pessoa e Universo. `loading.tsx` começa a transmitir a
-resposta antes de a página rodar, então o 404 delas virava 200 — endereço que
-não existe passando a dizer que existe. Descoberto pela jornada que confere o
-404; está no [Faustão](faustao.md).
-
-São justamente as telas mais pesadas. Para dar sinal nelas sem perder o 404, o
-caminho é conferir a existência na página e envolver só os pedaços lentos em
-`<Suspense>` — meio dia, e vale fazer junto com a F12.1, que já mexe em três
-delas.
-
-**O que falta, e depende de você ver:** isso troca "tela parada" por
-"esqueleto". Se ainda parecer lento depois disso, o próximo passo é **medir**
-— as consultas do Início e da comunidade fazem várias contagens por item
-(`count` de respostas e de pessoas por tópico) e podem ser lentas de verdade.
-Sem medir, qualquer otimização é chute: foi exatamente o erro de orçamento
-registrado no [Vacilos](vacilos.md).
-
-#### 4.6.4 Fluxo de navegação entre comunidades e tópicos — **precisa de detalhe seu**
-
-Anotado, mas não sei o suficiente para orçar. O que existe hoje: da comunidade
-se chega ao tópico clicando no nome; do tópico se volta pelo botão Voltar ou
-pelo nome da comunidade no topo; o Hot Topic tem caminho próprio; e desde 11 de
-outubro existe o botão de criar tópico dentro da comunidade.
-
-Me diga qual caminho te incomodou — onde você estava, para onde queria ir, e o
-que teve de fazer. Com isso eu digo o tamanho. Chutar aqui seria repetir o erro
-de orçamento que já está no Vacilos.
-
-#### 4.6.5 O limite de tópicos por dia — **resolvido em 15 de novembro de 2026**
-
-A RN07 limitava cada pessoa a **1 tópico por dia** em cada comunidade. O PO
-decidiu em 11 de outubro tirar o limite; esta seção recomendou **subir em vez
-de tirar**, e foi o que ele escolheu em 15 de novembro: **10 por dia, por
-comunidade**.
-
-A razão da recomendação continua valendo e vale repetir: o limite não existe
-só para conter volume. Ele é o que impede uma pessoa de abrir dez tópicos no
-mesmo dia e ocupar a lista inteira — o Hot Topic continua elegendo por pessoas
-diferentes respondendo, mas a lista de onde ele sai passaria a ter dono.
-
-**E esta seção estava errada numa frase, que vale deixar registrada.** Ela
-dizia que subir o limite "não precisa apagar o índice do banco — só trocar o
-número dele", e orçava 1 hora. Não havia número a trocar: a RN07 era um
-**índice único parcial**, e índice único sabe dizer "no máximo um", nunca "no
-máximo dez". A troca foi estrutural — o índice saiu e entrou um gatilho com
-contagem e trava de linha, copiando a RN21, que limita convites de Cabine a 10
-por dia desde outubro e cujo comentário já dizia, por escrito, "diferente do
-RN07, aqui não dá para usar índice único".
-
-A estimativa foi escrita olhando a regra de longe. É o mesmo erro que o
-`faustao.md` registra como "explicar em vez de medir": uma boa explicação dá a
-mesma sensação de um teste verde e não custa nada.
-
-**Como ficou:** o número mora em `hub_topicos_por_dia()` no banco e em
-`TOPICOS_POR_DIA` em `lib/topicos.ts`, com teste que reprova se os dois
-discordarem — o mesmo arranjo que a RN08 já usava. Mudar o limite de novo é
-trocar os dois números.
+**E uma que é minha, não dele:** o botão de **copiar** aparece ao lado do
+link do evento com um "Copiado" que nunca volta a "Copiar". É o mesmo
+problema do aviso temporário acima, e sai junto com ele.
 
 ---
 
@@ -631,7 +420,6 @@ F15 e virou rodada própria (seção 4.7).
 
 | | Feature | Depende de | O que entrega |
 |---|---|---|---|
-
 | F17 | Configurações e LGPD | F15 | Exportar e excluir conta |
 | F18 | Termos e privacidade | F03 | Texto completo — **já destravada**, só falta o texto |
 | F19 | Métricas e eventos | F14 | Saber se funciona |
@@ -669,128 +457,26 @@ fácil de trocar.
 
 ---
 
-## 7. O que fazer agora
+## 7. O que depende de você
 
-1. **Decidir sobre o aviso de email duplicado** (seção 2): na tela ou por
-   email. É a única das quatro que não é só execução.
-2. **Mandar o texto dos Termos e da Política**, se já tiver.
-3. Seguir para a **F07**, que traz as comunidades por dentro.
+Esta seção dizia "seguir para a F07" — uma feature entregue há mais de um
+mês. Ela não tenta mais ordenar o trabalho, porque **a ordem é sua**: o que
+ela lista é só o que **não anda sem você**, separado do que eu consigo fazer
+sozinho.
 
-Em paralelo, e sem pressa de código: começar a conversa jurídica sobre
-verificação de idade. É o item que mais demora e o que mais bloqueia.
+**Nada disso é código meu esperando:**
 
-## ~~Fonte servida do repositório~~ — **feito em 31 de outubro**
-
-Era a pendência mais antiga da lista, e ela cobrou: `next/font/google`
-derrubou duas rodadas locais e a CI de um pull request no mesmo dia,
-porque busca o arquivo da fonte **na hora de compilar**.
-
-A Bricolage Grotesque passou a morar em `design/fontes/`, carregada por
-`next/font/local`. É a mesma fonte, no mesmo formato, servida do próprio
-domínio — o que mudou é que o build não fala mais com ninguém.
-
-`design/fontes.test.ts` é a barreira: reprova se alguém importar
-`next/font/google` de novo.
-
-**Fica em aberto, pequeno:** só o subconjunto `latin` é servido, que cobre
-o português inteiro. Um nome com caractere de fora (`Łukasz`, `Þór`) cai
-na fonte do sistema. O arquivo `latin-ext` já está no repositório; servir
-os dois exige `unicode-range` por arquivo, que o `next/font/local` não
-expõe, e a saída seria escrever o `@font-face` à mão.
-
-## ~~"Contribuição" quer dizer duas coisas~~ — **resolvido em 31 de outubro**
-
-A palavra contava respostas na comunidade e respostas + tópicos no perfil.
-Decisão do PO: **contribuição é resposta ou tópico criado, em todo lugar.**
-
-O que mudou: o número da comunidade passou a somar os dois, e a linha sob
-a capa deixou de mostrar tópicos e contribuições lado a lado — juntos,
-contariam cada tópico duas vezes na mesma frase. A contagem de tópicos
-continua no título da seção Tópicos.
-
-Nada encolheu no perfil e nada sumiu de lista nenhuma. A RN28 foi
-reescrita, e a tela não diz mais "resposta" em lugar nenhum.
-
-## A miniatura de 36 px ignora o enquadramento da capa
-
-A capa da comunidade guarda uma âncora desde a F20, e a página grande a
-respeita. As **miniaturas quadradas** nas listas (`size-thumb`, 36 px)
-continuam recortando no centro.
-
-É de propósito: a âncora foi escolhida numa faixa deitada, e num quadrado a
-sobra troca de eixo — o que a pessoa centralizou pode sair do quadro. E
-`object-cover` centralizado nunca deixa buraco, em proporção nenhuma.
-
-**O que fazer, se um dia incomodar:** uma função pura
-`pontoDeInteresse(medidas, enquadramento, quadro)` em
-`lib/midia/enquadramento.ts` devolvendo o centro do recorte em fração da
-imagem, usada como `object-position` na miniatura. Mantém a garantia de não
-deixar buraco, honra o que a pessoa escolheu olhar, e ignora o zoom, que
-num quadrado de 36 px não muda nada visível.
-
-**Tamanho:** meio dia, a maior parte em levar cinco colunas a mais nas
-consultas que alimentam as cinco listas.
-
-## A tela de comunidade do protótipo v6: seis PRs ainda por vir
-
-O PO desenhou a tela da comunidade num protótipo navegável
-(`comunidade-v6.html`, 30 de outubro) e aprovou a entrega em sete PRs, cada
-um indo para produção sozinho. **O primeiro já está feito** — abas Início e
-Membros, cartão Sobre, regras da comunidade (RN36), Primeiros passos (que
-saiu de novo em 7 de novembro, a pedido do PO), a capa virando o próprio
-botão e o endereço de tópico reservado contra rota irmã.
-
-Faltam seis, nesta ordem:
-
-| # | O quê | Tamanho |
+| O quê | Onde está | Por que trava |
 | --- | --- | --- |
-| 2 | ~~A lista de tópicos~~ — **feito.** Filtros com nome, última contribuição no cartão, busca a partir de 10, bloqueio respeitado (RN26), coluna da direita de volta como `<aside>` desta página, e a passada de design para a tela ficar igual ao protótipo v6. | feito |
-| 3 | ~~O painel do tópico~~ — **feito.** Rota interceptada `@topico/(.)[topico]`, a página inteira preservada para o link colado e o 404, separador de contribuições novas, e o compositor redesenhado em caixa única com Enter para enviar. | feito |
-| 4 | ~~Enquetes~~ — **feito.** RN37: `polls`, `poll_options`, `poll_votes`; a contagem não sai do servidor para quem não votou; um voto por pessoa garantido pela chave primária; trocar o voto enquanto aberta; contador na aba. | feito |
-| 5 | ~~Eventos~~ — **feito.** RN38: `events` e `event_attendances`; o link da sala só sai para quem confirmou; presencial exige local por CHECK; lotado conferido no servidor; contador na aba. | feito |
-| 6 | ~~Moderar numa janela, e a comunidade editável~~ — **feito.** Componente `Janela` de verdade (véu, foco preso, Esc, clique fora, rolagem travada); toda confirmação do Hub passou a usá-la; botão Moderar na capa com contador; nome, descrição, Sobre e regras finalmente editáveis; renomear não muda o endereço. | feito |
-| 7 | ~~Acabamento~~ — **feito.** RN28 alinhada (contribuição é resposta ou tópico, em todo lugar), a tela não diz mais "resposta", alvos de toque medidos na tela com barreira, e foco e teclado conferidos por jornada. | feito |
+| Escolher o provedor de **verificação de idade** | 1.1 | O mais demorado e o que mais bloqueia o lançamento. Vale começar a conversa jurídica mesmo sem pressa de código. |
+| Decidir a **idade mínima**: 16, 17 ou 18 | 1.2 | O código diz 18 e o escopo diz 16. Os dois não podem continuar discordando. |
+| Dar um **dono de moderação** às 19 comunidades da plataforma | 1.3 | Hoje toda denúncia nelas cai na sua conta. |
+| Decidir sobre **moderação automática de imagem** | 2 | O Hub confere o tipo e tira a localização, mas não olha o conteúdo. Vale decidir antes de abrir para fora do seu círculo. |
+| Decidir o **aviso de email duplicado**: na tela ou por email | 2 | Na tela é rápido e abre a porta de enumeração. Por email é seguro e depende de envio configurado. |
+| Mandar o **texto dos Termos e da Política** | F18 | A feature está destravada; falta só o texto. |
+| Gerar as **chaves VAPID** do Web Push | 4.7 | Meio dia de trabalho meu, que não começa sem elas. Me diga e eu gero o par e mostro onde colar. |
+| Trocar a **senha do banco** e a **chave do Supabase** | 3 | Aceitável enquanto é só teste. Não pode continuar com gente de verdade no Hub. |
 
-**Duas coisas que esses PRs obrigam a decidir**, e que já estão neste
-documento: alinhar a RN28 antes do PR 7, para "contribuição" querer dizer
-uma coisa só; e aceitar que enquetes e eventos entram como RN37 e RN38,
-numa fase entre a F16 e a F17 — hoje eles não existem em regra nenhuma.
+**E uma decisão de produto que levantei a seu pedido e não é minha:** texto
+rico fora do blog (4.0.2). Minha recomendação é não fazer, e não por custo.
 
-**A coluna lateral da direita volta no PR 2**, mas como coluna comum da
-página da comunidade: nunca a rota paralela e a coluna no banco que o
-`vacilos.md` registrou no item 17.
-
-## Os reparos do protótipo v6: o que o PO achou depois dos sete PRs
-
-Os sete PRs foram para produção e o PO abriu a tela com um PDF de dez
-correções.
-
-**Quatro delas continuam sem causa conhecida.** São os prints de botão
-comido pela borda direita — "Criar ev…", "+ Conv…", "Convidar para mode…",
-"Criar tópico". Medi todo elemento de `main` em onze larguras, de 1400 a
-480 px, antes e depois dos consertos: **nada estoura e nada é recortado**. A
-reorganização dos cabeçalhos põe a tela na forma do protótipo, e pode bem
-ser o que ele quis dizer com "deslocado", mas eu não reproduzi corte nenhum.
-Está no `faustao.md`, e **depende de o PO olhar o deploy e dizer se os
-quatro sumiram** — a janela dele é que produziu os prints.
-
-O resto está no PR A (o que estava quebrado e eu reproduzi) e no PR B (o que
-faltava).
-
-**O que ficou de fora por decisão dele**, em 31 de outubro:
-
-| Item do protótipo | Decisão |
-| --- | --- |
-| **Aviso temporário** depois de cada ação ("Voto registrado", "Link copiado") | Adiado. Hoje cada botão troca o próprio texto, que resolve mal mas resolve. Um aviso de verdade é um componente novo, com fila e tempo, e vale fazer uma vez para o Hub inteiro — não só para a comunidade. |
-| Selo **Fixado** no tópico | Depois. Precisa de campo no banco e de uma RN, e o Hot Topic já ocupa esse papel — com a vantagem de ser eleito pela participação, não escolhido. |
-| **Silenciar notificações** por comunidade | Não entra: o escopo diz que não há no MVP. |
-| Bloco **"Desde sua última visita"** | Descartado. No HTML do PO a função existe e nunca é chamada: era rascunho. |
-
-**E duas que são minhas, não dele:**
-
-- A **miniatura de 36 px** da comunidade ainda não obedece ao enquadramento
-  da capa: ela recorta o centro. Quem ajustou o zoom e a âncora vê um
-  recorte diferente na lista e na capa.
-- O botão de **copiar** aparece ao lado do link do evento com um "Copiado"
-  que nunca volta a "Copiar". É o mesmo problema do aviso temporário acima,
-  e sai junto com ele.

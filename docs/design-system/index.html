@@ -1,0 +1,1328 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hub — design system</title>
+    <!--
+      GERADO POR scripts/generate-tokens.mts — NÃO EDITE À MÃO.
+      Fonte: docs/design-system/tokens.json. Para mudar um valor, mude o JSON e rode `npm run tokens`.
+      A CI confere com `npm run tokens:check`.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #1e1a33;
+        --inkMuted: #565170;
+        --inkLine: #3a3456;
+        --inkMutedOnDark: #cfc9ee;
+        --paper: #ffffff;
+        --surfacePage: #f1eeff;
+        --surfaceNeutral: #f3f3f5;
+        --lavender: #a69cfb;
+        --lavenderSoft: #e4dfff;
+        --sun: #ffd95e;
+        --line: #d4cef2;
+        --error: #b42318;
+        --success: #146c43;
+        --fundoLavanda: #f1eeff;
+        --fundoBranco: #ffffff;
+        --fundoVerde: #e6f4ea;
+        --fundoAzul: #e6effc;
+        --fundoVermelho: #fce8e8;
+        --fundoRoxo: #f3e6fa;
+        --fundoAmarelo: #fff6d6;
+        --fundoPreto: #cdcdd3;
+        --space0: 0px;
+        --space1: 4px;
+        --space2: 8px;
+        --space3: 16px;
+        --space4: 24px;
+        --space5: 32px;
+        --radiusSm: 12px;
+        --radiusMd: 18px;
+        --radiusLg: 24px;
+        --radiusPill: 999px;
+        --radiusControl: 6px;
+        --sans: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--surfacePage);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 22px;
+      }
+      .pagina {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: var(--space5) var(--space3) var(--space5);
+      }
+      h1 {
+        font-size: 88px;
+        line-height: 80px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        margin: 0;
+      }
+      .intro {
+        font-size: 18px;
+        line-height: 27px;
+        max-width: 640px;
+        margin: var(--space4) 0 0;
+      }
+      .fonte {
+        color: var(--inkMuted);
+        font-size: 13px;
+        line-height: 18px;
+        margin: var(--space3) 0 0;
+      }
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space2);
+        margin: var(--space5) 0 0;
+      }
+      nav a {
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 600;
+        color: var(--ink);
+        text-decoration: none;
+        background: var(--paper);
+        border: 2px solid var(--ink);
+        border-radius: var(--radiusPill);
+        padding: 6px 14px;
+      }
+      nav a:hover {
+        background: var(--lavender);
+      }
+      section {
+        margin: var(--space5) 0 0;
+        padding: var(--space5) 0 0;
+        border-top: 1px solid var(--line);
+      }
+      h2 {
+        font-size: 28px;
+        line-height: 32px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin: 0 0 var(--space2);
+      }
+      h3 {
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--inkMuted);
+        margin: var(--space4) 0 var(--space2);
+      }
+      .sub {
+        color: var(--inkMuted);
+        max-width: 640px;
+        margin: 0 0 var(--space4);
+      }
+      .cores {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: var(--space3);
+      }
+      .cor {
+        background: var(--paper);
+        border-radius: var(--radiusSm);
+        overflow: hidden;
+      }
+      .amostra {
+        height: 72px;
+        border-bottom: 1px solid var(--line);
+      }
+      .cor .texto {
+        padding: var(--space3);
+      }
+      .nome {
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        gap: var(--space2);
+      }
+      .hex {
+        color: var(--inkMuted);
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+      .uso {
+        color: var(--inkMuted);
+        font-size: 13px;
+        line-height: 18px;
+        margin: var(--space1) 0 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--paper);
+        border-radius: var(--radiusSm);
+        overflow: hidden;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: var(--space2) var(--space3);
+        border-bottom: 1px solid var(--line);
+        vertical-align: middle;
+      }
+      th {
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--inkMuted);
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      .valor {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .par {
+        border-radius: var(--radiusControl);
+        padding: 6px 10px;
+        display: inline-block;
+        white-space: nowrap;
+      }
+      .estilo {
+        background: var(--paper);
+        border-radius: var(--radiusSm);
+        padding: var(--space3);
+        margin: 0 0 var(--space2);
+      }
+      .ficha {
+        color: var(--inkMuted);
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 500;
+        margin: 0 0 var(--space2);
+        font-variant-numeric: tabular-nums;
+      }
+      .escala {
+        background: var(--paper);
+        border-radius: var(--radiusSm);
+        padding: var(--space3);
+      }
+      .linha {
+        display: grid;
+        grid-template-columns: 152px 1fr;
+        gap: var(--space3);
+        align-items: center;
+        padding: var(--space2) 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .linha:last-child {
+        border-bottom: 0;
+      }
+      .rotulo {
+        font-weight: 600;
+        font-size: 13px;
+        line-height: 18px;
+      }
+      .rotulo span {
+        display: block;
+        color: var(--inkMuted);
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+      .barra {
+        height: 12px;
+        background: var(--lavender);
+        border-radius: var(--radiusControl);
+      }
+      .medida .uso {
+        margin: var(--space1) 0 0;
+      }
+      .raios {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space3);
+      }
+      .raio {
+        background: var(--paper);
+        padding: var(--space3);
+        border-radius: var(--radiusSm);
+        min-width: 180px;
+      }
+      .caixa {
+        height: 56px;
+        background: var(--lavender);
+        border: 2px solid var(--ink);
+        margin: 0 0 var(--space2);
+      }
+      footer {
+        margin: var(--space5) 0 0;
+        padding: var(--space5) 0 0;
+        border-top: 1px solid var(--line);
+        color: var(--inkMuted);
+        font-size: 13px;
+        line-height: 18px;
+      }
+      code {
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 0.92em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pagina">
+      <header>
+        <h1>Hub</h1>
+        <p class="intro">
+          O design system do Hub: 21 cores, 10 estilos de texto, 6 espaçamentos, 5 raios e 44
+          medidas de controle e de layout. Tudo o que está aqui é o que o app usa — não há valor de
+          exemplo.
+        </p>
+        <p class="fonte">
+          Gerado de <code>docs/design-system/tokens.json</code> por <code>npm run tokens</code>.
+          Para mudar um valor, mude o JSON: este arquivo é reescrito e a integração reprova se os
+          dois divergirem. A prova viva é a tela <code>/design</code> do Hub, que roda os
+          componentes de verdade. O livro da marca está em
+          <code>docs/design-system/README.md</code>.
+        </p>
+        <nav>
+          <a href="#cores">Cores</a>
+          <a href="#perfil">Fundos de perfil</a>
+          <a href="#contraste">Contraste</a>
+          <a href="#tipografia">Tipografia</a>
+          <a href="#espacamento">Espaçamento</a>
+          <a href="#raio">Raio</a>
+          <a href="#medidas">Medidas</a>
+        </nav>
+      </header>
+
+      <section id="cores">
+        <h2>Cores</h2>
+        <p class="sub">
+          13 cores, e cada nível da hierarquia tem a sua, fixa em toda a rede: comunidade é
+          <code>lavender</code>, tópico é <code>ink</code>, e a marca do Hub é <code>sun</code>.
+          Nenhum hex é escrito à mão no código.
+        </p>
+        <div class="cores">
+          <article class="cor">
+            <div class="amostra" style="background: var(--ink)"></div>
+            <div class="texto">
+              <p class="nome"><span>ink</span><span class="hex">#1E1A33</span></p>
+              <p class="uso">
+                Texto principal, botão primário, cartão da pergunta, barra de navegação ativa.
+                14,7:1 sobre surfacePage; 16,8:1 sobre paper; 7,0:1 sobre lavender; 12,3:1 sobre
+                sun.
+              </p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--inkMuted)"></div>
+            <div class="texto">
+              <p class="nome"><span>inkMuted</span><span class="hex">#565170</span></p>
+              <p class="uso">
+                Texto secundário, metadados, glifos de canal (#) e tópico (*), contorno de chip não
+                selecionado. 6,6:1 sobre surfacePage; 7,5:1 sobre paper. Sobre lavender só 3,1:1:
+                use apenas em texto de 24px ou mais.
+              </p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--inkLine)"></div>
+            <div class="texto">
+              <p class="nome"><span>inkLine</span><span class="hex">#3A3456</span></p>
+              <p class="uso">
+                Filete dentro do cartão escuro do tópico, separando o rodapé. 1,4:1 com ink: é
+                divisor decorativo, nunca borda de controle nem texto.
+              </p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--inkMutedOnDark)"></div>
+            <div class="texto">
+              <p class="nome"><span>inkMutedOnDark</span><span class="hex">#CFC9EE</span></p>
+              <p class="uso">
+                Texto secundário SOBRE ink: &quot;abriu este tópico&quot; e a contagem no cartão do
+                tópico. 10,6:1 com ink. Nunca sobre fundo claro — contra paper dá 1,6:1.
+              </p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--paper)"></div>
+            <div class="texto">
+              <p class="nome"><span>paper</span><span class="hex">#FFFFFF</span></p>
+              <p class="uso">
+                Cartões de post, campos, chips não selecionados, fundo da barra de navegação. Nunca
+                como texto sobre lavender (2,4:1, reprova).
+              </p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--surfacePage)"></div>
+            <div class="texto">
+              <p class="nome"><span>surfacePage</span><span class="hex">#F1EEFF</span></p>
+              <p class="uso">Fundo de página em todas as telas.</p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--surfaceNeutral)"></div>
+            <div class="texto">
+              <p class="nome"><span>surfaceNeutral</span><span class="hex">#F3F3F5</span></p>
+              <p class="uso">
+                Cartão da contribuição de OUTRA pessoa, sobre o fundo paper da tela do tópico.
+                15,2:1 com ink; 6,8:1 com inkMuted. Contra paper tem só 1,1:1 — é separação sutil de
+                propósito, e só funciona sobre paper: sobre surfacePage dá 1,0:1 e some.
+              </p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--lavender)"></div>
+            <div class="texto">
+              <p class="nome"><span>lavender</span><span class="hex">#A69CFB</span></p>
+              <p class="uso">
+                Chip selecionado, botão de ícone, selo de posição no ciclo, marca de comunidade.
+                Texto sobre ela sempre em ink. Contra surfacePage tem só 2,1:1, então estado
+                selecionado precisa de um segundo sinal além da cor (o ✓ do chip).
+              </p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--lavenderSoft)"></div>
+            <div class="texto">
+              <p class="nome"><span>lavenderSoft</span><span class="hex">#E4DFFF</span></p>
+              <p class="uso">
+                Hover do botão de estrela e espaço reservado da mídia enquanto carrega. 13,0:1 com
+                ink; 5,8:1 com inkMuted. Fundo de estado, nunca de texto longo.
+              </p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--sun)"></div>
+            <div class="texto">
+              <p class="nome"><span>sun</span><span class="hex">#FFD95E</span></p>
+              <p class="uso">
+                Destaque do ciclo: selo Em destaque, botão Responder dentro do cartão de destaque,
+                aviso de ação pendente. Texto sobre ela em ink. Nunca como cor de texto.
+              </p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--line)"></div>
+            <div class="texto">
+              <p class="nome"><span>line</span><span class="hex">#D4CEF2</span></p>
+              <p class="uso">
+                Divisores decorativos entre linhas de lista. Contraste 1,3:1 com surfacePage: não
+                serve como borda de controle.
+              </p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--error)"></div>
+            <div class="texto">
+              <p class="nome"><span>error</span><span class="hex">#B42318</span></p>
+              <p class="uso">
+                Mensagens de erro, ação destrutiva (excluir conta, remover, sair). 6,6:1 sobre
+                paper. Sempre acompanhado de ícone ou texto, nunca só a cor.
+              </p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--success)"></div>
+            <div class="texto">
+              <p class="nome"><span>success</span><span class="hex">#146C43</span></p>
+              <p class="uso">
+                Confirmação de ação concluída (tópico criado, resposta enviada). 6,4:1 sobre paper.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="perfil">
+        <h2>Fundos de perfil</h2>
+        <p class="sub">
+          Cor de fundo da página de perfil, escolhida por quem é dono (RN27). Fica fora da paleta
+          principal de propósito: são variações claras de superfície, não cores do sistema. Todas
+          passam 4,5:1 com ink e com inkMuted. Texto de erro e de sucesso NÃO passam sobre
+          fundoPreto — eles vivem sempre dentro de um cartão paper.
+        </p>
+        <div class="cores">
+          <article class="cor">
+            <div class="amostra" style="background: var(--fundoLavanda)"></div>
+            <div class="texto">
+              <p class="nome"><span>fundoLavanda</span><span class="hex">#F1EEFF</span></p>
+              <p class="uso">Padrão. O mesmo surfacePage do resto do Hub.</p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--fundoBranco)"></div>
+            <div class="texto">
+              <p class="nome"><span>fundoBranco</span><span class="hex">#FFFFFF</span></p>
+              <p class="uso">
+                Com ele os cartões passam a usar surfacePage: cartão paper sobre fundo paper seria
+                invisível.
+              </p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--fundoVerde)"></div>
+            <div class="texto">
+              <p class="nome"><span>fundoVerde</span><span class="hex">#E6F4EA</span></p>
+              <p class="uso">Fundo de perfil.</p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--fundoAzul)"></div>
+            <div class="texto">
+              <p class="nome"><span>fundoAzul</span><span class="hex">#E6EFFC</span></p>
+              <p class="uso">Fundo de perfil.</p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--fundoVermelho)"></div>
+            <div class="texto">
+              <p class="nome"><span>fundoVermelho</span><span class="hex">#FCE8E8</span></p>
+              <p class="uso">Fundo de perfil.</p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--fundoRoxo)"></div>
+            <div class="texto">
+              <p class="nome"><span>fundoRoxo</span><span class="hex">#F3E6FA</span></p>
+              <p class="uso">Fundo de perfil.</p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--fundoAmarelo)"></div>
+            <div class="texto">
+              <p class="nome"><span>fundoAmarelo</span><span class="hex">#FFF6D6</span></p>
+              <p class="uso">
+                Fundo de perfil. O cartão paper quase não se destaca sobre ele (1,08): quem separa
+                os cartões é o espaço, não a borda.
+              </p>
+            </div>
+          </article>
+          <article class="cor">
+            <div class="amostra" style="background: var(--fundoPreto)"></div>
+            <div class="texto">
+              <p class="nome"><span>fundoPreto</span><span class="hex">#CDCDD3</span></p>
+              <p class="uso">
+                O mais escuro que a paleta aceita: inkMuted ainda passa 4,5:1 (4,73), mas erro e
+                sucesso não passariam.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="contraste">
+        <h2>Contraste</h2>
+        <p class="sub">
+          Os 16 pares permitidos, pela fórmula de luminância relativa do WCAG 2. A amostra ao lado é
+          o par de verdade: o texto está na cor da frente, sobre a cor de fundo.
+          <code>design/contrast.test.ts</code> mede cada um e reprova se o valor publicado divergir.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Par</th>
+              <th>Amostra</th>
+              <th>Contraste</th>
+              <th>Uso permitido</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>ink</code> sobre <code>surfacePage</code></td>
+              <td>
+                <span class="par" style="background: var(--surfacePage); color: var(--ink)"
+                  >Hub</span
+                >
+              </td>
+              <td class="valor">14,7:1</td>
+              <td>Qualquer texto</td>
+            </tr>
+            <tr>
+              <td><code>ink</code> sobre <code>paper</code></td>
+              <td>
+                <span class="par" style="background: var(--paper); color: var(--ink)">Hub</span>
+              </td>
+              <td class="valor">16,8:1</td>
+              <td>Qualquer texto</td>
+            </tr>
+            <tr>
+              <td><code>ink</code> sobre <code>lavender</code></td>
+              <td>
+                <span class="par" style="background: var(--lavender); color: var(--ink)">Hub</span>
+              </td>
+              <td class="valor">7,0:1</td>
+              <td>Qualquer texto</td>
+            </tr>
+            <tr>
+              <td><code>ink</code> sobre <code>sun</code></td>
+              <td>
+                <span class="par" style="background: var(--sun); color: var(--ink)">Hub</span>
+              </td>
+              <td class="valor">12,3:1</td>
+              <td>Qualquer texto</td>
+            </tr>
+            <tr>
+              <td><code>inkMuted</code> sobre <code>surfacePage</code></td>
+              <td>
+                <span class="par" style="background: var(--surfacePage); color: var(--inkMuted)"
+                  >Hub</span
+                >
+              </td>
+              <td class="valor">6,6:1</td>
+              <td>Qualquer texto</td>
+            </tr>
+            <tr>
+              <td><code>ink</code> sobre <code>surfaceNeutral</code></td>
+              <td>
+                <span class="par" style="background: var(--surfaceNeutral); color: var(--ink)"
+                  >Hub</span
+                >
+              </td>
+              <td class="valor">15,2:1</td>
+              <td>Qualquer texto</td>
+            </tr>
+            <tr>
+              <td><code>inkMuted</code> sobre <code>surfaceNeutral</code></td>
+              <td>
+                <span class="par" style="background: var(--surfaceNeutral); color: var(--inkMuted)"
+                  >Hub</span
+                >
+              </td>
+              <td class="valor">6,8:1</td>
+              <td>Qualquer texto</td>
+            </tr>
+            <tr>
+              <td><code>ink</code> sobre <code>lavenderSoft</code></td>
+              <td>
+                <span class="par" style="background: var(--lavenderSoft); color: var(--ink)"
+                  >Hub</span
+                >
+              </td>
+              <td class="valor">13,0:1</td>
+              <td>Qualquer texto</td>
+            </tr>
+            <tr>
+              <td><code>inkMutedOnDark</code> sobre <code>ink</code></td>
+              <td>
+                <span class="par" style="background: var(--ink); color: var(--inkMutedOnDark)"
+                  >Hub</span
+                >
+              </td>
+              <td class="valor">10,6:1</td>
+              <td>Qualquer texto</td>
+            </tr>
+            <tr>
+              <td><code>error</code> sobre <code>paper</code></td>
+              <td>
+                <span class="par" style="background: var(--paper); color: var(--error)">Hub</span>
+              </td>
+              <td class="valor">6,6:1</td>
+              <td>Qualquer texto</td>
+            </tr>
+            <tr>
+              <td><code>success</code> sobre <code>paper</code></td>
+              <td>
+                <span class="par" style="background: var(--paper); color: var(--success)">Hub</span>
+              </td>
+              <td class="valor">6,4:1</td>
+              <td>Qualquer texto</td>
+            </tr>
+            <tr>
+              <td><code>inkMuted</code> sobre <code>lavender</code></td>
+              <td>
+                <span class="par" style="background: var(--lavender); color: var(--inkMuted)"
+                  ><span style="font-size: 24px; line-height: 28px">Hub</span></span
+                >
+              </td>
+              <td class="valor">3,1:1</td>
+              <td>Só texto de 24 px ou mais</td>
+            </tr>
+            <tr>
+              <td><code>paper</code> sobre <code>lavender</code></td>
+              <td>
+                <span class="par" style="background: var(--lavender); color: var(--paper)"
+                  >Hub</span
+                >
+              </td>
+              <td class="valor">2,4:1</td>
+              <td>Proibido como texto</td>
+            </tr>
+            <tr>
+              <td><code>lavender</code> sobre <code>surfacePage</code></td>
+              <td>
+                <span class="par" style="background: var(--surfacePage); color: var(--lavender)"
+                  >Hub</span
+                >
+              </td>
+              <td class="valor">2,1:1</td>
+              <td>Não pode ser o único sinal de estado</td>
+            </tr>
+            <tr>
+              <td><code>surfaceNeutral</code> sobre <code>paper</code></td>
+              <td>
+                <span class="par" style="background: var(--paper); color: var(--surfaceNeutral)"
+                  >Hub</span
+                >
+              </td>
+              <td class="valor">1,1:1</td>
+              <td>Não pode ser o único sinal de estado</td>
+            </tr>
+            <tr>
+              <td><code>inkLine</code> sobre <code>ink</code></td>
+              <td>
+                <span class="par" style="background: var(--ink); color: var(--inkLine)">Hub</span>
+              </td>
+              <td class="valor">1,4:1</td>
+              <td>Não pode ser o único sinal de estado</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="tipografia">
+        <h2>Tipografia</h2>
+        <p class="sub">
+          Uma família só, Bricolage Grotesque, pelo Google Fonts. 10 estilos, cada um desenhado
+          abaixo no tamanho real. Sem rede, a página cai na fonte do sistema e os tamanhos continuam
+          certos.
+        </p>
+        <h3>Destaque</h3>
+        <article class="estilo">
+          <p class="ficha">brand · 88px/80px · peso 800 · entreletra -0.04em</p>
+          <p
+            style="
+              margin: 0;
+              font-size: 88px;
+              line-height: 80px;
+              font-weight: 800;
+              letter-spacing: -0.04em;
+            "
+          >
+            Hub
+          </p>
+          <p class="uso">A marca na tela de abertura. Só ali.</p>
+        </article>
+        <article class="estilo">
+          <p class="ficha">title · 28px/32px · peso 800 · entreletra -0.02em</p>
+          <p
+            style="
+              margin: 0;
+              font-size: 28px;
+              line-height: 32px;
+              font-weight: 800;
+              letter-spacing: -0.02em;
+            "
+          >
+            Comunidades
+          </p>
+          <p class="uso">Título de tela.</p>
+        </article>
+        <article class="estilo">
+          <p class="ficha">coverTitle · 40px/46px · peso 800 · entreletra -0.02em</p>
+          <p
+            style="
+              margin: 0;
+              font-size: 40px;
+              line-height: 46px;
+              font-weight: 800;
+              letter-spacing: -0.02em;
+            "
+          >
+            Animação
+          </p>
+          <p class="uso">
+            O nome da comunidade sobre a capa. Maior que title porque ali ele é a tela inteira.
+          </p>
+        </article>
+        <article class="estilo">
+          <p class="ficha">question · 22px/26px · peso 800 · entreletra -0.02em</p>
+          <p
+            style="
+              margin: 0;
+              font-size: 22px;
+              line-height: 26px;
+              font-weight: 800;
+              letter-spacing: -0.02em;
+            "
+          >
+            Como foi a primeira festa que te fez gostar de música eletrônica?
+          </p>
+          <p class="uso">Pergunta de abertura do tópico em destaque.</p>
+        </article>
+        <article class="estilo">
+          <p class="ficha">subtitle · 20px/26px · peso 700 · entreletra -0.01em</p>
+          <p
+            style="
+              margin: 0;
+              font-size: 20px;
+              line-height: 26px;
+              font-weight: 700;
+              letter-spacing: -0.01em;
+            "
+          >
+            Música Eletrônica
+          </p>
+          <p class="uso">Nome de comunidade no cabeçalho.</p>
+        </article>
+        <h3>Texto</h3>
+        <article class="estilo">
+          <p class="ficha">lead · 18px/27px · peso 400</p>
+          <p style="margin: 0; font-size: 18px; line-height: 27px; font-weight: 400">
+            Existe algum lugar cuja paisagem ficou na sua memória?
+          </p>
+          <p class="uso">
+            A abertura do tópico dentro do cartão escuro. Entre o título e o texto de contribuição:
+            é a única linha longa que precisa de hierarquia própria.
+          </p>
+        </article>
+        <article class="estilo">
+          <p class="ficha">body · 15px/22px · peso 400</p>
+          <p style="margin: 0; font-size: 15px; line-height: 22px; font-weight: 400">
+            Achei uma prensagem japonesa num sebo do centro.
+          </p>
+          <p class="uso">Texto de post e de mensagem.</p>
+        </article>
+        <article class="estilo">
+          <p class="ficha">bodyStrong · 15px/22px · peso 600</p>
+          <p style="margin: 0; font-size: 15px; line-height: 22px; font-weight: 600">Responder</p>
+          <p class="uso">Rótulo de botão, nome de autor.</p>
+        </article>
+        <article class="estilo">
+          <p class="ficha">label · 13px/18px · peso 600</p>
+          <p style="margin: 0; font-size: 13px; line-height: 18px; font-weight: 600">Interesses</p>
+          <p class="uso">Chips, abas, rótulos de seção.</p>
+        </article>
+        <article class="estilo">
+          <p class="ficha">caption · 12px/16px · peso 500</p>
+          <p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 500">
+            revela às 21h
+          </p>
+          <p class="uso">Metadados, legenda da barra de navegação.</p>
+        </article>
+      </section>
+
+      <section id="espacamento">
+        <h2>Espaçamento</h2>
+        <p class="sub">Grade de 8 px, desenhada no tamanho real.</p>
+        <div class="escala">
+          <div class="linha medida">
+            <p class="rotulo">space0<span>0px</span></p>
+            <div>
+              <div class="barra" style="width: 0px; min-width: 2px"></div>
+              <p class="uso">
+                Zero. Existe para que `inset-0`, `gap-0` e companhia funcionem: como a escala padrão
+                do Tailwind foi apagada, um utilitário sem token correspondente é descartado em
+                silêncio.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">space1<span>4px</span></p>
+            <div>
+              <div class="barra" style="width: 4px; min-width: 2px"></div>
+              <p class="uso">Entre ícone e rótulo.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">space2<span>8px</span></p>
+            <div>
+              <div class="barra" style="width: 8px; min-width: 2px"></div>
+              <p class="uso">Entre chips; entre itens de uma linha.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">space3<span>16px</span></p>
+            <div>
+              <div class="barra" style="width: 16px; min-width: 2px"></div>
+              <p class="uso">Respiro interno de cartão; margem lateral de tela.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">space4<span>24px</span></p>
+            <div>
+              <div class="barra" style="width: 24px; min-width: 2px"></div>
+              <p class="uso">Entre blocos de uma tela.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">space5<span>32px</span></p>
+            <div>
+              <div class="barra" style="width: 32px; min-width: 2px"></div>
+              <p class="uso">
+                Margem lateral e de topo do conteúdo na web, e distância entre seções. Segue a grade
+                de 8 px; faltava na escala.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="raio">
+        <h2>Raio</h2>
+        <p class="sub">5 raios, cada um desenhado numa caixa de verdade.</p>
+        <div class="raios">
+          <article class="raio">
+            <div class="caixa" style="border-radius: 12px"></div>
+            <p class="nome"><span>radiusSm</span><span class="hex">12px</span></p>
+            <p class="uso">Chips, campos de texto curtos, marca de nível, cartões de post.</p>
+          </article>
+          <article class="raio">
+            <div class="caixa" style="border-radius: 18px"></div>
+            <p class="nome"><span>radiusMd</span><span class="hex">18px</span></p>
+            <p class="uso">Cartão da pergunta e cartões de destaque.</p>
+          </article>
+          <article class="raio">
+            <div class="caixa" style="border-radius: 24px"></div>
+            <p class="nome"><span>radiusLg</span><span class="hex">24px</span></p>
+            <p class="uso">Campo de escrever da Cabine, que cresce junto com o texto.</p>
+          </article>
+          <article class="raio">
+            <div class="caixa" style="border-radius: 999px"></div>
+            <p class="nome"><span>radiusPill</span><span class="hex">999px</span></p>
+            <p class="uso">Botões, busca, abas da Cabine.</p>
+          </article>
+          <article class="raio">
+            <div class="caixa" style="border-radius: 6px"></div>
+            <p class="nome"><span>radiusControl</span><span class="hex">6px</span></p>
+            <p class="uso">
+              Caixa de seleção. radiusSm (12px) num quadrado de 20px vira círculo, e caixa redonda
+              se confunde com botão de opção.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="medidas">
+        <h2>Medidas</h2>
+        <p class="sub">
+          As 44 medidas de controle e de layout, agrupadas como são usadas e desenhadas em escala.
+          Elas são metade do sistema e até aqui não apareciam em lugar nenhum. No código viram
+          utilitário do Tailwind: <code>size-mark</code>, <code>h-toggleH</code>,
+          <code>max-w-contentColumn</code> — não existe pixel escrito à mão.
+        </p>
+        <h3>Ícone</h3>
+        <p class="sub">Todos desenhados numa grade de 24 px, traço de 2 px.</p>
+        <div class="escala">
+          <div class="linha medida">
+            <p class="rotulo">iconSm<span>16px</span></p>
+            <div>
+              <div class="barra" style="width: 16px"></div>
+              <p class="uso">Ícone dentro de mensagem de erro, sucesso ou caixa de seleção.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">iconTool<span>20px</span></p>
+            <div>
+              <div class="barra" style="width: 20px"></div>
+              <p class="uso">Ícone dos botões que ficam dentro do campo de escrever da Cabine.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">icon<span>22px</span></p>
+            <div>
+              <div class="barra" style="width: 22px"></div>
+              <p class="uso">Ícone padrão, ao lado de texto.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">iconNav<span>24px</span></p>
+            <div>
+              <div class="barra" style="width: 24px"></div>
+              <p class="uso">
+                Ícone da barra de navegação. É também a grade em que todos os ícones são desenhados.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">iconLg<span>34px</span></p>
+            <div>
+              <div class="barra" style="width: 34px"></div>
+              <p class="uso">Ícone grande, em estado vazio e cabeçalho.</p>
+            </div>
+          </div>
+        </div>
+        <h3>Marca</h3>
+        <p class="sub">A chave, a cerquilha e o asterisco, e a palavra “hub” ao lado da marca.</p>
+        <div class="escala">
+          <div class="linha medida">
+            <p class="rotulo">palavraNav<span>24px</span></p>
+            <div>
+              <div class="barra" style="width: 24px"></div>
+              <p class="uso">
+                Altura da palavra &quot;hub&quot; ao lado da marca na barra aberta. É a proporção do
+                logo horizontal: 24 para uma marca de 40.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">mark<span>32px</span></p>
+            <div>
+              <div class="barra" style="width: 32px"></div>
+              <p class="uso">
+                Marca de nível ({, #, asterisco) e o botão # de entrar e sair da comunidade.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">markNav<span>40px</span></p>
+            <div>
+              <div class="barra" style="width: 40px"></div>
+              <p class="uso">
+                Marca do Hub na barra lateral. Um quarto maior que mark: ela é a logo, não uma marca
+                ao lado de um nome.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">markCover<span>40px</span></p>
+            <div>
+              <div class="barra" style="width: 40px"></div>
+              <p class="uso">
+                A marca # sobre a capa da comunidade, que é o botão de entrar e sair. Maior que mark
+                porque ali ela divide a linha com o nome em 40 px.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">markLg<span>88px</span></p>
+            <div>
+              <div class="barra" style="width: 88px"></div>
+              <p class="uso">
+                Marca de nível em tamanho de abertura: a logo do Hub na apresentação do onboarding.
+              </p>
+            </div>
+          </div>
+        </div>
+        <h3>Controle</h3>
+        <p class="sub">Alvo de toque mínimo: 44 px, que é o navItem e o btnRound.</p>
+        <div class="escala">
+          <div class="linha medida">
+            <p class="rotulo">sliderTrack<span>6px</span></p>
+            <div>
+              <div class="barra" style="width: 6px"></div>
+              <p class="uso">
+                Altura da trilha do controle deslizante. 6 px: fina o bastante para o botão dominar,
+                grossa o bastante para o clique na trilha acertar.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">toggleKnob<span>18px</span></p>
+            <div>
+              <div class="barra" style="width: 18px"></div>
+              <p class="uso">Botão que desliza dentro do interruptor.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">checkbox<span>20px</span></p>
+            <div>
+              <div class="barra" style="width: 20px"></div>
+              <p class="uso">Caixa de seleção.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">sliderKnob<span>20px</span></p>
+            <div>
+              <div class="barra" style="width: 20px"></div>
+              <p class="uso">
+                Diâmetro do botão do controle deslizante. 20 px é o mínimo em que o contorno de foco
+                cabe sem encostar na trilha.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">toggleH<span>24px</span></p>
+            <div>
+              <div class="barra" style="width: 24px"></div>
+              <p class="uso">Altura do interruptor.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">controlXs<span>32px</span></p>
+            <div>
+              <div class="barra" style="width: 32px"></div>
+              <p class="uso">
+                Botão miúdo: enviar mensagem na Cabine e as respostas de um convite.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">toggleW<span>40px</span></p>
+            <div>
+              <div class="barra" style="width: 40px"></div>
+              <p class="uso">Largura do interruptor.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">controlSm<span>36px</span></p>
+            <div>
+              <div class="barra" style="width: 36px"></div>
+              <p class="uso">Botão de ícone redondo, em cabeçalho e barra.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">control<span>42px</span></p>
+            <div>
+              <div class="barra" style="width: 42px"></div>
+              <p class="uso">Botão só de ícone.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">navItem<span>44px</span></p>
+            <div>
+              <div class="barra" style="width: 44px"></div>
+              <p class="uso">Alvo de toque de cada ícone da navegação e dos botões de criar.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">btnRound<span>44px</span></p>
+            <div>
+              <div class="barra" style="width: 44px"></div>
+              <p class="uso">
+                Botão redondo de ícone sobre a capa e no topo do tópico. 44 px é o alvo de toque
+                mínimo, o mesmo de navItem.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">controlLg<span>48px</span></p>
+            <div>
+              <div class="barra" style="width: 48px"></div>
+              <p class="uso">
+                Área de clique dos controles da tela do tópico: estrela, ordenação, compartilhar,
+                fechar e o olho de seguir.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">navItemBox<span>52px</span></p>
+            <div>
+              <div class="barra" style="width: 52px"></div>
+              <p class="uso">
+                Caixa que abre cada linha da barra. Centrada nela, a marca, o ícone e o botão de
+                criar caem sempre no mesmo eixo, recolhida ou expandida.
+              </p>
+            </div>
+          </div>
+        </div>
+        <h3>Avatar e miniatura</h3>
+        <div class="escala">
+          <div class="linha medida">
+            <p class="rotulo">avatar<span>30px</span></p>
+            <div>
+              <div class="barra" style="width: 30px"></div>
+              <p class="uso">Foto de perfil em linha de lista.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">avatarSm<span>32px</span></p>
+            <div>
+              <div class="barra" style="width: 32px"></div>
+              <p class="uso">
+                Foto de perfil pequena: a pilha do cabeçalho da Cabine e a do lado do balão.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">thumb<span>36px</span></p>
+            <div>
+              <div class="barra" style="width: 36px"></div>
+              <p class="uso">Miniatura da capa da comunidade, no lugar da marca # nas listas.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">avatarMd<span>40px</span></p>
+            <div>
+              <div class="barra" style="width: 40px"></div>
+              <p class="uso">Foto de perfil em cartão de resposta e mensagem.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">avatarLg<span>72px</span></p>
+            <div>
+              <div class="barra" style="width: 72px"></div>
+              <p class="uso">Foto de perfil na página de perfil.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">postThumb<span>120px</span></p>
+            <div>
+              <div class="barra" style="width: 120px"></div>
+              <p class="uso">
+                Prévia do post na lista do blog, na forma orgânica do perfil. 120 px: maior que a
+                miniatura da comunidade (36) porque aqui ela é a imagem do post, e menor que a da
+                contribuição (213) porque divide a linha com duas linhas de texto.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">avatarPerfil<span>125px</span></p>
+            <div>
+              <div class="barra" style="width: 125px"></div>
+              <p class="uso">Foto no topo da página de perfil, no formato de hexágono orgânico.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">mediaThumb<span>213px</span></p>
+            <div>
+              <div class="barra" style="width: 213px"></div>
+              <p class="uso">Miniatura quadrada de imagem e GIF na lista de contribuições.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">fotoAjuste<span>240px</span></p>
+            <div>
+              <div class="barra" style="width: 240px"></div>
+              <p class="uso">
+                Quadro em que a foto de perfil é arrastada e aproximada, em Editar perfil.
+              </p>
+            </div>
+          </div>
+        </div>
+        <h3>Layout · escala 50%</h3>
+        <p class="sub">Desenhadas a 50%: a maior tem 1120 px e não caberia na página.</p>
+        <div class="escala">
+          <div class="linha medida">
+            <p class="rotulo">navRail<span>84px</span></p>
+            <div>
+              <div class="barra" style="width: 42px"></div>
+              <p class="uso">
+                Largura da barra de navegação lateral recolhida. A metade dela, 42 px, é o eixo em
+                que todo ícone da barra fica centrado.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">composeMax<span>132px</span></p>
+            <div>
+              <div class="barra" style="width: 66px"></div>
+              <p class="uso">
+                Altura máxima do campo de escrever da Cabine: depois disso ele rola em vez de
+                crescer.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">navRailOpen<span>232px</span></p>
+            <div>
+              <div class="barra" style="width: 116px"></div>
+              <p class="uso">
+                Largura da barra expandida, com os rótulos. Ela cresce por cima do conteúdo: a
+                coluna do layout continua com navRail.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">cover<span>230px</span></p>
+            <div>
+              <div class="barra" style="width: 115px"></div>
+              <p class="uso">
+                Altura da capa da comunidade, no topo da página dela. 230 px é a medida do protótipo
+                v6: com 180 o nome de 40 px e os botões dos cantos disputavam a mesma faixa.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">contextPanel<span>260px</span></p>
+            <div>
+              <div class="barra" style="width: 130px"></div>
+              <p class="uso">Painel de contexto à direita, nas telas que têm um.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">cabinList<span>340px</span></p>
+            <div>
+              <div class="barra" style="width: 170px"></div>
+              <p class="uso">Coluna da lista de Cabines, ao lado da conversa.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">demoPanel<span>400px</span></p>
+            <div>
+              <div class="barra" style="width: 200px"></div>
+              <p class="uso">
+                Altura do painel de demonstração, à direita dentro de cada card da apresentação.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">authColumn<span>420px</span></p>
+            <div>
+              <div class="barra" style="width: 210px"></div>
+              <p class="uso">
+                Coluna das telas de entrada (login, cadastro, recuperação de senha), mais estreita
+                que a de conteúdo.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">demoCard<span>500px</span></p>
+            <div>
+              <div class="barra" style="width: 250px"></div>
+              <p class="uso">Altura mínima de um card da apresentação do onboarding.</p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">topicPanel<span>520px</span></p>
+            <div>
+              <div class="barra" style="width: 260px"></div>
+              <p class="uso">
+                Largura do painel do tópico, aberto ao lado da lista da comunidade. 520 px é a
+                medida do protótipo v6: cabe a abertura e o compositor sem quebrar o texto a cada
+                três palavras.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">contentColumn<span>720px</span></p>
+            <div>
+              <div class="barra" style="width: 360px"></div>
+              <p class="uso">
+                Largura da coluna de conteúdo na web. Tópico e página da comunidade usam a largura
+                total.
+              </p>
+            </div>
+          </div>
+          <div class="linha medida">
+            <p class="rotulo">stageColumn<span>1120px</span></p>
+            <div>
+              <div class="barra" style="width: 560px"></div>
+              <p class="uso">
+                Largura máxima da apresentação do onboarding, mais larga que a coluna de conteúdo
+                porque o card tem duas colunas.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <p>
+          Hub · design system versão 12 · 21 cores, 10 estilos, 6 espaçamentos, 5 raios, 44 medidas,
+          16 pares de contraste.
+        </p>
+        <p>
+          Os componentes não estão aqui: um HTML estático não roda React, e desenhá-los à mão
+          criaria uma segunda verdade que divergiria do código. Eles vivem em <code>/design</code>,
+          que roda o código de verdade, e no documento navegável do design system.
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>

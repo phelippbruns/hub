@@ -5,7 +5,7 @@
  * um. Aqui a tabela vira código, para o teste conferir que os valores batem e
  * que nenhum par proibido escapa.
  */
-import { color, type ColorName } from "./tokens";
+import { color, contrastPairs, type ColorName } from "./tokens";
 
 /** Canal sRGB de 0–255 para linear, como define o WCAG 2. */
 function toLinear(channel: number): number {
@@ -43,30 +43,20 @@ export type Usage =
 export type Pair = {
   foreground: ColorName;
   background: ColorName;
-  /** Valor publicado em docs/design-system/README.md. */
+  /** Valor publicado em docs/design-system/tokens.json. */
   expected: number;
   usage: Usage;
 };
 
-/** A tabela de cor do design system, na mesma ordem. */
-export const pairs: Pair[] = [
-  { foreground: "ink", background: "surfacePage", expected: 14.7, usage: "qualquer-texto" },
-  { foreground: "ink", background: "paper", expected: 16.8, usage: "qualquer-texto" },
-  { foreground: "ink", background: "lavender", expected: 7.0, usage: "qualquer-texto" },
-  { foreground: "ink", background: "sun", expected: 12.3, usage: "qualquer-texto" },
-  { foreground: "inkMuted", background: "surfacePage", expected: 6.6, usage: "qualquer-texto" },
-  { foreground: "ink", background: "surfaceNeutral", expected: 15.2, usage: "qualquer-texto" },
-  { foreground: "inkMuted", background: "surfaceNeutral", expected: 6.8, usage: "qualquer-texto" },
-  { foreground: "ink", background: "lavenderSoft", expected: 13.0, usage: "qualquer-texto" },
-  { foreground: "inkMutedOnDark", background: "ink", expected: 10.6, usage: "qualquer-texto" },
-  { foreground: "error", background: "paper", expected: 6.6, usage: "qualquer-texto" },
-  { foreground: "success", background: "paper", expected: 6.4, usage: "qualquer-texto" },
-  { foreground: "inkMuted", background: "lavender", expected: 3.1, usage: "texto-grande" },
-  { foreground: "paper", background: "lavender", expected: 2.4, usage: "proibido" },
-  { foreground: "lavender", background: "surfacePage", expected: 2.1, usage: "nao-e-sinal-unico" },
-  { foreground: "surfaceNeutral", background: "paper", expected: 1.1, usage: "nao-e-sinal-unico" },
-  { foreground: "inkLine", background: "ink", expected: 1.4, usage: "nao-e-sinal-unico" },
-];
+/**
+ * A tabela de cor do design system, na mesma ordem em que é publicada.
+ *
+ * Os valores vêm de `docs/design-system/tokens.json`, gerados em
+ * `design/tokens.ts`: a mesma lista alimenta este teste e o HTML do
+ * documento em `docs/design-system/index.html`. Escrita aqui à mão, ela
+ * divergiria do documento em silêncio — e o documento é o que se lê.
+ */
+export const pairs: Pair[] = contrastPairs.map((par) => ({ ...par }));
 
 export function ratioFor(pair: Pick<Pair, "foreground" | "background">): number {
   return contrastRatio(color[pair.foreground], color[pair.background]);
