@@ -112,6 +112,24 @@ export async function joinAs(communityId: string, profileId: string) {
  * provaria que as políticas funcionam. Aqui a conexão usa um papel comum e se
  * identifica com `hub.viewer_id`, que é o que `hub_viewer_id()` lê quando não
  * há sessão do Supabase.
+ *
+ * **Os privilégios são devolvidos dentro de uma transação, e desfeitos no
+ * fim.** Desde 24 de novembro de 2026 `anon` e `authenticated` não alcançam
+ * tabela nenhuma: a chave publicável viaja em todo navegador, e o RLS é por
+ * linha, nunca por coluna — foi assim que a data de nascimento de todo mundo
+ * ficou legível.
+ *
+ * Só que o Hub tem **duas** barreiras de propósito (regra de segurança 2), e
+ * sem os privilégios a consulta para antes da política: os testes de RLS
+ * morreriam com "permission denied" sem nunca exercitar o que foram escritos
+ * para provar. O `GRANT` aqui é o que mantém a segunda barreira **medida** —
+ * se um dia alguém reabrir a primeira, estes testes dizem se a de baixo
+ * ainda segura.
+ *
+ * `GRANT` é transacional no Postgres, então o `ROLLBACK` do fim o desfaz
+ * sozinho, inclusive quando o teste estoura no meio. Nada vaza para a
+ * próxima conexão — e `lib/data/privilegios.db.test.ts` confere o estado
+ * real, fora daqui.
  */
 export async function asViewer<T>(
   viewerId: string | null,
@@ -120,6 +138,9 @@ export async function asViewer<T>(
   const client = new pg.Client(url);
   await client.connect();
   try {
+    await client.query("BEGIN");
+    await client.query("GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated");
+
     // `authenticated` é o papel que o Supabase usa para quem está logado: tem
     // acesso às tabelas, mas está sujeito ao RLS.
     await client.query("SET ROLE authenticated");
@@ -128,6 +149,12 @@ export async function asViewer<T>(
     }
     return await run(client);
   } finally {
+    /*
+     * `ROLLBACK` e não `COMMIT`: o que interessa destes testes é o que a
+     * política respondeu, nunca o que ficou gravado. E é ele que devolve os
+     * privilégios ao estado fechado.
+     */
+    await client.query("ROLLBACK").catch(() => {});
     await client.end();
   }
 }

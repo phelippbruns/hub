@@ -2820,6 +2820,98 @@ rodada de jornada de três minutos e meio.
 completa. E componente que você vai citar numa asserção se abre antes,
 não depois.
 
+### A data de nascimento de todo mundo estava legível com a chave pública
+
+**Quando:** desde a F02 (4 de outubro de 2026). Achado em 24 de novembro, numa varredura que o PO pediu.
+
+**O que estava acontecendo:** com a chave publicável do Supabase — que viaja
+dentro de **todo navegador**, visível para quem abre as ferramentas de
+desenvolvedor — um `GET /rest/v1/profiles` devolvia a tabela inteira:
+`birth_date`, `age_verification_status`, `age_verification_method`,
+`invite_policy`, os quatro `notify_*` e `hide_followers`. `memberships` saía
+em massa pelo mesmo caminho.
+
+**A causa é um mal-entendido sobre o Postgres**, e está escrita na própria
+política:
+
+```sql
+/* RN17: nome, @ e foto são públicos; é o que todo conteúdo exibe. */
+CREATE POLICY profiles_read ON profiles FOR SELECT
+  USING (deleted_at IS NULL AND NOT hub_has_block_between(id, hub_viewer_id()));
+```
+
+O comentário diz três colunas. **RLS é por linha, nunca por coluna** —
+liberar a linha libera as 27. A intenção estava certa e o mecanismo não
+sabia cumpri-la.
+
+Por baixo disso há o padrão do Supabase, que concede **todos** os
+privilégios a `anon` e `authenticated` em todas as tabelas de `public`. O
+RLS não era a segunda barreira ali: era a única.
+
+**Por que passou:** por três camadas de conferência, todas olhando para o
+lado certo e enxergando a coisa errada.
+
+1. **O teste de RLS existe e passa.** `privacidade.db.test.ts` prova que
+   visitante não lê resposta e que a Coleção alheia não aparece. Ele mede as
+   **linhas** que a política devolve, que é o que a política decide — e nunca
+   perguntou quais **colunas** vinham junto.
+2. **O `CLAUDE.md` afirma a doutrina certa** ("RLS ligado mesmo assim",
+   "segunda barreira") e ela estava implementada. A falha não foi esquecer a
+   segunda barreira: foi a primeira não existir.
+3. **Escrever estava barrado.** `DELETE` anônimo pelo REST devolve 204 sem
+   apagar linha nenhuma. Quem conferisse escrita — que é o reflexo — sairia
+   tranquilo.
+
+🔒 **Barrado** — a migration `20261124120000` revoga os privilégios de `anon`
+e `authenticated` em tudo e devolve só `SELECT` em `messages`, que é do que o
+Realtime da Cabine precisa. O padrão para **tabelas futuras** também foi
+revogado: sem isso a próxima migration entrega a tabela nova aberta, e é o
+mesmo formato do menu suspenso que nasceu errado quatro vezes.
+`lib/data/privilegios.db.test.ts` confere o estado real — inclusive
+`has_column_privilege('anon','profiles','birth_date','SELECT')`, que é a
+coluna que começou tudo — e foi visto reprovar nos quatro casos.
+
+**E a segunda barreira continua medida.** Sem privilégio, a consulta para
+antes da política, e os treze testes de RLS morreriam com "permission
+denied" sem exercitar nada. `asViewer` passou a devolver os privilégios
+**dentro de uma transação**, desfeita no `ROLLBACK`. Duas barreiras só valem
+quando as duas são conferidas; a de cima protege hoje, a de baixo protege no
+dia em que alguém reabrir a de cima.
+
+**A lição:** *"o teste passa"* e *"a regra vale"* são afirmações sobre coisas
+diferentes quando o mecanismo tem granularidade menor que a intenção. A
+política decide **linhas**; o comentário prometia **colunas**. Quando um
+comentário descreve a intenção num vocabulário que o mecanismo não tem, ele
+não está documentando — está escondendo.
+
+E o atalho que teria achado isto em dois minutos, a qualquer dia dos
+cinquenta: **pedir os próprios dados com a chave que está no navegador.** Foi
+o primeiro comando da varredura.
+
+### Duas afirmações minhas que a medida derrubou, na mesma varredura
+
+**Quando:** 24 de novembro de 2026.
+
+**A primeira.** Relatei ao PO que a regra de segurança 5 do `CLAUDE.md`
+estava mentindo — que a limitação de taxa não existia. Existe:
+`lib/data/auth-attempts.ts`, com teto por email e por IP para entrar, criar
+conta e recuperar senha, usada nas três ações e coberta por teste de banco.
+Meu `grep` procurou `rateLimit` e o módulo se chama `isRateLimited`:
+**errei por uma maiúscula**, e transformei a ausência de resultado em
+afirmação de ausência.
+
+**A segunda.** Testei a leitura anônima contra produção e relatei que estava
+protegida. O `.env.local` aponta para o Supabase **local**, que estava
+desligado: a resposta foi HTTP 000, conexão recusada. Li "sem dados" como
+"negado". Era o contrário — a leitura funcionava, e eu só descobri ao repetir
+contra um banco que estava de pé.
+
+**A lição:** resposta vazia não é resposta negativa. `grep` sem acerto,
+`curl` sem conexão e consulta sem linha dizem todos a mesma coisa — nada — e
+nenhum deles diz "não existe". Antes de afirmar ausência, prove que a
+pergunta chegou: rode o mesmo comando contra um caso que **deveria** achar
+algo. Na varredura isso custou duas correções ao PO no mesmo relatório.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
@@ -2828,7 +2920,8 @@ a ordem de formatar e medir (`npm run verificar`), o endereço de tópico
 num lugar só, os quatro caminhos de fechar um menu suspenso,
 segredo no repositório, corrida entre testes, um ícone aceso por tela, os
 utilitários de zero, os dois limites de camada que o build recusa, o
-aviso do limite diário conferido **nos dois sentidos**, a trava do gatilho
+aviso do limite diário conferido **nos dois sentidos**, o que o navegador
+alcança no banco, a trava do gatilho
 observada em `pg_stat_activity`, e as três listas do post — editor,
 schema e desenho — comparadas entre si.
 

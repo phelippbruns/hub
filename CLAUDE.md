@@ -226,6 +226,28 @@ O `*` resolve **dentro da comunidade onde o texto está** — endereço de tópi
 é único por comunidade, não no Hub inteiro. E só o `@` notifica: referência
 não é convocação.
 
+**O navegador alcança uma tabela só, e é de leitura.** `anon` não tem
+privilégio em tabela nenhuma; `authenticated` tem `SELECT` em `messages` e
+mais nada (migration `20261124120000`). O Supabase concede **tudo** por
+padrão, e a chave publicável viaja dentro de todo navegador — restava o RLS
+como única barreira, e ele é por **linha, nunca por coluna**. Foi assim que
+a `profiles_read`, escrita para cumprir a RN17 ("nome, @ e foto são
+públicos"), liberou as 27 colunas: `birth_date`,
+`age_verification_status`, `invite_policy`, os `notify_*`. Medido em 24 de
+novembro de 2026 com a chave publicável e mais nada.
+
+O padrão para **tabelas futuras** também foi revogado, senão a próxima
+migration entrega a tabela nova aberta e ninguém é avisado.
+[lib/data/privilegios.db.test.ts](lib/data/privilegios.db.test.ts) confere o
+estado real e reprova quem reabrir.
+
+**As políticas de RLS continuam todas**, e continuam **medidas**: `asViewer`
+([lib/data/testing/db.ts](lib/data/testing/db.ts)) devolve os privilégios
+dentro de uma transação e desfaz no `ROLLBACK`. Sem isso a consulta pararia
+antes da política, e os treze testes de RLS morreriam com "permission
+denied" sem exercitar o que foram escritos para provar. Duas barreiras só
+valem quando as duas são conferidas.
+
 **A Cabine é a única tela em que o navegador fala direto com o Supabase.** A conversa assina a tabela `messages` pelo Realtime, com a chave anônima, e **quem autoriza é o RLS** — não a camada de dados. É por isso que `messages_read_member` existe desde a F02: ali ela não é segunda barreira, é a única. Enviar continua sendo Server Action, para a mensagem passar pela validação, pelo bloqueio de links e pela limpeza da imagem antes de existir.
 
 Quatro coisas precisam estar de pé ao mesmo tempo, e a falta de qualquer uma dá o mesmo sintoma — "a mensagem não chega", sem erro nenhum:
