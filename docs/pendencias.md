@@ -458,22 +458,24 @@ suíte crescer muito, vai precisar de bancos isolados por trabalhador.
 
 ---
 
-### 4.5.1 A CI não roda o tempo real da Cabine — **um passo seu**
+### 4.5.1 ~~A CI não roda o tempo real da Cabine~~ — **era falso, e cobrou**
 
-A CI sobe o Supabase com `-x realtime`: o serviço de tempo real **não existe
-lá**. A jornada que prova a Cabine funcionando — duas abas, a mensagem
-chegando sem recarregar — se pula sozinha na CI, dizendo o motivo no
-relatório.
+Este item dizia que a CI sobe o Supabase com `-x realtime` e que a jornada
+do tempo real se pulava sozinha lá — e pedia um passo seu para corrigir.
+**Nada disso é verdade.** A linha 77 de `.github/workflows/ci.yml` exclui
+sete serviços, e `realtime` não é nenhum deles: a CI roda a jornada da
+Cabine com tempo real de verdade desde que a F13 subiu.
 
-É o mesmo caso do `storage-api` na F09, quando o envio de imagem não podia
-ser testado na CI até o serviço ser ligado. Está no [Faustão](faustao.md).
+O engano tinha versão no código também, num comentário dentro da própria
+jornada, e quase custou caro: em 24 de novembro de 2026 eu usei esse
+comentário para explicar por que uma CI vermelha "não contava". Ela
+contava, e estava certa — tinha achado um defeito real que a minha máquina
+escondia. O comentário foi reescrito na mesma rodada; está no
+[Faustão](faustao.md).
 
-**O passo:** em `.github/workflows/ci.yml`, tire `realtime,` da linha
-`npx supabase start -x realtime,imgproxy,studio,…`. Eu não consigo fazer
-isso: meu acesso não tem permissão para alterar arquivos de workflow.
-
-Enquanto não for feito, a feature mais delicada do Hub — mensagem privada
-chegando em tempo real — é conferida só na minha máquina.
+**A lição, que vale mais que o item:** nota antiga em documento não é
+medida. Quando ela disser que uma conferência não roda, abra o arquivo da
+conferência antes de acreditar.
 
 ### 4.7 Web Push: a metade da F15 que ficou para depois — **um passo seu**
 
