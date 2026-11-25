@@ -177,6 +177,67 @@ esconde se o limite está apertado.
 critério do PO, e continua podendo falhar numa máquina ocupada; a CI é quem
 decide.
 
+### Ferramenta que demora e falha sem deixar nada para olhar
+
+Escrevendo o gerador das páginas de referência — dez minutos por execução,
+com banco, build e navegador —, um clique numa estrela ficou preso. O erro
+foi `Test timeout of 900000ms exceeded` e mais nada: quinze minutos para
+aprender que algo travou em algum lugar.
+
+A causa não era a estrela. Era a configuração: o padrão de `actionTimeout` e
+`navigationTimeout` no Playwright é **zero**, isto é, sem limite. Numa suíte
+de testes curtos isso nunca aparece, porque quem estoura primeiro é algum
+`expect` de cinco segundos. Numa ferramenta longa, a ação espera o teste
+inteiro e devolve um erro que não aponta para nada.
+
+*Por que passou:* porque a suíte de jornadas herda o mesmo padrão e nunca
+sofreu com ele — eu copiei a configuração sem perguntar o que ela não tinha.
+
+*Como resolvi:* `actionTimeout: 20_000` e `navigationTimeout: 40_000` na
+config da captura. O mesmo clique passou a dizer "element is not enabled" em
+vinte segundos. E o capturador passou a **salvar um retrato da tela quando a
+âncora falha**, em `test-results/falha-<id>.png`.
+
+Esse segundo remédio foi o que mais rendeu. Antes dele eu gastei seis rodadas
+de dois minutos adivinhando rótulo: procurei "Hot Topic" numa tela que diz
+**"DESTAQUE DO DIA"**, "Nome da comunidade" num campo que se chama só
+"Nome", `/Avançar|Começar/` num botão que é "Próximo card". Todos os três
+estavam escritos, com o seletor certo, nas jornadas que já exercitam aquelas
+telas.
+
+**Regra:** ferramenta que demora precisa falhar **mostrando**. Limite por
+ação, para o erro apontar o lugar; e uma imagem do que estava na tela, para
+não ser preciso adivinhar o que ela era. E antes de escrever um seletor
+novo, procurar o mesmo seletor na jornada que já passa por ali — adivinhar
+rótulo é a forma mais cara de descobrir que ele mudou.
+
+👁 **Atenção** — a config da captura tem os limites; a de jornada continua
+sem. Vira 🔒 no dia em que isso for uma regra conferida, e não uma linha que
+eu lembrei de escrever.
+
+### O seed não apaga o que eu achei que apagava
+
+Na mesma ferramenta, fixei o @ e o email das contas de captura, para os
+quarenta retratos saírem com `@dora` em vez de `@refd9403114`. Funcionou na
+primeira execução e quebrou na segunda, no cadastro.
+
+O seed **trunca `profiles`**, então o @ volta a ficar livre a cada execução.
+Mas em `auth.users` ele apaga só quem termina em `@hub.test`, e as contas da
+captura usam `@teste.hub`: o email sobreviveu, e o cadastro recusou a conta
+repetida.
+
+*Por que passou:* "o seed trunca tudo" é verdade o bastante para eu nunca ter
+olhado a linha. As duas tabelas têm regras diferentes porque uma é nossa e a
+outra é do Supabase.
+
+*Como resolvi:* @ fixo, email com relógio. Está comentado no lugar, com o
+motivo, porque é o tipo de coisa que alguém vai querer "arrumar" de novo.
+
+**Regra:** antes de depender de um banco limpo, ler o que a limpeza alcança.
+Truncar nossas tabelas não é o mesmo que limpar as do Supabase.
+
+👁 **Atenção** — hábito.
+
 ---
 
 ## 2. Testes que não testam
