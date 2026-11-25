@@ -1,6 +1,6 @@
 # Mapa das telas do Hub
 
-Gerado em 2026-11-24, do commit `ffd6637`. **Não edite à mão** — rode `npm run referencia`.
+Gerado em 2026-11-25, do commit `e57ef00`. **Não edite à mão** — rode `npm run referencia`.
 
 > Cada tela lista os componentes **no caminho da rota**, não os visíveis naquele estado: um ramo condicional pode não estar na tela capturada. Para mexer em algo, a lista é suficiente; para afirmar que algo aparece, confira o retrato.
 

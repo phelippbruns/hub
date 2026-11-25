@@ -34,8 +34,18 @@ import ts from "typescript";
  * ressalva na primeira linha.
  */
 
-/** A raiz do repositório, para `@/` e para caminhos relativos ao projeto. */
-const RAIZ = resolve(import.meta.dirname, "..", "..");
+/**
+ * A raiz do repositório, para `@/` e para caminhos relativos ao projeto.
+ *
+ * `process.cwd()`, e **não** `import.meta.dirname`: o Playwright transforma
+ * este arquivo para CommonJS, onde `import.meta` nem existe — e o erro que
+ * ele dá ("Cannot use 'import.meta' outside a module") aponta para a linha do
+ * `import`, não para a linha culpada. É também a convenção que as outras
+ * varreduras do projeto já usam (`design/tokens.test.ts`,
+ * `lib/rotas.test.ts`): caminho relativo à raiz, com os comandos npm rodando
+ * de lá.
+ */
+const RAIZ = resolve(process.cwd());
 
 /** O barril do design system. É ele que dá nome a cada componente. */
 const BARRIL = join("design", "components", "index.ts");

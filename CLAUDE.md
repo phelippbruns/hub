@@ -312,6 +312,12 @@ outra.
 
 **Componente de cliente não importa `lib/data/`.** Mesmo indiretamente: um reexport inocente arrasta o Prisma e o `pg` para o pacote do navegador, e o build quebra com _"Can't resolve 'dns'"_, que não diz nada sobre a causa. Constantes que a tela e a camada de dados compartilham moram em `features/<nome>/shared.ts`.
 
+**O Hub inteiro está retratado em `design/paginas-de-referencia/`** — 40
+estados de tela em PNG, 6 em HTML que abre do disco, e um mapa que liga cada
+tela ao `page.tsx` que a desenha e cada componente às telas em que aparece.
+É o ponto de partida para mexer no design, e `npm run referencia` o regera.
+Ele **apaga o banco local**, porque roda o seed.
+
 **A tela /design mostra o sistema inteiro.** Antes de criar um componente, olhe [design/components/](design/components/) e a galeria em `/design`. Componente novo entra na galeria junto.
 
 **Toda rota renderiza por requisição.** [app/layout.tsx](app/layout.tsx) marca `export const dynamic = "force-dynamic"` para o app inteiro. Motivo: a CSP exige nonce nos scripts, e o Next só injeta o nonce fora do prerender estático — numa rota estática o navegador bloqueia todos os scripts, sem erro no build e sem teste vermelho. Como quase tudo no Hub é por usuário, o prerender valeria para pouca coisa. Vale só para o HTML: JavaScript, CSS, fontes e imagens continuam no cache da borda.

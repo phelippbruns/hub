@@ -1,6 +1,6 @@
 {
-  "geradoEm": "2026-11-24",
-  "commit": "ffd6637",
+  "geradoEm": "2026-11-25",
+  "commit": "e57ef00",
   "ressalva": "Cada tela lista os componentes **no caminho da rota**, não os visíveis naquele estado: um ramo condicional pode não estar na tela capturada. Para mexer em algo, a lista é suficiente; para afirmar que algo aparece, confira o retrato.",
   "telas": [
     {

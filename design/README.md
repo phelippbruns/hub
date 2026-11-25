@@ -30,3 +30,20 @@ Nenhuma cor, tamanho de fonte, espaçamento ou raio solto no código.
 
 A galeria em `/design` mostra tudo: a tela 29 do protótipo (Estados do sistema),
 a paleta, a escala tipográfica e cada componente. Componente novo entra lá junto.
+
+## Páginas de referência
+
+`design/paginas-de-referencia/` tem o Hub inteiro retratado: **40 estados de
+tela em PNG**, 6 em HTML de verdade, e um mapa que liga cada tela ao
+`page.tsx` que a desenha e cada um dos 62 componentes às telas em que aparece.
+
+Existe para servir de ponto de partida a quem for aplicar modo escuro ou
+trocar o design. Comece pelo `index.html` da pasta — abre do disco, sem
+servidor.
+
+Para regerar: `npm run referencia`. **Ele apaga o banco local** (roda o seed,
+que trunca tudo) e leva uns dois minutos.
+
+O tema não mora lá: para escurecer, preencha o campo `dark` dos 21 tokens de
+cor no `tokens.json` e rode `npm run tokens` — isso acende o Hub inteiro, e a
+captura seguinte retrata o tema novo.
