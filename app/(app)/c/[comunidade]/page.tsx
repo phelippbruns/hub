@@ -16,6 +16,7 @@ import { ControlesDeTopicos } from "@/features/comunidades/controles-de-topicos"
 import { AbasDaComunidade } from "@/features/comunidades/abas";
 import {
   abaDaComunidade,
+  type AbaDaComunidade,
   filtroDeTopicos,
   type FiltroDeTopicos,
 } from "@/features/comunidades/shared";
@@ -220,72 +221,80 @@ export default async function ComunidadePage({
             eventosFuturos={proximosEncontros}
           />
 
-          {abaAtual === "eventos" ? (
-            <Suspense
-              fallback={
-                <PaginaCarregando titulo={false} linhas={2} label="Carregando os eventos" />
-              }
-            >
-              <AbaDeEventos
-                slug={dados.slug}
-                comunidadeId={dados.id}
-                souMembro={dados.souMembro}
-                paraEntrar={paraEntrar}
-              />
-            </Suspense>
-          ) : abaAtual === "enquetes" ? (
-            <Suspense
-              fallback={
-                <PaginaCarregando titulo={false} linhas={2} label="Carregando as enquetes" />
-              }
-            >
-              <AbaDeEnquetes
-                slug={dados.slug}
-                comunidadeId={dados.id}
-                souMembro={dados.souMembro}
-                paraEntrar={paraEntrar}
-              />
-            </Suspense>
-          ) : abaAtual === "membros" ? (
-            <Suspense
-              fallback={
-                <PaginaCarregando titulo={false} linhas={3} label="Carregando os membros" />
-              }
-            >
-              <AbaDeMembros
-                slug={dados.slug}
-                comunidadeId={dados.id}
-                total={dados.membersCount}
-                souModerador={dados.souModerador}
-                souMembro={dados.souMembro}
-                filtro={pessoaFiltro}
-                termo={pessoa?.trim() ?? ""}
-              />
-            </Suspense>
-          ) : (
-            /*
-          Duas colunas acima de 1100 px, como o protótipo v6: o conteúdo à
-          esquerda e o resumo da comunidade à direita.
+          {/*
+            **Duas colunas em todas as abas, não só no Início.**
 
-          A coluna da direita é **desta página**, e não uma rota paralela do
-          app inteiro com uma preferência no banco — foi assim que ela nasceu
-          na F20 e é o que o vacilo 17 registrou. Aqui ela é um `<aside>` e
-          nada mais.
+            A coluna da direita ficava dentro do ramo do Início, então trocar
+            de aba a fazia desaparecer — e clicar em "Ver todos" ou "Ver
+            evento" levava a pessoa para uma tela que perdia o contexto de
+            onde ela veio. Agora o par conteúdo+resumo envolve o encadeado:
+            **uma instância só**, um `<Suspense>` só, e o resumo acompanha
+            as quatro abas.
 
-          Sem corte por largura: o protótipo some com ela abaixo de 1100 px,
-          mas o Hub é só computador até a F21 e a regra do projeto proíbe
-          breakpoint. A adaptação entra inteira lá, junto com o celular.
-        */
-            <div className="flex items-start gap-3">
-              <div className="flex min-w-0 flex-1 flex-col gap-3">
-                <SobreAComunidade
-                  about={dados.about}
-                  regras={dados.regras}
-                  criadaPor={dados.criadaPor}
-                  criadaEm={dados.criadaEm}
-                />
+            A coluna é **desta página**, e não uma rota paralela do app com
+            preferência no banco — foi assim que ela nasceu na F20 e é o que
+            o vacilo 17 registrou. Aqui ela é um `<aside>` e nada mais.
 
-                {/*
+            Sem corte por largura: o protótipo v6 some com ela abaixo de
+            1100 px, mas o Hub é só computador até a F21 e a regra do projeto
+            proíbe breakpoint. A adaptação entra inteira lá, junto com o
+            celular. Medido antes de mexer: a aba Início, que já tinha as
+            duas colunas, cabe até em 768 px.
+          */}
+          <div className="flex items-start gap-3">
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              {abaAtual === "eventos" ? (
+                <Suspense
+                  fallback={
+                    <PaginaCarregando titulo={false} linhas={2} label="Carregando os eventos" />
+                  }
+                >
+                  <AbaDeEventos
+                    slug={dados.slug}
+                    comunidadeId={dados.id}
+                    souMembro={dados.souMembro}
+                    paraEntrar={paraEntrar}
+                  />
+                </Suspense>
+              ) : abaAtual === "enquetes" ? (
+                <Suspense
+                  fallback={
+                    <PaginaCarregando titulo={false} linhas={2} label="Carregando as enquetes" />
+                  }
+                >
+                  <AbaDeEnquetes
+                    slug={dados.slug}
+                    comunidadeId={dados.id}
+                    souMembro={dados.souMembro}
+                    paraEntrar={paraEntrar}
+                  />
+                </Suspense>
+              ) : abaAtual === "membros" ? (
+                <Suspense
+                  fallback={
+                    <PaginaCarregando titulo={false} linhas={3} label="Carregando os membros" />
+                  }
+                >
+                  <AbaDeMembros
+                    slug={dados.slug}
+                    comunidadeId={dados.id}
+                    total={dados.membersCount}
+                    souModerador={dados.souModerador}
+                    souMembro={dados.souMembro}
+                    filtro={pessoaFiltro}
+                    termo={pessoa?.trim() ?? ""}
+                  />
+                </Suspense>
+              ) : (
+                <>
+                  <SobreAComunidade
+                    about={dados.about}
+                    regras={dados.regras}
+                    criadaPor={dados.criadaPor}
+                    criadaEm={dados.criadaEm}
+                  />
+
+                  {/*
               RN09: o Hot Topic do dia, eleito às 00h pelo ciclo anterior.
               Comunidade sem respostas ontem não ganha destaque.
 
@@ -296,49 +305,50 @@ export default async function ComunidadePage({
               chama `notFound()`, como esta, isso transforma 404 em 200.
               Aconteceu em 15 de outubro e está no Faustão.
             */}
-                <SectionTitle
-                  contagem={dados.topicosCount}
-                  acao={
-                    dados.souMembro ? (
-                      <CriarTopico
-                        slug={dados.slug}
-                        nomeDaComunidade={dados.name}
-                        jaUsouODia={jaUsouODia}
-                        nomeSugerido={nome?.slice(0, 80) ?? ""}
-                        gifLigado={gifEstaLigado()}
-                      />
-                    ) : undefined
-                  }
-                >
-                  Tópicos
-                </SectionTitle>
+                  <SectionTitle
+                    contagem={dados.topicosCount}
+                    acao={
+                      dados.souMembro ? (
+                        <CriarTopico
+                          slug={dados.slug}
+                          nomeDaComunidade={dados.name}
+                          jaUsouODia={jaUsouODia}
+                          nomeSugerido={nome?.slice(0, 80) ?? ""}
+                          gifLigado={gifEstaLigado()}
+                        />
+                      ) : undefined
+                    }
+                  >
+                    Tópicos
+                  </SectionTitle>
 
-                <Suspense
-                  fallback={
-                    <PaginaCarregando titulo={false} linhas={3} label="Carregando os tópicos" />
-                  }
-                >
-                  <ListaDeTopicos
-                    comunidadeId={dados.id}
-                    slug={dados.slug}
-                    nomeDaComunidade={dados.name}
-                    termo={termo}
-                    filtro={filtroAtual}
-                    souMembro={dados.souMembro}
-                  />
-                </Suspense>
-              </div>
-
-              {/*
-                O resumo em `<Suspense>`: ele pede o próximo evento e a
-                enquete aberta, e essas duas consultas não podem atrasar a
-                lista de tópicos, que é o que a pessoa veio ler.
-              */}
-              <Suspense fallback={<ResumoDaComunidade comunidade={dados} />}>
-                <ResumoComAgenda comunidade={dados} viewer={viewer} />
-              </Suspense>
+                  <Suspense
+                    fallback={
+                      <PaginaCarregando titulo={false} linhas={3} label="Carregando os tópicos" />
+                    }
+                  >
+                    <ListaDeTopicos
+                      comunidadeId={dados.id}
+                      slug={dados.slug}
+                      nomeDaComunidade={dados.name}
+                      termo={termo}
+                      filtro={filtroAtual}
+                      souMembro={dados.souMembro}
+                    />
+                  </Suspense>
+                </>
+              )}
             </div>
-          )}
+
+            {/*
+              O resumo em `<Suspense>`: ele pede o próximo evento e a enquete
+              aberta, e essas duas consultas não podem atrasar o conteúdo da
+              aba, que é o que a pessoa veio ler.
+            */}
+            <Suspense fallback={<ResumoDaComunidade aba={abaAtual} comunidade={dados} />}>
+              <ResumoComAgenda aba={abaAtual} comunidade={dados} viewer={viewer} />
+            </Suspense>
+          </div>
         </ContentColumn>
       </div>
 
@@ -465,9 +475,12 @@ async function PainelAoLado({
  * teria de repetir a regra — e um dia esqueceria.
  */
 async function ResumoComAgenda({
+  aba,
   comunidade,
   viewer,
 }: {
+  /** A aba aberta: o bloco dela não aparece na coluna. */
+  aba: AbaDaComunidade;
   comunidade: PaginaDaComunidade;
   viewer: Viewer;
 }) {
@@ -478,6 +491,7 @@ async function ResumoComAgenda({
 
   return (
     <ResumoDaComunidade
+      aba={aba}
       comunidade={comunidade}
       proximoEvento={eventos.find((evento) => !evento.passou) ?? null}
       enqueteAberta={enquetes.find((enquete) => !enquete.encerrada) ?? null}

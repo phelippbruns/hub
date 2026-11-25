@@ -391,6 +391,7 @@ const GRUPOS_DE_MEDIDA: { nome: string; escala: number; nota?: string; medidas: 
       "navRailOpen",
       "cover",
       "contextPanel",
+      "barraDeAbas",
       "cabinList",
       "demoPanel",
       "authColumn",

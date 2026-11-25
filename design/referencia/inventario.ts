@@ -93,7 +93,24 @@ function resolverImport(deArquivo: string, especificador: string): string | null
 type Importacao = { de: string; nomes: string[] };
 
 /** Os imports de um arquivo, pelo parser do TypeScript. */
+/**
+ * O que já foi lido e analisado, nesta execução.
+ *
+ * O mapa anda 40 telas, e as telas compartilham quase tudo — a cadeia de
+ * layouts, o barril, os componentes comuns. Sem isto, o mesmo arquivo era
+ * lido do disco e analisado pelo TypeScript dezenas de vezes, e o teste do
+ * mapa passou dos **5 segundos** que o Vitest dá por padrão: ele reprovava
+ * na suíte cheia e passava sozinho, que é a cara de uma corrida e não era.
+ *
+ * Guardar é seguro porque os arquivos não mudam durante uma execução — e,
+ * se mudassem, a varredura estaria medindo dois estados do repositório.
+ */
+const analisados = new Map<string, Importacao[]>();
+
 export function importacoesDe(arquivo: string): Importacao[] {
+  const guardado = analisados.get(arquivo);
+  if (guardado) return guardado;
+
   const fonte = ts.createSourceFile(
     arquivo,
     readFileSync(join(RAIZ, arquivo), "utf8"),
@@ -146,6 +163,7 @@ export function importacoesDe(arquivo: string): Importacao[] {
     achados.push({ de: especificador.text, nomes });
   }
 
+  analisados.set(arquivo, achados);
   return achados;
 }
 

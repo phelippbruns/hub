@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Avatar } from "@/design/components";
 import { ClockIcon, GlobeIcon, PlaceIcon } from "@/design/icons";
 import type { PaginaDaComunidade } from "@/lib/data/comunidades";
+import type { AbaDaComunidade } from "./shared";
 import type { EventoNaTela } from "@/lib/data/eventos";
 import type { EnqueteNaTela } from "@/lib/data/enquetes";
 
@@ -32,10 +33,21 @@ const SEMANA = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
  */
 export function ResumoDaComunidade({
   comunidade,
+  aba = "inicio",
   proximoEvento = null,
   enqueteAberta = null,
 }: {
   comunidade: PaginaDaComunidade;
+  /**
+   * A aba aberta. **O bloco dela não aparece aqui.**
+   *
+   * A coluna é resumo do que está **noutro lugar**: repetir na lateral o que
+   * o centro já mostra é ruído, e foi o que aconteceu quando ela passou a
+   * valer nas quatro abas — na aba Enquetes a mesma enquete ficava duas
+   * vezes na tela, e sete jornadas reprovaram por não saber de qual cópia
+   * estavam falando. A ambiguidade era o sintoma; a repetição era o defeito.
+   */
+  aba?: AbaDaComunidade;
   /** O primeiro evento que ainda vai acontecer, ou nada. */
   proximoEvento?: EventoNaTela | null;
   /**
@@ -65,36 +77,61 @@ export function ResumoDaComunidade({
        * **Não é a causa dos prints de botão cortado**, embora eu tenha
        * escrito que era. Medido em onze larguras, de 1400 a 480 px, com e
        * sem esta classe: nada estoura. Está no faustao.md.
+       *
+       * ---
+       *
+       * **Grudada, e embaixo das abas — não por cima.**
+       *
+       * A barra de abas já é `sticky top-0 z-10`, e tem **61 px** medidos
+       * (pílula de 44 + 8 de folga em cima e embaixo + 1 de borda). Por isso
+       * o `top` é o token `barraDeAbas` e não `0`: com `top-0` a coluna
+       * grudaria na mesma linha e passaria por baixo da barra, que é opaca.
+       *
+       * **E sem `z-` nenhum, de propósito.** `sticky` já torna o elemento
+       * posicionado; com camada automática ele perde para a barra (`z-10`) e
+       * para o painel do tópico (`z-20`), que é exatamente a ordem certa.
+       * Escrever `z-10` aqui empataria com a barra — e, por vir depois no
+       * HTML, a coluna passaria **por cima** das abas.
+       *
+       * `max-h` com a mesma conta, e `overflow-y-auto`: coluna mais alta que
+       * a janela gruda e some, porque o fim dela fica fora da tela e nada a
+       * rola. Com o teto, ela rola por dentro.
+       *
+       * Não precisa de `self-start`: o pai é `flex items-start`, então o
+       * item não estica — e item esticado tem a altura do container e nunca
+       * gruda.
        */
-      className="w-contextPanel flex shrink-0 flex-col gap-2"
+      className="w-contextPanel top-barraDeAbas sticky flex max-h-[calc(100vh-var(--spacing-barraDeAbas))] shrink-0 flex-col gap-2 overflow-y-auto"
     >
-      <section className="bg-paper flex flex-col gap-2 rounded-md p-3">
-        <h2 className="text-label text-inkMuted">
-          MEMBROS · {comunidade.membersCount.toLocaleString("pt-BR")}
-        </h2>
+      {aba === "membros" ? null : (
+        <section className="bg-paper flex flex-col gap-2 rounded-md p-3">
+          <h2 className="text-label text-inkMuted">
+            MEMBROS · {comunidade.membersCount.toLocaleString("pt-BR")}
+          </h2>
 
-        {comunidade.primeirosMembros.length > 0 ? (
-          <div aria-hidden="true" className="flex flex-wrap gap-1">
-            {comunidade.primeirosMembros.map((pessoa, i) => (
-              <Avatar key={i} nome={pessoa.nome} url={pessoa.avatarUrl} tamanho="md" />
-            ))}
-          </div>
-        ) : null}
+          {comunidade.primeirosMembros.length > 0 ? (
+            <div aria-hidden="true" className="flex flex-wrap gap-1">
+              {comunidade.primeirosMembros.map((pessoa, i) => (
+                <Avatar key={i} nome={pessoa.nome} url={pessoa.avatarUrl} tamanho="md" />
+              ))}
+            </div>
+          ) : null}
 
-        {/*
+          {/*
           Com `py-1` o link tinha 18 px de altura — menos que o mínimo de
           24 de qualquer diretriz, e difícil de acertar mesmo com o mouse.
           `inline-flex` com altura mínima resolve sem virar botão.
         */}
-        <Link
-          href={`/c/${comunidade.slug}?aba=membros`}
-          className="text-label text-ink min-h-controlSm inline-flex items-center self-start underline underline-offset-2"
-        >
-          Ver todos
-        </Link>
-      </section>
+          <Link
+            href={`/c/${comunidade.slug}?aba=membros`}
+            className="text-label text-ink min-h-controlSm inline-flex items-center self-start underline underline-offset-2"
+          >
+            Ver todos
+          </Link>
+        </section>
+      )}
 
-      {proximoEvento ? (
+      {aba !== "eventos" && proximoEvento ? (
         <section className="bg-paper flex flex-col gap-2 rounded-md p-3">
           <h2 className="text-label text-inkMuted">PRÓXIMO EVENTO</h2>
 
@@ -165,7 +202,7 @@ export function ResumoDaComunidade({
         </section>
       ) : null}
 
-      {enqueteAberta ? (
+      {aba !== "enquetes" && enqueteAberta ? (
         <section className="bg-paper flex flex-col gap-1 rounded-md p-3">
           <h2 className="text-label text-inkMuted">ENQUETE ABERTA</h2>
           <p className="text-bodyStrong text-ink line-clamp-3 wrap-anywhere">
