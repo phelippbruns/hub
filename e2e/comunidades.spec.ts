@@ -629,6 +629,107 @@ test.describe("a lista de tópicos", () => {
 
     await resumo.getByRole("link", { name: "Ver todos" }).click();
     await page.waitForURL(/aba=membros/);
+
+    /*
+     * **E a coluna continua lá depois de clicar.**
+     *
+     * Era aqui que o pedido do PO batia: "Ver todos" trocava de aba e a
+     * coluna sumia, porque ela morava dentro do ramo do Início. Quem clicava
+     * perdia o contexto de onde veio.
+     */
+    await expect(
+      resumo,
+      "a coluna sumiu ao abrir os membros: era exatamente o defeito que o PO relatou",
+    ).toBeVisible();
+  });
+
+  test("a coluna acompanha as quatro abas", async ({ page }) => {
+    await entrarNoApp(page, "quatroabas");
+    await preencherNova(page, novoNome("Com Quatro"));
+    await page.waitForURL(/\/c\/[^/]+$/);
+
+    const resumo = page.getByRole("complementary", { name: "Resumo da comunidade" });
+
+    for (const aba of ["Início", "Enquetes", "Eventos", "Membros"]) {
+      await page.getByRole("tab", { name: aba }).click();
+      await expect(page.getByRole("tab", { name: aba })).toHaveAttribute("aria-selected", "true");
+      await expect(resumo, `a coluna sumiu na aba ${aba}`).toBeVisible();
+    }
+  });
+
+  test("a coluna não repete o que a aba já mostra", async ({ page }) => {
+    await entrarNoApp(page, "semrepetir");
+    await preencherNova(page, novoNome("Com Resumo Limpo"));
+    await page.waitForURL(/\/c\/[^/]+$/);
+
+    const resumo = page.getByRole("complementary", { name: "Resumo da comunidade" });
+
+    /*
+     * **A coluna é resumo do que está noutro lugar.**
+     *
+     * Quando ela passou a valer nas quatro abas, a mesma enquete ficava duas
+     * vezes na tela da aba Enquetes — e sete jornadas reprovaram por não
+     * saber de qual cópia estavam falando. A ambiguidade era o sintoma; a
+     * repetição era o defeito.
+     *
+     * Positivo primeiro: na aba Início a coluna mostra os membros. Sem isso,
+     * este teste passaria com a coluna inteira vazia.
+     */
+    await expect(resumo.getByText(/MEMBROS/)).toBeVisible();
+
+    await page.getByRole("tab", { name: "Membros" }).click();
+    await expect(page.getByRole("tab", { name: "Membros" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(resumo, "a coluna sumiu inteira; ela devia só perder um bloco").toBeVisible();
+    await expect(
+      resumo.getByText(/MEMBROS/),
+      "a coluna repetiu os membros na aba de membros",
+    ).toHaveCount(0);
+  });
+
+  test("grudada, ela para embaixo das abas e nunca por cima", async ({ page }) => {
+    await entrarNoApp(page, "grudada");
+    await preencherNova(page, novoNome("Com Gruda"));
+    await page.waitForURL(/\/c\/[^/]+$/);
+    const comunidade = new URL(page.url()).pathname;
+
+    /*
+     * Conteúdo suficiente para haver rolagem: sem ela, "grudar" não se
+     * distingue de "ficar parado", e o teste passaria com o `sticky` fora.
+     */
+    for (let i = 0; i < 8; i += 1) {
+      await criarTopico(page, comunidade, `Assunto de rolagem ${i}`);
+      await page.goto(comunidade);
+    }
+
+    const resumo = page.getByRole("complementary", { name: "Resumo da comunidade" });
+    const barra = page.getByRole("tablist", { name: "Seções da comunidade" });
+
+    const antes = (await resumo.boundingBox())!;
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(400);
+    const depois = (await resumo.boundingBox())!;
+
+    // Positivo primeiro: a página rolou de verdade.
+    const rolou = await page.evaluate(() => window.scrollY);
+    expect(rolou, "a página não rolou: o teste mediria o nada").toBeGreaterThan(100);
+
+    expect(
+      depois.y,
+      "a coluna não grudou: ela subiu junto com a página em vez de parar",
+    ).toBeGreaterThan(antes.y - rolou + 50);
+
+    /*
+     * E ela para **embaixo** da barra de abas, que é grudada e opaca. Com
+     * `top-0` a coluna encostaria na mesma linha e passaria por baixo dela.
+     */
+    const faixaDasAbas = (await barra.boundingBox())!;
+    expect(
+      depois.y,
+      "a coluna invadiu a faixa das abas: confira o token barraDeAbas e o top-",
+    ).toBeGreaterThanOrEqual(faixaDasAbas.y + faixaDasAbas.height - 2);
   });
 });
 

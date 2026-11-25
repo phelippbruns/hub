@@ -4,6 +4,12 @@ import { componentesDoBarril, importacoesDe, inventarioDe, mapaDoBarril } from "
 import { montarMapa } from "./mapa";
 import { AUSENTES, PAGINAS, layoutsDe } from "./paginas";
 
+/*
+ * O mapa das 40 telas, montado uma vez na carga do arquivo. Ver a razão no
+ * teste "os componentes que nenhuma tela do produto usa são nomeados".
+ */
+const mapa = montarMapa("teste");
+
 /**
  * **O mapa das páginas de referência, e as barreiras que ele aceita.**
  *
@@ -147,8 +153,15 @@ describe("o andador de imports", () => {
      * alguém passar a usá-los, ou acrescentar um componente que ninguém usa,
      * o número muda e alguém olha. Travar os nomes transformaria um
      * relatório em obrigação de nunca mexer.
+     *
+     * **O mapa é montado fora do teste, de propósito.** Montá-lo aqui dentro
+     * punha o custo de andar as 40 telas no orçamento de 5 segundos que o
+     * Vitest dá a um teste — e ele estourava **só na suíte cheia**, com 37
+     * processos disputando a máquina, passando sozinho. Isso tem a cara de
+     * uma corrida e não era: era o relógio. Montar na carga do arquivo tira
+     * o trabalho de montagem do orçamento da asserção, que é o que o
+     * orçamento existe para medir.
      */
-    const mapa = montarMapa("teste");
     const soNaGaleria = Object.entries(mapa.componentes)
       .filter(([, c]) => c.telas.length === 1 && c.telas[0] === "design-galeria")
       .map(([nome]) => nome);

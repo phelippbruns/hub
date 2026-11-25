@@ -233,6 +233,8 @@ export const size = {
   navItem: "44px",
   /** Painel de contexto à direita, nas telas que têm um. */
   contextPanel: "260px",
+  /** Altura da barra de abas da comunidade, que é grudada. É o `top` da coluna da direita, para ela grudar embaixo das abas e não por cima. Medido, não somado: pílula de 44 px + 8 px de folga em cima e embaixo + 1 px de borda. */
+  barraDeAbas: "61px",
   /** Altura máxima do campo de escrever da Cabine: depois disso ele rola em vez de crescer. */
   composeMax: "132px",
   /** Coluna da lista de Cabines, ao lado da conversa. */
