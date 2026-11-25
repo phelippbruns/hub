@@ -2,7 +2,7 @@
  * **De página servida para HTML que abre do disco.**
  *
  * As seis telas mais densas viram arquivo, para dar para mexer no CSS e ver o
- * resultado sem subir Docker. O resto da pasta é retrato — basta olhar.
+ * resultado sem subir o Supabase local. O resto da pasta é retrato — basta olhar.
  *
  * Tudo aqui é função pura sobre string: nada de rede, nada de navegador. O
  * motivo é poder testar antes de pagar os dez minutos de captura, e descobrir

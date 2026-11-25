@@ -61,8 +61,21 @@ async function preparaRealtime(url: string) {
       .split("\n")[0]
       ?.trim();
 
-    // Sem Realtime de pé — a CI sobe o Supabase com `-x realtime`. A jornada
-    // do tempo real se pula sozinha, dizendo por quê.
+    /*
+     * Nenhum contêiner de Realtime achado.
+     *
+     * **Esta frase dizia que a CI sobe o Supabase com `-x realtime`. Ela
+     * mentia.** A lista de exclusão da CI (`.github/workflows/ci.yml`) nunca
+     * teve `realtime` — e é a mesma mentira que, em `e2e/cabines.spec.ts`, me
+     * fez descartar uma CI vermelha como "o teste nem roda lá". Lá ela foi
+     * corrigida em 24 de novembro de 2026; aqui ficou mais um dia.
+     *
+     * As causas de verdade para não achar são duas, e vale saber distinguir:
+     * o Supabase não está de pé, ou o comando `docker` não existe no caminho
+     * — o `catch` lá embaixo engole as duas. A jornada do tempo real se pula
+     * sozinha e diz por quê no relatório; **ler o relatório é o que separa
+     * "pulou porque não havia" de "pulou porque o ambiente quebrou"**.
+     */
     if (!nome) return;
 
     if (await replicacaoPronta(url)) return;

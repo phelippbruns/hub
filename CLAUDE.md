@@ -389,7 +389,7 @@ npm run test:e2e     # Playwright: jornadas (sobe o build sozinho)
 ### Banco
 
 ```bash
-npm run supabase:start   # Supabase local (exige o Docker Desktop aberto)
+npm run supabase:start   # Supabase local (exige o OrbStack rodando)
 npm run supabase:stop    # desligue ao terminar: ele não precisa ficar de pé
 npm run db:generate      # gerar o cliente Prisma
 npm run db:migrate       # aplicar migrations em desenvolvimento
@@ -401,11 +401,38 @@ npm run db:seed          # popular com os dados do protótipo (só banco local)
 npm run db:studio        # inspecionar os dados
 ```
 
-**O Supabase local sobe só o que o Hub usa.** `supabase:start` exclui
+**O motor de contêiner é o OrbStack, não o Docker Desktop.** Trocado em 25 de
+novembro de 2026, depois de o Docker Desktop travar duas vezes no mesmo dia
+devolvendo erro 500 em vez de responder. Numa máquina de 8 GB ele era caro
+demais: segurava **29 GB de disco** e uma máquina virtual de tamanho fixo,
+enquanto o Hub ainda precisa de um build de produção e de um Chromium ao
+mesmo tempo.
+
+O `docker` continua sendo o mesmo comando, e **não é preciso variável nenhuma**
+— nem `DOCKER_HOST`. Se ele parar de responder, a pergunta certa é `docker
+context ls`: o Docker Desktop deixava `currentContext` fixo em `desktop-linux`,
+e com isso o cliente procura um socket que já não existe.
+
+**O OrbStack precisa estar rodando.** Medido: com ele encerrado, `docker info`
+não responde nem depois de 30 segundos — ele não sobe sob demanda. `docker
+info` continua sendo a conferência certa antes de começar qualquer trabalho que
+precise de banco.
+
+**E o Supabase local sobe só o que o Hub usa.** `supabase:start` exclui
 `imgproxy`, `studio`, `edge-runtime`, `logflare`, `vector`, `supavisor` e
-`postgres-meta` — a mesma lista da CI. São 7 contêineres e ~630 MB, em vez
-de 11 e ~2,2 GB; o de analytics ainda consumia processador parado. Nenhum
-teste depende dos excluídos: os 356 de banco e as jornadas passam assim.
+`postgres-meta` — a mesma lista da CI. São **7 contêineres**, que juntos pedem
+cerca de **410 MB** (medido em 25 de novembro). Nenhum teste depende dos
+excluídos: os 566 de banco e as jornadas passam assim.
+
+**A igualdade das duas listas deixou de depender de disciplina.**
+[lib/ambiente/supabase-local.test.ts](lib/ambiente/supabase-local.test.ts)
+reprova se a lista do `package.json` e a do `.github/workflows/ci.yml`
+divergirem — e reprova também se alguém escrever um nome que o CLI não
+conhece. Essa segunda parte existe por um motivo concreto: **o CLI não falha
+com nome inválido**, só imprime um aviso e sobe o serviço assim mesmo. Quem
+escrevesse `-x rest` para cortar o PostgREST (o contêiner se chama
+`supabase_rest_…`, mas a chave é `postgrest`) teria uma rodada inteira dizendo
+"funcionou" com o serviço de pé.
 
 Para abrir o Studio do Supabase quando quiser olhar os dados pela web,
 `npm run supabase:start:tudo` sobe o conjunto completo. Para o dia a dia,

@@ -175,6 +175,20 @@ Mande o texto quando tiver: o encaixe é direto.
 Os quatro primeiros são aceitáveis enquanto é só teste. **Nenhum deles pode
 continuar assim com gente de verdade no Hub.**
 
+**E um que é de custo, não de segurança** — por isso fica fora da tabela acima,
+para não enfraquecer o aviso dela:
+
+| O quê | Situação | Por que importa |
+|---|---|---|
+| **Licença do OrbStack** | Grátis para uso pessoal, e é o que o Hub é hoje: sem usuários, sem receita | No lançamento a licença passa a exigir **US$ 8 por mês**. A saída sem custo é o Colima (Apache-2.0), que faz o mesmo trabalho com mais configuração à mão |
+
+O motor de contêiner virou OrbStack em 25 de novembro de 2026, depois de o
+Docker Desktop travar duas vezes no mesmo dia e segurar 29 GB numa máquina
+com 7,5 GB livres. **Vale conferir a cada atualização do CLI do Supabase se o
+modo sem contêiner saiu** (`npx supabase --help | grep -i stack`): o binário
+3.4.0 já o carrega por dentro, sem expor o comando. No dia em que expuser,
+este item deixa de existir.
+
 ### 3.1 A varredura de 24 de novembro de 2026
 
 Pedida por você junto com a atualização de segurança do Next. O que ela

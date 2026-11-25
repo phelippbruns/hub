@@ -10,7 +10,7 @@ import {
 /**
  * **Testar a reescrita antes de pagar a captura.**
  *
- * O gerador das páginas de referência leva dez minutos e precisa de Docker,
+ * O gerador das páginas de referência leva dez minutos e precisa do Supabase local,
  * banco e build. Descobrir um erro de reescrita na vigésima página custa a
  * rodada inteira; descobrir aqui custa dois segundos.
  */
