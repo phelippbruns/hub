@@ -5,3 +5,16 @@ playwright-report
 test-results
 public/icons
 prisma/generated
+
+# Páginas de referência: tudo ali é gerado por `npm run referencia`.
+#
+# Sem esta linha, o `npm run format` reformataria o mapa e o HTML capturado,
+# e a próxima execução do gerador reverteria — briga eterna entre duas
+# ferramentas, com diff ilegível a cada rodada. Em HTML o risco é maior que
+# estético: o Prettier mexe no espaço entre elementos de linha, que é
+# significativo, e mudaria o desenho da página que existe para mostrar o
+# desenho.
+#
+# O que é **código** da ferramenta mora em `design/referencia/` e continua
+# formatado normalmente.
+design/paginas-de-referencia

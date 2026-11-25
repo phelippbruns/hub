@@ -62,6 +62,22 @@ const eslintConfig = defineConfig([
   },
 
   {
+    name: "hub/referencia",
+    files: ["design/referencia/**"],
+    rules: {
+      /*
+       * `design/referencia/` é **ferramenta**, não componente: ela lê o
+       * próprio repositório para montar o mapa das telas. Os caminhos vêm de
+       * `app/`, de `features/` e do barril do design system — do disco do
+       * projeto, em tempo de desenvolvimento. Nenhuma entrada de usuário
+       * chega aqui, e nada disto roda em produção. É a mesma isenção que
+       * `scripts/**` já tem, pelo mesmo motivo.
+       */
+      "security/detect-non-literal-fs-filename": "off",
+    },
+  },
+
+  {
     name: "hub/design-system",
     files: ["design/**"],
     rules: {
