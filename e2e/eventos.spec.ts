@@ -4,6 +4,8 @@ import {
   alerta,
   cadastroConcluido,
   concluirOnboarding,
+  criarTopico,
+  esperarTopicoNoPainel,
   preencherNovaComunidade,
 } from "./apoio-tela";
 
@@ -244,5 +246,138 @@ test.describe("criar o evento", () => {
 
     await page.goto(comunidade);
     await expect(page.getByRole("tab", { name: /Eventos/ })).toContainText("1");
+  });
+});
+
+/**
+ * **O evento aberto no centro da comunidade** (pedido do PO, 25 de novembro
+ * de 2026).
+ *
+ * O que ele reclamou: clicar em "Ver evento" na coluna da direita abria a aba
+ * Eventos inteira, a coluna desaparecia e a pessoa tinha de procurar de novo,
+ * na lista, o encontro que ela acabou de escolher.
+ *
+ * Agora o evento ocupa o centro por `?evento=<id>`, e a coluna fica ao lado —
+ * o que só é possível porque o painel do tópico **não monta** junto. A
+ * precedência entre aba, tópico e evento é função pura, com teste de unidade
+ * próprio (`features/comunidades/shared.test.ts`); aqui se mede a tela.
+ */
+test.describe("o evento abre no centro", () => {
+  /** A coluna da direita, que é o ponto: ela não pode desaparecer. */
+  function coluna(page: Page) {
+    return page.locator("[data-resumo]");
+  }
+
+  /** O id da linha, que é o que o endereço carrega. */
+  async function idDoEvento(titulo: string) {
+    const linhas = await consultar<{ id: string }>(
+      `SELECT id FROM events WHERE title = '${titulo.replace(/'/g, "''")}' AND deleted_at IS NULL`,
+    );
+    expect(linhas, "o evento não chegou ao banco").toHaveLength(1);
+    return linhas[0]!.id;
+  }
+
+  test("'Ver evento' abre o detalhe no centro, com a coluna ao lado", async ({ page }) => {
+    await entrarNoApp(page, "centro");
+    const comunidade = await minhaComunidade(page, "Com Centro");
+    await criarEncontroOnline(page, comunidade, "Leitura coletiva");
+
+    // O Início, onde o bloco do próximo evento aparece na coluna.
+    await page.goto(comunidade);
+    const bloco = coluna(page).filter({ hasText: "PRÓXIMO EVENTO" });
+    await expect(bloco).toBeVisible();
+
+    /*
+      O link, e não o botão de confirmar presença do cartão: os dois se
+      chamam igual, e sem escopo `getByRole` acha dois e reprova com "strict
+      mode violation", que não diz nada sobre a causa.
+    */
+    await bloco.getByRole("link", { name: "Confirmar presença" }).click();
+
+    await page.waitForURL(/[?&]evento=/);
+
+    /*
+      **A barreira positiva antes de qualquer contagem zero.** O detalhe
+      chega num `<Suspense>`: medir primeiro a ausência do painel passaria
+      verde com a página ainda vazia.
+    */
+    await expect(page.getByRole("link", { name: "Todos os eventos" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Evento", exact: true })).toBeVisible();
+    await expect(page.getByText("Leitura coletiva")).toBeVisible();
+
+    // O pedido inteiro: o detalhe no centro **sem perder** a coluna.
+    await expect(coluna(page)).toBeVisible();
+
+    // E a volta é um clique, para a lista.
+    await page.getByRole("link", { name: "Todos os eventos" }).click();
+    await expect(page.getByRole("heading", { name: "Eventos" })).toBeVisible();
+    await expect(page).toHaveURL(/aba=eventos/);
+    await expect(page).not.toHaveURL(/evento=/);
+  });
+
+  test("com `?t=` junto, aparece o evento e nenhum painel de tópico", async ({ page }) => {
+    await entrarNoApp(page, "disputa");
+    const comunidade = await minhaComunidade(page, "Com Disputa");
+    await criarEncontroOnline(page, comunidade, "Mesa de abertura");
+
+    await criarTopico(page, comunidade, "Tópico que não deve abrir");
+    await esperarTopicoNoPainel(page);
+    const topico = new URL(page.url()).searchParams.get("t")!;
+
+    const evento = await idDoEvento("Mesa de abertura");
+    await page.goto(`${comunidade}?aba=eventos&t=${topico}&evento=${evento}`);
+
+    // Positivo primeiro: o evento está na tela.
+    await expect(page.getByRole("heading", { name: "Evento", exact: true })).toBeVisible();
+    await expect(page.getByText("Mesa de abertura")).toBeVisible();
+
+    /*
+      Só então o zero. Duas conversas na tela ao mesmo tempo é o "conteúdo
+      espremido em três faixas estreitas" que já foi tentado e revertido — e
+      é o painel não montar que deixa a coluna ao lado do evento.
+    */
+    await expect(page.getByRole("complementary", { name: /^Tópico / })).toHaveCount(0);
+    await expect(coluna(page)).toBeVisible();
+  });
+
+  test("trocar de aba derruba o detalhe", async ({ page }) => {
+    await entrarNoApp(page, "troca");
+    const comunidade = await minhaComunidade(page, "Com Troca");
+    await criarEncontroOnline(page, comunidade, "Encontro que sai da tela");
+
+    const evento = await idDoEvento("Encontro que sai da tela");
+    await page.goto(`${comunidade}?aba=eventos&evento=${evento}`);
+    await expect(page.getByRole("heading", { name: "Evento", exact: true })).toBeVisible();
+
+    await page.getByRole("tab", { name: "Membros" }).click();
+
+    /*
+      Positivo primeiro, de novo: a aba Membros carregada é o sinal de que a
+      navegação terminou. Sem ele, o `toHaveCount(0)` abaixo seria satisfeito
+      pela página no meio da troca.
+    */
+    await expect(page.getByRole("heading", { name: "Membros" })).toBeVisible();
+    await expect(page).not.toHaveURL(/evento=/);
+    await expect(page.getByRole("heading", { name: "Evento", exact: true })).toHaveCount(0);
+  });
+
+  test("evento que não existe mostra a lista, não 404", async ({ page }) => {
+    await entrarNoApp(page, "fantasma");
+    const comunidade = await minhaComunidade(page, "Com Fantasma");
+    await criarEncontroOnline(page, comunidade, "Encontro de verdade");
+
+    const resposta = await page.goto(
+      `${comunidade}?aba=eventos&evento=ffffffff-ffff-4fff-8fff-ffffffffffff`,
+    );
+
+    /*
+      **O código importa tanto quanto a tela.** Um 404 aqui diria que a
+      comunidade não existe, por causa de um id velho num link colado — e o
+      404 desta rota pertence à comunidade, não ao evento.
+    */
+    expect(resposta?.status()).toBe(200);
+    await expect(page.getByRole("heading", { name: "Eventos" })).toBeVisible();
+    await expect(page.getByText("Encontro de verdade")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Evento", exact: true })).toHaveCount(0);
   });
 });

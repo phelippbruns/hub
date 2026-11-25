@@ -15,10 +15,10 @@ import { metadataCompartilhavel } from "@/features/convite/metadata";
 import { ControlesDeTopicos } from "@/features/comunidades/controles-de-topicos";
 import { AbasDaComunidade } from "@/features/comunidades/abas";
 import {
-  abaDaComunidade,
   type AbaDaComunidade,
   filtroDeTopicos,
   type FiltroDeTopicos,
+  telaDaComunidade,
 } from "@/features/comunidades/shared";
 import { haQuantoTempo } from "@/lib/tempo";
 import { SobreAComunidade } from "@/features/comunidades/sobre";
@@ -42,6 +42,7 @@ import { enquetesDaComunidade, enquetesEsperandoMeuVoto } from "@/lib/data/enque
 import { ListaDeEnquetes } from "@/features/enquetes/lista";
 import { eventosDaComunidade, eventosFuturos } from "@/lib/data/eventos";
 import { ListaDeEventos } from "@/features/eventos/lista";
+import { DetalheDoEvento } from "@/features/eventos/detalhe";
 import { denunciasPendentes, filaDeDenuncias } from "@/lib/data/moderacao";
 import { FilaDeDenuncias } from "@/features/moderacao/fila";
 import { topicosDaComunidade, type PaginaDaComunidade } from "@/lib/data/comunidades";
@@ -88,6 +89,16 @@ export default async function ComunidadePage({
     papel?: string;
     /** O endereço do tópico aberto no painel ao lado. */
     t?: string;
+    /**
+     * O evento aberto **no centro**, pelo id.
+     *
+     * Parâmetro de consulta, e não `/c/<slug>/eventos/<id>`, por um motivo
+     * concree: uma pasta ao lado de `[topico]` nasceria irmã estática da
+     * rota dinâmica, exigiria entrada nas duas listas de slugs reservados
+     * (código e banco) e na lista do teste de nonce. O `?evento=` não custa
+     * nada disso, e o evento ainda não tem endereço para compartilhar.
+     */
+    evento?: string;
     /** Item 10.1: quantas contribuições já foram carregadas, de 20 em 20. */
     ate?: string;
     pessoa?: string;
@@ -113,12 +124,27 @@ export default async function ComunidadePage({
     pessoa,
     papel,
     t,
+    evento,
     nome,
     ate: ateQuantas,
   } = await searchParams;
   const pessoaFiltro = papel;
   const termo = q?.trim() ?? "";
-  const abaAtual = abaDaComunidade(aba);
+  /*
+   * **Quem disputa o centro, e quem ganha** — numa função pura, testada sem
+   * navegador (`features/comunidades/shared.test.ts`). Aba, tópico e evento
+   * cabem na mesma URL, e uma precedência trocada não quebra nada: só mostra
+   * a tela errada, caladinha.
+   */
+  const tela = telaDaComunidade({ aba, t, evento });
+  const abaAtual = tela.aba;
+  /*
+   * Com o evento no centro, a coluna da direita trata a aba como Eventos —
+   * senão o bloco "PRÓXIMO EVENTO" repetiria ao lado o evento que o centro
+   * já está mostrando inteiro. É a mesma regra que fez os blocos sumirem na
+   * aba correspondente.
+   */
+  const abaDoResumo: AbaDaComunidade = tela.centro === "evento" ? "eventos" : abaAtual;
   const filtroAtual = filtroDeTopicos(filtro ?? (ordem === "recentes" ? "recentes" : undefined));
 
   let dados;
@@ -243,7 +269,7 @@ export default async function ComunidadePage({
           */}
           <div className="flex items-start gap-3">
             <div className="flex min-w-0 flex-1 flex-col gap-3">
-              {abaAtual === "eventos" ? (
+              {tela.centro === "evento" || abaAtual === "eventos" ? (
                 <Suspense
                   fallback={
                     <PaginaCarregando titulo={false} linhas={2} label="Carregando os eventos" />
@@ -254,6 +280,7 @@ export default async function ComunidadePage({
                     comunidadeId={dados.id}
                     souMembro={dados.souMembro}
                     paraEntrar={paraEntrar}
+                    eventoAberto={tela.centro === "evento" ? tela.evento : null}
                   />
                 </Suspense>
               ) : abaAtual === "enquetes" ? (
@@ -345,16 +372,22 @@ export default async function ComunidadePage({
               aberta, e essas duas consultas não podem atrasar o conteúdo da
               aba, que é o que a pessoa veio ler.
             */}
-            <Suspense fallback={<ResumoDaComunidade aba={abaAtual} comunidade={dados} />}>
-              <ResumoComAgenda aba={abaAtual} comunidade={dados} viewer={viewer} />
+            <Suspense fallback={<ResumoDaComunidade aba={abaDoResumo} comunidade={dados} />}>
+              <ResumoComAgenda aba={abaDoResumo} comunidade={dados} viewer={viewer} />
             </Suspense>
           </div>
         </ContentColumn>
       </div>
 
-      {t ? (
+      {/*
+        **O painel do tópico não monta junto do evento.** `tela.topico` já
+        chega nulo quando há evento aberto, e é por isso que a coluna da
+        direita continua ao lado do evento: duas conversas na tela espremeriam
+        o conteúdo em três faixas estreitas, que já foi tentado e revertido.
+      */}
+      {tela.topico ? (
         <Suspense fallback={null}>
-          <PainelAoLado comunidade={slug} topico={t} ordem={ordem} ate={ateQuantas} />
+          <PainelAoLado comunidade={slug} topico={tela.topico} ordem={ordem} ate={ateQuantas} />
         </Suspense>
       ) : null}
     </div>
@@ -678,14 +711,38 @@ async function AbaDeEventos({
   comunidadeId,
   souMembro,
   paraEntrar,
+  eventoAberto,
 }: {
   slug: string;
   comunidadeId: string;
   souMembro: boolean;
   paraEntrar: ParaEntrar;
+  /** O evento a mostrar no lugar da lista, quando há um e ele existe. */
+  eventoAberto: string | null;
 }) {
   const { viewer } = await comunidadeDaRota(slug);
   const eventos = await eventosDaComunidade(viewer, comunidadeId);
+
+  /*
+   * **Uma consulta só, e o detalhe sai dela.**
+   *
+   * Nenhum `findFirst` novo para o evento aberto: a regra inteira desta
+   * camada — "o link da sala só sai para quem confirmou" (RN38) — mora em
+   * `eventosDaComunidade`, e uma segunda consulta teria de repeti-la. É o
+   * mesmo argumento pelo qual a coluna da direita recebe a enquete de
+   * `enquetesDaComunidade` em vez de perguntar por conta própria.
+   *
+   * **Evento que não existe cai na lista, e não em 404.** O 404 desta rota
+   * pertence à comunidade; um id velho ou apagado num link colado é um
+   * endereço para onde voltar, não uma tela de erro. Mesmo comportamento do
+   * painel do tópico, que some em silêncio.
+   */
+  const aberto = eventoAberto ? eventos.find((e) => e.id === eventoAberto) : undefined;
+  if (aberto) {
+    return (
+      <DetalheDoEvento evento={aberto} slug={slug} souMembro={souMembro} paraEntrar={paraEntrar} />
+    );
+  }
 
   return (
     <ListaDeEventos
