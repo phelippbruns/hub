@@ -157,8 +157,27 @@ Então medi o **tempo** de entrega, três vezes em cada versão:
 | 2.117 (antiga) | **reprovou**, 832 ms, 796 ms |
 
 A jornada exige menos de 2 s, que é o critério do produto. A entrega leva uns
-800 ms e de vez em quando passa de 2 s — **nas duas versões**. Máquina minha,
-com Docker, build e navegador disputando. Não havia defeito nenhum.
+800 ms e de vez em quando passa de 2 s — **nas duas versões**. Não havia
+defeito na biblioteca nenhum.
+
+> **Correção, 25 de novembro de 2026.** Eu fechei esta entrada culpando "a
+> máquina minha, com Docker, build e navegador disputando". **Estava errado,
+> e a correção é o resto da lição.** Medindo de novo com a máquina **livre**,
+> a primeira entrega depois que o serviço de Realtime sobe custa **10.356
+> ms**; a segunda, 785 ms; a terceira, 282 ms. Não é disputa de recurso: é o
+> serviço montando a replicação ao receber o primeiro interessado — e o
+> `globalSetup` o reinicia antes da suíte, então a primeira entrega da rodada
+> é sempre a cara.
+>
+> Repare no padrão: eu troquei uma explicação que eu não tinha medido ("a
+> biblioteca") por **outra que eu também não tinha medido** ("a máquina"), e
+> parei porque a segunda soava razoável. Explicação plausível é o disfarce
+> favorito de causa não medida.
+>
+> Resolvido em `e2e/cabines.spec.ts`: o teste manda uma mensagem de
+> aquecimento e só então mede. O critério do PO não mudou — "menos de 2
+> segundos" é sobre conversa em andamento, não sobre a primeira mensagem
+> depois de o servidor reiniciar.
 
 *Por que passou:* porque uma rodada em cada versão deu **exatamente** o
 resultado que a hipótese pedia, e eu tratei coincidência como controle. Um
@@ -1591,6 +1610,19 @@ a correção, mais um terceiro ciclo.
 
 **Prática:** `docker info` antes de começar qualquer trabalho que precise de
 banco. Custa um segundo, e se estiver parado eu aviso **antes**, não depois.
+
+**E a prática sobreviveu à troca de motor, o que é o teste dela.** Em 25 de
+novembro de 2026 o Docker Desktop saiu e entrou o OrbStack — o Desktop travou
+duas vezes no mesmo dia, devolvendo erro 500 em vez de responder, e segurava
+**29 GB** numa máquina com 7,5 GB livres. `docker info` continua sendo o
+comando certo porque ele nunca perguntou "o aplicativo está aberto": ele
+pergunta **"o motor responde"**, que é a única pergunta que importa e a única
+que vale com qualquer motor.
+
+Medido na troca, e vale saber: o OrbStack **não sobe sob demanda**. Com ele
+encerrado, `docker info` não responde nem depois de 30 segundos. Em troca,
+encerrado ele não deixa nada rodando — que é o oposto do Desktop, cuja máquina
+virtual ficava reservada ligada ou não.
 
 ### 9. Log de CI se lê filtrado
 

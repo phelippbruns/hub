@@ -235,6 +235,35 @@ test.describe("a conversa em tempo real", () => {
        * Paulo, então o que aqui seria um piscar é um nome parado na tela,
        * que foi como o PO o encontrou.
        */
+      /*
+       * **Uma mensagem de aquecimento antes da medida.**
+       *
+       * A **primeira** entrega depois que o serviço de Realtime sobe custa
+       * cerca de **dez segundos** — ele monta a replicação ao receber o
+       * primeiro interessado. Medido em 25 de novembro de 2026, com a
+       * máquina livre: 10.356 ms na primeira, 785 ms na segunda, 282 ms na
+       * terceira. E o `globalSetup` reinicia esse serviço antes da suíte,
+       * então a primeira entrega da rodada é sempre a cara.
+       *
+       * Sem isto, o teste media o aquecimento e não a entrega, e reprovava
+       * por dez segundos num critério de dois. Eu cheguei a atribuir essa
+       * falha a "máquina ocupada" no `faustao.md`; a medida com a máquina
+       * livre derrubou a explicação.
+       *
+       * **O critério do PO não muda:** "menos de 2 segundos, sem
+       * recarregar" é sobre uma conversa em andamento, que é o que as
+       * pessoas vivem — não sobre a primeira mensagem depois de o servidor
+       * reiniciar. O aquecimento é o que faz o teste medir isso.
+       */
+      const aquecimento = `aquecendo ${Date.now()}`;
+      await expect(outra.page.getByRole("button", { name: "Enviar" })).toBeVisible();
+      await outra.page.getByRole("textbox", { name: "Mensagem" }).fill(aquecimento);
+      await outra.page.getByRole("button", { name: "Enviar" }).click();
+      await expect(
+        page.getByRole("region", { name: "Conversa" }).getByText(aquecimento),
+        "nem a mensagem de aquecimento chegou: o Realtime não está entregando",
+      ).toBeVisible({ timeout: 30_000 });
+
       await page.route(
         (url) => url.searchParams.has("_rsc"),
         async (rota) => {

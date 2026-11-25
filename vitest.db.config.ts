@@ -5,7 +5,7 @@ import { defineConfig } from "vitest/config";
  *
  * Índice único, gatilho e RLS não existem em dublê — então estes testes rodam
  * contra o Supabase local (`npx supabase start`). Ficam separados dos de
- * unidade para quem não está mexendo no banco não precisar do Docker.
+ * unidade para quem não está mexendo no banco não precisar do Supabase local.
  */
 export default defineConfig({
   resolve: { tsconfigPaths: true },

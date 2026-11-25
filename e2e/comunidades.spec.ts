@@ -438,6 +438,25 @@ test.describe("o resumo da direita", () => {
     await page.getByLabel("Opção 2").fill("Paisagem");
     await page.getByRole("button", { name: "Publicar enquete" }).click();
 
+    /*
+     * **Esperar o banco antes de navegar.**
+     *
+     * Sem isto, o `goto` abaixo partia enquanto a publicação ainda estava no
+     * ar: a tela montava o resumo antes de a enquete existir, e o bloco
+     * "ENQUETE ABERTA" não aparecia. A asserção reprovava num lugar que não
+     * tinha nada de errado.
+     *
+     * Era uma corrida que vinha ganhando por sorte — o evento, dez linhas
+     * acima, espera a janela fechar; esta não esperava nada. Ela virou em 25
+     * de novembro de 2026, numa troca de motor de contêiner que mudou o
+     * tempo da máquina, e o primeiro palpite foi culpar o motor.
+     *
+     * `e2e/enquetes.spec.ts` já fazia assim, pelo mesmo motivo.
+     */
+    await esperarNoBanco(
+      `SELECT 1 FROM polls WHERE question = 'Qual tema do próximo mês?' AND deleted_at IS NULL`,
+    );
+
     await page.goto(comunidade);
     await expect(resumo.getByText("ENQUETE ABERTA")).toBeVisible();
     await expect(resumo.getByText("Qual tema do próximo mês?")).toBeVisible();
