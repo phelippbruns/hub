@@ -260,10 +260,28 @@ test.describe("o post aberto no painel", () => {
      * que o painel do tópico tem e este não herdou: sem a volta, quem usa
      * teclado precisa tabular a lista inteira de novo.
      */
-    const focado = await page.evaluate(() =>
-      document.activeElement?.closest("[data-post]")?.getAttribute("data-post"),
-    );
-    expect(focado).toBe("volta-para-mim");
+    /*
+     * **Esperar o foco chegar, e não olhá-lo uma vez.**
+     *
+     * A volta acontece na **limpeza de um efeito** (`features/perfil/blog/painel.tsx`),
+     * que o React roda durante a desmontagem. O `toHaveCount(0)` acima passa
+     * assim que o painel sai do HTML — e isso pode ser antes de o `focus()`
+     * da limpeza ter rodado. Lendo `activeElement` num instante só, o teste
+     * media a ordem de dois eventos que não têm ordem garantida.
+     *
+     * Oscilou três vezes em dois dias na CI, sempre verde na repetição. Uma
+     * jornada que pisca repetidamente treina quem olha a ignorar vermelho,
+     * que é o pior defeito que uma suíte pode ter.
+     */
+    await expect
+      .poll(
+        () =>
+          page.evaluate(
+            () => document.activeElement?.closest("[data-post]")?.getAttribute("data-post") ?? null,
+          ),
+        { message: "o foco não voltou para a linha do post" },
+      )
+      .toBe("volta-para-mim");
   });
 
   test("fechar o painel preserva os outros parâmetros da URL", async ({ page }) => {

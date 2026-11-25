@@ -131,7 +131,17 @@ export function ResumoDaComunidade({
         </section>
       )}
 
-      {aba !== "eventos" && proximoEvento ? (
+      {/*
+        **A aba Eventos esconde o bloco inteiro — inclusive o vazio.**
+        Escrito `aba !== "eventos" && proximoEvento`, o `else` do ternário não
+        sabia **por que** o bloco não apareceu: na aba Eventos, com um evento
+        marcado, quem modera via "PRÓXIMO EVENTO · Nenhum evento marcado"
+        ao lado de uma lista cheia. A coluna contradizia o centro.
+
+        A condição da aba fica **fora** da escolha entre cheio e vazio, que
+        é o que impede o `else` de responder à pergunta errada.
+      */}
+      {aba === "eventos" ? null : proximoEvento ? (
         <section className="bg-paper flex flex-col gap-2 rounded-md p-3">
           <h2 className="text-label text-inkMuted">PRÓXIMO EVENTO</h2>
 
@@ -182,8 +192,14 @@ export function ResumoDaComunidade({
             </div>
           </div>
 
+          {/*
+            **O link leva ao evento, não à aba.** Ele abria a lista inteira e
+            deixava a pessoa procurar de novo o encontro que ela acabou de
+            escolher — foi o pedido do PO em 25 de novembro de 2026. O
+            `?evento=` abre o detalhe no centro, com esta coluna ao lado.
+          */}
           <Link
-            href={`/c/${comunidade.slug}?aba=eventos`}
+            href={`/c/${comunidade.slug}?aba=eventos&evento=${proximoEvento.id}`}
             className="text-label text-ink min-h-controlSm inline-flex items-center self-start underline underline-offset-2"
           >
             {proximoEvento.euVou ? "Ver evento" : "Confirmar presença"}

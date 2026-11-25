@@ -687,6 +687,30 @@ test.describe("a lista de tópicos", () => {
       resumo.getByText(/MEMBROS/),
       "a coluna repetiu os membros na aba de membros",
     ).toHaveCount(0);
+
+    /*
+     * **E o bloco vazio do evento também cai na aba Eventos.**
+     *
+     * A primeira versão escondia só o bloco cheio (`aba !== "eventos" &&
+     * proximoEvento`), e o `else` do ternário não sabia **por que** o bloco
+     * não apareceu: na aba Eventos, quem modera via "PRÓXIMO EVENTO · Nenhum
+     * evento marcado" — ao lado de uma lista que podia estar cheia. A coluna
+     * contradizia o centro, e a jornada de repetição não pegava, porque um
+     * vazio não é uma repetição.
+     *
+     * Quem está aqui modera (acabou de criar a comunidade), que é a única
+     * pessoa para quem o bloco vazio existe.
+     */
+    await page.getByRole("tab", { name: "Eventos" }).click();
+    await expect(page.getByRole("tab", { name: "Eventos" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(resumo, "a coluna sumiu inteira na aba Eventos").toBeVisible();
+    await expect(
+      resumo.getByText("PRÓXIMO EVENTO"),
+      "a coluna anunciou o evento na aba que já é dos eventos",
+    ).toHaveCount(0);
   });
 
   test("grudada, ela para embaixo das abas e nunca por cima", async ({ page }) => {

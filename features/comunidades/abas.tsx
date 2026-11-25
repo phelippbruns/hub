@@ -61,6 +61,17 @@ export function AbasDaComunidade({
            * parece tela quebrada.
            */
           novos.delete("q");
+          /*
+           * **E o evento aberto cai junto.** Ele ocupa o centro, então
+           * sobreviver à troca de aba seria a aba nova acender na barra e o
+           * conteúdo continuar sendo o de antes — a tela diria "Membros" e
+           * mostraria um encontro.
+           *
+           * O `?t=` **fica**, de propósito: o tópico abre num painel ao
+           * lado, não no centro, e ler um tópico enquanto se olha a lista de
+           * membros é uso legítimo.
+           */
+          novos.delete("evento");
 
           const consulta = novos.toString();
           router.push(consulta ? `${base}?${consulta}` : base);
