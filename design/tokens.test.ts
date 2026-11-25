@@ -16,9 +16,32 @@ import { color, fundoDePerfil, radius, size, spacing, typography } from "./token
 const SOURCE_DIRS = ["design", "app"];
 const GENERATED = ["design/tokens.ts", "design/tokens.css"];
 
+/**
+ * **O que esta varredura não varre, e por quê.**
+ *
+ * `design/paginas-de-referencia/` é retrato, não código: o `app.css` ali é a
+ * **saída do compilador do Tailwind**, copiada pela captura, e por definição
+ * cheia dos hex dos tokens. Varrê-la transformaria este teste num teste do
+ * Tailwind.
+ *
+ * `design/referencia/indice.ts` escreve a folha de contato da pasta, e ela
+ * tem estilo próprio **de propósito**: se o índice usasse os tokens do Hub,
+ * um redesenho em andamento o deixaria ilegível exatamente no momento em que
+ * ele é mais necessário. É a única tela do projeto que precisa continuar
+ * legível enquanto o design está quebrado.
+ *
+ * As duas isenções são trancadas pelo teste "a isenção não abre a porta",
+ * abaixo: nada além delas sai da varredura.
+ */
+const FORA_DA_VARREDURA = [
+  join("design", "paginas-de-referencia"),
+  join("design", "referencia", "indice.ts"),
+];
+
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
     const path = join(dir, entry);
+    if (FORA_DA_VARREDURA.some((fora) => path === fora || path.startsWith(fora + "/"))) return [];
     if (statSync(path).isDirectory()) return sourceFiles(path);
     if (!/\.(ts|tsx|css)$/.test(path)) return [];
     // Arquivo começando com ponto nunca é código de verdade. Pular evita uma
@@ -114,5 +137,34 @@ describe("os tokens vieram do JSON", () => {
   it("não sobrou nenhum arquivo de medida fora do gerado", () => {
     // As medidas de controle moravam em design/sizes.css até virarem token.
     expect(files).not.toContain("design/sizes.css");
+  });
+});
+
+/**
+ * **A isenção não abre a porta.**
+ *
+ * Isentar uma pasta é cômodo e perigoso: basta alguém mover um componente
+ * para dentro dela e a regra "nenhuma cor fora dos tokens" para de valer
+ * sem ninguém notar. Este teste mede os dois lados — que o código de verdade
+ * continua varrido, e que só o que foi isentado está de fora.
+ */
+describe("a isenção da pasta de referência não abre a porta", () => {
+  it("o código de verdade continua varrido", () => {
+    // Positivo primeiro: a lista não está vazia nem perdeu os componentes.
+    expect(files).toContain(join("design", "components", "button.tsx"));
+    expect(files).toContain(join("design", "contrast.ts"));
+    expect(files).toContain(join("app", "globals.css"));
+  });
+
+  it("nada da pasta de referência entrou na varredura", () => {
+    const vazaram = files.filter((f) => f.startsWith(join("design", "paginas-de-referencia")));
+    expect(vazaram).toEqual([]);
+  });
+
+  it("a ferramenta continua varrida, menos o índice", () => {
+    // `inventario.ts` e `mapa.ts` são código normal e obedecem à regra.
+    expect(files).toContain(join("design", "referencia", "inventario.ts"));
+    expect(files).toContain(join("design", "referencia", "mapa.ts"));
+    expect(files).not.toContain(join("design", "referencia", "indice.ts"));
   });
 });

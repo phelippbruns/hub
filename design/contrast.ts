@@ -5,7 +5,7 @@
  * um. Aqui a tabela vira código, para o teste conferir que os valores batem e
  * que nenhum par proibido escapa.
  */
-import { color, contrastPairs, type ColorName } from "./tokens";
+import { color, colorDark, contrastPairs, fundoDePerfil, type ColorName } from "./tokens";
 
 /** Canal sRGB de 0–255 para linear, como define o WCAG 2. */
 function toLinear(channel: number): number {
@@ -61,3 +61,44 @@ export const pairs: Pair[] = contrastPairs.map((par) => ({ ...par }));
 export function ratioFor(pair: Pick<Pair, "foreground" | "background">): number {
   return contrastRatio(color[pair.foreground], color[pair.background]);
 }
+
+/**
+ * **O mesmo par, medido no tema escuro.**
+ *
+ * A tabela de pares é uma afirmação sobre o *sistema*, não sobre a paleta
+ * clara: "texto `ink` sobre `surfacePage` serve para qualquer texto" é uma
+ * promessa que o escuro também tem de cumprir, com outros valores.
+ *
+ * Por isso o escuro é cobrado pelos **mesmos limites por uso** — e não pelo
+ * número publicado. Exigir o número obrigaria quem decide a paleta a declarar
+ * dezesseis medidas à mão antes de ver a primeira tela, e número declarado à
+ * mão é exatamente o que este arquivo existe para não ter.
+ *
+ * Inclusive os pares `proibido` e `nao-e-sinal-unico`: lá o limite é um
+ * **teto**, não um piso. `surfacePage` e `surfaceNeutral` se distinguem por
+ * 1,1:1 de propósito — é separação sutil entre o cartão da pessoa e o das
+ * outras. Um escuro que as tornasse contrastantes transformaria a lista de
+ * contribuições numa grade listrada, e nada reclamaria sem este teto.
+ */
+export function ratioNoEscuro(pair: Pick<Pair, "foreground" | "background">): number {
+  const frente = colorDark[pair.foreground];
+  const fundo = colorDark[pair.background];
+
+  if (!frente || !fundo) {
+    throw new Error(
+      `Tema escuro sem valor para ${!frente ? pair.foreground : pair.background}. ` +
+        "O gerador só aceita 0 ou todos; se isto apareceu, alguém editou tokens.ts à mão.",
+    );
+  }
+
+  return contrastRatio(frente, fundo);
+}
+
+/** Quantas cores têm valor escuro. 0 enquanto ninguém decidiu. */
+export const coresNoEscuro = Object.keys(colorDark).length;
+
+/** Quantas cores o tema escuro precisa ter, quando existir: a paleta inteira. */
+export const totalDeCores = Object.keys(color).length + Object.keys(fundoDePerfil).length;
+
+/** Os 8 fundos de perfil, para o teste cobrá-los nos dois temas. */
+export const nomesDeFundoDePerfil = Object.keys(fundoDePerfil) as (keyof typeof fundoDePerfil)[];

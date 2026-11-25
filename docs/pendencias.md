@@ -423,6 +423,28 @@ problema do aviso temporário acima, e sai junto com ele.
 
 ---
 
+### 4.10 Nove jornadas ainda escrevem o cadastro à mão
+
+O bloco de criar conta — preencher cinco campos, aceitar os Termos, clicar em
+Continuar, atravessar o onboarding — está copiado em **nove** specs, cada uma
+com a sua cópia de `"senhaboa123"`. Em 25 de novembro de 2026 ele virou helper
+em `e2e/apoio-tela.ts` (`criarConta`, `preencherCadastro`, `entrarComSenha`,
+`sair`), porque o gerador das páginas de referência precisava dele e copiar
+uma décima vez seria o pior momento possível.
+
+**As nove não foram migradas**, de propósito: é diff de nove arquivos que não
+entregava nada àquela rodada, e vários desses testes usam variantes próprias
+para medir recusas — senha curta, idade abaixo do mínimo, @ repetido.
+
+*O que custa deixar assim:* no dia em que o formulário mudar, nove jornadas
+quebram de uma vez e alguém conserta o mesmo erro nove vezes. É exatamente o
+argumento que `apoio-tela.ts` já carrega escrito, sobre o seletor que quebrou
+em quinze arquivos na F12.1.
+
+*Custo de pagar:* uma passada, com a suíte inteira para confirmar.
+
+---
+
 ## 5. Fila de features
 
 Feito: **F00 a F16**, contando a F12.1. Faltam 5 — e o Web Push, que saiu da

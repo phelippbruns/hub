@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Páginas de referência do Hub</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; padding: 24px; font: 15px/1.6 system-ui, sans-serif; background: #faf9ff; color: #1b1930; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 36px 0 10px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+  h2 small { font-weight: 400; color: #777; }
+  p.intro { max-width: 70ch; color: #444; }
+  .aviso { max-width: 70ch; background: #fff6d8; border: 1px solid #e8d9a0; border-radius: 8px; padding: 10px 14px; margin: 16px 0; }
+  .grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
+  figure { margin: 0; background: #fff; border: 1px solid #e3e1ee; border-radius: 10px; overflow: hidden; }
+  figure img { display: block; width: 100%; height: 190px; object-fit: cover; object-position: top; background: #eee; }
+  figcaption { padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+  figcaption code { font-size: 12px; color: #5a5577; }
+  figcaption span { color: #555; }
+  figcaption .arq { font-family: ui-monospace, monospace; font-size: 11px; color: #8a86a8; }
+  figcaption .html { font-size: 12px; font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+  th { background: #f2f0fb; }
+  td a { color: #4b3fcf; text-decoration: none; }
+  ul.lacuna { max-width: 70ch; }
+</style>
+</head>
+<body>
+
+<h1>Páginas de referência do Hub</h1>
+<p class="intro">
+  40 telas do Hub, retratadas em 2026-11-25 do commit
+  <code>e57ef00</code>. Existe para servir de ponto de partida a quem for
+  <b>aplicar modo escuro</b> ou <b>trocar o design</b>.
+</p>
+
+<div class="aviso">
+  <b>Isto é um retrato, não o app.</b> As imagens são estáticas e as seis páginas em
+  HTML não têm JavaScript: menu não abre, painel não arrasta. Os estados que importam
+  foram capturados como telas próprias. Para a coisa viva, rode o Hub.
+  <br /><br />
+  <b>O tema não mora aqui.</b> Para escurecer, preencha os valores escuros em
+  <code>docs/design-system/tokens.json</code> e rode <code>npm run tokens</code>: isso
+  acende o Hub inteiro. Depois rode <code>npm run referencia</code> para estas páginas
+  retratarem o novo tema.
+</div>
+
+<p class="intro">
+  <a href="MAPA.md">MAPA.md</a> tem a mesma informação em texto, para ler de uma vez —
+  é o arquivo a dar para uma IA. <a href="mapa.json">mapa.json</a> é a versão de máquina.
+</p>
+
+    <h2 id="entrada">Entrada e cadastro <small>7</small></h2>
+    <div class="grade">
+      <figure>
+        <a href="retratos/abertura.png"><img src="retratos/abertura.png" alt="A porta do Hub" loading="lazy" /></a>
+        <figcaption>
+          <b>A porta do Hub</b>
+          <code>/</code>
+          <span>Sem sessão. A marca em 88 px, dois botões, link para os termos.</span>
+          <span class="arq">app/(entrada)/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/entrar.png"><img src="retratos/entrar.png" alt="Entrar" loading="lazy" /></a>
+        <figcaption>
+          <b>Entrar</b>
+          <code>/entrar</code>
+          <span>Campo único de email ou @. O botão do Google aparece se configurado.</span>
+          <span class="arq">app/(entrada)/entrar/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/criar-conta.png"><img src="retratos/criar-conta.png" alt="Criar conta" loading="lazy" /></a>
+        <figcaption>
+          <b>Criar conta</b>
+          <code>/criar-conta</code>
+          <span>Formulário vazio, com o aviso de idade mínima.</span>
+          <span class="arq">app/(entrada)/criar-conta/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/criar-conta-preenchida.png"><img src="retratos/criar-conta-preenchida.png" alt="Criar conta, preenchida" loading="lazy" /></a>
+        <figcaption>
+          <b>Criar conta, preenchida</b>
+          <code>/criar-conta</code>
+          <span>Todos os campos preenchidos e os termos aceitos, antes de enviar.</span>
+          <span class="arq">app/(entrada)/criar-conta/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/senha.png"><img src="retratos/senha.png" alt="Recuperar senha" loading="lazy" /></a>
+        <figcaption>
+          <b>Recuperar senha</b>
+          <code>/senha</code>
+          <span>Pedido do código por email.</span>
+          <span class="arq">app/(entrada)/senha/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/senha-codigo.png"><img src="retratos/senha-codigo.png" alt="Código de seis dígitos" loading="lazy" /></a>
+        <figcaption>
+          <b>Código de seis dígitos</b>
+          <code>/senha/codigo?email=…</code>
+          <span>Campo de código vazio. Sem o parâmetro de email a rota redireciona.</span>
+          <span class="arq">app/(entrada)/senha/codigo/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/termos.png"><img src="retratos/termos.png" alt="Termos e privacidade" loading="lazy" /></a>
+        <figcaption>
+          <b>Termos e privacidade</b>
+          <code>/termos</code>
+          <span>Texto de espaço reservado: o conteúdo real chega na F18.</span>
+          <span class="arq">app/(entrada)/termos/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+    </div>
+
+    <h2 id="onboarding">Primeiros passos <small>3</small></h2>
+    <div class="grade">
+      <figure>
+        <a href="retratos/boas-vindas-primeiro-card.png"><img src="retratos/boas-vindas-primeiro-card.png" alt="Apresentação, primeiro card" loading="lazy" /></a>
+        <figcaption>
+          <b>Apresentação, primeiro card</b>
+          <code>/boas-vindas</code>
+          <span>Conta nova, nenhum card visto. Largura cheia, sem barra de navegação.</span>
+          <span class="arq">app/(apresentacao)/boas-vindas/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/boas-vindas-comunidades.png"><img src="retratos/boas-vindas-comunidades.png" alt="Escolher três comunidades" loading="lazy" /></a>
+        <figcaption>
+          <b>Escolher três comunidades</b>
+          <code>/boas-vindas</code>
+          <span>Último card. Três comunidades marcadas, botão de concluir ativo (RN31).</span>
+          <span class="arq">app/(apresentacao)/boas-vindas/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/boas-vindas-notificacoes.png"><img src="retratos/boas-vindas-notificacoes.png" alt="Pedir notificações" loading="lazy" /></a>
+        <figcaption>
+          <b>Pedir notificações</b>
+          <code>/boas-vindas/notificacoes</code>
+          <span>Pedido de permissão, antes de responder.</span>
+          <span class="arq">app/(apresentacao)/boas-vindas/notificacoes/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+    </div>
+
+    <h2 id="inicio">Início <small>2</small></h2>
+    <div class="grade">
+      <figure>
+        <a href="retratos/inicio-vazio.png"><img src="retratos/inicio-vazio.png" alt="Início sem comunidade nenhuma" loading="lazy" /></a>
+        <figcaption>
+          <b>Início sem comunidade nenhuma</b>
+          <code>/inicio</code>
+          <span>Conta nova, nada seguido. Cartão de convite e até três sugestões. **Capturado antes de criar conteúdo** — depois este estado não volta.</span>
+          <span class="arq">app/(app)/inicio/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/inicio-cheio.png"><img src="retratos/inicio-cheio.png" alt="Início com conteúdo" loading="lazy" /></a>
+        <figcaption>
+          <b>Início com conteúdo</b>
+          <code>/inicio</code>
+          <span>Hot Topic eleito, tópicos seguidos com novas, interações de quem sigo, e o fim da lista.</span>
+          <span class="arq">app/(app)/inicio/page.tsx</span>
+          <a class="html" href="paginas/inicio-cheio.html">abrir em HTML</a>
+        </figcaption>
+      </figure>
+    </div>
+
+    <h2 id="descoberta">Descoberta <small>4</small></h2>
+    <div class="grade">
+      <figure>
+        <a href="retratos/explorar.png"><img src="retratos/explorar.png" alt="Explorar" loading="lazy" /></a>
+        <figcaption>
+          <b>Explorar</b>
+          <code>/comunidades</code>
+          <span>Comunidades em alta, tópicos em alta e Para você.</span>
+          <span class="arq">app/(app)/comunidades/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/busca.png"><img src="retratos/busca.png" alt="Busca com resultado" loading="lazy" /></a>
+        <figcaption>
+          <b>Busca com resultado</b>
+          <code>/busca?q=…</code>
+          <span>Termo que acha comunidade, tópico e pessoa ao mesmo tempo.</span>
+          <span class="arq">app/(app)/busca/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/minhas-comunidades.png"><img src="retratos/minhas-comunidades.png" alt="Minhas comunidades" loading="lazy" /></a>
+        <figcaption>
+          <b>Minhas comunidades</b>
+          <code>/comunidades/minhas</code>
+          <span>Com fixadas e com a lista de A a Z.</span>
+          <span class="arq">app/(app)/comunidades/minhas/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/comunidade-nova.png"><img src="retratos/comunidade-nova.png" alt="Criar comunidade" loading="lazy" /></a>
+        <figcaption>
+          <b>Criar comunidade</b>
+          <code>/comunidades/nova</code>
+          <span>Formulário vazio, com o campo de capa e o contador do nome.</span>
+          <span class="arq">app/(app)/comunidades/nova/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+    </div>
+
+    <h2 id="comunidade">Comunidade <small>6</small></h2>
+    <div class="grade">
+      <figure>
+        <a href="retratos/comunidade-vazia.png"><img src="retratos/comunidade-vazia.png" alt="Comunidade recém-criada" loading="lazy" /></a>
+        <figcaption>
+          <b>Comunidade recém-criada</b>
+          <code>/c/&lt;slug&gt;</code>
+          <span>Um membro, nenhum tópico. O vazio de 'Nenhum tópico ainda'. **Capturado antes de criar tópico.**</span>
+          <span class="arq">app/(app)/c/[comunidade]/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/comunidade-cheia.png"><img src="retratos/comunidade-cheia.png" alt="Comunidade com tópicos" loading="lazy" /></a>
+        <figcaption>
+          <b>Comunidade com tópicos</b>
+          <code>/c/&lt;slug&gt;</code>
+          <span>Capa, Hot Topic fixado na primeira linha, lista de tópicos, coluna da direita.</span>
+          <span class="arq">app/(app)/c/[comunidade]/page.tsx</span>
+          <a class="html" href="paginas/comunidade-cheia.html">abrir em HTML</a>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/comunidade-enquetes.png"><img src="retratos/comunidade-enquetes.png" alt="Aba de enquetes" loading="lazy" /></a>
+        <figcaption>
+          <b>Aba de enquetes</b>
+          <code>/c/&lt;slug&gt;?aba=enquetes</code>
+          <span>Uma enquete esperando voto e uma com resultado (RN37).</span>
+          <span class="arq">app/(app)/c/[comunidade]/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/comunidade-eventos.png"><img src="retratos/comunidade-eventos.png" alt="Aba de eventos" loading="lazy" /></a>
+        <figcaption>
+          <b>Aba de eventos</b>
+          <code>/c/&lt;slug&gt;?aba=eventos</code>
+          <span>Um evento futuro com presença confirmada.</span>
+          <span class="arq">app/(app)/c/[comunidade]/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/comunidade-membros.png"><img src="retratos/comunidade-membros.png" alt="Aba de membros" loading="lazy" /></a>
+        <figcaption>
+          <b>Aba de membros</b>
+          <code>/c/&lt;slug&gt;?aba=membros</code>
+          <span>Lista com moderadora e membros, com o filtro de papel.</span>
+          <span class="arq">app/(app)/c/[comunidade]/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/comunidade-janela-novo-topico.png"><img src="retratos/comunidade-janela-novo-topico.png" alt="Janela de criar tópico" loading="lazy" /></a>
+        <figcaption>
+          <b>Janela de criar tópico</b>
+          <code>/c/&lt;slug&gt;?novo=1</code>
+          <span>Janela aberta sobre a comunidade. Desenhada por portal: no HTML congelado ela é o último filho do body, longe de onde o componente é escrito.</span>
+          <span class="arq">app/(app)/c/[comunidade]/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+    </div>
+
+    <h2 id="topico">Tópico e convite <small>3</small></h2>
+    <div class="grade">
+      <figure>
+        <a href="retratos/topico-no-painel.png"><img src="retratos/topico-no-painel.png" alt="Tópico aberto no painel" loading="lazy" /></a>
+        <figcaption>
+          <b>Tópico aberto no painel</b>
+          <code>/c/&lt;slug&gt;?t=&lt;topico&gt;</code>
+          <span>Painel à direita com a abertura em cartão escuro, contribuições com imagem, GIF e estrelas. É a tela mais usada do Hub.</span>
+          <span class="arq">app/(app)/c/[comunidade]/page.tsx</span>
+          <a class="html" href="paginas/topico-no-painel.html">abrir em HTML</a>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/convite-comunidade.png"><img src="retratos/convite-comunidade.png" alt="Convite: comunidade sem conta" loading="lazy" /></a>
+        <figcaption>
+          <b>Convite: comunidade sem conta</b>
+          <code>/c/&lt;slug&gt;</code>
+          <span>Sem sessão. Capa, nome, membros e intro — sem barra de navegação.</span>
+          <span class="arq">app/(app)/c/[comunidade]/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/convite-topico.png"><img src="retratos/convite-topico.png" alt="Convite: tópico sem conta" loading="lazy" /></a>
+        <figcaption>
+          <b>Convite: tópico sem conta</b>
+          <code>/c/&lt;slug&gt;/&lt;topico&gt;</code>
+          <span>Sem sessão. A pergunta aparece; **o texto das respostas nunca** (RN16).</span>
+          <span class="arq">app/(app)/c/[comunidade]/[topico]/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+    </div>
+
+    <h2 id="perfil">Perfil e blog <small>5</small></h2>
+    <div class="grade">
+      <figure>
+        <a href="retratos/perfil-dono-blog.png"><img src="retratos/perfil-dono-blog.png" alt="Meu perfil, aba Blog" loading="lazy" /></a>
+        <figcaption>
+          <b>Meu perfil, aba Blog</b>
+          <code>/perfil</code>
+          <span>Dono: com status, posts, Coleção no menu e contador de seguindo (RN27).</span>
+          <span class="arq">app/(app)/perfil/page.tsx</span>
+          <a class="html" href="paginas/perfil-dono-blog.html">abrir em HTML</a>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/perfil-post-no-painel.png"><img src="retratos/perfil-post-no-painel.png" alt="Post aberto no painel" loading="lazy" /></a>
+        <figcaption>
+          <b>Post aberto no painel</b>
+          <code>/perfil?post=&lt;post&gt;</code>
+          <span>Painel irmão do painel do tópico, com cookie de largura próprio.</span>
+          <span class="arq">app/(app)/perfil/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/perfil-visitante.png"><img src="retratos/perfil-visitante.png" alt="Perfil de outra pessoa" loading="lazy" /></a>
+        <figcaption>
+          <b>Perfil de outra pessoa</b>
+          <code>/&lt;handle&gt;</code>
+          <span>Visitante: seguir, Cabine e menu de denunciar. Sem Coleção.</span>
+          <span class="arq">app/(app)/[handle]/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/perfil-editar.png"><img src="retratos/perfil-editar.png" alt="Editar perfil" loading="lazy" /></a>
+        <figcaption>
+          <b>Editar perfil</b>
+          <code>/perfil/editar</code>
+          <span>Formulário preenchido, com as 8 cores de fundo.</span>
+          <span class="arq">app/(app)/perfil/editar/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/perfil-seguindo.png"><img src="retratos/perfil-seguindo.png" alt="Seguindo e seguidores" loading="lazy" /></a>
+        <figcaption>
+          <b>Seguindo e seguidores</b>
+          <code>/perfil/seguindo</code>
+          <span>Com pessoas nas duas abas.</span>
+          <span class="arq">app/(app)/perfil/seguindo/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+    </div>
+
+    <h2 id="cabine">Cabine <small>3</small></h2>
+    <div class="grade">
+      <figure>
+        <a href="retratos/cabines-vazia.png"><img src="retratos/cabines-vazia.png" alt="Cabines sem nenhuma conversa" loading="lazy" /></a>
+        <figcaption>
+          <b>Cabines sem nenhuma conversa</b>
+          <code>/cabines</code>
+          <span>Conta nova. Lista vazia e o painel direito em 'Escolha uma conversa'.</span>
+          <span class="arq">app/(app)/cabines/(lista)/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/cabine-conversa.png"><img src="retratos/cabine-conversa.png" alt="Cabine em conversa" loading="lazy" /></a>
+        <figcaption>
+          <b>Cabine em conversa</b>
+          <code>/cabines/&lt;id&gt;</code>
+          <span>Seis mensagens dos dois lados, balões em lavanda e em paper.</span>
+          <span class="arq">app/(app)/cabines/[cabine]/page.tsx</span>
+          <a class="html" href="paginas/cabine-conversa.html">abrir em HTML</a>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/cabine-nova.png"><img src="retratos/cabine-nova.png" alt="Convidar para a Cabine" loading="lazy" /></a>
+        <figcaption>
+          <b>Convidar para a Cabine</b>
+          <code>/cabines/nova</code>
+          <span>Pessoa escolhida e mensagem do convite escrita.</span>
+          <span class="arq">app/(app)/cabines/nova/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+    </div>
+
+    <h2 id="moderacao">Moderação <small>3</small></h2>
+    <div class="grade">
+      <figure>
+        <a href="retratos/denuncia.png"><img src="retratos/denuncia.png" alt="Denunciar" loading="lazy" /></a>
+        <figcaption>
+          <b>Denunciar</b>
+          <code>/denuncia?resposta=&lt;id&gt;</code>
+          <span>Com o trecho denunciado em contexto e os motivos.</span>
+          <span class="arq">app/(app)/denuncia/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/moderar-denuncias.png"><img src="retratos/moderar-denuncias.png" alt="Moderar: fila de denúncias" loading="lazy" /></a>
+        <figcaption>
+          <b>Moderar: fila de denúncias</b>
+          <code>/c/&lt;slug&gt;/moderar</code>
+          <span>Uma denúncia pendente. Quem não modera recebe 404, não 403.</span>
+          <span class="arq">app/(app)/c/[comunidade]/moderar/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/moderar-membros.png"><img src="retratos/moderar-membros.png" alt="Moderar: membros" loading="lazy" /></a>
+        <figcaption>
+          <b>Moderar: membros</b>
+          <code>/c/&lt;slug&gt;/moderar?aba=membros</code>
+          <span>Lista com busca e ações de moderação.</span>
+          <span class="arq">app/(app)/c/[comunidade]/moderar/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+    </div>
+
+    <h2 id="sistema">Sistema <small>4</small></h2>
+    <div class="grade">
+      <figure>
+        <a href="retratos/notificacoes-vazia.png"><img src="retratos/notificacoes-vazia.png" alt="Notificações sem nada" loading="lazy" /></a>
+        <figcaption>
+          <b>Notificações sem nada</b>
+          <code>/notificacoes</code>
+          <span>Conta nova. O vazio de 'Nada por aqui'.</span>
+          <span class="arq">app/(app)/notificacoes/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/notificacoes-cheia.png"><img src="retratos/notificacoes-cheia.png" alt="Notificações com avisos" loading="lazy" /></a>
+        <figcaption>
+          <b>Notificações com avisos</b>
+          <code>/notificacoes</code>
+          <span>'Só para te avisar' em lavanda e 'Essa semana' abaixo (RN34).</span>
+          <span class="arq">app/(app)/notificacoes/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/configuracoes.png"><img src="retratos/configuracoes.png" alt="Configurações" loading="lazy" /></a>
+        <figcaption>
+          <b>Configurações</b>
+          <code>/configuracoes</code>
+          <span>Privacidade (RN23), notificações (RN34) e o aviso da F17.</span>
+          <span class="arq">app/(app)/configuracoes/page.tsx</span>
+          
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="retratos/design-galeria.png"><img src="retratos/design-galeria.png" alt="A galeria do design system" loading="lazy" /></a>
+        <figcaption>
+          <b>A galeria do design system</b>
+          <code>/design</code>
+          <span>Estados do sistema, paleta, tipografia e os componentes. Fora de todos os grupos de layout.</span>
+          <span class="arq">app/design/page.tsx</span>
+          <a class="html" href="paginas/design-galeria.html">abrir em HTML</a>
+        </figcaption>
+      </figure>
+    </div>
+
+<h2>Componente → telas</h2>
+<p class="intro">
+  Para mexer num componente, estas são as telas em que conferir. São os componentes
+  <b>no caminho da rota</b>, não necessariamente visíveis naquele estado.
+</p>
+<table>
+  <thead><tr><th>Componente</th><th>Arquivo</th><th>Telas</th><th>Quais</th></tr></thead>
+  <tbody>
+      <tr>
+        <td><code>ActivityRow</code></td>
+        <td><code>design/components/home-rows.tsx</code></td>
+        <td>3</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>AjusteDeImagem</code></td>
+        <td><code>design/components/ajuste-de-imagem.tsx</code></td>
+        <td>30</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>AlcaDoPainel</code></td>
+        <td><code>design/components/alca-do-painel.tsx</code></td>
+        <td>12</td>
+        <td><a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>AnswerCard</code></td>
+        <td><code>design/components/answer-card.tsx</code></td>
+        <td>9</td>
+        <td><a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>AppShell</code></td>
+        <td><code>design/components/app-shell.tsx</code></td>
+        <td>29</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a></td>
+      </tr>
+      <tr>
+        <td><code>Avatar</code></td>
+        <td><code>design/components/avatar.tsx</code></td>
+        <td>20</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>BottomSheet</code></td>
+        <td><code>design/components/bottom-sheet.tsx</code></td>
+        <td>30</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Button</code></td>
+        <td><code>design/components/button.tsx</code></td>
+        <td>38</td>
+        <td><a href="#entrar">entrar</a>, <a href="#criar-conta">criar-conta</a>, <a href="#criar-conta-preenchida">criar-conta-preenchida</a>, <a href="#senha">senha</a>, <a href="#senha-codigo">senha-codigo</a>, <a href="#boas-vindas-primeiro-card">boas-vindas-primeiro-card</a>, <a href="#boas-vindas-comunidades">boas-vindas-comunidades</a>, <a href="#boas-vindas-notificacoes">boas-vindas-notificacoes</a>, <a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>CampoDeBusca</code></td>
+        <td><code>design/components/campo-de-busca.tsx</code></td>
+        <td>30</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Checkbox</code></td>
+        <td><code>design/components/checkbox.tsx</code></td>
+        <td>3</td>
+        <td><a href="#criar-conta">criar-conta</a>, <a href="#criar-conta-preenchida">criar-conta-preenchida</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Chip</code></td>
+        <td><code>design/components/chip.tsx</code></td>
+        <td>12</td>
+        <td><a href="#boas-vindas-primeiro-card">boas-vindas-primeiro-card</a>, <a href="#boas-vindas-comunidades">boas-vindas-comunidades</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>CodeInput</code></td>
+        <td><code>design/components/code-input.tsx</code></td>
+        <td>3</td>
+        <td><a href="#senha">senha</a>, <a href="#senha-codigo">senha-codigo</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>CommunityChip</code></td>
+        <td><code>design/components/community-chip.tsx</code></td>
+        <td>9</td>
+        <td><a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>CommunityCover</code></td>
+        <td><code>design/components/community-cover.tsx</code></td>
+        <td>30</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>CommunityDoor</code></td>
+        <td><code>design/components/community-door.tsx</code></td>
+        <td>13</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>CommunityRow</code></td>
+        <td><code>design/components/community-row.tsx</code></td>
+        <td>1</td>
+        <td><a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>ConfirmSheet</code></td>
+        <td><code>design/components/confirm-sheet.tsx</code></td>
+        <td>16</td>
+        <td><a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>ContentColumn</code></td>
+        <td><code>design/components/app-shell.tsx</code></td>
+        <td>29</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a></td>
+      </tr>
+      <tr>
+        <td><code>ControleDeslizante</code></td>
+        <td><code>design/components/controle-deslizante.tsx</code></td>
+        <td>30</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Eixo</code></td>
+        <td><code>design/components/nav-rail.tsx</code></td>
+        <td>29</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a></td>
+      </tr>
+      <tr>
+        <td><code>EmptyState</code></td>
+        <td><code>design/components/states.tsx</code></td>
+        <td>32</td>
+        <td><a href="#senha">senha</a>, <a href="#senha-codigo">senha-codigo</a>, <a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>EndOfList</code></td>
+        <td><code>design/components/states.tsx</code></td>
+        <td>32</td>
+        <td><a href="#senha">senha</a>, <a href="#senha-codigo">senha-codigo</a>, <a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>ErrorState</code></td>
+        <td><code>design/components/states.tsx</code></td>
+        <td>32</td>
+        <td><a href="#senha">senha</a>, <a href="#senha-codigo">senha-codigo</a>, <a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>EscolherGif</code></td>
+        <td><code>design/components/escolher-gif.tsx</code></td>
+        <td>29</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a></td>
+      </tr>
+      <tr>
+        <td><code>FollowButton</code></td>
+        <td><code>design/components/follow-button.tsx</code></td>
+        <td>17</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>HandleLink</code></td>
+        <td><code>design/components/handle-link.tsx</code></td>
+        <td>11</td>
+        <td><a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>HomeRow</code></td>
+        <td><code>design/components/home-rows.tsx</code></td>
+        <td>3</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>HotTopicCard</code></td>
+        <td><code>design/components/hot-topic-card.tsx</code></td>
+        <td>11</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Input</code></td>
+        <td><code>design/components/input.tsx</code></td>
+        <td>35</td>
+        <td><a href="#entrar">entrar</a>, <a href="#criar-conta">criar-conta</a>, <a href="#criar-conta-preenchida">criar-conta-preenchida</a>, <a href="#senha">senha</a>, <a href="#senha-codigo">senha-codigo</a>, <a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Janela</code></td>
+        <td><code>design/components/janela.tsx</code></td>
+        <td>30</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>LevelMark</code></td>
+        <td><code>design/components/level-mark.tsx</code></td>
+        <td>33</td>
+        <td><a href="#abertura">abertura</a>, <a href="#boas-vindas-primeiro-card">boas-vindas-primeiro-card</a>, <a href="#boas-vindas-comunidades">boas-vindas-comunidades</a>, <a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>LoadingBlock</code></td>
+        <td><code>design/components/states.tsx</code></td>
+        <td>32</td>
+        <td><a href="#senha">senha</a>, <a href="#senha-codigo">senha-codigo</a>, <a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>MenuSuspenso</code></td>
+        <td><code>design/components/menu-suspenso.tsx</code></td>
+        <td>14</td>
+        <td><a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>MidiaDaContribuicao</code></td>
+        <td><code>design/components/midia-da-contribuicao.tsx</code></td>
+        <td>9</td>
+        <td><a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>NavRail</code></td>
+        <td><code>design/components/nav-rail.tsx</code></td>
+        <td>29</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a></td>
+      </tr>
+      <tr>
+        <td><code>PageTitle</code></td>
+        <td><code>design/components/app-shell.tsx</code></td>
+        <td>29</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a></td>
+      </tr>
+      <tr>
+        <td><code>PaginaCarregando</code></td>
+        <td><code>design/components/states.tsx</code></td>
+        <td>32</td>
+        <td><a href="#senha">senha</a>, <a href="#senha-codigo">senha-codigo</a>, <a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Paginador</code></td>
+        <td><code>design/components/paginador.tsx</code></td>
+        <td>3</td>
+        <td><a href="#boas-vindas-primeiro-card">boas-vindas-primeiro-card</a>, <a href="#boas-vindas-comunidades">boas-vindas-comunidades</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>PasswordInput</code></td>
+        <td><code>design/components/password-input.tsx</code></td>
+        <td>6</td>
+        <td><a href="#entrar">entrar</a>, <a href="#criar-conta">criar-conta</a>, <a href="#criar-conta-preenchida">criar-conta-preenchida</a>, <a href="#senha">senha</a>, <a href="#senha-codigo">senha-codigo</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>PerfilLinks</code></td>
+        <td><code>design/components/profile-header.tsx</code></td>
+        <td>4</td>
+        <td><a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>PinButton</code></td>
+        <td><code>design/components/pin-button.tsx</code></td>
+        <td>2</td>
+        <td><a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>PostRow</code></td>
+        <td><code>design/components/post-row.tsx</code></td>
+        <td>4</td>
+        <td><a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>ProfileHeader</code></td>
+        <td><code>design/components/profile-header.tsx</code></td>
+        <td>4</td>
+        <td><a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>RadioGroup</code></td>
+        <td><code>design/components/radio-group.tsx</code></td>
+        <td>2</td>
+        <td><a href="#denuncia">denuncia</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Rotulo</code></td>
+        <td><code>design/components/nav-rail.tsx</code></td>
+        <td>29</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a></td>
+      </tr>
+      <tr>
+        <td><code>RoundIconButton</code></td>
+        <td><code>design/components/community-cover.tsx</code></td>
+        <td>30</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>SectionTitle</code></td>
+        <td><code>design/components/section-title.tsx</code></td>
+        <td>21</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Segmented</code></td>
+        <td><code>design/components/segmented.tsx</code></td>
+        <td>3</td>
+        <td><a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Select</code></td>
+        <td><code>design/components/select.tsx</code></td>
+        <td>30</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Skeleton</code></td>
+        <td><code>design/components/states.tsx</code></td>
+        <td>32</td>
+        <td><a href="#senha">senha</a>, <a href="#senha-codigo">senha-codigo</a>, <a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>StarButton</code></td>
+        <td><code>design/components/star-button.tsx</code></td>
+        <td>9</td>
+        <td><a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Steps</code></td>
+        <td><code>design/components/steps.tsx</code></td>
+        <td>3</td>
+        <td><a href="#criar-conta">criar-conta</a>, <a href="#criar-conta-preenchida">criar-conta-preenchida</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>SuccessMessage</code></td>
+        <td><code>design/components/states.tsx</code></td>
+        <td>32</td>
+        <td><a href="#senha">senha</a>, <a href="#senha-codigo">senha-codigo</a>, <a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>SuggestionRow</code></td>
+        <td><code>design/components/home-rows.tsx</code></td>
+        <td>3</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Switch</code></td>
+        <td><code>design/components/switch.tsx</code></td>
+        <td>3</td>
+        <td><a href="#perfil-editar">perfil-editar</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>SwitchRow</code></td>
+        <td><code>design/components/switch-row.tsx</code></td>
+        <td>2</td>
+        <td><a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>Tabs</code></td>
+        <td><code>design/components/tabs.tsx</code></td>
+        <td>15</td>
+        <td><a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>TextField</code></td>
+        <td><code>design/components/text-field.tsx</code></td>
+        <td>30</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#minhas-comunidades">minhas-comunidades</a>, <a href="#comunidade-nova">comunidade-nova</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#perfil-editar">perfil-editar</a>, <a href="#perfil-seguindo">perfil-seguindo</a>, <a href="#cabines-vazia">cabines-vazia</a>, <a href="#cabine-conversa">cabine-conversa</a>, <a href="#cabine-nova">cabine-nova</a>, <a href="#denuncia">denuncia</a>, <a href="#moderar-denuncias">moderar-denuncias</a>, <a href="#moderar-membros">moderar-membros</a>, <a href="#notificacoes-vazia">notificacoes-vazia</a>, <a href="#notificacoes-cheia">notificacoes-cheia</a>, <a href="#configuracoes">configuracoes</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>TopicCard</code></td>
+        <td><code>design/components/topic-card.tsx</code></td>
+        <td>9</td>
+        <td><a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>TopicName</code></td>
+        <td><code>design/components/topic-name.tsx</code></td>
+        <td>17</td>
+        <td><a href="#inicio-vazio">inicio-vazio</a>, <a href="#inicio-cheio">inicio-cheio</a>, <a href="#explorar">explorar</a>, <a href="#busca">busca</a>, <a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#convite-topico">convite-topico</a>, <a href="#perfil-dono-blog">perfil-dono-blog</a>, <a href="#perfil-post-no-painel">perfil-post-no-painel</a>, <a href="#perfil-visitante">perfil-visitante</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>TopicOpening</code></td>
+        <td><code>design/components/topic-opening.tsx</code></td>
+        <td>9</td>
+        <td><a href="#comunidade-vazia">comunidade-vazia</a>, <a href="#comunidade-cheia">comunidade-cheia</a>, <a href="#comunidade-enquetes">comunidade-enquetes</a>, <a href="#comunidade-eventos">comunidade-eventos</a>, <a href="#comunidade-membros">comunidade-membros</a>, <a href="#comunidade-janela-novo-topico">comunidade-janela-novo-topico</a>, <a href="#topico-no-painel">topico-no-painel</a>, <a href="#convite-comunidade">convite-comunidade</a>, <a href="#design-galeria">design-galeria</a></td>
+      </tr>
+      <tr>
+        <td><code>TopicRow</code></td>
+        <td><code>design/components/topic-row.tsx</code></td>
+        <td>1</td>
+        <td><a href="#design-galeria">design-galeria</a></td>
+      </tr>
+  </tbody>
+</table>
+
+
+
+<h2>O que a troca de tokens não alcança</h2>
+<p class="intro">
+  Quase todo o CSS do Hub é movido por tokens — <code>app/globals.css</code> não tem um
+  único hex. Estes são os pontos que escapam, e que um redesenho precisa tratar à mão:
+</p>
+<ul class="lacuna">
+  <li>&lt;meta name=&quot;theme-color&quot;&gt; sai com o hex literal (#F1EEFF), de app/layout.tsx. Ele pinta a barra do navegador na PWA, e não acompanha o token.</li>
+  <li>13 atributo(s) style com cor escrita no HTML em design-galeria.html. Cor em atributo não vem de token e não muda com o tema.</li>
+  <li>design/gallery.tsx desenha as amostras com style={{ backgroundColor: value }} e imprime os hex como texto. É documentação da paleta, e por isso não escurece junto.</li>
+</ul>
+
+<h2>Telas fora da pasta, e por quê</h2>
+<ul class="lacuna">
+  <li><code>/completar-cadastro</code> — Só é alcançável no retorno do OAuth do Google, que exige um cliente configurado no Google Cloud. Capturar um estado de erro e chamar de tela seria pior do que a ausência.</li>
+  <li><code>/cabines/convite</code> — O convite é aceito pela lista em /cabines, que é o caminho de quem usa. A rota direta existe para link, e o desenho é o mesmo cartão da lista.</li>
+  <li><code>/criar-topico e /topico/[id] e /c/&lt;slug&gt;/novo</code> — Redirecionam. Capturar um redirecionamento é capturar o destino com o nome errado.</li>
+</ul>
+
+</body>
+</html>

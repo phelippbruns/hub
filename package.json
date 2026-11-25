@@ -33,7 +33,8 @@
     "conteudo:inicial": "node scripts/conteudo-inicial.mts",
     "moderacao:atribuir": "node scripts/atribuir-moderacao.mts",
     "banir:plataforma": "node scripts/banir-plataforma.mts",
-    "ciclo:rodar": "node --env-file-if-exists=.env.local scripts/rodar-ciclo.mts"
+    "ciclo:rodar": "node --env-file-if-exists=.env.local scripts/rodar-ciclo.mts",
+    "referencia": "node --env-file-if-exists=.env.local node_modules/@playwright/test/cli.js test --config playwright.referencia.config.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

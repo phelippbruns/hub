@@ -277,3 +277,154 @@ export function enderecoAtual(page: Page): string {
 export function campoDeImagemDaContribuicao(escopo: Page | Locator): Locator {
   return escopo.locator('form:has(textarea[name="text"]) input[name="imagem"]');
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * Cadastro e sessão
+ * ---------------------------------------------------------------------------
+ *
+ * **Isto estava privado, e repetido.**
+ *
+ * As funções abaixo viviam dentro de `e2e/autenticacao.spec.ts`, e o bloco de
+ * cadastro aparecia escrito à mão em **nove** outras jornadas — cada uma com
+ * a sua cópia de `"senhaboa123"`, do preenchimento dos cinco campos e do
+ * clique em Continuar. Seletor repetido em nove arquivos é seletor que, no dia
+ * em que o formulário mudar, quebra nove jornadas de uma vez e manda alguém
+ * consertar o mesmo erro nove vezes.
+ *
+ * Elas sobem para cá porque o gerador das páginas de referência
+ * (`npm run referencia`) precisa criar três contas antes de capturar
+ * qualquer tela, e copiar o bloco uma décima vez seria o pior momento
+ * possível para fazer isso.
+ *
+ * **As nove jornadas não foram migradas junto, de propósito.** Seria um diff
+ * de nove arquivos que não entrega nada ao que está sendo feito, e vários
+ * desses testes usam variantes próprias para medir recusas — senha curta,
+ * idade abaixo do mínimo, @ repetido. A migração está registrada em
+ * `docs/pendencias.md`.
+ */
+
+/**
+ * A senha das contas de teste.
+ *
+ * Literal de propósito: o que se mede aqui é a tela, não a senha. Gerar uma
+ * aleatória tiraria a possibilidade de entrar à mão numa conta criada por uma
+ * jornada para ver o que ela deixou na tela — que é como metade dos defeitos
+ * desta suíte foi encontrada.
+ */
+export const SENHA_DE_TESTE = "senhaboa123";
+
+/** Email único por execução, para uma conta não herdar a de outra. */
+export function novoEmail(prefixo: string): string {
+  return `${prefixo}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@teste.hub`;
+}
+
+/**
+ * Um @ livre. O cadastro exige um desde 10 de outubro de 2026.
+ *
+ * **O prefixo é limpo aqui, e não na confiança de quem chama.** O @ aceita só
+ * minúsculas, números e `_` (`handleSchema`), e um prefixo como `ref-lia`
+ * produzia um @ com hífen: o formulário recusava e a captura ficava trinta
+ * segundos esperando uma navegação que nunca vinha — um tempo esgotado
+ * apontando para `waitForURL`, a trinta linhas da causa.
+ */
+export function novoHandle(prefixo = "p"): string {
+  const limpo = prefixo.toLowerCase().replace(/[^a-z0-9_]/g, "") || "p";
+  return `${limpo}${Date.now() % 100000}${Math.floor(Math.random() * 100)}`.slice(0, 20);
+}
+
+/** Data de nascimento de quem tem a idade indicada. */
+export function nascimentoComIdade(anos: number): string {
+  const hoje = new Date();
+  return new Date(Date.UTC(hoje.getUTCFullYear() - anos, 0, 15)).toISOString().slice(0, 10);
+}
+
+/**
+ * Nascimento de quem passa com folga da idade mínima.
+ *
+ * **25 anos, e não a idade mínima.** Teste que nasce na fronteira reprova no
+ * dia em que a fronteira muda — e ela mudou duas vezes em 2026, de 16 para 18
+ * e de volta para 16. A fronteira tem testes próprios em
+ * `autenticacao.spec.ts`, que leem `MINIMUM_AGE`; aqui o que se quer é só uma
+ * conta que entre.
+ */
+export const nascimentoAdulto = (): string => nascimentoComIdade(25);
+
+/** Marca a caixa dos Termos, conferindo os dois estados. */
+export async function aceitarTermos(page: Page): Promise<void> {
+  const caixa = page.getByRole("checkbox");
+  await expect(caixa).toHaveAttribute("aria-checked", "false");
+  await caixa.click();
+  await expect(caixa).toHaveAttribute("aria-checked", "true");
+}
+
+/** Preenche os cinco campos do cadastro, sem enviar. */
+export async function preencherCadastro(
+  page: Page,
+  dados: { nome: string; email: string; senha: string; nascimento: string; handle?: string },
+): Promise<void> {
+  await page.getByLabel("Nome completo").fill(dados.nome);
+  await page.getByLabel("Email").fill(dados.email);
+  await page.getByLabel("@").fill(dados.handle ?? novoHandle());
+  await page.getByLabel("Senha", { exact: true }).fill(dados.senha);
+  await page.getByLabel("Data de nascimento").fill(dados.nascimento);
+}
+
+/** Dados de uma conta criada, para quem precisa do @ depois. */
+export type ContaCriada = { nome: string; email: string; handle: string; senha: string };
+
+/**
+ * Cria uma conta e conclui o onboarding, deixando a sessão aberta no Início.
+ *
+ * O onboarding entra porque a RN31 o torna obrigatório: sem concluir, a
+ * pessoa não chega a tela nenhuma de dentro. Quem quiser capturar o
+ * onboarding em si usa `preencherCadastro` e segue à mão.
+ */
+export async function criarConta(
+  page: Page,
+  dados: { nome: string; prefixo: string; handle?: string; quantasComunidades?: number },
+): Promise<ContaCriada> {
+  const conta: ContaCriada = {
+    nome: dados.nome,
+    email: novoEmail(dados.prefixo),
+    handle: dados.handle ?? novoHandle(dados.prefixo.slice(0, 4)),
+    senha: SENHA_DE_TESTE,
+  };
+
+  await page.goto("/criar-conta");
+  await preencherCadastro(page, {
+    nome: conta.nome,
+    email: conta.email,
+    senha: conta.senha,
+    nascimento: nascimentoAdulto(),
+    handle: conta.handle,
+  });
+  await aceitarTermos(page);
+  await page.getByRole("button", { name: "Continuar" }).click();
+
+  await cadastroConcluido(page);
+  await concluirOnboarding(page, dados.quantasComunidades ?? 3);
+  await expect(page).toHaveURL(/\/inicio/);
+
+  return conta;
+}
+
+/** Entra numa conta que já existe, pelo email ou pelo @. */
+export async function entrarComSenha(
+  page: Page,
+  identificador: string,
+  senha = SENHA_DE_TESTE,
+): Promise<void> {
+  await page.goto("/entrar");
+  await page.getByLabel("Email ou @").fill(identificador);
+  await page.getByLabel("Senha", { exact: true }).fill(senha);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page).toHaveURL(/\/inicio/);
+}
+
+/** Sai da conta. O botão mora em Configurações desde a F11. */
+export async function sair(page: Page): Promise<void> {
+  await page.goto("/configuracoes");
+  await page.getByRole("button", { name: "Sair" }).click();
+  await expect(page).toHaveURL(/\/$/);
+}
