@@ -515,7 +515,6 @@ sozinho.
 | O quê | Onde está | Por que trava |
 | --- | --- | --- |
 | Escolher o provedor de **verificação de idade** | 1.1 | O mais demorado e o que mais bloqueia o lançamento. Vale começar a conversa jurídica mesmo sem pressa de código. |
-| Decidir a **idade mínima**: 16, 17 ou 18 | 1.2 | O código diz 18 e o escopo diz 16. Os dois não podem continuar discordando. |
 | Dar um **dono de moderação** às 19 comunidades da plataforma | 1.3 | Hoje toda denúncia nelas cai na sua conta. |
 | Decidir sobre **moderação automática de imagem** | 2 | O Hub confere o tipo e tira a localização, mas não olha o conteúdo. Vale decidir antes de abrir para fora do seu círculo. |
 | Decidir o **aviso de email duplicado**: na tela ou por email | 2 | Na tela é rápido e abre a porta de enumeração. Por email é seguro e depende de envio configurado. |
