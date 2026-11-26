@@ -146,6 +146,10 @@ export async function comunidadesDoUniverso(
                 AND m.banned_at IS NULL
            ) AS sou_membro,
            (
+             -- conversa-de-evento: aqui topics é só a ponte para chegar às
+             -- contribuições, e nenhuma linha dela chega à tela. Comentário
+             -- de evento é contribuição de verdade, e uma comunidade que
+             -- passou o dia combinando um encontro está movimentada.
              SELECT count(*)
                FROM answers a
                JOIN topics t ON t.id = a.topic_id
@@ -236,6 +240,10 @@ export async function buscarTopicos(viewer: Viewer, termo: string, limite = 20) 
       FROM topics t
       JOIN communities c ON c.id = t.community_id
      WHERE t.deleted_at IS NULL AND c.deleted_at IS NULL
+       -- RN38: a conversa de um evento não aparece na busca. O resultado
+       -- levaria a um endereço de tópico que não abre, e o nome dela é o do
+       -- encontro — quem procurasse pelo encontro acharia duas linhas.
+       AND t.event_id IS NULL
        AND hub_busca(t.name) LIKE '%' || hub_busca(${busca}) || '%'
      ORDER BY t.created_at DESC
      LIMIT ${limite}
@@ -344,7 +352,9 @@ export async function comunidadesEmAlta(
            count(DISTINCT a.author_id)::text AS respostas_hoje
       FROM communities c
       JOIN universes u ON u.id = c.universe_id
+      -- RN38: fora a conversa de evento, aqui como em toda tela de tópico.
       JOIN topics t ON t.community_id = c.id AND t.deleted_at IS NULL
+                   AND t.event_id IS NULL
       JOIN answers a ON a.topic_id = t.id AND a.deleted_at IS NULL
                     AND a.created_at > now() - interval '7 days'
      WHERE c.deleted_at IS NULL
@@ -401,6 +411,8 @@ export async function topicosEmAlta(viewer: Viewer, limite = 5): Promise<TopicoN
                            AND recentes.created_at
                                > (now() AT TIME ZONE hub_cycle_timezone()) - interval '24 hours'
      WHERE t.deleted_at IS NULL AND c.deleted_at IS NULL
+       -- RN38: a conversa de um evento não entra em "tópicos em alta".
+       AND t.event_id IS NULL
        -- RN26: quem bloqueou, ou foi bloqueado, não aparece.
        AND NOT EXISTS (
          SELECT 1 FROM blocks b

@@ -246,6 +246,30 @@ test.describe("com conteúdo", () => {
     await page.getByRole("button", { name: /^Seguir o tópico/ }).click();
     await expect(page.getByRole("button", { name: /^Seguindo o tópico/ })).toBeVisible();
 
+    /*
+     * **Esperar o banco antes de navegar.**
+     *
+     * O botão do olho troca de estado numa transição do React, e o rótulo
+     * "Seguindo o tópico" aparece **antes** de a Server Action terminar de
+     * gravar. Sem esta espera, o `goto` partia na frente: o Início montava
+     * sem o seguido, a seção "Tópicos que você segue" não era desenhada — ela
+     * só existe quando há algum — e o teste reprovava na barreira positiva.
+     *
+     * Medido, e os dois lados: sem a espera, passou numa rodada em 4,1 s e
+     * reprovou na seguinte em 9,1 s — com o filtro da conversa de evento
+     * instalado nas duas, o que descarta o predicado como causa (predicado
+     * errado reprova **sempre**, e falha que alterna é temporização). Com a
+     * espera, 4 de 4 verdes.
+     *
+     * A mesma espera já existe em `e2e/comunidades.spec.ts`, com o mesmo
+     * motivo escrito.
+     */
+    await esperarNoBanco(
+      `SELECT 1 FROM follows f
+         JOIN topics t ON t.id = f.topic_id
+        WHERE f.target = 'topic' AND t.slug = 'assunto-do-inicio'`,
+    );
+
     await page.goto("/inicio");
 
     // Positivo primeiro: a seção de que o link saiu está na tela.

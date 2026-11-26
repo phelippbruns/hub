@@ -3234,6 +3234,54 @@ envelhece sem avisar e ninguém o vê envelhecer. Quando um comentário desses
 contradiz uma medida, **a medida ganha, sempre**, e o comentário vira a
 próxima coisa a conferir. Eu fiz o contrário por alguns minutos.
 
+### A crase no comentário fechou o SQL, e eu fui o terceiro
+
+**O que aconteceu.** Escrevendo os filtros da conversa de evento, pus o nome
+de um gatilho entre crases num comentário SQL — `-- de dizer o mesmo que o
+gatilho \`topics_daily_limit\``. O comentário estava **dentro de um template
+literal do JavaScript**, e a crase o fechou no meio. Duas consultas de
+`lib/data/topics.ts` viraram sintaxe quebrada.
+
+**Por que passou.** Não passou: o `tsc` reprovou. O que passou foi eu rodar
+só o Vitest antes dele, e o que a varredura me devolveu não foi "sintaxe
+quebrada" — foi "esta consulta não tem filtro", porque ela lia o texto
+truncado do literal. O sintoma apontava para o lugar errado.
+
+**O agravante.** Esse erro já está escrito no código, duas vezes, nos dois
+arquivos ao lado: `comunidades.ts` tem "(Sem crase nos nomes: isto está dentro
+de um template literal, e uma crase o fecha no meio. Já aconteceu duas vezes,
+e está no faustao.md.)" e `ciclo.ts` tem "Sem backtick no comentário: ele
+fecharia este template". **Eu li os dois arquivos na mesma sessão** e fiz a
+terceira ocorrência de qualquer jeito. Aviso escrito no lugar certo não
+impede nada quando quem escreve está no automático.
+
+**Barreira.** 👁 — e vale registrar por quê. Um teste que proíba crase dentro
+de template literal de SQL é fácil de escrever, mas o `tsc` **já** pega o
+caso, na hora, com a linha certa. O que falhou foi a **ordem**: rodei o teste
+antes do tipo. É a mesma lição de "formatar depois de testar invalida o
+teste", e a defesa é a mesma — `npm run verificar`, que roda `typecheck`
+antes de `test`.
+
+### O `id` do tópico não existe no banco, e a migration descobriu por mim
+
+**O que aconteceu.** O gatilho que cria a conversa do evento fazia
+`INSERT INTO topics (community_id, author_id, name, ...)` sem o `id`. A
+migration reprovou com `null value in column "id"`.
+
+**Por que.** `Topic.id` é `@default(uuid())` no Prisma, e esse default é
+preenchido pelo **cliente** — a coluna não tem default nenhum no Postgres.
+Todo `INSERT` em SQL cru precisa chamar `gen_random_uuid()`.
+
+**O agravante, de novo.** O CLAUDE.md já diz isto para o `updated_at`:
+"`updated_at` não tem valor padrão no banco. O `@updatedAt` do Prisma é
+preenchido pelo cliente, então todo `INSERT` em SQL cru precisa escrever a
+coluna." É a mesma frase, outra coluna. A regra verdadeira é mais larga do
+que a que estava escrita: **nenhum default do Prisma existe no banco.**
+
+**Barreira.** ✅ parcial, e barata: o erro aparece na primeira vez que a
+migration roda, com a coluna no nome. O que mudou foi o CLAUDE.md, que agora
+diz a regra larga em vez do caso particular.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam

@@ -19,6 +19,10 @@ export async function followTopic(viewer: Viewer, topicId: string) {
   const me = requireProfileId(viewer);
 
   const topic = await prisma.topic.findFirst({
+    // conversa-de-evento: leitura por id, só para conferir que o tópico
+    // existe. Seguir a conversa de um encontro está fora de escopo e não tem
+    // botão em tela nenhuma; quem esconde a conversa da Coleção é a consulta
+    // que **lista** o seguido, em `inicio.ts`.
     where: { id: topicId, deletedAt: null },
     select: { id: true },
   });

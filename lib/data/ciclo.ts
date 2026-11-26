@@ -79,7 +79,19 @@ export async function hotTopicDeHoje(communityId: string): Promise<HotTopic | nu
            u.avatar_url AS ultima_avatar,
            u.created_at AS ultima_quando
       FROM hot_topics h
-      JOIN topics t ON t.id = h.topic_id AND t.deleted_at IS NULL
+      -- RN38: **a eleição não filtra; a exibição filtra.**
+      --
+      -- A conversa de um evento concorre ao destaque como qualquer tópico:
+      -- encontro que gera conversa é movimento, e movimento é o que o ciclo
+      -- mede (decisão do PO). Quem escolhe o vencedor é hub_virar_ciclo, no
+      -- banco, e ela continua sem filtro nenhum.
+      --
+      -- O cartão, porém, leva a /c/<com>?t=<slug>, e o slug da conversa é
+      -- evento:<id> — um painel que não abre, porque topicoPorEndereco
+      -- recusa a conversa. Enquanto o cartão não souber apontar para o
+      -- evento, ele não mostra a conversa. O conserto vem junto da área de
+      -- comentários, que é quem dá motivo para alguém comentar num encontro.
+      JOIN topics t ON t.id = h.topic_id AND t.deleted_at IS NULL AND t.event_id IS NULL
       LEFT JOIN profiles p ON p.id = t.author_id
       -- A última contribuição, pelo mesmo LATERAL da lista de tópicos: é
       -- o que permite ao banco usar o índice (topic_id, created_at).
@@ -188,6 +200,8 @@ export async function posicaoDoMeuTopico(
                       AND a.deleted_at IS NULL
                       AND hub_cycle_date(a.created_at) = hub_cycle_date(now())
        WHERE t.community_id = ${communityId}::uuid AND t.deleted_at IS NULL
+       -- RN38: a conversa de um evento não aparece em tela de tópico.
+         AND t.event_id IS NULL
        GROUP BY t.id, t.slug, t.name, t.author_id, t.created_at
     )
     /*

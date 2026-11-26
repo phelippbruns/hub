@@ -122,9 +122,15 @@ export async function membrosDaComunidade(
       },
       _count: { _all: true },
     }),
+    /*
+     * RN38: marcar um encontro não soma contribuição. A conversa nasce por
+     * gatilho com o anfitrião como autor, e sem este filtro quem marcasse
+     * três eventos apareceria na lista de membros com três contribuições que
+     * não escreveu.
+     */
     prisma.topic.groupBy({
       by: ["authorId"],
-      where: { authorId: { in: idsDaPagina }, communityId, deletedAt: null },
+      where: { authorId: { in: idsDaPagina }, communityId, deletedAt: null, eventId: null },
       _count: { _all: true },
     }),
   ]);
