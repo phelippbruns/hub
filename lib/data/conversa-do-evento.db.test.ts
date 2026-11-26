@@ -14,9 +14,17 @@
  */
 import { beforeEach, describe, expect, it } from "vitest";
 import { db, joinAs, makeCommunity, makeProfile, makeUniverse, resetDatabase } from "./testing/db";
-import { criarEvento } from "./eventos";
+import { criarEvento, eventosDaComunidade } from "./eventos";
 import { hotTopicDeHoje, virarCiclo } from "./ciclo";
-import { createTopic, enderecoDoTopico, topicoPorEndereco } from "./topics";
+import { hotTopicsParaMim } from "./inicio";
+import {
+  conversaDoEvento,
+  createAnswer,
+  createTopic,
+  enderecoDoTopico,
+  respostasDoTopico,
+  topicoPorEndereco,
+} from "./topics";
 import { topicosDaComunidade } from "./comunidades";
 import { buscarTopicos, topicosEmAlta } from "./descoberta";
 import { respostasDoPerfil } from "./perfil";
@@ -284,16 +292,18 @@ describe("RN38: o evento é dono do texto", () => {
  * Decisão do PO: encontro que gera conversa é movimento, e movimento é o que
  * o ciclo mede. A conversa **concorre** ao destaque como qualquer tópico.
  *
- * Mas a exibição é outra coisa, e aqui está a diferença que custou a decisão
- * mais difícil deste PR: o cartão do destaque leva a `/c/<com>?t=<slug>`, e o
- * slug da conversa é `evento:<id>` — um painel que não abre. Então, **até o
- * cartão saber apontar para o evento, ele não mostra a conversa.**
+ * A exibição esperou um PR. O cartão do destaque levava a `/c/<com>?t=<slug>`,
+ * e o slug da conversa é `evento:<id>` — um painel que não abre. Então, até o
+ * cartão saber apontar para o encontro, ele não mostrava a conversa: o
+ * invariante do PR 3 era **em nenhum commit o Hub mostra um link que não
+ * abre**.
  *
- * Os dois testes abaixo medem os dois lados, de propósito: a eleição
- * acontece, e a vitrine espera. Soltar a vitrine antes do endereço seria
- * entregar um destaque que não leva a lugar nenhum.
+ * Em 26 de novembro de 2026 a espera acabou. `event_id` sai nas duas
+ * consultas de destaque e `enderecoDeConversa` escolhe o endereço, então os
+ * testes abaixo medem o outro lado: a eleição escolhe a conversa **e** a
+ * vitrine a mostra, com o id do encontro para o cartão saber para onde ir.
  */
-describe("RN09: a conversa concorre ao Hot Topic, e a vitrine espera o endereço", () => {
+describe("RN09: a conversa concorre ao Hot Topic, e a vitrine leva ao encontro", () => {
   async function conversaVencendoOCiclo() {
     const { lia, jo, comunidade, evento } = await cenario();
     const conversa = await conversaDe(evento.id);
@@ -323,7 +333,7 @@ describe("RN09: a conversa concorre ao Hot Topic, e a vitrine espera o endereço
     `;
     await virarCiclo(new Date(dia[0]!.dia.toISOString().slice(0, 10)));
 
-    return { comunidade, conversa: conversa!, comum: comum!, evento };
+    return { lia, jo, comunidade, conversa: conversa!, comum: comum!, evento };
   }
 
   it("a eleição escolhe a conversa quando ela tem mais pessoas diferentes", async () => {
@@ -335,14 +345,200 @@ describe("RN09: a conversa concorre ao Hot Topic, e a vitrine espera o endereço
     expect(eleito?.topicId, "a conversa do evento foi excluída da disputa").toBe(conversa.id);
   });
 
-  it("mas o cartão do destaque não a mostra, porque o endereço dela não abre", async () => {
-    const { comunidade } = await conversaVencendoOCiclo();
+  it("o cartão da comunidade a mostra, com o id do encontro para o endereço", async () => {
+    const { comunidade, conversa, evento } = await conversaVencendoOCiclo();
 
     const naTela = await hotTopicDeHoje(comunidade.id);
 
-    expect(
-      naTela,
-      "o destaque mostrou a conversa, e o cartão levaria a um painel vazio",
-    ).toBeNull();
+    expect(naTela, "o destaque do dia desapareceu da comunidade").not.toBeNull();
+    expect(naTela?.id).toBe(conversa.id);
+    /*
+     * **É este campo que faz o cartão levar a algum lugar.** Sem ele,
+     * `enderecoDeConversa` cai no ramo do tópico e monta `?t=evento:<id>` —
+     * um endereço que abre a comunidade sem painel nenhum, sem erro no
+     * servidor e sem jornada vermelha.
+     */
+    expect(naTela?.eventoId, "o cartão não sabe que o destaque é um encontro").toBe(evento.id);
+  });
+
+  it("e no Início também, com o id do encontro", async () => {
+    const { lia, conversa, evento } = await conversaVencendoOCiclo();
+
+    const destaques = await hotTopicsParaMim(viewerFor(lia.id));
+
+    const dela = destaques.find((d) => d.topicId === conversa.id);
+    expect(dela, "o destaque do encontro não chegou ao Início").toBeDefined();
+    expect(dela?.eventoId).toBe(evento.id);
+  });
+
+  it("o destaque de um tópico comum continua sem evento nenhum", async () => {
+    // A barreira positiva do par: se `eventoId` viesse preenchido sempre, os
+    // dois testes acima passariam e **todo** cartão iria para a aba Eventos.
+    const { lia, jo, comunidade } = await cenario();
+    const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const comum = await createTopic(viewerFor(lia.id), {
+      communityId: comunidade.id,
+      name: "Só um assunto",
+      description: "Sem encontro por baixo.",
+    });
+    await db.answer.createMany({
+      data: [
+        { topicId: comum!.id, authorId: lia.id, text: "eu", createdAt: ontem },
+        { topicId: comum!.id, authorId: jo.id, text: "e eu", createdAt: ontem },
+      ],
+    });
+    const dia = await db.$queryRaw<{ dia: Date }[]>`
+      SELECT hub_cycle_date(${ontem}::timestamptz) AS dia
+    `;
+    await virarCiclo(new Date(dia[0]!.dia.toISOString().slice(0, 10)));
+
+    const naTela = await hotTopicDeHoje(comunidade.id);
+
+    expect(naTela?.id).toBe(comum!.id);
+    expect(naTela?.eventoId, "um tópico comum virou encontro no endereço").toBeNull();
+  });
+});
+
+/**
+ * **A área de comentários do encontro** (PR 4).
+ *
+ * O que estes testes medem não é uma feature nova: é que a decisão do Bloco 3
+ * pagou. A conversa é um tópico de verdade, então comentar num encontro é
+ * `createAnswer` — e com isso estrela (RN15), imagem, GIF, `@`, "não se
+ * edita" (RN14), o bloqueio de links (RN16) e a fila de moderação valem ali
+ * sem nenhuma linha escrita de novo.
+ *
+ * A porta é `conversaDoEvento`, e ela é a **única**: `topicoPorEndereco`
+ * recusa a conversa de propósito, e os testes acima medem essa recusa.
+ */
+describe("RN38: comentar num encontro", () => {
+  it("a conversa abre pelo id do evento, que é o caminho que existe", async () => {
+    const { lia, evento } = await cenario();
+
+    const conversa = await conversaDoEvento(viewerFor(lia.id), evento.id);
+
+    expect(conversa.name).toBe("Crítica de portfólio");
+    expect(conversa.eventId).toBe(evento.id);
+    // RN16: quem tem conta vê as contribuições. É o que liga o compositor.
+    expect(conversa.podeVerRespostas).toBe(true);
+  });
+
+  it("o comentário entra como contribuição, e conta no cabeçalho", async () => {
+    const { lia, jo, evento } = await cenario();
+    const conversa = await conversaDoEvento(viewerFor(lia.id), evento.id);
+
+    await createAnswer(viewerFor(jo.id), {
+      topicId: conversa.id,
+      text: "Levo três peças.",
+      media: null,
+    });
+
+    const depois = await conversaDoEvento(viewerFor(lia.id), evento.id);
+    expect(depois.answerCount).toBe(1);
+    expect(depois.peopleCount).toBe(1);
+
+    const pagina = await respostasDoTopico(viewerFor(lia.id), conversa.id);
+    expect(pagina?.respostas.map((r) => r.text)).toEqual(["Levo três peças."]);
+  });
+
+  it("RN16: o comentário com link é recusado, como em qualquer contribuição", async () => {
+    const { lia, jo, evento } = await cenario();
+    const conversa = await conversaDoEvento(viewerFor(lia.id), evento.id);
+
+    await expect(
+      createAnswer(viewerFor(jo.id), {
+        topicId: conversa.id,
+        text: "entra aqui https://exemplo.com",
+        media: null,
+      }),
+      "o encontro virou o canto do Hub onde link passa",
+    ).rejects.toThrow();
+  });
+
+  it("quem não é membro da comunidade não comenta no encontro dela", async () => {
+    const { lia, evento } = await cenario();
+    const conversa = await conversaDoEvento(viewerFor(lia.id), evento.id);
+    const estranho = await makeProfile({ handle: "zz", name: "Zé Zê" });
+
+    await expect(
+      createAnswer(viewerFor(estranho.id), {
+        topicId: conversa.id,
+        text: "oi",
+        media: null,
+      }),
+      "a área de comentários do encontro ignorou a participação na comunidade",
+    ).rejects.toThrow();
+  });
+
+  it("comentar não faz a conversa aparecer na lista da comunidade", async () => {
+    // O comentário é contribuição de verdade — e continua não sendo assunto.
+    const { lia, jo, comunidade, evento } = await cenario();
+    const conversa = await conversaDoEvento(viewerFor(lia.id), evento.id);
+
+    await createAnswer(viewerFor(jo.id), {
+      topicId: conversa.id,
+      text: "combinado",
+      media: null,
+    });
+
+    const lista = await topicosDaComunidade(viewerFor(lia.id), comunidade.id, {
+      filtro: "alta",
+      termo: "",
+    });
+    expect(lista.map((t) => t.id)).not.toContain(conversa.id);
+  });
+
+  it("evento apagado não tem mais área de comentários", async () => {
+    const { lia, evento } = await cenario();
+
+    await db.event.update({ where: { id: evento.id }, data: { deletedAt: new Date() } });
+
+    await expect(
+      conversaDoEvento(viewerFor(lia.id), evento.id),
+      "a conversa de um encontro apagado continuou abrindo",
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  it("o cartão do encontro sabe quantos comentários tem", async () => {
+    /*
+     * O número é o que faz a porta valer o clique — um link dizendo
+     * "Comentários" que abre o vazio não convida ninguém. E ele sai da
+     * **mesma** consulta da lista, agrupado: dez encontros na aba não podem
+     * custar dez idas ao banco para desenhar dez números.
+     */
+    const { lia, jo, comunidade, evento } = await cenario();
+    const conversa = await conversaDoEvento(viewerFor(lia.id), evento.id);
+
+    const antes = await eventosDaComunidade(viewerFor(lia.id), comunidade.id);
+    expect(antes.find((e) => e.id === evento.id)?.comentarios).toBe(0);
+
+    await createAnswer(viewerFor(jo.id), { topicId: conversa.id, text: "eu vou", media: null });
+    await createAnswer(viewerFor(lia.id), { topicId: conversa.id, text: "ótimo", media: null });
+
+    const depois = await eventosDaComunidade(viewerFor(lia.id), comunidade.id);
+    expect(depois.find((e) => e.id === evento.id)?.comentarios).toBe(2);
+  });
+
+  it("comentário apagado sai da conta", async () => {
+    const { lia, jo, comunidade, evento } = await cenario();
+    const conversa = await conversaDoEvento(viewerFor(lia.id), evento.id);
+
+    await createAnswer(viewerFor(jo.id), { topicId: conversa.id, text: "some", media: null });
+    await db.answer.updateMany({
+      where: { topicId: conversa.id },
+      data: { deletedAt: new Date() },
+    });
+
+    const lista = await eventosDaComunidade(viewerFor(lia.id), comunidade.id);
+    expect(lista.find((e) => e.id === evento.id)?.comentarios).toBe(0);
+  });
+
+  it("id inventado não abre conversa nenhuma", async () => {
+    const { lia } = await cenario();
+
+    await expect(
+      conversaDoEvento(viewerFor(lia.id), "00000000-0000-0000-0000-000000000000"),
+    ).rejects.toThrow(NotFoundError);
   });
 });

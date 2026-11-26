@@ -21,6 +21,13 @@ const LIMITES = {
 export type DestaqueDoInicio = {
   topicId: string;
   topicoSlug: string;
+  /**
+   * Preenchido quando o destaque é a conversa de um encontro (RN38).
+   *
+   * É o que `enderecoDeConversa` lê para mandar o cartão ao evento em vez de
+   * `?t=<slug>` — o slug da conversa é `evento:<id>`, e ele não abre painel.
+   */
+  eventoId: string | null;
   nome: string;
   abertura: string;
   comunidade: { nome: string; slug: string };
@@ -42,6 +49,7 @@ export async function hotTopicsParaMim(viewer: Viewer): Promise<DestaqueDoInicio
     {
       topic_id: string;
       topico_slug: string;
+      evento_id: string | null;
       nome: string;
       abertura: string;
       comunidade_nome: string;
@@ -50,18 +58,19 @@ export async function hotTopicsParaMim(viewer: Viewer): Promise<DestaqueDoInicio
       respostas: string;
     }[]
   >`
-    SELECT t.id AS topic_id, t.slug AS topico_slug, t.name AS nome, t.description AS abertura,
+    SELECT t.id AS topic_id, t.slug AS topico_slug, t.event_id AS evento_id,
+           t.name AS nome, t.description AS abertura,
            c.name AS comunidade_nome, c.slug AS comunidade_slug,
            (SELECT count(DISTINCT a.author_id) FROM answers a
              WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS pessoas,
            (SELECT count(*) FROM answers a
              WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS respostas
       FROM hot_topics h
-      -- RN38: a eleição não filtra, a exibição filtra — o mesmo de ciclo.ts.
-      -- O cartão aponta para /c/<com>?t=<slug>, e o slug da conversa não
-      -- abre painel nenhum. Enquanto o cartão não souber levar ao evento, a
-      -- conversa não aparece aqui.
-      JOIN topics t ON t.id = h.topic_id AND t.deleted_at IS NULL AND t.event_id IS NULL
+      -- conversa-de-evento: **o destaque do dia não filtra**, igual a
+      -- ciclo.ts. A conversa de um encontro concorre ao Hot Topic por decisão
+      -- do PO, e desde a área de comentários o cartão sabe levar ao evento:
+      -- event_id vem junto e enderecoDeConversa escolhe o endereço.
+      JOIN topics t ON t.id = h.topic_id AND t.deleted_at IS NULL
       JOIN communities c ON c.id = h.community_id AND c.deleted_at IS NULL
       JOIN memberships m ON m.community_id = c.id
                         AND m.profile_id = ${me}::uuid
@@ -73,6 +82,8 @@ export async function hotTopicsParaMim(viewer: Viewer): Promise<DestaqueDoInicio
   return linhas.map((l) => ({
     topicId: l.topic_id,
     topicoSlug: l.topico_slug,
+    /** Preenchido só na conversa de um encontro: é ele que decide o endereço. */
+    eventoId: l.evento_id,
     nome: l.nome,
     abertura: l.abertura,
     comunidade: { nome: l.comunidade_nome, slug: l.comunidade_slug },

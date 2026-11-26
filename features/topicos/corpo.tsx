@@ -38,6 +38,7 @@ export async function CorpoDoTopico({
   ordem,
   ate,
   vistoEm,
+  cabecalho,
 }: {
   topicId: string;
   /** O nome do tópico: desde o protótipo v6 ele mora dentro do cartão. */
@@ -65,6 +66,22 @@ export async function CorpoDoTopico({
    * a visita de agora. É o que desenha a linha de contribuições novas.
    */
   vistoEm: Date | null;
+  /**
+   * **O que vem no lugar da abertura do tópico.**
+   *
+   * A área de comentários de um encontro é este corpo inteiro — compositor,
+   * ordem, estrelas, mídia, "20 por vez", a linha de novas desde a última
+   * visita — com o cartão do evento no topo em vez do cartão de abertura.
+   * O resto é igual **porque é o mesmo**: comentário de evento é
+   * contribuição de verdade, então RN14, RN15, RN16 e a moderação valem ali
+   * sem nenhuma linha escrita de novo.
+   *
+   * Uma prop e não um componente irmão: o irmão é o caminho do painel do
+   * post, e ali ele se justifica porque o painel do tópico é a tela mais
+   * usada do Hub e não podia mudar. Aqui não há duas telas — há um cartão
+   * diferente no topo da mesma.
+   */
+  cabecalho?: React.ReactNode;
 }) {
   /*
    * Montada **uma vez**, e usada nos dois ramos: o de quem tem conta e o
@@ -82,18 +99,29 @@ export async function CorpoDoTopico({
     />
   ) : null;
 
+  /*
+   * O topo, montado **uma vez** e usado nos dois ramos — o mesmo motivo
+   * pelo qual a mídia acima também é: eram dois `TopicOpening` aqui, e eu
+   * passei a mídia só para o primeiro. Está no `faustao.md`, e repetir o
+   * erro com o cartão do evento daria uma tela sem cabeçalho nenhum para
+   * quem abre sem conta.
+   */
+  const topo = cabecalho ?? (
+    <TopicOpening
+      nome={nome}
+      autor={autor}
+      abertura={abertura}
+      pessoas={pessoas}
+      respostas={respostas}
+      seguir={seguir}
+      midia={midiaDesenhada}
+    />
+  );
+
   if (!podeVerRespostas) {
     return (
       <>
-        <TopicOpening
-          nome={nome}
-          autor={autor}
-          abertura={abertura}
-          pessoas={pessoas}
-          respostas={respostas}
-          seguir={seguir}
-          midia={midiaDesenhada}
-        />
+        {topo}
         {/* RN16: sem conta, a lista de respostas não vem do servidor. */}
         <EmptyState
           title="Entre para ver as contribuições"
@@ -105,15 +133,7 @@ export async function CorpoDoTopico({
 
   return (
     <>
-      <TopicOpening
-        nome={nome}
-        autor={autor}
-        abertura={abertura}
-        pessoas={pessoas}
-        respostas={respostas}
-        seguir={seguir}
-        midia={midiaDesenhada}
-      />
+      {topo}
 
       <CampoDeResposta
         topicId={topicId}

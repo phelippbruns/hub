@@ -2,7 +2,9 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { consultar, esperarNoBanco } from "./apoio-banco";
 import {
   alerta,
+  botaoDeContribuir,
   cadastroConcluido,
+  campoDeContribuicao,
   concluirOnboarding,
   criarTopico,
   esperarTopicoNoPainel,
@@ -36,11 +38,14 @@ function daquiASemanas(semanas: number) {
   return new Date(Date.now() + semanas * 7 * 864e5).toISOString().slice(0, 10);
 }
 
-async function entrarNoApp(page: Page, prefixo: string) {
+/** Cria a conta e devolve o `@`, que a jornada da marcação precisa. */
+async function entrarNoApp(page: Page, prefixo: string): Promise<string> {
+  const handle = novoHandle("ev");
+
   await page.goto("/criar-conta");
   await page.getByLabel("Nome completo").fill("Pessoa dos Eventos");
   await page.getByLabel("Email").fill(novoEmail(prefixo));
-  await page.getByLabel("@").fill(novoHandle("ev"));
+  await page.getByLabel("@").fill(handle);
   await page.getByLabel("Senha", { exact: true }).fill("senhaboa123");
   await page.getByLabel("Data de nascimento").fill(`${new Date().getUTCFullYear() - 25}-03-10`);
 
@@ -51,6 +56,8 @@ async function entrarNoApp(page: Page, prefixo: string) {
 
   await cadastroConcluido(page);
   await concluirOnboarding(page);
+
+  return handle;
 }
 
 async function minhaComunidade(page: Page, prefixo: string): Promise<string> {
@@ -282,9 +289,20 @@ test.describe("o evento abre no centro", () => {
     const comunidade = await minhaComunidade(page, "Com Centro");
     await criarEncontroOnline(page, comunidade, "Leitura coletiva");
 
-    // O Início, onde o bloco do próximo evento aparece na coluna.
+    /*
+      O Início, onde o bloco do próximo evento aparece na coluna.
+
+      O filtro é pelo **nome do encontro**, e não por "PRÓXIMO EVENTO": o
+      espaço reservado da coluna carrega esse mesmo rótulo, e durante o fluxo
+      da resposta os dois coexistem no HTML por um instante. O teste reprovava
+      por ambiguidade — duas vezes em três — dizendo "strict mode violation",
+      que não aponta para nada. O espaço reservado parou de afirmar que não há
+      evento (`features/comunidades/resumo.tsx`), e aqui o seletor ficou
+      preciso de qualquer forma: o nome do encontro só existe no bloco
+      resolvido.
+    */
     await page.goto(comunidade);
-    const bloco = coluna(page).filter({ hasText: "PRÓXIMO EVENTO" });
+    const bloco = coluna(page).filter({ hasText: "Leitura coletiva" });
     await expect(bloco).toBeVisible();
 
     /*
@@ -379,5 +397,227 @@ test.describe("o evento abre no centro", () => {
     await expect(page.getByRole("heading", { name: "Eventos" })).toBeVisible();
     await expect(page.getByText("Encontro de verdade")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Evento", exact: true })).toHaveCount(0);
+  });
+});
+
+/**
+ * **A área de comentários do encontro** (PR 4 do plano da comunidade).
+ *
+ * O pedido do PO foi "eventos funcionando como tópicos, com comentários
+ * dentro". A decisão foi dar ao evento um tópico por baixo, invisível na
+ * lista — e o que estas jornadas medem é que a decisão pagou: o compositor,
+ * a estrela (RN15) e a marcação `@` são os **mesmos** do tópico, porque é a
+ * mesma tabela e o mesmo componente.
+ *
+ * O que as regras garantem está em `lib/data/conversa-do-evento.db.test.ts`,
+ * que mede 25 casos sem tela. Aqui é a tela — e o endereço, que é a parte
+ * que erraria calada.
+ */
+test.describe("a área de comentários do encontro", () => {
+  /** O id da linha, que é o que o endereço carrega. */
+  async function idDoEvento(titulo: string) {
+    const linhas = await consultar<{ id: string }>(
+      `SELECT id FROM events WHERE title = '${titulo.replace(/'/g, "''")}' AND deleted_at IS NULL`,
+    );
+    expect(linhas, "o evento não chegou ao banco").toHaveLength(1);
+    return linhas[0]!.id;
+  }
+
+  const cartaoDe = (page: Page, texto: string) =>
+    page.locator("article").filter({ hasText: texto }).first();
+
+  test("da lista, o cartão abre os comentários — e o número cresce", async ({ page }) => {
+    /*
+      **A porta, medida pelo caminho de quem usa.**
+
+      Esta jornada existe porque a porta **não existia**: a área de
+      comentários ficou pronta e o único caminho até ela era o bloco "PRÓXIMO
+      EVENTO" da coluna, que mostra só o próximo encontro. Todos os outros
+      tinham conversa e nenhuma porta — e nenhum teste pegava, porque as
+      jornadas montavam o endereço à mão, como eu montei nas de baixo.
+
+      A lição: jornada que navega por `page.goto` prova que a tela funciona,
+      nunca que alguém chega nela.
+    */
+    await entrarNoApp(page, "porta");
+    const comunidade = await minhaComunidade(page, "Com Porta");
+    await criarEncontroOnline(page, comunidade, "Rodada de leitura");
+
+    await page.goto(`${comunidade}?aba=eventos`);
+    await expect(page.getByText("Rodada de leitura")).toBeVisible();
+
+    // Sem comentário nenhum o link convida a escrever o primeiro.
+    const porta = page.getByRole("link", { name: "Comentar" });
+    await expect(porta, "o cartão do encontro não tem porta para a conversa").toBeVisible();
+    await porta.click();
+
+    await page.waitForURL(/[?&]evento=/);
+    await expect(page.getByRole("heading", { name: "Comentários" })).toBeVisible();
+
+    await campoDeContribuicao(page).fill("Eu levo o café");
+    await botaoDeContribuir(page).click();
+    await esperarNoBanco(
+      `SELECT 1 FROM answers WHERE text = 'Eu levo o café' AND deleted_at IS NULL`,
+    );
+    await expect(cartaoDe(page, "Eu levo o café")).toBeVisible();
+
+    // E de volta na lista, o número: é ele que faz o link valer o clique.
+    await page.getByRole("link", { name: "Todos os eventos" }).click();
+    await expect(page.getByRole("link", { name: "1 comentário" })).toBeVisible();
+  });
+
+  test("comentar funciona, com estrela e com `@`", async ({ page }) => {
+    const handle = await entrarNoApp(page, "coment");
+    const comunidade = await minhaComunidade(page, "Com Coment");
+    await criarEncontroOnline(page, comunidade, "Oficina de roteiro");
+    const evento = await idDoEvento("Oficina de roteiro");
+
+    await page.goto(`${comunidade}?aba=eventos&evento=${evento}`);
+
+    /*
+      **O positivo antes de tudo**, e aqui ele é o próprio pedido: o cartão
+      do encontro e, embaixo dele, onde se escreve. A área chega num
+      `<Suspense>`, então medir o campo direto passaria pela página vazia.
+    */
+    await expect(page.getByRole("heading", { name: "Evento", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Comentários" })).toBeVisible();
+
+    const texto = `Levo o primeiro ato @${handle}`;
+    await campoDeContribuicao(page).fill(texto);
+    await botaoDeContribuir(page).click();
+    await esperarNoBanco(
+      `SELECT 1 FROM answers WHERE text LIKE 'Levo o primeiro ato%' AND deleted_at IS NULL`,
+    );
+
+    const cartao = cartaoDe(page, "Levo o primeiro ato");
+    await expect(cartao).toBeVisible();
+
+    /*
+      **A marcação é o que prova que não há regra nova aqui.** O `@` virou
+      link porque o comentário passou pelo mesmo analisador de marcações de
+      qualquer contribuição — ninguém escreveu uma linha para isso valer no
+      encontro.
+
+      O `@` é procurado **dentro do parágrafo escrito**, e não no cartão: o
+      cartão também traz o `@` de quem assina, com o mesmo texto, e um
+      `getByRole` no cartão inteiro acha os dois e reprova com "strict mode
+      violation" — que não diz nada sobre a causa.
+    */
+    const escrito = cartao.locator("p").filter({ hasText: "Levo o primeiro ato" });
+    await expect(escrito.getByRole("link", { name: `@${handle}` })).toBeVisible();
+
+    // E a estrela (RN15), pelo mesmo motivo.
+    const estrela = cartao.getByRole("button", { name: /estrela/ });
+    await estrela.click();
+    await expect(estrela).toHaveText("1");
+    await esperarNoBanco(`
+      SELECT 1 FROM answer_stars s JOIN answers a ON a.id = s.answer_id
+       WHERE a.text LIKE 'Levo o primeiro ato%'`);
+
+    // Recarregar mantém: não foi só a tela sendo otimista.
+    await page.reload();
+    await expect(cartaoDe(page, "Levo o primeiro ato")).toBeVisible();
+  });
+
+  test("Enter não publica o comentário; Ctrl+Enter publica", async ({ page }) => {
+    // A mesma regra do tópico (protótipo v6), e ela vale aqui **porque é o
+    // mesmo compositor**. Mede-se para o dia em que alguém trocar um dos dois.
+    await entrarNoApp(page, "atalho");
+    const comunidade = await minhaComunidade(page, "Com Atalho");
+    await criarEncontroOnline(page, comunidade, "Ensaio geral");
+    const evento = await idDoEvento("Ensaio geral");
+
+    await page.goto(`${comunidade}?aba=eventos&evento=${evento}`);
+    await expect(page.getByRole("heading", { name: "Comentários" })).toBeVisible();
+
+    const campo = campoDeContribuicao(page);
+    await campo.fill("Primeira linha");
+    await campo.press("Enter");
+
+    // O campo continua com o texto, e ganhou a quebra: nada foi publicado.
+    await expect(campo).toHaveValue("Primeira linha\n");
+
+    await campo.fill("Fica combinado então");
+    await campo.press("ControlOrMeta+Enter");
+    await esperarNoBanco(
+      `SELECT 1 FROM answers WHERE text = 'Fica combinado então' AND deleted_at IS NULL`,
+    );
+    await expect(cartaoDe(page, "Fica combinado então")).toBeVisible();
+  });
+
+  /**
+   * Movimento de ontem **na conversa do encontro**, e o ciclo vira.
+   *
+   * Direto no banco porque nenhum caminho do produto deixa escolher quando
+   * uma contribuição aconteceu. O dia que entra em `hub_virar_ciclo` é
+   * ontem, e a tela procura hoje: o movimento de ontem é o destaque de hoje.
+   *
+   * Sem acento grave nos comentários do SQL — ele fecharia este template, e
+   * já fechou três vezes neste projeto.
+   */
+  async function aConversaVenceuOCiclo(eventoId: string) {
+    await consultar(`
+      WITH alvo AS (
+        SELECT id, author_id FROM topics
+         WHERE event_id = '${eventoId}' AND deleted_at IS NULL
+      )
+      INSERT INTO answers (id, topic_id, author_id, text, created_at)
+      SELECT gen_random_uuid(), alvo.id, alvo.author_id, 'comentario de ontem',
+             ((hub_cycle_date(now()) - 1) + time '12:00') AT TIME ZONE hub_cycle_timezone()
+        FROM alvo
+    `);
+    await consultar(`SELECT hub_virar_ciclo(hub_cycle_date(now()) - 1)`);
+  }
+
+  test("o Hot Topic do encontro leva ao encontro, não a um painel vazio", async ({ page }) => {
+    await entrarNoApp(page, "destaque");
+    const comunidade = await minhaComunidade(page, "Com Destaque");
+    await criarEncontroOnline(page, comunidade, "Mutirão de capa");
+    const evento = await idDoEvento("Mutirão de capa");
+
+    await aConversaVenceuOCiclo(evento);
+
+    await page.goto(comunidade);
+
+    const destaque = page.getByRole("link").filter({ hasText: "Mutirão de capa" }).first();
+    await expect(destaque, "o destaque do dia não apareceu na comunidade").toBeVisible();
+
+    /*
+      **O endereço é medido, e não só clicado.** Um destaque apontando para
+      `?t=evento:<id>` abriria a comunidade sem painel nenhum — sem erro, sem
+      404, e com a jornada passando se ela só conferisse que algo aparece. É
+      por isso que o PR 3 deixou a exibição filtrada: para não existir
+      nenhum commit em que o Hub mostra um link que não abre.
+    */
+    await expect(destaque).toHaveAttribute("href", /[?&]evento=/);
+    await expect(destaque).not.toHaveAttribute("href", /[?&]t=/);
+    // E é **este** encontro, não um qualquer: a forma acima já esperou o
+    // atributo, então ler o valor agora é seguro.
+    expect(await destaque.getAttribute("href")).toContain(`evento=${evento}`);
+
+    await destaque.click();
+    await page.waitForURL(/[?&]evento=/);
+    await expect(page.getByRole("heading", { name: "Evento", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Comentários" })).toBeVisible();
+    await expect(page.getByText("comentario de ontem")).toBeVisible();
+  });
+
+  test("e o destaque do encontro também leva ao encontro a partir do Início", async ({ page }) => {
+    await entrarNoApp(page, "ini");
+    const comunidade = await minhaComunidade(page, "Com Ini");
+    await criarEncontroOnline(page, comunidade, "Leitura de madrugada");
+    const evento = await idDoEvento("Leitura de madrugada");
+
+    await aConversaVenceuOCiclo(evento);
+
+    await page.goto("/inicio");
+    await expect(page.getByRole("heading", { name: "Hot Topics" })).toBeVisible();
+
+    const destaque = page.getByRole("link").filter({ hasText: "Com Ini" }).first();
+    await expect(destaque).toHaveAttribute("href", /[?&]evento=/);
+    expect(await destaque.getAttribute("href")).toContain(`evento=${evento}`);
+
+    await destaque.click();
+    await expect(page.getByRole("heading", { name: "Evento", exact: true })).toBeVisible();
   });
 });

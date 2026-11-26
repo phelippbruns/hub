@@ -34,8 +34,8 @@ const SEMANA = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 export function ResumoDaComunidade({
   comunidade,
   aba = "inicio",
-  proximoEvento = null,
-  enqueteAberta = null,
+  proximoEvento,
+  enqueteAberta,
 }: {
   comunidade: PaginaDaComunidade;
   /**
@@ -48,7 +48,20 @@ export function ResumoDaComunidade({
    * estavam falando. A ambiguidade era o sintoma; a repetição era o defeito.
    */
   aba?: AbaDaComunidade;
-  /** O primeiro evento que ainda vai acontecer, ou nada. */
+  /**
+   * O primeiro evento que ainda vai acontecer.
+   *
+   * **`undefined` e `null` querem dizer coisas diferentes, e a diferença é
+   * visível:** `null` é "já perguntei e não há", e aí quem modera vê
+   * "Nenhum evento marcado" com o atalho de criar; `undefined` é "ainda não
+   * sei", que é o estado do espaço reservado enquanto a consulta não volta.
+   *
+   * O padrão era `null`, então o espaço reservado **afirmava que não havia
+   * evento** e o evento de verdade aparecia um instante depois. Duas coisas
+   * saíram disso: um texto errado piscando na tela de quem modera, e dois
+   * blocos "PRÓXIMO EVENTO" no HTML ao mesmo tempo — que é como uma jornada
+   * descobriu, reprovando por ambiguidade em vez de pelo defeito.
+   */
   proximoEvento?: EventoNaTela | null;
   /**
    * A enquete aberta mais recente, ou nada.
@@ -57,10 +70,20 @@ export function ResumoDaComunidade({
    * que garante a RN37 aqui: `totalDeVotos` chega nulo para quem ainda não
    * votou, e o bloco obedece ao que vier. Uma consulta feita só para este
    * bloco teria de repetir a regra, e um dia esqueceria.
+   *
+   * `undefined` é "ainda carregando", como no evento acima — e aqui não
+   * precisa de conferência própria, porque o bloco da enquete **não tem
+   * estado vazio**: ele só existe quando há enquete aberta.
    */
   enqueteAberta?: EnqueteNaTela | null;
 }) {
   const novidade = comunidade.contribuicoesHoje;
+  /*
+   * **O espaço reservado não afirma nada.** Enquanto a consulta não volta, o
+   * bloco não existe — em vez de dizer "Nenhum evento marcado" e se
+   * desmentir meio segundo depois.
+   */
+  const aguardandoEvento = proximoEvento === undefined;
 
   return (
     <aside
@@ -141,7 +164,7 @@ export function ResumoDaComunidade({
         A condição da aba fica **fora** da escolha entre cheio e vazio, que
         é o que impede o `else` de responder à pergunta errada.
       */}
-      {aba === "eventos" ? null : proximoEvento ? (
+      {aba === "eventos" || aguardandoEvento ? null : proximoEvento ? (
         <section className="bg-paper flex flex-col gap-2 rounded-md p-3">
           <h2 className="text-label text-inkMuted">PRÓXIMO EVENTO</h2>
 

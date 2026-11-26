@@ -16,18 +16,33 @@ import type { EventoNaTela } from "@/lib/data/eventos";
  *
  * O cartão é o **mesmo** da lista, de propósito: confirmar presença, o link
  * da sala e a contagem de vagas têm um lugar só. O que esta tela acrescenta
- * é o caminho de volta — e, no PR seguinte, a área de comentários.
+ * é o caminho de volta e a **área de comentários**.
  */
 export function DetalheDoEvento({
   evento,
   slug,
   souMembro,
   paraEntrar,
+  comentarios,
 }: {
   evento: EventoNaTela;
   slug: string;
   souMembro: boolean;
   paraEntrar: ParaEntrar;
+  /**
+   * A conversa por baixo do encontro, montada pela página.
+   *
+   * Vem de fora porque ela é o corpo do tópico inteiro, e **uma feature não
+   * importa de outra**: quem compõe `features/eventos` com
+   * `features/topicos` é a página da comunidade, como o menu de criar compõe
+   * tópico e comunidade. Juntá-las aqui arrastaria a feature de tópicos para
+   * dentro desta.
+   *
+   * Opcional porque o encontro existe sem ela: evento recém-criado por um
+   * seed antigo, ou conversa apagada à mão, continuam mostrando o cartão em
+   * vez de derrubar a tela.
+   */
+  comentarios?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -46,7 +61,26 @@ export function DetalheDoEvento({
 
       <SectionTitle>Evento</SectionTitle>
 
-      <CartaoDoEvento evento={evento} slug={slug} souMembro={souMembro} paraEntrar={paraEntrar} />
+      {/*
+        `aberto`: este cartão **é** o encontro aberto, então ele não traz o
+        link para os comentários — eles estão logo embaixo.
+      */}
+      <CartaoDoEvento
+        evento={evento}
+        slug={slug}
+        souMembro={souMembro}
+        paraEntrar={paraEntrar}
+        aberto
+      />
+
+      {/*
+        **Os comentários são contribuições de verdade**, e vêm do mesmo corpo
+        que o painel do tópico desenha. Não é economia de código: é o que faz
+        estrela (RN15), imagem, GIF, `@`, "não se edita" (RN14), o bloqueio de
+        links (RN16) e a moderação valerem aqui sem nenhuma regra escrita de
+        novo — e sem o risco de uma delas ficar de fora calada.
+      */}
+      {comentarios}
     </div>
   );
 }

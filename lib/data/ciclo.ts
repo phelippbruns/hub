@@ -37,6 +37,16 @@ export type HotTopic = {
   } | null;
   /** As primeiras caras de quem participou, para o rodapé do cartão. */
   primeirosRostos: { nome: string; avatarUrl: string | null }[];
+  /**
+   * **Preenchido quando o destaque é a conversa de um encontro** (RN38).
+   *
+   * É o que decide o endereço do cartão: `enderecoDeConversa` leva ao evento
+   * em vez de `?t=<slug>`, porque o slug `evento:<id>` não abre painel
+   * nenhum. Sem este campo o destaque do dia seria um cartão que não vai a
+   * lugar nenhum — e foi por isso que a exibição ficou filtrada até a área
+   * de comentários existir.
+   */
+  eventoId: string | null;
 };
 
 /**
@@ -53,6 +63,7 @@ export async function hotTopicDeHoje(communityId: string): Promise<HotTopic | nu
       slug: string;
       name: string;
       description: string;
+      evento_id: string | null;
       autor_id: string | null;
       autor_nome: string | null;
       autor_handle: string | null;
@@ -66,7 +77,7 @@ export async function hotTopicDeHoje(communityId: string): Promise<HotTopic | nu
       ultima_quando: Date | null;
     }[]
   >`
-    SELECT t.id, t.slug, t.name, t.description,
+    SELECT t.id, t.slug, t.name, t.description, t.event_id AS evento_id,
            p.id AS autor_id, p.name AS autor_nome, p.handle AS autor_handle,
            h.distinct_respondents AS elegeram,
            (SELECT count(DISTINCT a.author_id) FROM answers a
@@ -79,19 +90,18 @@ export async function hotTopicDeHoje(communityId: string): Promise<HotTopic | nu
            u.avatar_url AS ultima_avatar,
            u.created_at AS ultima_quando
       FROM hot_topics h
-      -- RN38: **a eleição não filtra; a exibição filtra.**
+      -- conversa-de-evento: **nem a eleição nem a exibição filtram, agora.**
       --
-      -- A conversa de um evento concorre ao destaque como qualquer tópico:
+      -- A conversa de um encontro concorre ao destaque como qualquer tópico:
       -- encontro que gera conversa é movimento, e movimento é o que o ciclo
       -- mede (decisão do PO). Quem escolhe o vencedor é hub_virar_ciclo, no
-      -- banco, e ela continua sem filtro nenhum.
+      -- banco, e ela nunca filtrou.
       --
-      -- O cartão, porém, leva a /c/<com>?t=<slug>, e o slug da conversa é
-      -- evento:<id> — um painel que não abre, porque topicoPorEndereco
-      -- recusa a conversa. Enquanto o cartão não souber apontar para o
-      -- evento, ele não mostra a conversa. O conserto vem junto da área de
-      -- comentários, que é quem dá motivo para alguém comentar num encontro.
-      JOIN topics t ON t.id = h.topic_id AND t.deleted_at IS NULL AND t.event_id IS NULL
+      -- A exibição filtrou até 26 de novembro de 2026, e por um motivo
+      -- concreto: o cartão levava a /c/<com>?t=<slug>, e o slug da conversa é
+      -- evento:<id>, um painel que não abre. Agora event_id vem junto e
+      -- enderecoDeConversa manda o cartão para o encontro.
+      JOIN topics t ON t.id = h.topic_id AND t.deleted_at IS NULL
       LEFT JOIN profiles p ON p.id = t.author_id
       -- A última contribuição, pelo mesmo LATERAL da lista de tópicos: é
       -- o que permite ao banco usar o índice (topic_id, created_at).
@@ -160,6 +170,7 @@ export async function hotTopicDeHoje(communityId: string): Promise<HotTopic | nu
       nome: rosto.nome,
       avatarUrl: assinados.at(i + 1) ?? null,
     })),
+    eventoId: linha.evento_id,
   };
 }
 

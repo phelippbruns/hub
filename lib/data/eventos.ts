@@ -45,6 +45,16 @@ export type EventoNaTela = {
   linkDoEncontro: string | null;
   /** As primeiras caras de quem vai, para a linha de confirmados. */
   primeiros: { nome: string; avatarUrl: string | null }[];
+  /**
+   * Quantos comentários o encontro tem (RN38).
+   *
+   * Não é enfeite: **é o que torna o link de abrir a conversa worth clicar.**
+   * O cartão precisa de uma porta para os comentários — sem ela, a área de
+   * comentários existia e só o próximo encontro, pelo bloco da coluna,
+   * chegava nela. Um link que diz "3 comentários" convida; um que diz
+   * "Comentários" e abre o vazio, não.
+   */
+  comentarios: number;
 };
 
 /** Os eventos de uma comunidade: os próximos primeiro, depois os passados. */
@@ -84,6 +94,27 @@ export async function eventosDaComunidade(
   });
   const assinados = await comAvatares(presencas.map((p) => p.profile));
 
+  /*
+   * Os comentários de todos os encontros da página, **numa consulta**.
+   *
+   * Agrupada por `event_id` e não pedida por evento: com dez encontros na
+   * aba, o jeito ingênuo custaria dez idas ao banco para desenhar dez
+   * números. É o mesmo argumento das caras logo acima.
+   *
+   * conversa-de-evento: aqui `topics` é a ponte para chegar aos comentários
+   * do encontro — filtrar a conversa deixaria o número sempre em zero.
+   */
+  const conversas = await prisma.topic.findMany({
+    where: { eventId: { in: eventos.map((e) => e.id) }, deletedAt: null },
+    select: {
+      eventId: true,
+      _count: { select: { answers: { where: { deletedAt: null } } } },
+    },
+  });
+  const comentariosPorEvento = new Map(
+    conversas.map((conversa) => [conversa.eventId, conversa._count.answers]),
+  );
+
   const porEvento = new Map<string, { nome: string; avatarUrl: string | null }[]>();
   presencas.forEach((presenca, i) => {
     const lista = porEvento.get(presenca.eventId) ?? [];
@@ -117,6 +148,7 @@ export async function eventosDaComunidade(
       // A regra inteira desta camada, numa linha.
       linkDoEncontro: euVou ? evento.joinUrl : null,
       primeiros: porEvento.get(evento.id) ?? [],
+      comentarios: comentariosPorEvento.get(evento.id) ?? 0,
     };
   });
 }

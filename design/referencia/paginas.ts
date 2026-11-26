@@ -261,6 +261,17 @@ export const PAGINAS: Pagina[] = [
     persona: "a",
   },
   {
+    id: "comunidade-evento-aberto",
+    area: "comunidade",
+    titulo: "Evento aberto, com os comentários",
+    rota: "/c/<slug>?aba=eventos&evento=<id>",
+    origem: "app/(app)/c/[comunidade]/page.tsx",
+    estado:
+      "O encontro no centro, com a coluna da direita ao lado, e a área de " +
+      "comentários embaixo — que é o corpo do tópico com outro cabeçalho (RN38).",
+    persona: "a",
+  },
+  {
     id: "comunidade-membros",
     area: "comunidade",
     titulo: "Aba de membros",

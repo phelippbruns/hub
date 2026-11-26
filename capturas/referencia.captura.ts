@@ -507,7 +507,16 @@ test.describe.serial("páginas de referência", () => {
     await a.waitForURL(/\/c\/[^/]+$/, { timeout: 30_000 });
 
     await capturar(a, "comunidade-vazia", async () => {
-      await expect(a.getByText("Nenhum tópico ainda")).toBeVisible({ timeout: 20_000 });
+      /*
+        `exact` não é zelo: a intro desta comunidade **termina com a mesma
+        frase** ("Uma comunidade que acabou de nascer. Nenhum tópico ainda."),
+        e `getByText` casa por trecho. Sem ele são dois elementos e a captura
+        reprova com "strict mode violation" — que fala do seletor e não diz
+        nada sobre a causa.
+      */
+      await expect(a.getByText("Nenhum tópico ainda", { exact: true })).toBeVisible({
+        timeout: 20_000,
+      });
     });
 
     // -------------------------------------------------------- comunidade
@@ -526,6 +535,26 @@ test.describe.serial("páginas de referência", () => {
     await capturar(a, "comunidade-eventos", async () => {
       await a.goto(`/c/${slug}?aba=eventos`);
       await expect(a.getByText("Sessão dupla: Kurosawa")).toBeVisible();
+    });
+
+    /*
+     * **O encontro aberto, com a conversa embaixo.**
+     *
+     * Entra pelo caminho de quem usa — o link de comentários no cartão da
+     * lista —, e não por um id lido do banco: o retrato tem de provar que o
+     * caminho existe. Era exatamente o que faltava quando esta tela nasceu,
+     * e a falta não aparecia em teste nenhum, porque as jornadas montavam o
+     * endereço à mão.
+     */
+    await capturar(a, "comunidade-evento-aberto", async () => {
+      await a.goto(`/c/${slug}?aba=eventos`);
+      await a
+        .getByRole("link", { name: /coment/i })
+        .first()
+        .click();
+      await expect(a.getByRole("heading", { name: "Comentários" })).toBeVisible({
+        timeout: 20_000,
+      });
     });
 
     await capturar(a, "comunidade-membros", async () => {

@@ -23,7 +23,7 @@ import { minhasComunidades } from "@/lib/data/comunidades";
 import { comunidadesNovas, paraVoce } from "@/lib/data/descoberta";
 import { LinhaComunidade } from "@/features/descoberta/linhas";
 import { haQuantoTempo } from "@/lib/tempo";
-import { enderecoDoTopico } from "@/lib/rotas";
+import { enderecoDeConversa, enderecoDoTopico } from "@/lib/rotas";
 
 export const metadata: Metadata = { title: "Hoje · Hub" };
 
@@ -122,7 +122,16 @@ export default async function InicioPage() {
             parâmetros da lista da comunidade, que no Início não existem.
           */}
           <Link
-            href={enderecoDoTopico(primeiro.comunidade.slug, primeiro.topicoSlug)}
+            /*
+              **O destaque pode ser a conversa de um encontro** (RN38), e aí o
+              endereço é o do evento. `enderecoDeConversa` é quem escolhe, num
+              lugar só: um cartão apontando para `?t=evento:<id>` abriria a
+              comunidade sem painel nenhum, sem erro e sem teste vermelho.
+            */
+            href={enderecoDeConversa(primeiro.comunidade.slug, {
+              slug: primeiro.topicoSlug,
+              eventoId: primeiro.eventoId,
+            })}
             className="block"
           >
             <HotTopicCard
@@ -137,7 +146,10 @@ export default async function InicioPage() {
             <HomeRow
               key={destaque.topicId}
               nome={destaque.nome}
-              href={enderecoDoTopico(destaque.comunidade.slug, destaque.topicoSlug)}
+              href={enderecoDeConversa(destaque.comunidade.slug, {
+                slug: destaque.topicoSlug,
+                eventoId: destaque.eventoId,
+              })}
               detalhe={`Destaque em ${destaque.comunidade.nome}. ${contagem(destaque.pessoas, destaque.respostas)}`}
             />
           ))}

@@ -72,6 +72,30 @@ export function enderecoDoEvento(comunidade: string, evento: string): string {
 }
 
 /**
+ * **Navegar até uma conversa, seja ela tópico ou encontro.**
+ *
+ * Esta é a função que os cartões usam, e ela existe porque **a escolha entre
+ * os dois endereços é a parte que erraria calada**. Um destaque que aponta
+ * para `?t=evento:<id>` não quebra: ele abre a comunidade sem painel nenhum,
+ * sem erro no servidor, sem teste vermelho — e o cartão do dia deixa de
+ * levar a lugar algum.
+ *
+ * Por isso a decisão mora aqui, num lugar só, e não em cada lista que
+ * desenha um cartão. Era o mesmo argumento de `enderecoDoTopico`: o perigo
+ * nunca foi trocar catorze strings, foi a décima quinta.
+ *
+ * `eventoId` nulo é o caso comum — um tópico — e aí nada muda.
+ */
+export function enderecoDeConversa(
+  comunidade: string,
+  conversa: { slug: string; eventoId: string | null },
+): string {
+  return conversa.eventoId
+    ? enderecoDoEvento(comunidade, conversa.eventoId)
+    : enderecoDoTopico(comunidade, conversa.slug);
+}
+
+/**
  * O perfil de alguém — **e o seu tem endereço próprio**.
  *
  * `/perfil` e `/<handle>` mostram a mesma tela, e quem abre o próprio @ é
