@@ -571,17 +571,43 @@ filtro ou o motivo escrito **no ponto da consulta**, como
 `conversa-de-evento: <motivo>`. Lista central de exceções envelheceria na
 primeira edição; o motivo ao lado da consulta viaja com ela.
 
-Quem **não** filtra, de propósito: a **eleição** do Hot Topic (encontro que
-gera conversa é movimento, e movimento é o que o ciclo mede), a **moderação**
-inteira (denúncia tem de chegar na fila) e as **leituras por id**, que são as
-que fazem a área de comentários existir. A **exibição** do Hot Topic filtra, e
-isso é diferente da eleição: o cartão leva a `?t=<slug>`, e o slug da conversa
-é `evento:<id>`, um painel que não abre.
+Quem **não** filtra, de propósito: o **Hot Topic** inteiro — eleição e
+exibição (encontro que gera conversa é movimento, e movimento é o que o ciclo
+mede) —, a **moderação** (denúncia tem de chegar na fila) e as **leituras por
+id**, que são as que fazem a área de comentários existir.
+
+A exibição filtrou por um PR, e o motivo vale guardar: o cartão levava a
+`?t=<slug>`, e o slug da conversa é `evento:<id>` — um painel que não abre. O
+invariante era **em nenhum commit o Hub mostra um link que não abre**, e a
+saída foi soltar a vitrine junto com o endereço, nunca antes dele.
 
 E **o slug da conversa não é porta**: ele existe porque a coluna exige, usa
 `:` — que `hub_slug()` não consegue gerar, então nenhum nome digitado por
 gente colide — e `/c/<comunidade>/evento:<id>` dá 404. Há **um** caminho para
-a conversa, e é o evento.
+a conversa, e é `conversaDoEvento()`, pelo id do encontro.
+
+**A área de comentários é o corpo do tópico, com outro cabeçalho.**
+`CorpoDoTopico` ganhou a prop `cabecalho`, e é tudo que a feature custou: o
+compositor, a ordem, as estrelas, a mídia, as 20 por vez e a linha de "novas
+desde a sua última visita" são os mesmos objetos. Isso é o que a decisão de
+dar ao evento um tópico por baixo comprou — RN14, RN15, RN16, as marcações e a
+fila de moderação valem no encontro **sem nenhuma regra escrita de novo**, e
+sem o risco de uma delas ficar de fora calada. Quem compõe as duas features é
+a página da comunidade, porque uma feature não importa de outra.
+
+**E quem escolhe entre os dois endereços é `enderecoDeConversa()`**
+([lib/rotas.ts](lib/rotas.ts)), num lugar só. É a parte que erraria calada: um
+cartão apontando para `?t=evento:<id>` não quebra nada — abre a comunidade sem
+painel nenhum, sem erro no servidor e sem jornada vermelha —, o destaque do dia
+só deixa de levar a lugar algum.
+
+**O destaque que é conversa de encontro fica acima da lista, não dentro
+dela.** `topicosDaComunidade` filtra `event_id IS NULL` para sempre, então o
+`find()` que fixa o Hot Topic no topo **nunca** o acha: tirar o filtro da
+exibição não bastava, e a comunidade perderia o destaque do dia em silêncio
+com o cartão já pronto. Ele sai com busca, com "Seguindo" e com "Com
+novidades", porque nesses três a pessoa escolheu excluir algo; "Em alta" e
+"Recentes" são ordenação, não exclusão.
 
 **A mídia da contribuição é 213 × 213, e o espaço existe antes dela.**
 `answers` guarda `media_width`, `media_height` e, só para GIF,

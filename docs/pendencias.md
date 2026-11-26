@@ -435,6 +435,17 @@ faltava).
 link do evento com um "Copiado" que nunca volta a "Copiar". É o mesmo
 problema do aviso temporário acima, e sai junto com ele.
 
+**O que ficou de fora do encontro com conversa**, em 26 de novembro de 2026,
+quando os comentários entraram:
+
+| Item | Por que ficou fora |
+| --- | --- |
+| **Editar e apagar o encontro pela tela** | Só a regra de cascata entrou: apagar o evento esconde a conversa. Quando o botão existir, ele deve **cancelar** e não apagar — trinta comentários morreriam com a linha. |
+| **Seguir a conversa do encontro** | O Início lista tópicos seguidos por `?t=<slug>`, e o slug da conversa não abre painel. Seguir entra junto com um endereço para a conversa, nunca antes. |
+| **A conversa na busca** | Mesma razão: o resultado da busca é um link de tópico. |
+| **Prévia de link e tela de convite do encontro** | Exigiria endereço de caminho (`/c/<com>/eventos/<id>`), que custa pasta nova irmã de `[topico]`, entrada nas **duas** listas de slugs reservados — código e banco — e a renumeração dos tópicos que já existem. Hoje o encontro só tem endereço de navegação. |
+| **Link na fila de moderação** | Não há link nenhum na fila: ela mostra o nome do tópico como texto. O plano previa consertar um link que não existe. `/topico/<id>` já traduz para o encontro, e é a única tradução que havia para consertar. |
+
 ---
 
 ### 4.10 Nove jornadas ainda escrevem o cadastro à mão

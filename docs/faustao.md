@@ -3282,6 +3282,124 @@ que a que estava escrita: **nenhum default do Prisma existe no banco.**
 migration roda, com a coluna no nome. O que mudou foi o CLAUDE.md, que agora
 diz a regra larga em vez do caso particular.
 
+### Tirei o filtro da vitrine e o destaque continuou invisível
+
+**O que aconteceu.** O PR 3 havia deixado a exibição do Hot Topic filtrando a
+conversa do evento, de propósito: o cartão levava a `?t=<slug>`, e o slug da
+conversa é `evento:<id>`, um painel que não abre. O PR 4 soltou a vitrine —
+`event_id` saiu nas duas consultas, `enderecoDeConversa()` passou a escolher o
+endereço, e o teste de banco de `hotTopicDeHoje` ficou verde dizendo que o
+destaque agora vem com o id do encontro.
+
+Na tela da comunidade não aparecia nada.
+
+**Por que.** O Hot Topic não é uma seção própria: ele é **fixado no topo da
+lista**, e quem o fixa é um `find()` sobre o que `topicosDaComunidade` já
+devolveu. Essa consulta filtra `event_id IS NULL` — e esse filtro é
+permanente, porque a conversa não é um assunto aberto a todos. Então o
+`find()` nunca a acha, e o destaque não é desenhado.
+
+**Por que passou pelas verificações.** Porque a camada de dados estava certa.
+O teste de banco mede `hotTopicDeHoje`, e ela devolvia a conversa com o
+`eventoId` preenchido — exatamente o que eu pedi dela. O defeito vivia **entre
+duas consultas que estão as duas certas**: uma devolve o destaque, a outra
+devolve a lista, e a tela precisa das duas concordarem. Nenhum teste de
+unidade olha para o par.
+
+Quem pegou foi a jornada, e só porque ela mede o **atributo `href`** do
+cartão antes de clicar. Uma jornada escrita com `toBeVisible` no cartão teria
+passado — não havia cartão nenhum, e `toBeVisible` falha; mas uma escrita
+sobre o texto do destaque dentro da lista teria passado de outro jeito, achando
+o tópico comum.
+
+**A lição, que é a de sempre com outra roupa.** "Tirei o filtro" descreve a
+consulta, não a tela. A pergunta certa não era "a consulta devolve a
+conversa?" e sim "a tela mostra o cartão?" — e essas duas se separam sempre
+que o dado passa por uma segunda consulta antes de ser desenhado.
+
+**Barreira.** ✅ A jornada "o Hot Topic do encontro leva ao encontro, não a um
+painel vazio" ([e2e/eventos.spec.ts](../e2e/eventos.spec.ts)) exige o cartão
+**e** mede o `href`, e foi vista reprovando com o cartão removido. O teste de
+banco ganhou o par positivo que faltava: um destaque de tópico comum tem de
+vir com `eventoId` nulo, senão todo cartão iria para a aba Eventos e os dois
+testes do encontro continuariam verdes.
+
+### O espaço reservado afirmava que não havia evento
+
+**O que aconteceu.** A jornada "'Ver evento' abre o detalhe no centro" passou
+a reprovar com **strict mode violation**: `[data-resumo]` filtrado por
+"PRÓXIMO EVENTO" achava **dois** elementos. Duas vezes em três — alone
+passava.
+
+**Por que.** A coluna da direita pede o próximo evento num `<Suspense>`, e o
+que o `<Suspense>` desenha enquanto espera é **o mesmo componente**, sem esse
+dado. O parâmetro tinha `= null` como padrão, e `null` quer dizer "já
+perguntei e não há" — então o espaço reservado mostrava "PRÓXIMO EVENTO ·
+Nenhum evento marcado" para quem modera, e o encontro de verdade aparecia um
+instante depois, no lugar.
+
+Dois defeitos, um só causa: um texto errado piscando na tela, e dois blocos
+com o mesmo rótulo no HTML durante o fluxo da resposta.
+
+**Por que passou pelas verificações.** Porque nada media o espaço reservado.
+Toda jornada da coluna espera o estado resolvido, que está certo; o teste da
+coluna na galeria desenha com os dados prontos. O estado "ainda não sei" não
+tinha teste nenhum — e ele é um estado de verdade, que toda pessoa vê em toda
+navegação.
+
+**O sintoma apontava para o lugar errado**, que é o pior desta classe de
+defeito: "strict mode violation" fala do seletor, e a reação natural é
+apertar o seletor — `.first()`, `.last()`, um `hasText` mais específico — o
+que esconde o defeito em vez de resolvê-lo. A pergunta certa era "por que
+existem dois?".
+
+**Como se resolveu.** `undefined` e `null` passaram a querer dizer coisas
+diferentes: `undefined` é "ainda não sei", e aí o bloco não existe; `null` é
+"não há", e aí quem modera vê o vazio com o atalho de criar. É a distinção que
+o próprio React já fazia — o `<Suspense>` passa `undefined`, a página passa
+`?? null` — e que o `= null` apagava.
+
+**Barreira.** ✅ [features/comunidades/resumo.test.tsx](../features/comunidades/resumo.test.tsx)
+desenha a coluna nos três estados e exige que o primeiro não fale do que não
+sabe. Vista reprovando com o `= null` de volta. **Jornada não serve aqui**: a
+janela é a latência da consulta, e contar o piscar passa ou reprova por sorte
+de temporização — é o caso do nome na Cabine, mais acima nesta página.
+
+### A área de comentários ficou pronta sem porta nenhuma
+
+**O que aconteceu.** Terminei a área de comentários do encontro: a conversa
+abre, o compositor funciona, estrela, `@`, imagem, GIF, moderação, tudo. Nove
+testes de banco verdes, cinco jornadas verdes, a suíte inteira verde.
+
+**Da aba Eventos não havia como chegar nela.** O cartão da lista não tinha
+link para o encontro. O único caminho era o bloco "PRÓXIMO EVENTO" da coluna
+da direita — e ele mostra **só o próximo** encontro. Todos os outros tinham
+conversa, comentários possíveis, e nenhuma porta.
+
+**Por que passou pelas verificações.** Porque **toda jornada entrava por
+`page.goto`**. Eu lia o id do evento no banco e montava
+`?aba=eventos&evento=<id>` na mão — o que é razoável para testar a tela, e é
+exatamente o que torna a falta de porta invisível. Cinco jornadas provavam que
+a tela funciona; nenhuma provava que alguém chega nela.
+
+Os testes de banco não tinham como pegar: não há camada de dados para
+"existe um link".
+
+**Como descobri.** Não foi por teste. Fui acrescentar a tela ao catálogo de
+páginas de referência e escrevi a captura entrando pelo link do cartão —
+porque retrato tem de provar o caminho. Não havia link para clicar.
+
+**A lição.** `page.goto` numa jornada é uma afirmação sobre a tela, nunca
+sobre o produto. Feature nova precisa de **uma** jornada que comece onde a
+pessoa começa — e, se não houver de onde começar, é isso que a jornada tem de
+reprovar.
+
+**Barreira.** ✅ A jornada "da lista, o cartão abre os comentários — e o número
+cresce" ([e2e/eventos.spec.ts](../e2e/eventos.spec.ts)) sai da aba Eventos,
+clica no cartão, comenta e volta para conferir o número. Vista reprovando com
+o link removido, com a mensagem "o cartão do encontro não tem porta para a
+conversa". E a captura de referência entra pelo mesmo caminho, de propósito.
+
 ## 7. Placar
 
 Dos erros registrados, os que **não podem voltar** são os que ganharam
@@ -3294,8 +3412,11 @@ aviso do limite diário conferido **nos dois sentidos**, o nome de quem
 envia no tempo real (com a revalidação presa), o que o navegador alcança
 no banco (o mínimo **e** o suficiente), a trava do gatilho observada em
 `pg_stat_activity`, e as três listas do post — editor, schema e desenho —
-comparadas entre si, e a caixa própria de toda âncora de menu — medida na
-tela e varrida no código.
+comparadas entre si, a caixa própria de toda âncora de menu — medida na
+tela e varrida no código —, o endereço do cartão de destaque, medido no
+`href` antes do clique, o espaço reservado da coluna, que não afirma o que
+ainda não sabe, e a porta de toda tela nova — uma jornada que começa onde a
+pessoa começa, não num `page.goto`.
 
 O resto é 👁 — protegido só por esta página. **Cada um desses é uma dívida**, e
 a pergunta a fazer em cada revisão é: dá para virar teste?

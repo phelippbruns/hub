@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   enderecoDaComunidade,
+  enderecoDeConversa,
+  enderecoDoEvento,
   enderecoDoPerfil,
   enderecoDoPost,
   enderecoDoTopico,
@@ -106,6 +108,41 @@ describe("as duas formas do endereço de tópico", () => {
     // Slug vem do banco e é sempre limpo — mas a função é pública, e um
     // `&` no parâmetro viraria outro parâmetro na URL.
     expect(enderecoDoTopico("vinil", "a&b")).toBe("/c/vinil?t=a%26b");
+  });
+});
+
+describe("RN38: o endereço de uma conversa, tópico ou encontro", () => {
+  it("o encontro leva a aba junto", () => {
+    // Sem a aba, a pílula acesa seria o Início enquanto o centro mostra um
+    // encontro — e voltar à lista deixaria de ser um clique.
+    expect(enderecoDoEvento("vinil", "e1")).toBe("/c/vinil?aba=eventos&evento=e1");
+  });
+
+  it("conversa sem evento é tópico, e abre o painel", () => {
+    expect(enderecoDeConversa("vinil", { slug: "primeiro-disco", eventoId: null })).toBe(
+      "/c/vinil?t=primeiro-disco",
+    );
+  });
+
+  it("conversa de encontro leva ao encontro, e não ao painel", () => {
+    /*
+     * **A barreira que importa deste PR.**
+     *
+     * O slug da conversa é `evento:<id>`, e `topicoPorEndereco` o recusa de
+     * propósito: há um caminho só para ela. Um cartão apontando para
+     * `?t=evento:<id>` **não quebra nada** — abre a comunidade sem painel
+     * nenhum, sem erro no servidor e sem jornada vermelha. O destaque do dia
+     * simplesmente deixaria de levar a lugar algum.
+     */
+    expect(enderecoDeConversa("vinil", { slug: "evento:e1", eventoId: "e1" })).toBe(
+      "/c/vinil?aba=eventos&evento=e1",
+    );
+  });
+
+  it("o id do encontro é escapado", () => {
+    expect(enderecoDeConversa("vinil", { slug: "x", eventoId: "a&b" })).toBe(
+      "/c/vinil?aba=eventos&evento=a%26b",
+    );
   });
 });
 

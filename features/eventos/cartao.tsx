@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Avatar, Button, HandleLink } from "@/design/components";
-import { ClockIcon, ConfirmedIcon, GlobeIcon, PlaceIcon } from "@/design/icons";
+import { ClockIcon, ConfirmedIcon, GlobeIcon, MoreAnswersIcon, PlaceIcon } from "@/design/icons";
 import { alternarPresenca } from "./actions";
 import { JanelaDeEntrada, type ParaEntrar } from "@/features/comunidades/janela-de-entrada";
 import type { EventoNaTela } from "@/lib/data/eventos";
+import { enderecoDoEvento } from "@/lib/rotas";
 
 /**
  * **Um encontro, desenhado inteiro.**
@@ -26,11 +28,21 @@ export function CartaoDoEvento({
   slug,
   souMembro,
   paraEntrar,
+  aberto = false,
 }: {
   evento: EventoNaTela;
   slug: string;
   souMembro: boolean;
   paraEntrar: ParaEntrar;
+  /**
+   * **Este cartão já é o encontro aberto**, então a porta para os
+   * comentários não aparece: a conversa está logo embaixo.
+   *
+   * Sem essa distinção o cartão do detalhe traria um link para a tela em que
+   * a pessoa já está — que não quebra nada, e é por isso que passaria: ela
+   * clica, nada muda, e ninguém reporta.
+   */
+  aberto?: boolean;
 }) {
   const [pendente, iniciar] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
@@ -137,6 +149,38 @@ export function CartaoDoEvento({
               : ""}
           </span>
         </div>
+
+        {/*
+          **A porta para os comentários.**
+
+          Ela faltava, e a falta era invisível: a área de comentários existia,
+          as jornadas montavam o endereço à mão, e o único caminho de verdade
+          era o bloco "PRÓXIMO EVENTO" da coluna — que mostra **só o próximo
+          encontro**. Todos os outros tinham conversa e nenhuma porta.
+
+          Link e não botão: é navegação, o endereço é compartilhável, e
+          `enderecoDoEvento` é quem o monta. Fora do cartão não dá, porque é
+          aqui que o encontro é identificado — e dentro de um `<a>` que
+          envolvesse o cartão inteiro ele seria âncora dentro de âncora, que
+          o navegador desfaz do jeito dele.
+        */}
+        {aberto ? null : (
+          <Link
+            href={enderecoDoEvento(slug, evento.id)}
+            className="text-label text-ink min-h-controlSm inline-flex items-center gap-1 self-start underline underline-offset-2"
+          >
+            {/*
+              Ícone que já existe, e não um novo: `MoreAnswersIcon` é a marca
+              das contribuições no Hub, e comentário de encontro **é**
+              contribuição. Ícone novo entraria no design system e na
+              galeria, por uma distinção que o produto não faz.
+            */}
+            <MoreAnswersIcon decorative className="size-iconSm" />
+            {evento.comentarios === 0
+              ? "Comentar"
+              : `${evento.comentarios} ${evento.comentarios === 1 ? "comentário" : "comentários"}`}
+          </Link>
+        )}
 
         {/*
           O link da sala **só existe aqui quando o servidor o mandou**, e

@@ -34,7 +34,11 @@ import { COOKIE_DA_LARGURA, larguraDoPainel } from "@/features/topicos/shared";
 import { CorpoDoTopico } from "@/features/topicos/corpo";
 import { getViewer } from "@/lib/auth/session";
 import { gifEstaLigado } from "@/lib/midia/giphy";
-import { LIMITE_RESPOSTAS_PARA_APAGAR, topicoPorEndereco } from "@/lib/data/topics";
+import {
+  conversaDoEvento,
+  LIMITE_RESPOSTAS_PARA_APAGAR,
+  topicoPorEndereco,
+} from "@/lib/data/topics";
 import { marcarTopicoComoVisto, quandoVisitouOTopico } from "@/lib/data/inicio";
 import { comunidadeDaRota } from "@/features/comunidades/dados";
 import { filtroDeMembros, membrosDaComunidade } from "@/lib/data/membros";
@@ -47,7 +51,7 @@ import { denunciasPendentes, filaDeDenuncias } from "@/lib/data/moderacao";
 import { FilaDeDenuncias } from "@/features/moderacao/fila";
 import { topicosDaComunidade, type PaginaDaComunidade } from "@/lib/data/comunidades";
 import type { Viewer } from "@/lib/data/viewer";
-import { hotTopicDeHoje } from "@/lib/data/ciclo";
+import { hotTopicDeHoje, type HotTopic as HotTopicDeHoje } from "@/lib/data/ciclo";
 import { jaCrieiTopicoHoje } from "@/lib/data/topics";
 import { CriarTopico } from "@/features/topicos/criar";
 import { meusSeguidoresParaCompartilhar } from "@/lib/data/follows";
@@ -281,6 +285,8 @@ export default async function ComunidadePage({
                     souMembro={dados.souMembro}
                     paraEntrar={paraEntrar}
                     eventoAberto={tela.centro === "evento" ? tela.evento : null}
+                    ordem={ordem}
+                    ate={ateQuantas}
                   />
                 </Suspense>
               ) : abaAtual === "enquetes" ? (
@@ -582,6 +588,25 @@ async function ListaDeTopicos({
     ? [destacado, ...semDestaque.filter((t) => t.id !== destacado.id)]
     : semDestaque;
 
+  /*
+   * **O destaque que é conversa de um encontro fica acima da lista, não
+   * dentro dela.**
+   *
+   * Medido, não suposto: `topicosDaComunidade` filtra `event_id IS NULL`, e
+   * esse filtro é permanente — a conversa não é um assunto aberto a todos.
+   * Então `semDestaque.find()` acima **nunca** a encontra, e tirar o filtro
+   * da exibição do Hot Topic não bastava: o destaque do dia sumiria da
+   * comunidade em silêncio, com o cartão correto já pronto para ser
+   * desenhado.
+   *
+   * A regra de "o destaque respeita o filtro" continua valendo, e é por isso
+   * que ele sai com busca, com "Seguindo" e com "Com novidades": nesses três
+   * a pessoa escolheu excluir algo. "Em alta" e "Recentes" são ordenação, não
+   * exclusão — e aí o destaque do dia aparece.
+   */
+  const destaqueDeEvento =
+    hotTopic?.eventoId && !termo && filtro !== "seguindo" && filtro !== "novas" ? hotTopic : null;
+
   return (
     <>
       <ControlesDeTopicos
@@ -592,6 +617,16 @@ async function ListaDeTopicos({
         comNovidades={comNovidades}
         souMembro={souMembro}
       />
+
+      {destaqueDeEvento ? (
+        <LinkDoTopico
+          slugDaComunidade={slug}
+          slug={destaqueDeEvento.slug}
+          eventoId={destaqueDeEvento.eventoId}
+        >
+          <CartaoDeDestaque hotTopic={destaqueDeEvento} />
+        </LinkDoTopico>
+      ) : null}
 
       {topicos.length === 0 ? (
         <EmptyState title={vazio(filtro, termo).titulo} description={vazio(filtro, termo).texto} />
@@ -607,19 +642,7 @@ async function ListaDeTopicos({
                 botão saiu de dentro do cartão.
               */
               <LinkDoTopico key={topico.id} slugDaComunidade={slug} slug={hotTopic.slug}>
-                <HotTopicCard
-                  topic={hotTopic.name}
-                  opening={hotTopic.description}
-                  people={hotTopic.pessoas}
-                  answers={hotTopic.respostas}
-                  autor={hotTopic.autor?.handle}
-                  ultima={
-                    hotTopic.ultima
-                      ? { ...hotTopic.ultima, quando: haQuantoTempo(hotTopic.ultima.quando) }
-                      : null
-                  }
-                  rostos={hotTopic.primeirosRostos}
-                />
+                <CartaoDeDestaque hotTopic={hotTopic} />
               </LinkDoTopico>
             ) : (
               <LinkDoTopico key={topico.id} slugDaComunidade={slug} slug={topico.slug}>
@@ -639,6 +662,33 @@ async function ListaDeTopicos({
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * O cartão escuro do destaque do dia.
+ *
+ * Componente porque dois lugares o desenham agora: dentro da lista, quando o
+ * destaque é um tópico comum, e acima dela, quando é a conversa de um
+ * encontro — que a lista filtra. Duas cópias divergiriam na primeira
+ * correção feita só de um lado, e a diferença apareceria em um dos dois
+ * casos, que é o jeito mais caro de descobrir.
+ */
+function CartaoDeDestaque({ hotTopic }: { hotTopic: NonNullable<HotTopicDeHoje> }) {
+  return (
+    <HotTopicCard
+      topic={hotTopic.name}
+      opening={hotTopic.description}
+      people={hotTopic.pessoas}
+      answers={hotTopic.respostas}
+      autor={hotTopic.autor?.handle}
+      ultima={
+        hotTopic.ultima
+          ? { ...hotTopic.ultima, quando: haQuantoTempo(hotTopic.ultima.quando) }
+          : null
+      }
+      rostos={hotTopic.primeirosRostos}
+    />
   );
 }
 
@@ -712,6 +762,8 @@ async function AbaDeEventos({
   souMembro,
   paraEntrar,
   eventoAberto,
+  ordem,
+  ate: ateQuantas,
 }: {
   slug: string;
   comunidadeId: string;
@@ -719,6 +771,9 @@ async function AbaDeEventos({
   paraEntrar: ParaEntrar;
   /** O evento a mostrar no lugar da lista, quando há um e ele existe. */
   eventoAberto: string | null;
+  /** A ordem e o "até" da área de comentários, os mesmos `?ordem=` e `?ate=`. */
+  ordem: string | undefined;
+  ate: string | undefined;
 }) {
   const { viewer } = await comunidadeDaRota(slug);
   const eventos = await eventosDaComunidade(viewer, comunidadeId);
@@ -740,7 +795,35 @@ async function AbaDeEventos({
   const aberto = eventoAberto ? eventos.find((e) => e.id === eventoAberto) : undefined;
   if (aberto) {
     return (
-      <DetalheDoEvento evento={aberto} slug={slug} souMembro={souMembro} paraEntrar={paraEntrar} />
+      <DetalheDoEvento
+        evento={aberto}
+        slug={slug}
+        souMembro={souMembro}
+        paraEntrar={paraEntrar}
+        /*
+          **A página é quem compõe as duas features.** `features/eventos` não
+          importa `features/topicos`, e vice-versa — é a regra do projeto, e
+          aqui ela cai bem: o cartão do encontro e o corpo do tópico são duas
+          coisas inteiras, e o que as junta é esta tela.
+        */
+        comentarios={
+          /*
+            **Os comentários em `<Suspense>` próprio**, e não junto do cartão.
+            Sem ele o `<Suspense>` de fora cobre a tela inteira, e o encontro
+            — data, lugar, vagas, botão de confirmar presença, que é o que a
+            pessoa veio ver — espera a conversa, o compositor e a lista de
+            contribuições. O padrão do projeto é esse: o que já está resolvido
+            desenha, e só o pedaço lento escorre.
+          */
+          <Suspense
+            fallback={
+              <PaginaCarregando titulo={false} linhas={2} label="Carregando os comentários" />
+            }
+          >
+            <ComentariosDoEvento eventoId={aberto.id} slug={slug} ordem={ordem} ate={ateQuantas} />
+          </Suspense>
+        }
+      />
     );
   }
 
@@ -751,6 +834,83 @@ async function AbaDeEventos({
       eventos={eventos}
       souMembro={souMembro}
       paraEntrar={paraEntrar}
+    />
+  );
+}
+
+/**
+ * **A área de comentários de um encontro.**
+ *
+ * É o corpo do tópico **inteiro**, com um cabeçalho diferente: o compositor,
+ * a ordem, as estrelas, a mídia, as 20 por vez e a linha de "novas desde a
+ * sua última visita" são os mesmos objetos que o painel do tópico desenha.
+ * Isso é o ganho da decisão do Bloco 3 — a conversa é um tópico de verdade,
+ * então nada aqui precisou de regra nova.
+ *
+ * **Não há olho de seguir.** Seguir a conversa de um encontro está fora de
+ * escopo de propósito: o Início lista tópicos seguidos por `?t=<slug>`, e o
+ * slug da conversa não abre painel nenhum. O dia em que seguir entrar, entra
+ * junto com o endereço — não antes.
+ *
+ * Conversa que não existe desenha nada, e o cartão do encontro fica. O
+ * gatilho garante que ela existe para todo evento criado pelo Hub; o que
+ * sobra é banco mexido à mão, e aí a tela não é o lugar de reclamar.
+ */
+async function ComentariosDoEvento({
+  eventoId,
+  slug,
+  ordem,
+  ate: ateQuantas,
+}: {
+  eventoId: string;
+  slug: string;
+  ordem: string | undefined;
+  ate: string | undefined;
+}) {
+  const viewer = await getViewer();
+
+  let conversa;
+  try {
+    conversa = await conversaDoEvento(viewer, eventoId, { comRespostas: false });
+  } catch (erro) {
+    if (erro instanceof NotFoundError) return null;
+    throw erro;
+  }
+
+  /*
+   * O endereço que as actions revalidam é o da **comunidade**, igual ao do
+   * painel do tópico: o evento vive em `/c/<slug>?aba=eventos&evento=<id>`, e
+   * `revalidatePath` trabalha no caminho, não na busca. Passar o endereço com
+   * os parâmetros revalidaria o mesmo caminho por acidente — e o dia em que
+   * não revalidasse, a contribuição nova não apareceria sem recarregar.
+   */
+  const endereco = enderecoDaComunidade(slug);
+
+  // Lido **antes** de marcar a visita de agora: depois, a marca já seria
+  // "agora" e a linha de comentários novos nunca apareceria.
+  const vistoEm = await quandoVisitouOTopico(viewer, conversa.id);
+  void marcarTopicoComoVisto(viewer, conversa.id);
+
+  return (
+    <CorpoDoTopico
+      topicId={conversa.id}
+      nome={conversa.name}
+      endereco={endereco}
+      abertura={conversa.description}
+      pessoas={conversa.peopleCount}
+      respostas={conversa.answerCount}
+      podeVerRespostas={conversa.podeVerRespostas}
+      ordem={ordemDasContribuicoes(ordem)}
+      ate={ateQuantasContribuicoes(ateQuantas)}
+      vistoEm={vistoEm}
+      /*
+        **O cabeçalho é um título de seção, não o cartão de abertura.** O
+        cartão do encontro já está logo acima, desenhado por
+        `DetalheDoEvento` — repeti-lo embaixo com nome e pergunta copiados
+        mostraria o mesmo encontro duas vezes. O que falta ali é dizer onde
+        se escreve, e a contagem é a mesma que o resto do Hub usa.
+      */
+      cabecalho={<SectionTitle contagem={conversa.answerCount}>Comentários</SectionTitle>}
     />
   );
 }

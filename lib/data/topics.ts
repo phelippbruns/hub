@@ -240,6 +240,39 @@ export async function topicoPorEndereco(
 }
 
 /**
+ * **A conversa por baixo de um encontro, pelo id do evento.**
+ *
+ * É a única porta da conversa, e é por isso que ela existe como função
+ * própria em vez de um parâmetro em `topicoPorEndereco`: aquela recusa a
+ * conversa de propósito (o slug `evento:<id>` não é endereço), e esta só
+ * sabe chegar nela. Duas portas com regras opostas não cabem numa função.
+ *
+ * O gatilho `events_create_conversation` garante que ela existe para todo
+ * evento, e a migration preencheu os que já existiam — então não achar nada
+ * aqui é evento apagado ou id inventado, e a tela trata como tal.
+ */
+export async function conversaDoEvento(
+  viewer: Viewer,
+  eventoId: string,
+  opcoes: { comRespostas?: boolean } = {},
+) {
+  const conversa = await prisma.topic.findFirst({
+    /*
+     * conversa-de-evento: **esta é a porta, não um vazamento.** A consulta
+     * procura a conversa pelo evento, então filtrá-la seria pedir a conversa
+     * e recusá-la na mesma linha. O `deletedAt` cobre o evento apagado: o
+     * gatilho `events_sync_conversation` apaga a conversa junto, e é assim
+     * que trinta comentários somem com o encontro.
+     */
+    where: { eventId: eventoId, deletedAt: null, community: { deletedAt: null } },
+    select: { id: true },
+  });
+  if (!conversa) throw new NotFoundError("Conversa do evento");
+
+  return getTopicForViewer(viewer, conversa.id, opcoes);
+}
+
+/**
  * O tópico como quem está olhando pode vê-lo.
  *
  * RN16: visitante sem conta vê a comunidade e o tópico, mas **não as
