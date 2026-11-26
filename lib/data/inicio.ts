@@ -57,7 +57,11 @@ export async function hotTopicsParaMim(viewer: Viewer): Promise<DestaqueDoInicio
            (SELECT count(*) FROM answers a
              WHERE a.topic_id = t.id AND a.deleted_at IS NULL) AS respostas
       FROM hot_topics h
-      JOIN topics t ON t.id = h.topic_id AND t.deleted_at IS NULL
+      -- RN38: a eleição não filtra, a exibição filtra — o mesmo de ciclo.ts.
+      -- O cartão aponta para /c/<com>?t=<slug>, e o slug da conversa não
+      -- abre painel nenhum. Enquanto o cartão não souber levar ao evento, a
+      -- conversa não aparece aqui.
+      JOIN topics t ON t.id = h.topic_id AND t.deleted_at IS NULL AND t.event_id IS NULL
       JOIN communities c ON c.id = h.community_id AND c.deleted_at IS NULL
       JOIN memberships m ON m.community_id = c.id
                         AND m.profile_id = ${me}::uuid
@@ -149,7 +153,10 @@ export async function topicosQueSigoComNovas(viewer: Viewer): Promise<TopicoSegu
              )
            ) AS movimentacao
       FROM follows f
-      JOIN topics t ON t.id = f.topic_id AND t.deleted_at IS NULL
+      -- RN38: seguir a conversa de um evento está fora de escopo, e sem este
+      -- filtro uma linha seguida por outro caminho apareceria na Coleção com
+      -- endereço que não abre.
+      JOIN topics t ON t.id = f.topic_id AND t.deleted_at IS NULL AND t.event_id IS NULL
       JOIN communities c ON c.id = t.community_id AND c.deleted_at IS NULL
      WHERE f.follower_id = ${me}::uuid AND f.target = 'topic'
      ORDER BY movimentacao DESC
@@ -233,6 +240,10 @@ export async function interacoesDeQuemSigo(viewer: Viewer): Promise<InteracaoDeQ
       SELECT t.id, t.author_id, 'criou'::text, t.id, t.created_at
         FROM topics t
        WHERE t.deleted_at IS NULL AND t.author_id IN (SELECT id FROM visiveis)
+         -- RN38: ninguém "criou um tópico" ao marcar um encontro. A conversa
+         -- nasce por gatilho, e anunciá-la como ação da pessoa seria
+         -- atividade inventada.
+         AND t.event_id IS NULL
     )
     SELECT acoes.id, p.name AS nome, p.handle, acoes.o_que_fez,
            t.name AS topico_nome, t.slug AS topico_slug,
@@ -240,7 +251,10 @@ export async function interacoesDeQuemSigo(viewer: Viewer): Promise<InteracaoDeQ
            acoes.quando
       FROM acoes
       JOIN profiles p ON p.id = acoes.author_id AND p.deleted_at IS NULL
+      -- RN38: e o comentário num encontro também não entra na atividade de
+      -- quem se segue, porque a linha mostra o nome e o endereço do tópico.
       JOIN topics t ON t.id = acoes.topic_id AND t.deleted_at IS NULL
+                   AND t.event_id IS NULL
       JOIN communities c ON c.id = t.community_id AND c.deleted_at IS NULL
      ORDER BY acoes.quando DESC
      LIMIT ${LIMITES.pessoas}
@@ -302,7 +316,12 @@ export async function minhasUltimasInteracoes(viewer: Viewer): Promise<MinhaInte
                AND a.created_at > minhas.ultima
                AND a.author_id IS DISTINCT FROM ${me}::uuid) AS depois
       FROM minhas
+      -- RN38: idem em "onde você contribuiu". É o que mais vai doer quando a
+      -- área de comentários existir — quem comentou num encontro vai querer
+      -- achá-lo por aqui —, e é exatamente por isso que o filtro sai junto
+      -- com o endereço que funciona, e não antes.
       JOIN topics t ON t.id = minhas.topic_id AND t.deleted_at IS NULL
+                   AND t.event_id IS NULL
       JOIN communities c ON c.id = t.community_id AND c.deleted_at IS NULL
      ORDER BY minhas.ultima DESC
      LIMIT ${LIMITES.minhasInteracoes}

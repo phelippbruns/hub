@@ -54,9 +54,17 @@ export async function comunidadeDoConvite(convite: string) {
       ? {
           slug: partes[2],
           deletedAt: null,
+          /*
+           * RN38: o convite por caminho é `/c/<com>/<slug>`, e a conversa de
+           * um evento não tem endereço desse tipo — o mesmo filtro de
+           * `topicoPorEndereco`, pelo mesmo motivo.
+           */
+          eventId: null,
           community: { slug: partes[1], deletedAt: null },
         }
-      : { id: convite, deletedAt: null },
+      : // conversa-de-evento: o ramo por id é a ponte dos convites antigos
+        // para `/topico/<id>`, e ali o id manda. O cookie dura um dia.
+        { id: convite, deletedAt: null },
     select: {
       id: true,
       name: true,

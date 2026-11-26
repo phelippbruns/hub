@@ -430,6 +430,8 @@ model Event {
   community   Community         @relation(fields: [communityId], references: [id], onDelete: Cascade)
   host        Profile?          @relation("EventHost", fields: [hostId], references: [id], onDelete: SetNull)
   attendances EventAttendance[]
+  /// A conversa por baixo, criada por gatilho junto com o evento.
+  conversa    Topic?
 
   @@index([communityId, startsAt])
   @@map("events")
@@ -579,10 +581,25 @@ model Topic {
   /// simultâneas.
   cycleDate DateTime @map("cycle_date") @db.Date
 
+  /// RN38: o evento de que este tópico é a conversa — a área de comentários
+  /// dele. Nulo nos tópicos comuns, que são os únicos que aparecem na lista
+  /// da comunidade, na busca, em alta e no perfil.
+  ///
+  /// **Quem lê topics filtra por isto**, e há varredura que reprova a
+  /// consulta nova que esquecer. A lista de exceções é curta e deliberada:
+  /// o ciclo do Hot Topic, a fila de moderação e a contagem de contribuições
+  /// **não** filtram.
+  ///
+  /// Nome, abertura e autor são **cópia derivada** do evento, escritos só
+  /// por gatilho: dois donos para o mesmo texto é divergência com data
+  /// marcada.
+  eventId String? @map("event_id") @db.Uuid
+
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   community        Community  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  event            Event?     @relation(fields: [eventId], references: [id], onDelete: Cascade)
   author           Profile?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
   answers          Answer[]
   hotTopics        HotTopic[]
@@ -590,6 +607,9 @@ model Topic {
   sharedInMessages Message[]
 
   @@unique([communityId, slug])
+  /// Uma conversa por evento: é o que um índice único diz, e por isso não é
+  /// gatilho. Coluna nula não entra, então os tópicos comuns ficam livres.
+  @@unique([eventId])
   @@index([communityId, createdAt])
   @@index([authorId])
   @@map("topics")

@@ -68,10 +68,26 @@ export type PerfilNaTela = {
 async function contarContribuicoes(profileId: string): Promise<number> {
   const linhas = await prisma.$queryRaw<{ total: bigint }[]>`
     SELECT (
-      (SELECT count(*) FROM answers
-        WHERE author_id = ${profileId}::uuid AND deleted_at IS NULL) +
+      (SELECT count(*) FROM answers a
+        WHERE a.author_id = ${profileId}::uuid AND a.deleted_at IS NULL
+          /*
+           * RN38: **este é o único lugar em que uma contagem de contribuições
+           * filtra, e o motivo está escrito três linhas acima:** o número tem
+           * de bater com a lista embaixo dele, e a lista esconde o comentário
+           * de evento enquanto ele não tiver endereço que abra.
+           *
+           * Os dois saem juntos, na mesma rodada da área de comentários.
+           * Soltar um antes do outro é escolher qual dos dois mente.
+           */
+          AND EXISTS (
+            SELECT 1 FROM topics t
+             WHERE t.id = a.topic_id AND t.event_id IS NULL
+          )) +
       (SELECT count(*) FROM topics
-        WHERE author_id = ${profileId}::uuid AND deleted_at IS NULL)
+        WHERE author_id = ${profileId}::uuid AND deleted_at IS NULL
+          -- RN38: e a conversa não é contribuição de ninguém: ela nasce por
+          -- gatilho quando o encontro é marcado.
+          AND event_id IS NULL)
     )::bigint AS total
   `;
   return Number(linhas[0]?.total ?? 0);
@@ -227,7 +243,10 @@ export async function respostasDoPerfil(
              c.name AS comunidade_nome, c.slug AS comunidade_slug,
              a.text AS texto, a.created_at AS quando
         FROM answers a
+        -- RN38: a linha mostra o nome e o endereço do tópico, então a
+        -- conversa de um evento sai daqui junto com a contagem acima.
         JOIN topics t ON t.id = a.topic_id AND t.deleted_at IS NULL
+                     AND t.event_id IS NULL
         JOIN communities c ON c.id = t.community_id AND c.deleted_at IS NULL
        WHERE a.author_id = ${profileId}::uuid AND a.deleted_at IS NULL
       UNION ALL
@@ -238,6 +257,8 @@ export async function respostasDoPerfil(
         FROM topics t
         JOIN communities c ON c.id = t.community_id AND c.deleted_at IS NULL
        WHERE t.author_id = ${profileId}::uuid AND t.deleted_at IS NULL
+         -- RN38: "criou o tópico" não vale para a conversa de um encontro.
+         AND t.event_id IS NULL
     ) AS tudo
     ORDER BY quando DESC
     LIMIT ${limite}
@@ -303,6 +324,8 @@ export async function comunidadesDoPerfil(
                JOIN answers a ON a.topic_id = t.id AND a.deleted_at IS NULL
               WHERE t.community_id = c.id
                 AND t.deleted_at IS NULL
+                -- RN38: conta tópicos, então a conversa do evento fica fora.
+                AND t.event_id IS NULL
                 AND a.created_at > now() - interval '24 hours'
            )::int AS topicos_ativos
       FROM memberships m

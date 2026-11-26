@@ -17,7 +17,7 @@ import { viewerProfileId, requireProfileId, type Viewer } from "./viewer";
 import { comAvatares } from "@/lib/midia/deposito";
 import { handlesMencionados } from "@/lib/texto/marcacoes";
 import { domingoMaisRecente } from "@/lib/tempo";
-import { enderecoDoTopico } from "@/lib/rotas";
+import { enderecoDoEvento, enderecoDoTopico } from "@/lib/rotas";
 
 export type TipoDeNotificacao =
   | "topic_became_hot"
@@ -196,7 +196,8 @@ const EH_PESSOAL = new Set<TipoDeNotificacao>([
 ]);
 
 type Resolvidos = {
-  topico?: { name: string; slug: string; community: { slug: string } };
+  /** `eventId` preenchido: é a conversa de um evento, e o endereço é o dele. */
+  topico?: { name: string; slug: string; eventId: string | null; community: { slug: string } };
   comunidade?: { name: string; slug: string };
   quem?: { name: string; handle: string; avatarUrl: string | null };
   dados: Record<string, string>;
@@ -254,6 +255,13 @@ function destinoDe(
     return dados.inviteId ? `/cabines/convite?id=${dados.inviteId}` : "/cabines";
   if (tipo === "cabin_message") return dados.cabinId ? `/cabines/${dados.cabinId}` : "/cabines";
   if (tipo === "followed_topics_digest") return "/inicio";
+  /*
+   * RN38: a conversa de um evento tem endereço próprio, e é o do encontro.
+   * Sem esta tradução o aviso levaria a `?t=evento:<id>` — um painel que
+   * não abre, e um aviso que não leva a lugar nenhum é pior que aviso
+   * nenhum: a pessoa clica, nada acontece, e ela desliga os avisos.
+   */
+  if (topico?.eventId) return enderecoDoEvento(topico.community.slug, topico.eventId);
   if (topico) return enderecoDoTopico(topico.community.slug, topico.slug);
   if (comunidade) return `/c/${comunidade.slug}`;
   return null;
@@ -264,8 +272,24 @@ async function carregarTopicos(payloads: Record<string, string>[]) {
   if (ids.length === 0) return new Map<string, Resolvidos["topico"]>();
 
   const achados = await prisma.topic.findMany({
+    /*
+     * conversa-de-evento: **aviso de evento tem de chegar.** Esta é a
+     * resolução por id dos alvos de notificação, e um comentário numa
+     * conversa de encontro avisa o anfitrião como qualquer contribuição
+     * avisa quem segue.
+     *
+     * O que muda é o **endereço**: `eventId` entra no select justamente para
+     * `enderecoDaNotificacao` não montar `?t=evento:<id>`, que é um painel
+     * que não abre.
+     */
     where: { id: { in: ids }, deletedAt: null },
-    select: { id: true, name: true, slug: true, community: { select: { slug: true } } },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      eventId: true,
+      community: { select: { slug: true } },
+    },
   });
   return new Map(achados.map((t) => [t.id, t]));
 }

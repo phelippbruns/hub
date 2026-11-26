@@ -214,6 +214,15 @@ export async function topicosDaComunidade(
      WHERE t.community_id = ${communityId}::uuid
        AND t.deleted_at IS NULL
        /*
+         RN38: **a lista da comunidade não mostra a conversa de um evento.**
+
+         É o filtro mais importante dos vinte, porque esta é a tela em que o
+         vazamento apareceria primeiro: todo encontro marcado viraria uma
+         linha na lista de tópicos, com o mesmo nome do evento, e a aba
+         Início passaria a repetir a aba Eventos.
+       */
+       AND t.event_id IS NULL
+       /*
          A busca olha o nome do tópico **e** o texto das contribuições
          (pedido do PO, 7 de novembro): quem lembra do assunto e não do
          título não achava nada.
@@ -345,8 +354,18 @@ async function contarContribuicoes(communityId: string, desde?: Date): Promise<n
         topic: { communityId, deletedAt: null },
       },
     }),
+    /*
+     * RN38: a conversa de um evento **não é contribuição de ninguém** — ela
+     * nasce por gatilho, sem ninguém escrever nada. Contá-la faria o número
+     * de atividade da comunidade subir só porque alguém marcou um encontro.
+     */
     prisma.topic.count({
-      where: { communityId, deletedAt: null, ...(quando ? { createdAt: quando } : {}) },
+      where: {
+        communityId,
+        deletedAt: null,
+        eventId: null,
+        ...(quando ? { createdAt: quando } : {}),
+      },
     }),
   ]);
 
@@ -562,6 +581,8 @@ export async function minhasComunidades(
                              AND a.deleted_at IS NULL
                              AND a.created_at >= now() - interval '24 hours'
               WHERE t.community_id = c.id AND t.deleted_at IS NULL
+                -- RN38: a conversa de um evento não conta como tópico ativo.
+                AND t.event_id IS NULL
            ) AS topicos_ativos,
            (m.pinned_at IS NOT NULL) AS fixada,
            (

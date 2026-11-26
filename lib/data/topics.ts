@@ -19,7 +19,7 @@ import { TOPICOS_POR_DIA } from "@/lib/topicos";
 import { avisar, avisarMarcados } from "./notificacoes";
 import { marcacoesDoTexto, marcacoesQueExistem } from "./marcacoes";
 import { EXPLORE_MIN_MEMBERS } from "./communities";
-import { enderecoDoTopico as paraOTopico } from "@/lib/rotas";
+import { enderecoDoEvento as paraOEvento, enderecoDoTopico as paraOTopico } from "@/lib/rotas";
 
 /**
  * RN08: a partir de quantas respostas de outras pessoas o autor não apaga.
@@ -66,6 +66,10 @@ export async function jaCrieiTopicoHoje(viewer: Viewer, communityId: string): Pr
      WHERE community_id = ${communityId}::uuid
        AND author_id = ${me}::uuid
        AND deleted_at IS NULL
+       -- RN38: a conversa de um evento não gasta vaga, e o aviso da tela tem
+       -- de dizer o mesmo que o gatilho topics_daily_limit. Sem isto, quem
+       -- marca três encontros vê "você já criou 10 hoje" sem ter escrito um.
+       AND event_id IS NULL
        AND cycle_date = hub_cycle_date(now())
   `;
   return linhas[0]?.existe ?? false;
@@ -99,6 +103,9 @@ export async function comunidadesSemVagaHoje(viewer: Viewer): Promise<Set<string
       FROM topics
      WHERE author_id = ${me}::uuid
        AND deleted_at IS NULL
+       -- RN38: conversa de evento não gasta vaga. Mesmo motivo de
+       -- jaCrieiTopicoHoje, e tem de concordar com ela.
+       AND event_id IS NULL
        AND cycle_date = hub_cycle_date(now())
      GROUP BY community_id
     HAVING count(*) >= ${TOPICOS_POR_DIA}
@@ -118,10 +125,25 @@ export async function comunidadesSemVagaHoje(viewer: Viewer): Promise<Set<string
  */
 export async function enderecoDoTopico(topicId: string): Promise<string | null> {
   const topico = await prisma.topic.findFirst({
+    /*
+     * conversa-de-evento: **este é o estrangulamento, e por isso ele não
+     * filtra — ele traduz.**
+     *
+     * Toda notificação, o cartão do Hot Topic e o endereço antigo
+     * `/topico/<id>` passam por aqui. A conversa de um evento pode vencer o
+     * Hot Topic (é decisão do PO: encontro que gera conversa é movimento), e
+     * nesse dia o destaque apontaria para `/c/<com>?t=evento:<id>` — um
+     * painel que não abre, porque `topicoPorEndereco` recusa a conversa.
+     *
+     * Devolver o endereço do evento é o conserto no lugar certo: um ponto só,
+     * e ele já é por onde tudo passa.
+     */
     where: { id: topicId, deletedAt: null, community: { deletedAt: null } },
-    select: { slug: true, community: { select: { slug: true } } },
+    select: { slug: true, eventId: true, community: { select: { slug: true } } },
   });
-  return topico ? paraOTopico(topico.community.slug, topico.slug) : null;
+  if (!topico) return null;
+  if (topico.eventId) return paraOEvento(topico.community.slug, topico.eventId);
+  return paraOTopico(topico.community.slug, topico.slug);
 }
 
 /**
@@ -197,6 +219,17 @@ export async function topicoPorEndereco(
     where: {
       slug: topico,
       deletedAt: null,
+      /*
+       * **RN38: a conversa de um evento não abre por endereço de tópico.**
+       *
+       * Há **um** caminho para ela, e é o evento. O slug dela existe porque a
+       * coluna é NOT NULL e tem índice único, não para ser visitado — e ele
+       * usa `:`, que `hub_slug()` não consegue gerar, então nenhum tópico
+       * comum colide. Sem este filtro, `/c/<com>/evento:<id>` abriria a
+       * conversa fora do contexto do encontro, sem data, sem lugar e sem o
+       * botão de confirmar presença.
+       */
+      eventId: null,
       community: { slug: comunidade, deletedAt: null },
     },
     select: { id: true },
@@ -230,6 +263,12 @@ export async function getTopicForViewer(
   const me = viewerProfileId(viewer);
 
   const topic = await prisma.topic.findFirst({
+    /*
+     * conversa-de-evento: esta é a leitura por id, e é ela que desenha a
+     * área de comentários de um encontro — filtrar aqui deixaria o evento
+     * sem conversa. Quem decide o que a pessoa pode ver é a permissão, como
+     * sempre; o `event_id` só decide onde a conversa **aparece**.
+     */
     where: { id: topicId, deletedAt: null, community: { deletedAt: null } },
     include: {
       author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
@@ -409,6 +448,9 @@ async function listAnswers(
    * único por comunidade, não no Hub inteiro.
    */
   const daComunidade = await prisma.topic.findUnique({
+    // conversa-de-evento: por id, e só para saber em que comunidade resolver
+    // as marcações. Comentário de evento marca gente e tópico como qualquer
+    // contribuição.
     where: { id: topicId },
     select: { communityId: true, community: { select: { slug: true } } },
   });
@@ -519,6 +561,8 @@ export async function deleteTopic(viewer: Viewer, topicId: string) {
   const me = requireProfileId(viewer);
 
   const topic = await prisma.topic.findFirst({
+    // conversa-de-evento: a moderação precisa alcançar a conversa de um
+    // encontro para apagá-la. Filtrar aqui criaria um canto do Hub sem lei.
     where: { id: topicId, deletedAt: null },
     select: { id: true, authorId: true, communityId: true },
   });
@@ -553,6 +597,9 @@ export async function createAnswer(viewer: Viewer, input: unknown) {
   const data = createAnswerSchema.parse(input);
 
   const topic = await prisma.topic.findFirst({
+    // conversa-de-evento: **comentar num evento é esta função.** O comentário
+    // é contribuição de verdade, e por isso ganha estrela, imagem, GIF, RN14
+    // e RN16 de graça. Filtrar aqui apagaria a feature inteira.
     where: { id: data.topicId, deletedAt: null },
     select: { communityId: true, authorId: true },
   });
@@ -608,6 +655,8 @@ export async function pessoasParaMarcar(
   const procurado = termo.trim().toLowerCase();
 
   const topico = await prisma.topic.findFirst({
+    // conversa-de-evento: por id, para saber de qual comunidade sugerir
+    // gente. Quem comenta num encontro marca quem está nele.
     where: { id: topicId, deletedAt: null },
     select: { communityId: true },
   });
@@ -768,7 +817,9 @@ export async function listTopicsOfCommunity(
   order: "answers" | "recent" = "answers",
 ) {
   const topics = await prisma.topic.findMany({
-    where: { communityId, deletedAt: null },
+    // RN38: a conversa do evento não entra na lista da comunidade. Ela é a
+    // área de comentários de um encontro, não um assunto aberto a todos.
+    where: { communityId, deletedAt: null, eventId: null },
     include: {
       author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
       _count: { select: { answers: { where: { deletedAt: null } } } },
@@ -853,6 +904,8 @@ export async function topicosParaMarcar(
   const procurado = termo.trim().toLowerCase();
 
   const atual = await prisma.topic.findFirst({
+    // conversa-de-evento: por id, só para achar a comunidade. O que **não**
+    // é sugerido está na consulta seguinte.
     where: { id: topicId, deletedAt: null },
     select: { communityId: true },
   });
@@ -862,6 +915,13 @@ export async function topicosParaMarcar(
     where: {
       communityId: atual.communityId,
       deletedAt: null,
+      /*
+       * RN38: o `*` não sugere a conversa de um evento, porque ela não tem
+       * endereço de tópico — a marcação viraria um link que dá 404, que é
+       * exatamente o que o analisador de marcações promete nunca fazer ("o
+       * que não existe continua texto").
+       */
+      eventId: null,
       id: { not: topicId },
       ...(procurado
         ? {

@@ -49,6 +49,29 @@ export function enderecoParaCompartilharTopico(comunidade: string, topico: strin
 }
 
 /**
+ * **Navegar** até um evento: a aba Eventos com o encontro aberto no centro.
+ *
+ * Mora aqui pelo mesmo motivo que o endereço de tópico: eram catorze lugares
+ * montando o do tópico à mão, e o perigo nunca é trocar catorze strings — é
+ * a décima quinta, que nasce na feature seguinte. Um link para o endereço
+ * errado **não quebra nada**: ele mostra a lista e leva a pessoa pelo caminho
+ * longo, sem erro e sem teste vermelho.
+ *
+ * A aba vai junto, e não é enfeite: sem ela a pílula acesa seria o Início
+ * enquanto o centro mostra um encontro, e voltar à lista deixaria de ser um
+ * clique.
+ *
+ * **Não existe endereço canônico de evento ainda** — nada de
+ * `enderecoParaCompartilharEvento`. Ele exigiria rota de caminho, que custa
+ * pasta nova ao lado de `[topico]`, entrada nas duas listas de slugs
+ * reservados e a renumeração dos tópicos que já existem. Está fora de escopo
+ * de propósito, e registrado no plano.
+ */
+export function enderecoDoEvento(comunidade: string, evento: string): string {
+  return `/c/${comunidade}?aba=eventos&evento=${encodeURIComponent(evento)}`;
+}
+
+/**
  * O perfil de alguém — **e o seu tem endereço próprio**.
  *
  * `/perfil` e `/<handle>` mostram a mesma tela, e quem abre o próprio @ é

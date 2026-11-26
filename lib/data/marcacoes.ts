@@ -51,7 +51,14 @@ export async function marcacoesQueExistem(
     topicos.size === 0 || !communityId
       ? []
       : prisma.topic.findMany({
-          where: { slug: { in: [...topicos] }, communityId, deletedAt: null },
+          /*
+           * RN38: o `*` nunca resolve para a conversa de um evento. O slug
+           * dela usa `:`, que o analisador de marcações não aceita, então
+           * isto é cinto e suspensório — e é de propósito: a promessa do
+           * analisador é "o que não existe continua texto", nunca link
+           * quebrado.
+           */
+          where: { slug: { in: [...topicos] }, communityId, deletedAt: null, eventId: null },
           select: { slug: true },
         }),
   ]);

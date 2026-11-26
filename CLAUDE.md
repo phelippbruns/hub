@@ -507,7 +507,12 @@ denunciou nada. O alvo `message` do enum existe e fica sem uso de propósito.
 
 **`DIRECT_URL` é o pooler de sessão, não a conexão direta.** `db.PROJETO.supabase.co` só responde em IPv6, e ambientes de build como a Vercel são IPv4: de lá ela falha com `P1001: Can't reach database server`. Funciona da máquina de quem tem IPv6, que é como o erro passa despercebido.
 
-**`updated_at` não tem valor padrão no banco.** O `@updatedAt` do Prisma é preenchido pelo cliente, então todo `INSERT` em SQL cru precisa escrever a coluna.
+**Nenhum default do Prisma existe no banco.** `@default(uuid())` e
+`@updatedAt` são preenchidos pelo **cliente**; as colunas `id` e
+`updated_at` não têm default nenhum no Postgres. Todo `INSERT` em SQL cru —
+seed, gatilho, migration — precisa escrever as duas, e o `id` sai de
+`gen_random_uuid()`. A regra era escrita só para o `updated_at`, e o `id`
+cobrou em 25 de novembro de 2026, num gatilho.
 
 **Build verde não é app no ar.** A Vercel marca o deploy como bem-sucedido quando o código compila, não quando o app responde. Da F01 à F03 ela publicou a pasta `public/` como site estático enquanto o Next.js compilado era descartado: toda rota dava 404, com o sinal verde o tempo todo.
 
@@ -550,6 +555,33 @@ e a tela 16 do escopo, o atalho da barra lateral e os links de Primeiros
 passos apontam todos para lá. O botão e a janela moram no mesmo componente
 porque o estado de aberto é um só; separados, abrir custaria uma volta ao
 servidor ou um contexto.
+
+**Todo evento tem uma conversa por baixo, e ela é invisível na lista.**
+`topics.event_id` liga as duas, e um gatilho cria a conversa junto com o
+evento — no banco porque o seed escreve SQL cru, e evento sem conversa seria
+evento sem área de comentários. **O evento é dono do texto**: nome, abertura e
+autor da conversa são cópia derivada, escritos só por gatilho, porque dois
+donos para o mesmo texto é divergência com data marcada.
+
+Esconder é um predicado — `eventId: null` no Prisma, `event_id IS NULL` no
+SQL — e **predicado é coisa que se esquece**. Quem garante é a varredura
+[lib/data/conversa-de-evento.test.ts](lib/data/conversa-de-evento.test.ts),
+que usa o parser do TypeScript e exige, de toda leitura de `topics`, ou o
+filtro ou o motivo escrito **no ponto da consulta**, como
+`conversa-de-evento: <motivo>`. Lista central de exceções envelheceria na
+primeira edição; o motivo ao lado da consulta viaja com ela.
+
+Quem **não** filtra, de propósito: a **eleição** do Hot Topic (encontro que
+gera conversa é movimento, e movimento é o que o ciclo mede), a **moderação**
+inteira (denúncia tem de chegar na fila) e as **leituras por id**, que são as
+que fazem a área de comentários existir. A **exibição** do Hot Topic filtra, e
+isso é diferente da eleição: o cartão leva a `?t=<slug>`, e o slug da conversa
+é `evento:<id>`, um painel que não abre.
+
+E **o slug da conversa não é porta**: ele existe porque a coluna exige, usa
+`:` — que `hub_slug()` não consegue gerar, então nenhum nome digitado por
+gente colide — e `/c/<comunidade>/evento:<id>` dá 404. Há **um** caminho para
+a conversa, e é o evento.
 
 **A mídia da contribuição é 213 × 213, e o espaço existe antes dela.**
 `answers` guarda `media_width`, `media_height` e, só para GIF,

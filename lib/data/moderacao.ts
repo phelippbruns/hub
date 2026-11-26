@@ -92,6 +92,10 @@ async function comunidadeDaDenuncia(me: string, alvo: AlvoDaDenuncia): Promise<s
 
   if (alvo.tipo === "topic") {
     const topico = await prisma.topic.findFirst({
+      // conversa-de-evento: **a moderação nunca filtra.** Denúncia feita num
+      // comentário de encontro tem de chegar na fila, senão a área de
+      // comentários é um canto do Hub sem lei. Vale para as três leituras
+      // deste arquivo.
       where: { id: alvo.id, deletedAt: null },
       select: { communityId: true },
     });
@@ -229,6 +233,8 @@ async function descreverAlvo(tipo: string, id: string): Promise<DenunciaNaFila["
 
   if (tipo === "topic") {
     const topico = await prisma.topic.findUnique({
+      // conversa-de-evento: o trecho denunciado precisa ser mostrado a quem
+      // julga, seja ele de um tópico ou da conversa de um encontro.
       where: { id },
       select: {
         name: true,
@@ -379,7 +385,12 @@ async function autorDoAlvo(tipo: string, id: string): Promise<string | null> {
     return resposta?.authorId ?? null;
   }
   if (tipo === "topic") {
-    const topico = await prisma.topic.findUnique({ where: { id }, select: { authorId: true } });
+    const topico = await prisma.topic.findUnique({
+      // conversa-de-evento: quem responde pela conversa é o anfitrião, e a
+      // moderação tem de poder alcançá-lo.
+      where: { id },
+      select: { authorId: true },
+    });
     return topico?.authorId ?? null;
   }
   return null;
